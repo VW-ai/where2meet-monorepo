@@ -1,0 +1,10 @@
+.next
+node_modules
+out
+dist
+build
+.turbo
+*.lock
+package-lock.json
+UlTIMATE-REFERENCE
+META
