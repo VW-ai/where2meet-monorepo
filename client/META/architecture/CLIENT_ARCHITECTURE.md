@@ -1,7 +1,9 @@
 # Where2Meet - Client Architecture
 
-> **Frontend-Only Application**
-> Next.js 14 App Router | TypeScript | Tailwind CSS | Google Maps | External Backend API
+> **Client-Only Application with Mock Server**
+> Next.js 16 App Router | TypeScript | Tailwind CSS | Google Maps | Mock Backend (File-Persisted Data)
+>
+> **Note**: This repository contains only the frontend. All backend functionality is mocked using Next.js API routes with file-based persistence for development and testing. See [API_SPEC.md](API_SPEC.md) for details on the mock server strategy.
 
 ## Table of Contents
 1. [Project Structure Overview](#project-structure-overview)
@@ -9,7 +11,7 @@
 3. [File Naming Conventions](#file-naming-conventions)
 4. [Component Organization](#component-organization)
 5. [State Management](#state-management)
-6. [API Integration with External Backend](#api-integration-with-external-backend)
+6. [API Integration & Mock Data Layer](#api-integration--mock-data-layer)
 7. [Configuration Files](#configuration-files)
 
 ---
@@ -18,6 +20,7 @@
 
 ```
 where2meet-v1.0-client/
+├── .mock-data/                 # File-persisted mock data (gitignored)
 ├── .next/                      # Next.js build output (auto-generated)
 ├── node_modules/               # Dependencies (auto-generated)
 ├── public/                     # Static assets
@@ -29,7 +32,29 @@ where2meet-v1.0-client/
 │   └── fonts/                  # Custom fonts (if any)
 │
 ├── src/
-│   ├── app/                    # Next.js 14 App Router (Pages Only)
+│   ├── app/                    # Next.js 16 App Router
+│   │   ├── api/                # Next.js API Routes (Mock Server)
+│   │   │   ├── events/
+│   │   │   │   ├── route.ts           # POST /api/events
+│   │   │   │   └── [id]/
+│   │   │   │       ├── route.ts       # GET/PATCH/DELETE /api/events/:id
+│   │   │   │       └── participants/
+│   │   │   │           ├── route.ts   # POST /api/events/:id/participants
+│   │   │   │           └── [participantId]/
+│   │   │   │               └── route.ts # PATCH/DELETE participants
+│   │   │   │
+│   │   │   ├── venues/
+│   │   │   │   ├── search/
+│   │   │   │   │   └── route.ts       # POST /api/venues/search
+│   │   │   │   └── [id]/
+│   │   │   │       └── route.ts       # GET /api/venues/:id
+│   │   │   │
+│   │   │   ├── geocode/
+│   │   │   │   └── route.ts           # POST /api/geocode
+│   │   │   │
+│   │   │   └── directions/
+│   │   │       └── route.ts           # POST /api/directions
+│   │   │
 │   │   ├── (landing)/          # Route group - Landing page
 │   │   │   ├── page.tsx        # Landing page (/)
 │   │   │   └── layout.tsx      # Landing-specific layout
@@ -112,30 +137,20 @@ where2meet-v1.0-client/
 │   │       ├── cat-feet.tsx
 │   │       └── cat-avatar.tsx
 │   │
-│   ├── lib/                    # Utility functions and helpers
-│   │   ├── api/                # API client for external backend
-│   │   │   ├── client.ts       # Main API client (switches mock/real)
-│   │   │   ├── mock-client.ts  # Mock API implementation
-│   │   │   ├── endpoints.ts    # API endpoint constants
-│   │   │   ├── events.ts       # Event API calls
-│   │   │   ├── participants.ts # Participant API calls
-│   │   │   ├── venues.ts       # Venue API calls
-│   │   │   └── places.ts       # Google Places API wrapper (client-side)
+│   ├── mock-server/            # Mock backend implementation
+│   │   ├── data/               # Static seed data
+│   │   │   └── venues.ts       # Pre-seeded venue data
 │   │   │
-│   │   ├── mock/               # Mock data layer (for development)
-│   │   │   ├── data/           # Static mock data
-│   │   │   │   ├── events.ts   # Sample events
-│   │   │   │   ├── participants.ts # Sample participants
-│   │   │   │   ├── venues.ts   # Sample venues
-│   │   │   │   └── index.ts    # Export all mock data
-│   │   │   │
-│   │   │   ├── handlers/       # Mock API route handlers (optional)
-│   │   │   │   ├── events.ts   # Event CRUD handlers
-│   │   │   │   ├── participants.ts # Participant handlers
-│   │   │   │   ├── venues.ts   # Venue search handlers
-│   │   │   │   └── geocoding.ts # Geocoding mock
-│   │   │   │
-│   │   │   └── store.ts        # In-memory mock data store
+│   │   ├── services/           # Mock server services
+│   │   │   ├── geocoding.ts    # Google Maps Geocoding API integration
+│   │   │   └── persistence.ts  # File-based persistence layer
+│   │   │
+│   │   └── store.ts            # In-memory data store with file persistence
+│   │
+│   ├── lib/                    # Utility functions and helpers
+│   │   ├── api/                # API client
+│   │   │   ├── client.ts       # Main API client (HTTP fetch wrapper)
+│   │   │   └── mock-client.ts  # Legacy in-memory mock (not used)
 │   │   │
 │   │   ├── map/                # Map utilities
 │   │   │   ├── calculate-mec.ts        # Minimum Enclosing Circle algorithm
@@ -241,9 +256,9 @@ public/
 
 ---
 
-### `/src/app/` - Next.js 14 App Router (Pages Only)
+### `/src/app/` - Next.js 16 App Router
 
-Client-side pages using the App Router. **No API routes** - all backend calls go to external API.
+Client-side pages and API routes using the App Router. API routes provide a mock backend for development.
 
 #### Route Groups
 
