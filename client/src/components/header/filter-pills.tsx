@@ -43,13 +43,13 @@ export function FilterPills() {
   };
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
+    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full py-1">
       {CATEGORY_FILTERS.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           onClick={() => handleCategoryClick(id)}
           className={cn(
-            'flex items-center gap-2 px-3 md:px-4 py-2 md:py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2',
+            'flex items-center gap-2 px-3 md:px-4 py-2 md:py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-coral-500',
             selectedCategory === id
               ? 'bg-coral-500 text-white shadow-md border-2 border-coral-500'
               : 'bg-white text-foreground border-2 border-border hover:border-coral-500 hover:bg-coral-50'
