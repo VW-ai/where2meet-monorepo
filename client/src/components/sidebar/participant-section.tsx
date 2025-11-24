@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useMeetingStore } from '@/store/useMeetingStore';
-import { Users, Plus, EyeOff } from 'lucide-react';
+import { Users, Plus } from 'lucide-react';
 import { AddParticipant, type ParticipantFormData } from './participant/add-participant';
+import { ParticipantPill } from './participant/participant-pill';
 import { geocodeAddress } from '@/lib/api/mock/geocoding';
 import { getRandomColor } from '@/lib/utils/participant-colors';
 import { applyFuzzyOffset } from '@/lib/utils/location';
@@ -92,41 +93,9 @@ export function ParticipantSection() {
 
       {/* Participant List */}
       {participantCount > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground px-2">
-            {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
-          </p>
+        <div className="space-y-3">
           {currentEvent?.participants?.map((participant) => (
-            <div
-              key={participant.id}
-              className="p-3 rounded-lg bg-gray-50 border border-border hover:border-coral-300 transition-colors"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium text-foreground">{participant.name}</p>
-                    {participant.fuzzyLocation && (
-                      <span className="inline-flex items-center" title="Fuzzy location enabled">
-                        <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {participant.fuzzyLocation ? 'Approximate location' : participant.address}
-                  </p>
-                </div>
-                <div
-                  className={`w-8 h-8 rounded-full ${participant.color} flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 ml-3`}
-                >
-                  {participant.name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .toUpperCase()
-                    .slice(0, 2)}
-                </div>
-              </div>
-            </div>
+            <ParticipantPill key={participant.id} participant={participant} />
           ))}
         </div>
       )}
