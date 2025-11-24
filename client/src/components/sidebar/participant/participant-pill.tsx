@@ -2,10 +2,12 @@
 
 import { MapPin, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { TravelTimeBubble } from './travel-time-bubble';
 import type { Participant } from '@/types';
 
 interface ParticipantPillProps {
   participant: Participant;
+  travelTime?: string;
   onClick?: () => void;
 }
 
@@ -18,7 +20,7 @@ const getInitials = (name: string): string => {
     .slice(0, 2);
 };
 
-export function ParticipantPill({ participant, onClick }: ParticipantPillProps) {
+export function ParticipantPill({ participant, travelTime, onClick }: ParticipantPillProps) {
   const initials = getInitials(participant.name);
 
   return (
@@ -108,7 +110,7 @@ export function ParticipantPill({ participant, onClick }: ParticipantPillProps) 
             </div>
           </div>
 
-          {/* --- FEET --- 
+          {/* --- FEET ---
              Moved inside the pill container, absolutely positioned at the bottom.
              They now look like paws holding the border.
           */}
@@ -117,6 +119,9 @@ export function ParticipantPill({ participant, onClick }: ParticipantPillProps) 
             <div className="w-2.5 h-1.5 rounded-b-full bg-border border border-t-0 border-black/10" />
           </div>
         </div>
+
+        {/* Travel Time Bubble - appears when venue is selected */}
+        <TravelTimeBubble travelTime={travelTime || ''} isVisible={!!travelTime} />
       </div>
     </div>
   );

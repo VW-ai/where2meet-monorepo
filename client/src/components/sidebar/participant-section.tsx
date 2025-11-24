@@ -10,8 +10,20 @@ import { getRandomColor } from '@/lib/utils/participant-colors';
 import { applyFuzzyOffset } from '@/lib/utils/location';
 import type { Participant } from '@/types';
 
+/**
+ * Get mock travel time for participant when venue is selected
+ * TODO: Replace with real API call to Directions API
+ */
+const getMockTravelTime = (participantId: string, venueId: string): string => {
+  const times = ['5 min', '12 min', '8 min', '15 min', '20 min', '7 min', '18 min', '3 min'];
+  const hash = (participantId + venueId)
+    .split('')
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return times[hash % times.length];
+};
+
 export function ParticipantSection() {
-  const { currentEvent, addParticipant } = useMeetingStore();
+  const { currentEvent, addParticipant, selectedVenue } = useMeetingStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -95,7 +107,13 @@ export function ParticipantSection() {
       {participantCount > 0 && (
         <div className="space-y-3">
           {currentEvent?.participants?.map((participant) => (
-            <ParticipantPill key={participant.id} participant={participant} />
+            <ParticipantPill
+              key={participant.id}
+              participant={participant}
+              travelTime={
+                selectedVenue ? getMockTravelTime(participant.id, selectedVenue.id) : undefined
+              }
+            />
           ))}
         </div>
       )}
