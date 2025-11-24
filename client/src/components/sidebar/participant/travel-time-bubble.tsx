@@ -13,13 +13,7 @@ export function TravelTimeBubble({ travelTime, isVisible, className }: TravelTim
   if (!isVisible) return null;
 
   return (
-    <div
-      className={cn(
-        'absolute -right-2 top-1/2 -translate-y-1/2 translate-x-full ml-2 z-10',
-        'animate-in fade-in slide-in-from-left-2 duration-200',
-        className
-      )}
-    >
+    <div className={cn('relative animate-in fade-in slide-in-from-left-2 duration-200', className)}>
       <div className="relative">
         {/* Connector triangle pointing left */}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full">

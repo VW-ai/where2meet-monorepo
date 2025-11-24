@@ -72,17 +72,23 @@ export default function MeetPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Header - 10% height */}
-      <Header eventId={eventId} />
-
-      {/* Main Content - 90% height */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - 30% width on desktop, full width on mobile */}
-        <Sidebar />
-
-        {/* Map Area - 70% width on desktop, full width on mobile */}
+    <div className="relative h-screen w-screen overflow-hidden">
+      {/* Map - Full Screen Background */}
+      <div className="absolute inset-0">
         <MapArea />
+      </div>
+
+      {/* Floating UI Components */}
+      <div className="relative z-10 h-full w-full pointer-events-none">
+        {/* Header - Floating at top */}
+        <div className="pointer-events-auto">
+          <Header eventId={eventId} />
+        </div>
+
+        {/* Sidebar - Floating overlay (bottom on mobile, left on desktop) */}
+        <div className="pointer-events-auto fixed bottom-0 left-0 right-0 h-[50vh] md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
+          <Sidebar />
+        </div>
       </div>
     </div>
   );

@@ -85,7 +85,7 @@ export function ParticipantSection() {
       {!showAddForm && (
         <button
           onClick={() => setShowAddForm(true)}
-          className="w-full px-4 py-3 bg-white border-2 border-dashed border-border hover:border-coral-500 hover:bg-coral-50 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-coral-600"
+          className="w-full px-4 py-3 bg-white/90 backdrop-blur-sm border-2 border-border shadow-lg hover:shadow-xl hover:bg-coral-50/90 hover:border-coral-500 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-coral-600"
         >
           <Plus className="w-4 h-4" />
           Add Participant
@@ -94,7 +94,7 @@ export function ParticipantSection() {
 
       {/* Add Participant Form */}
       {showAddForm && (
-        <div className="p-4 bg-white border-2 border-coral-500 rounded-xl shadow-sm">
+        <div className="p-4 bg-white/95 backdrop-blur-md rounded-xl shadow-xl ring-2 ring-coral-500/30">
           <AddParticipant
             onSubmit={handleAddParticipant}
             onCancel={() => setShowAddForm(false)}
@@ -105,7 +105,7 @@ export function ParticipantSection() {
 
       {/* Participant List */}
       {participantCount > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-visible">
           {currentEvent?.participants?.map((participant) => (
             <ParticipantPill
               key={participant.id}

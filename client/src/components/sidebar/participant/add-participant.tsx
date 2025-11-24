@@ -130,11 +130,11 @@ export function AddParticipant({
             disabled={isSubmitting}
             className={cn(
               'w-full px-4 py-2.5 pr-12 text-sm',
-              'bg-white border-2 rounded-xl',
-              'focus:outline-none focus:border-coral-500 focus:ring-2 focus:ring-coral-500/20',
+              'bg-white/80 backdrop-blur-sm rounded-xl shadow-md',
+              'focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-coral-500/20',
               'transition-all duration-200',
               'placeholder:text-muted-foreground',
-              errors.name ? 'border-red-500' : 'border-border',
+              errors.name && 'ring-2 ring-red-500',
               isSubmitting && 'opacity-50 cursor-not-allowed'
             )}
           />
@@ -206,10 +206,12 @@ export function AddParticipant({
           disabled={isSubmitting}
           className={cn(
             'w-full flex items-center gap-3 px-4 py-3 text-sm',
-            'bg-white border-2 rounded-xl',
+            'rounded-xl',
             'transition-all duration-200',
             'focus:outline-none focus:ring-2 focus:ring-coral-500/20',
-            fuzzyLocation ? 'border-coral-500 bg-coral-50' : 'border-border',
+            fuzzyLocation
+              ? 'shadow-xl ring-2 ring-coral-500/30 bg-coral-50/90 backdrop-blur-sm'
+              : 'bg-white/80 backdrop-blur-sm shadow-md hover:shadow-lg',
             isSubmitting && 'opacity-50 cursor-not-allowed'
           )}
           aria-label={fuzzyLocation ? 'Disable fuzzy location' : 'Enable fuzzy location'}
@@ -265,8 +267,8 @@ export function AddParticipant({
             disabled={isSubmitting}
             className={cn(
               'px-4 py-2.5 text-sm font-medium',
-              'bg-white text-foreground border-2 border-border rounded-full',
-              'hover:border-coral-500 hover:bg-coral-50',
+              'bg-white/80 backdrop-blur-sm text-foreground shadow-md rounded-full',
+              'hover:shadow-lg hover:bg-coral-50/90',
               'transition-all duration-200',
               'focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2',
               'disabled:opacity-50 disabled:cursor-not-allowed'

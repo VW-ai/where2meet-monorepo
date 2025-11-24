@@ -132,8 +132,8 @@ export function AddressAutocomplete({
           disabled={disabled}
           className={cn(
             'w-full px-4 py-2.5 pl-10 pr-4 text-sm',
-            'bg-white border-2 border-border rounded-xl',
-            'focus:outline-none focus:border-coral-500 focus:ring-2 focus:ring-coral-500/20',
+            'bg-white/80 backdrop-blur-sm rounded-xl shadow-md',
+            'focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-coral-500/20',
             'transition-all duration-200',
             'placeholder:text-muted-foreground',
             disabled && 'opacity-50 cursor-not-allowed',
@@ -152,7 +152,7 @@ export function AddressAutocomplete({
 
       {/* Dropdown Suggestions */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border-2 border-border rounded-xl shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-md rounded-xl shadow-xl max-h-60 overflow-y-auto">
           {predictions.length > 0 ? (
             <ul className="py-2">
               {predictions.map((prediction, index) => (

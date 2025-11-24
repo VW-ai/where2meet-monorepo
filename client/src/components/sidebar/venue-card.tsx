@@ -1,5 +1,6 @@
 'use client';
 
+import { useMeetingStore } from '@/store/useMeetingStore';
 import type { Venue } from '@/types';
 import { MapPin, Star, Clock } from 'lucide-react';
 
@@ -8,9 +9,16 @@ interface VenueCardProps {
 }
 
 export function VenueCard({ venue }: VenueCardProps) {
+  const { selectedVenue, setSelectedVenue } = useMeetingStore();
+  const isSelected = selectedVenue?.id === venue.id;
+
   const handleClick = () => {
-    // TODO: Open venue details modal/slide-out
-    console.log('Venue clicked:', venue.id);
+    // Toggle venue selection
+    if (isSelected) {
+      setSelectedVenue(null);
+    } else {
+      setSelectedVenue(venue);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -22,17 +30,18 @@ export function VenueCard({ venue }: VenueCardProps) {
 
   return (
     <div
-      className="
-        p-4 rounded-xl border-2 border-border
-        bg-white hover:border-coral-500 hover:shadow-md
+      className={`
+        p-4 rounded-xl
+        ${isSelected ? 'bg-coral-50/90 backdrop-blur-sm shadow-xl ring-2 ring-coral-500/30' : 'bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-xl'}
         transition-all duration-200 cursor-pointer
         group
         focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2
-      "
+      `}
       role="button"
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      aria-pressed={isSelected}
     >
       {/* Venue Name */}
       <h3 className="font-semibold text-foreground group-hover:text-coral-500 transition-colors">

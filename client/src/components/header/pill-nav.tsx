@@ -12,7 +12,7 @@ export function PillNav() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { activeView, setActiveView } = useUIStore();
+  const { activeView, setActiveView, isSidebarVisible, toggleSidebar, showSidebar } = useUIStore();
 
   // Sync URL params with store on mount
   useEffect(() => {
@@ -23,12 +23,19 @@ export function PillNav() {
   }, [searchParams, setActiveView]);
 
   const handleViewChange = (view: ActiveView) => {
-    setActiveView(view);
+    // If clicking on the same view that's already active and sidebar is visible, toggle it
+    if (activeView === view && isSidebarVisible) {
+      toggleSidebar();
+    } else {
+      // Otherwise, set the view and ensure sidebar is visible
+      setActiveView(view);
+      showSidebar();
 
-    // Update URL query params
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('view', view);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      // Update URL query params
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('view', view);
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    }
   };
 
   return (
@@ -55,7 +62,7 @@ export function PillNav() {
           onClick={() => handleViewChange('venue')}
           className={cn(
             'flex items-center gap-2 px-3 md:px-4 py-2 md:py-2 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2',
-            activeView === 'venue'
+            activeView === 'venue' && isSidebarVisible
               ? 'bg-coral-500 text-white shadow-sm'
               : 'bg-white text-foreground border-2 border-border hover:border-coral-500 hover:bg-coral-50'
           )}
@@ -69,7 +76,7 @@ export function PillNav() {
           onClick={() => handleViewChange('participant')}
           className={cn(
             'flex items-center gap-2 px-3 md:px-4 py-2 md:py-2 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2',
-            activeView === 'participant'
+            activeView === 'participant' && isSidebarVisible
               ? 'bg-coral-500 text-white shadow-sm'
               : 'bg-white text-foreground border-2 border-border hover:border-coral-500 hover:bg-coral-50'
           )}
@@ -101,7 +108,7 @@ export function PillNav() {
           onClick={() => handleViewChange('venue')}
           className={cn(
             'p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2',
-            activeView === 'venue'
+            activeView === 'venue' && isSidebarVisible
               ? 'bg-coral-500 text-white'
               : 'bg-white text-muted-foreground border border-border'
           )}
@@ -114,7 +121,7 @@ export function PillNav() {
           onClick={() => handleViewChange('participant')}
           className={cn(
             'p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2',
-            activeView === 'participant'
+            activeView === 'participant' && isSidebarVisible
               ? 'bg-coral-500 text-white'
               : 'bg-white text-muted-foreground border border-border'
           )}

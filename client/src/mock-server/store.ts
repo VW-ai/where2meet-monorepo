@@ -25,14 +25,17 @@ class MockDataStore {
    */
   private initialize() {
     try {
+      console.log('[MockStore] Initializing mock store...');
       const data = loadDataSync();
+      console.log('[MockStore] Loaded data from file:', Object.keys(data.events).length, 'events');
       // Restore events from persisted data
       Object.entries(data.events).forEach(([id, event]) => {
         this.events.set(id, event);
+        console.log('[MockStore] Restored event:', id);
       });
-      console.log(`[MockStore] Loaded ${this.events.size} events from persistence`);
+      console.log(`[MockStore] ✓ Loaded ${this.events.size} events from persistence`);
     } catch (error) {
-      console.error('[MockStore] Failed to load persisted data:', error);
+      console.error('[MockStore] ✗ Failed to load persisted data:', error);
     }
   }
 
@@ -82,7 +85,12 @@ class MockDataStore {
   }
 
   getEvent(id: string): Event | undefined {
-    return this.events.get(id);
+    console.log('[MockStore] getEvent called for:', id);
+    console.log('[MockStore] Total events in store:', this.events.size);
+    console.log('[MockStore] Available event IDs:', Array.from(this.events.keys()));
+    const event = this.events.get(id);
+    console.log('[MockStore] Event found:', event ? 'YES' : 'NO');
+    return event;
   }
 
   updateEvent(id: string, updates: Partial<Event>): Event | undefined {

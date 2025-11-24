@@ -8,6 +8,12 @@ interface UIStore {
   activeView: ActiveView;
   setActiveView: (view: ActiveView) => void;
 
+  // Sidebar visibility
+  isSidebarVisible: boolean;
+  toggleSidebar: () => void;
+  showSidebar: () => void;
+  hideSidebar: () => void;
+
   // Category filter
   selectedCategory: CategoryFilter;
   setSelectedCategory: (category: CategoryFilter) => void;
@@ -46,6 +52,12 @@ export const useUIStore = create<UIStore>((set) => ({
   // View state
   activeView: 'participant',
   setActiveView: (view) => set({ activeView: view }),
+
+  // Sidebar visibility
+  isSidebarVisible: true,
+  toggleSidebar: () => set((state) => ({ isSidebarVisible: !state.isSidebarVisible })),
+  showSidebar: () => set({ isSidebarVisible: true }),
+  hideSidebar: () => set({ isSidebarVisible: false }),
 
   // Filter state
   selectedCategory: null,

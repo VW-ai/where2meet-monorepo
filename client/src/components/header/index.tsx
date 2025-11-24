@@ -10,15 +10,17 @@ interface HeaderProps {
 
 export function Header({ eventId }: HeaderProps) {
   return (
-    <header className="h-[10vh] min-h-[60px] border-b border-border">
-      <div className="h-full flex items-center">
-        {/* Left: PillNav (Logo + View Toggles) - 30% (matches sidebar) */}
-        <div className="w-full md:w-[30%] lg:w-[35%] xl:w-[30%] px-4 md:px-6">
+    /* I removed the padding here so the elements float closer to the edges, 
+       but you can add p-3 md:p-4 back if you want spacing from the window edge */
+    <header className="h-[10vh] min-h-[60px] w-full z-50">
+      <div className="h-full w-full bg-transparent flex items-center px-4 md:px-6">
+        {/* Left: PillNav (Logo + View Toggles) */}
+        <div className="flex-shrink-0 pr-4 md:pr-6">
           <PillNav />
         </div>
 
-        {/* Right: Filter Pills + Actions - 70% */}
-        <div className="flex-1 px-4 md:px-6 flex items-center justify-between gap-4">
+        {/* Right: Filter Pills + Actions */}
+        <div className="flex-1 flex items-center justify-between gap-4 min-w-0">
           {/* Center: Filter Pills */}
           <div className="flex-1 flex items-center justify-center overflow-hidden">
             <FilterPills />

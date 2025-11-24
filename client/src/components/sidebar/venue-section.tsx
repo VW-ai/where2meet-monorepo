@@ -106,7 +106,7 @@ export function VenueSection() {
 
       {/* Error State */}
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+        <div className="p-4 rounded-lg bg-red-50 shadow-lg">
           <p className="text-sm text-red-600">{error}</p>
         </div>
       )}
