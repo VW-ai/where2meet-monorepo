@@ -11,7 +11,9 @@
     "lint:fix": "eslint 'src/**/*.{ts,tsx}' --fix",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
-    "test": "echo \"No tests yet\" && exit 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "prepare": "husky"
   },
   "repository": {
@@ -26,6 +28,7 @@
   },
   "homepage": "https://github.com/VW-ai/Where2meet-v1.0-client#readme",
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.0.2",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-slot": "^1.2.4",
@@ -49,6 +52,7 @@
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.47.0",
     "@typescript-eslint/parser": "^8.47.0",
+    "@vitest/ui": "^4.0.13",
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.3",
@@ -58,7 +62,8 @@
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.17",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.13"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

@@ -8,7 +8,7 @@
 import { Event, Participant, Venue, Location } from '@/types';
 import { MOCK_VENUES } from './data/venues';
 import { geocodeAddress, calculateDistance } from './services/geocoding';
-import { loadDataSync, saveData } from './services/persistence';
+import { loadDataSync, saveData, saveDataSync } from './services/persistence';
 
 class MockDataStore {
   private events: Map<string, Event> = new Map();
@@ -73,8 +73,11 @@ class MockDataStore {
     };
     this.events.set(newEvent.id, newEvent);
     console.log('[MockStore] Event created:', newEvent.id);
-    // Persist to file (fire and forget)
-    this.persist();
+    // Persist synchronously to ensure event is immediately available
+    const persistData = {
+      events: Object.fromEntries(this.events),
+    };
+    saveDataSync(persistData);
     return newEvent;
   }
 

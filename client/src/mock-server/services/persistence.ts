@@ -78,6 +78,14 @@ export async function saveData(data: PersistedData): Promise<void> {
 }
 
 /**
+ * Save data to file (synchronous - for critical operations)
+ */
+export function saveDataSync(data: PersistedData): void {
+  ensureDataDirSync();
+  fs.writeFileSync(EVENTS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+/**
  * Clear all persisted data
  */
 export async function clearData(): Promise<void> {
