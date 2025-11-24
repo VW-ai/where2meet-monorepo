@@ -43,7 +43,7 @@ export function FilterPills() {
   };
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full py-1">
+    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full py-1 px-1">
       {CATEGORY_FILTERS.map(({ id, label, icon: Icon }) => (
         <button
           key={id}

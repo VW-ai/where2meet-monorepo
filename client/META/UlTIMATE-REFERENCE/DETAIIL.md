@@ -51,7 +51,8 @@ Mascot is a Cat
         - (Organizer view): Have an add button, just + , the same width with the list component. On click shows the **“Add participant” component;**
     - **Section 2(if clicked on the Venue in the Top left Pill search component): Venue List:**
         - Travel Type filter: Car, Transit, Walk, Bike (After applying or changing travel type filter, the participant icon in the **Top left Pill nav component will flash 3 times, to remind the user that he can check out the participant section for changes**)
-        - Search pill bar with autocompletion
+        - Search pill bar with autocompletion, when click on the search it will extend and take up the whole bar
+        - Saved Button on the side of the search pill bar, when click on the save it will extend and take up the whole bar
         - After search, Scrollable list of venues (e.g., "Planet Fitness").
         - **Venue Detail :** Rating (4.7 stars), Open/Close hours (e.g., "Open Closes 12am"), and facility picture.
         - Venue Vote button
@@ -59,7 +60,9 @@ Mascot is a Cat
         - on click of the venue, **Venue Info Component** will slide out on its right
     - **Venue Info Component:**
         - Venue Title, with its picture as its background
-        - Ratings, Voting nums, address, About, Open Hours, Google Map button that redirect to google map
+        - Ratings, address, About, Open Hours, Google Map button that redirect to google map
+    - **Voted/saved venue Info Component:**
+        - **Venue Details and voting num, sorted by voting num**
     - on the first join of the user, it will be default on participant sections with **Add participant component**
 - **Component: Map Area (Right Panel)**
     - **Markers:**
