@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMeetingStore } from '@/store/useMeetingStore';
-import { Users, Plus } from 'lucide-react';
+import { useMapStore } from '@/store/map-store';
+import { useUIStore } from '@/store/ui-store';
+import { Users, Plus, BarChart3 } from 'lucide-react';
 import { AddParticipant, type ParticipantFormData } from './participant/add-participant';
 import { ParticipantPill } from './participant/participant-pill';
 import { geocodeAddress } from '@/lib/api/mock/geocoding';
@@ -10,28 +12,57 @@ import { getRandomColor } from '@/lib/utils/participant-colors';
 import { applyFuzzyOffset } from '@/lib/utils/location';
 import type { Participant } from '@/types';
 
-/**
- * Get mock travel time for participant when venue is selected
- * TODO: Replace with real API call to Directions API
- */
-const getMockTravelTime = (participantId: string, venueId: string): string => {
-  const times = ['5 min', '12 min', '8 min', '15 min', '20 min', '7 min', '18 min', '3 min'];
-  const hash = (participantId + venueId)
-    .split('')
-    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return times[hash % times.length];
-};
-
 export function ParticipantSection() {
-  const { currentEvent, addParticipant, selectedVenue } = useMeetingStore();
+  const { currentEvent, addParticipant, updateParticipant, removeParticipant, selectedVenue } =
+    useMeetingStore();
+  const { selectedParticipantId, setSelectedParticipantId, routes } = useMapStore();
+  const { isOrganizerMode, toggleParticipantStats } = useUIStore();
+
+  // Helper to get travel time for a participant from calculated routes
+  const getTravelTime = (participantId: string): string | undefined => {
+    if (!selectedVenue || routes.length === 0) return undefined;
+    const route = routes.find((r) => r.participantId === participantId);
+    return route?.duration;
+  };
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
+  const [deletingParticipantId, setDeletingParticipantId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const participantCount = currentEvent?.participants?.length || 0;
 
-  // Handle participant form submission
-  const handleAddParticipant = async (data: ParticipantFormData) => {
+  // Cancel delete
+  const cancelDelete = useCallback(() => {
+    setDeletingParticipantId(null);
+  }, []);
+
+  // Cancel form
+  const handleCancelForm = useCallback(() => {
+    setShowAddForm(false);
+    setEditingParticipant(null);
+  }, []);
+
+  // Keyboard event handler for Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deletingParticipantId) {
+          cancelDelete();
+        } else if (showAddForm) {
+          handleCancelForm();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [deletingParticipantId, showAddForm, cancelDelete, handleCancelForm]);
+
+  // Handle participant form submission (add or edit)
+  const handleSubmitParticipant = async (data: ParticipantFormData) => {
     setIsSubmitting(true);
+    setErrorMessage(null);
 
     try {
       // Geocode the address to get coordinates
@@ -42,27 +73,61 @@ export function ParticipantSection() {
         location = applyFuzzyOffset(location);
       }
 
-      // Create new participant
-      const newParticipant: Participant = {
-        id: crypto.randomUUID(),
-        name: data.name,
-        address: data.address,
-        location,
-        color: getRandomColor(),
-        fuzzyLocation: data.fuzzyLocation,
-        createdAt: new Date().toISOString(),
-      };
+      if (editingParticipant) {
+        // Update existing participant
+        updateParticipant(editingParticipant.id, {
+          name: data.name,
+          address: data.address,
+          location,
+          fuzzyLocation: data.fuzzyLocation,
+        });
+        setEditingParticipant(null);
+      } else {
+        // Create new participant
+        const newParticipant: Participant = {
+          id: crypto.randomUUID(),
+          name: data.name,
+          address: data.address,
+          location,
+          color: getRandomColor(),
+          fuzzyLocation: data.fuzzyLocation,
+          createdAt: new Date().toISOString(),
+        };
 
-      // Add to store
-      addParticipant(newParticipant);
+        // Add to store
+        addParticipant(newParticipant);
+      }
 
       // Close form
       setShowAddForm(false);
     } catch (error) {
-      console.error('Error adding participant:', error);
-      alert('Failed to add participant. Please try again.');
+      console.error('Error saving participant:', error);
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : 'Unable to save participant. Please check the address and try again.';
+      setErrorMessage(errorMsg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle edit participant
+  const handleEditParticipant = (participant: Participant) => {
+    setEditingParticipant(participant);
+    setShowAddForm(true);
+  };
+
+  // Handle delete participant
+  const handleDeleteParticipant = (id: string) => {
+    setDeletingParticipantId(id);
+  };
+
+  // Confirm delete
+  const confirmDelete = () => {
+    if (deletingParticipantId) {
+      removeParticipant(deletingParticipantId);
+      setDeletingParticipantId(null);
     }
   };
 
@@ -74,15 +139,26 @@ export function ParticipantSection() {
           <Users className="w-5 h-5" />
           Participants
         </h2>
-        {participantCount > 0 && (
-          <span className="text-sm text-muted-foreground">
-            {participantCount} {participantCount === 1 ? 'person' : 'people'}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {participantCount > 0 && (
+            <span className="text-sm text-muted-foreground">
+              {participantCount} {participantCount === 1 ? 'person' : 'people'}
+            </span>
+          )}
+          {/* Stats button */}
+          <button
+            onClick={toggleParticipantStats}
+            className="p-1.5 rounded-lg hover:bg-coral-50 text-muted-foreground hover:text-coral-600 transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500/20"
+            aria-label="View travel time statistics"
+            title="Travel time stats"
+          >
+            <BarChart3 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Add Participant Button (when form is hidden) */}
-      {!showAddForm && (
+      {/* Add Participant Button (when form is hidden and organizer mode) */}
+      {!showAddForm && isOrganizerMode && (
         <button
           onClick={() => setShowAddForm(true)}
           className="w-full px-4 py-3 bg-white/90 backdrop-blur-sm border-2 border-border shadow-lg hover:shadow-xl hover:bg-coral-50/90 hover:border-coral-500 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-coral-600"
@@ -92,14 +168,47 @@ export function ParticipantSection() {
         </button>
       )}
 
-      {/* Add Participant Form */}
+      {/* Add/Edit Participant Form */}
       {showAddForm && (
-        <div className="p-4 bg-white/95 backdrop-blur-md rounded-xl shadow-xl ring-2 ring-coral-500/30">
-          <AddParticipant
-            onSubmit={handleAddParticipant}
-            onCancel={() => setShowAddForm(false)}
-            isSubmitting={isSubmitting}
-          />
+        <div className="space-y-3">
+          <div className="p-4 bg-white/95 backdrop-blur-md rounded-xl shadow-xl ring-2 ring-coral-500/30">
+            <AddParticipant
+              onSubmit={handleSubmitParticipant}
+              onCancel={handleCancelForm}
+              isSubmitting={isSubmitting}
+              mode={editingParticipant ? 'edit' : 'add'}
+              initialData={
+                editingParticipant
+                  ? {
+                      name: editingParticipant.name,
+                      address: editingParticipant.address,
+                      placeId: '',
+                      fuzzyLocation: editingParticipant.fuzzyLocation ?? false,
+                    }
+                  : undefined
+              }
+            />
+          </div>
+
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center mt-0.5">
+                <span className="text-white text-xs font-bold">!</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-900">Error</p>
+                <p className="text-xs text-red-700 mt-0.5">{errorMessage}</p>
+              </div>
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                aria-label="Dismiss error"
+              >
+                <Plus className="w-4 h-4 rotate-45" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -110,9 +219,17 @@ export function ParticipantSection() {
             <ParticipantPill
               key={participant.id}
               participant={participant}
-              travelTime={
-                selectedVenue ? getMockTravelTime(participant.id, selectedVenue.id) : undefined
-              }
+              travelTime={getTravelTime(participant.id)}
+              onClick={() => {
+                // Toggle selection - if already selected, deselect; otherwise select
+                if (selectedParticipantId === participant.id) {
+                  setSelectedParticipantId(null);
+                } else {
+                  setSelectedParticipantId(participant.id);
+                }
+              }}
+              onEdit={isOrganizerMode ? () => handleEditParticipant(participant) : undefined}
+              onDelete={isOrganizerMode ? () => handleDeleteParticipant(participant.id) : undefined}
             />
           ))}
         </div>
@@ -129,6 +246,47 @@ export function ParticipantSection() {
             <p className="text-xs text-muted-foreground">
               Add participants to find the perfect meeting spot
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deletingParticipantId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={cancelDelete}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-foreground">Delete Participant</h3>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to remove{' '}
+                <span className="font-medium text-foreground">
+                  {currentEvent?.participants?.find((p) => p.id === deletingParticipantId)?.name}
+                </span>
+                ? This action cannot be undone.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={cancelDelete}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-white border-2 border-border text-foreground rounded-full hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-red-500 text-white rounded-full hover:bg-red-600 active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

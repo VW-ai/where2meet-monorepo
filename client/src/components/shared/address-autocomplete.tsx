@@ -1,14 +1,19 @@
 'use client';
 
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, Locate } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { mockPlacesAutocomplete, type PlacePrediction } from '@/lib/api/mock/places-autocomplete';
+import {
+  searchPlacesAutocomplete,
+  type PlacePrediction,
+} from '@/lib/google-maps/places-autocomplete';
 
 interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
   onSelect: (prediction: PlacePrediction) => void;
+  onLocate?: () => void;
+  isLocating?: boolean;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -18,6 +23,8 @@ export function AddressAutocomplete({
   value,
   onChange,
   onSelect,
+  onLocate,
+  isLocating = false,
   placeholder = 'Enter address...',
   className,
   disabled = false,
@@ -40,7 +47,9 @@ export function AddressAutocomplete({
     const timeoutId = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const results = await mockPlacesAutocomplete(value);
+        const results = await searchPlacesAutocomplete(value, {
+          types: ['geocode', 'establishment'],
+        });
         setPredictions(results);
         setIsOpen(results.length > 0);
         setSelectedIndex(-1);
@@ -131,7 +140,8 @@ export function AddressAutocomplete({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            'w-full px-4 py-2.5 pl-10 pr-4 text-sm',
+            'w-full px-4 py-2.5 pl-10 text-sm',
+            onLocate ? 'pr-12' : 'pr-4',
             'bg-white/80 backdrop-blur-sm rounded-xl shadow-md',
             'focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-coral-500/20',
             'transition-all duration-200',
@@ -144,9 +154,29 @@ export function AddressAutocomplete({
         {/* MapPin Icon */}
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 
-        {/* Loading Spinner */}
-        {isLoading && (
+        {/* Loading Spinner or Locate Button */}
+        {isLoading || isLocating ? (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+        ) : (
+          onLocate && (
+            <button
+              type="button"
+              onClick={onLocate}
+              disabled={disabled}
+              className={cn(
+                'absolute right-2 top-1/2 -translate-y-1/2',
+                'p-2 rounded-lg',
+                'text-muted-foreground hover:text-coral-500 hover:bg-coral-50',
+                'transition-all duration-200',
+                'focus:outline-none focus:ring-2 focus:ring-coral-500/20',
+                disabled && 'opacity-50 cursor-not-allowed'
+              )}
+              aria-label="Use my current location"
+              title="Use my current location"
+            >
+              <Locate className="w-4 h-4" />
+            </button>
+          )
         )}
       </div>
 

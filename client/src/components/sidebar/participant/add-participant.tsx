@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils/cn';
 import { generateRandomName } from '@/lib/utils/name-generator';
 import { AddressAutocomplete } from '@/components/shared/address-autocomplete';
 import { Tooltip } from '@/components/shared/tooltip';
+import { reverseGeocode } from '@/lib/google-maps/geocoding';
 import type { PlacePrediction } from '@/lib/api/mock/places-autocomplete';
 
 interface AddParticipantProps {
@@ -35,6 +36,7 @@ export function AddParticipant({
   const [placeId, setPlaceId] = useState(initialData?.placeId || '');
   const [fuzzyLocation, setFuzzyLocation] = useState(initialData?.fuzzyLocation ?? false);
   const [errors, setErrors] = useState<{ name?: string; address?: string }>({});
+  const [isLocating, setIsLocating] = useState(false);
 
   // Handle dice randomizer click
   const handleRandomizeName = () => {
@@ -51,6 +53,62 @@ export function AddParticipant({
     setPlaceId(prediction.place_id);
     if (errors.address) {
       setErrors((prev) => ({ ...prev, address: undefined }));
+    }
+  };
+
+  // Handle locate current location
+  const handleLocate = async () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsLocating(true);
+
+    try {
+      // Get user's current position
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      // Reverse geocode to get address
+      const result = await reverseGeocode({ lat: latitude, lng: longitude });
+
+      // Set address and placeId
+      setAddress(result.address);
+      setPlaceId(result.placeId);
+
+      // Clear any previous errors
+      if (errors.address) {
+        setErrors((prev) => ({ ...prev, address: undefined }));
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      if (error instanceof GeolocationPositionError) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            alert(
+              'Location permission denied. Please enable location access in your browser settings.'
+            );
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert('Location information is unavailable.');
+            break;
+          case error.TIMEOUT:
+            alert('Location request timed out. Please try again.');
+            break;
+        }
+      } else {
+        alert('Failed to get your current location. Please try again.');
+      }
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -179,6 +237,8 @@ export function AddParticipant({
             }
           }}
           onSelect={handleAddressSelect}
+          onLocate={handleLocate}
+          isLocating={isLocating}
           placeholder="Search for an address..."
           disabled={isSubmitting}
           className={cn(errors.address && 'border-red-500')}

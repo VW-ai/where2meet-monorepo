@@ -85,6 +85,16 @@ class MockDataStore {
   }
 
   getEvent(id: string): Event | undefined {
+    // Reload data from file to handle Turbopack module instance issues
+    try {
+      const data = loadDataSync();
+      Object.entries(data.events).forEach(([eventId, event]) => {
+        this.events.set(eventId, event);
+      });
+    } catch (error) {
+      console.error('[MockStore] Failed to reload data:', error);
+    }
+
     console.log('[MockStore] getEvent called for:', id);
     console.log('[MockStore] Total events in store:', this.events.size);
     console.log('[MockStore] Available event IDs:', Array.from(this.events.keys()));

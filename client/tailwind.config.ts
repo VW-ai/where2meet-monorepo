@@ -80,6 +80,19 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      keyframes: {
+        'flash-pulse': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '16.67%': { transform: 'scale(1.15)', opacity: '0.85' },
+          '33.33%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.15)', opacity: '0.85' },
+          '66.67%': { transform: 'scale(1)', opacity: '1' },
+          '83.33%': { transform: 'scale(1.15)', opacity: '0.85' },
+        },
+      },
+      animation: {
+        'flash-pulse': 'flash-pulse 600ms ease-in-out',
+      },
     },
   },
   plugins: [],

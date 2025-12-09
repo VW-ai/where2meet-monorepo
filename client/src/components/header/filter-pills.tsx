@@ -17,7 +17,13 @@ export function FilterPills() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { selectedCategory, setSelectedCategory } = useUIStore();
+  const {
+    selectedCategory,
+    setSelectedCategory,
+    setSearchQuery,
+    setActiveView,
+    triggerSearchExecution,
+  } = useUIStore();
 
   // Sync URL params with store on mount
   useEffect(() => {
@@ -28,17 +34,26 @@ export function FilterPills() {
   }, [searchParams, setSelectedCategory]);
 
   const handleCategoryClick = (category: CategoryFilter) => {
-    const newCategory = selectedCategory === category ? null : category;
-    setSelectedCategory(newCategory);
+    // Get the category label for the search query
+    const categoryFilter = CATEGORY_FILTERS.find((f) => f.id === category);
+    const categoryLabel = categoryFilter?.label || '';
+
+    // Set the search query to the category label (e.g., "Bar", "Gym", "Cafe")
+    setSearchQuery(categoryLabel);
+
+    // Trigger search execution
+    setActiveView('venue');
+    triggerSearchExecution();
+
+    // Clear the selected category immediately after triggering search
+    // This prevents the button from staying red
+    setTimeout(() => {
+      setSelectedCategory(null);
+    }, 100);
 
     // Update URL query params
     const params = new URLSearchParams(searchParams.toString());
-    if (newCategory) {
-      params.set('category', newCategory);
-    } else {
-      params.delete('category');
-    }
-
+    params.delete('category'); // Don't persist category in URL
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 

@@ -17,6 +17,27 @@ export const PARTICIPANT_COLORS = [
   'bg-cyan-500',
 ] as const;
 
+// Hex color mapping for Google Maps markers
+export const PARTICIPANT_HEX_COLORS: Record<string, string> = {
+  'bg-red-500': '#EF4444',
+  'bg-blue-500': '#3B82F6',
+  'bg-green-500': '#22C55E',
+  'bg-yellow-500': '#EAB308',
+  'bg-purple-500': '#A855F7',
+  'bg-pink-500': '#EC4899',
+  'bg-indigo-500': '#6366F1',
+  'bg-orange-500': '#F97316',
+  'bg-teal-500': '#14B8A6',
+  'bg-cyan-500': '#06B6D4',
+};
+
+/**
+ * Get the hex color value for a Tailwind color class
+ */
+export function getHexColor(colorClass: string): string {
+  return PARTICIPANT_HEX_COLORS[colorClass] || '#6BCB77'; // fallback to mint
+}
+
 /**
  * Get a deterministic color based on participant ID
  * @param id Participant ID

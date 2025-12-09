@@ -5,6 +5,9 @@ import { useParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Sidebar } from '@/components/sidebar';
 import { MapArea } from '@/components/map';
+import { VenueInfo } from '@/components/sidebar/venue/venue-info';
+import { ParticipantStats } from '@/components/sidebar/participant/participant-stats';
+import { ModalProvider } from '@/components/modals';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { api } from '@/lib/api/client';
 
@@ -89,7 +92,20 @@ export default function MeetPage() {
         <div className="pointer-events-auto fixed bottom-0 left-0 right-0 h-[50vh] md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
           <Sidebar />
         </div>
+
+        {/* Venue Info Slide-out - Global overlay */}
+        <div className="pointer-events-auto">
+          <VenueInfo />
+        </div>
+
+        {/* Participant Stats Slide-out */}
+        <div className="pointer-events-auto">
+          <ParticipantStats />
+        </div>
       </div>
+
+      {/* Modals */}
+      <ModalProvider />
     </div>
   );
 }

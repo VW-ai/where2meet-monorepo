@@ -29,12 +29,16 @@ export function Sidebar() {
     <aside
       className={cn(
         'h-full w-full',
-        'md:w-[400px] lg:w-[450px] xl:w-[480px]',
-        'md:max-w-[35vw]',
+        'md:w-[320px] lg:w-[360px] xl:w-[400px]',
+        'md:max-w-[30vw]',
         'md:ml-3 md:mr-0',
         'rounded-b-2xl md:rounded-2xl',
         'overflow-y-auto overflow-x-visible',
         'transition-transform duration-300 ease-in-out',
+        // Semi-transparent background
+        'bg-white/90 backdrop-blur-md',
+        'border border-border/50',
+        'shadow-xl',
         // Mobile: slide from bottom
         isSidebarVisible ? 'translate-y-0' : 'translate-y-full md:translate-y-0',
         // Desktop: slide from left

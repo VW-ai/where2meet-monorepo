@@ -1,8 +1,11 @@
 'use client';
 
 import { useMeetingStore } from '@/store/useMeetingStore';
+import { useUIStore } from '@/store/ui-store';
+import { useMapStore } from '@/store/map-store';
 import type { Venue } from '@/types';
 import { MapPin, Star, Clock } from 'lucide-react';
+import { VoteButton } from './venue/vote-button';
 
 interface VenueCardProps {
   venue: Venue;
@@ -10,15 +13,14 @@ interface VenueCardProps {
 
 export function VenueCard({ venue }: VenueCardProps) {
   const { selectedVenue, setSelectedVenue } = useMeetingStore();
+  const { openVenueInfo } = useUIStore();
+  const { setHoveredVenueId } = useMapStore();
   const isSelected = selectedVenue?.id === venue.id;
 
   const handleClick = () => {
-    // Toggle venue selection
-    if (isSelected) {
-      setSelectedVenue(null);
-    } else {
-      setSelectedVenue(venue);
-    }
+    // Select venue on map and open details slide-out
+    setSelectedVenue(venue);
+    openVenueInfo(venue.id);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -41,6 +43,8 @@ export function VenueCard({ venue }: VenueCardProps) {
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onMouseEnter={() => setHoveredVenueId(venue.id)}
+      onMouseLeave={() => setHoveredVenueId(null)}
       aria-pressed={isSelected}
     >
       {/* Venue Name */}
@@ -49,41 +53,49 @@ export function VenueCard({ venue }: VenueCardProps) {
       </h3>
 
       {/* Address */}
-      <div className="flex items-start gap-2 mt-2 text-sm text-muted-foreground">
+      <div className="flex items-start gap-2 mt-1.5 text-sm text-muted-foreground">
         <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-        <span className="line-clamp-2">{venue.address}</span>
+        <span className="line-clamp-1">{venue.address}</span>
       </div>
 
-      {/* Rating */}
-      {venue.rating && (
-        <div className="flex items-center gap-1.5 mt-2">
-          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-          <span className="text-sm font-medium text-foreground">{venue.rating.toFixed(1)}</span>
-        </div>
-      )}
+      {/* Rating, Status, Price & Like Button - all on one line */}
+      <div
+        className="flex items-center justify-between mt-3 pt-2 border-t border-border/50"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        {/* Left side - Rating, Status, Price */}
+        <div className="flex items-center gap-3">
+          {/* Rating */}
+          {venue.rating && (
+            <div className="flex items-center gap-1">
+              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span className="text-sm font-medium text-foreground">{venue.rating.toFixed(1)}</span>
+            </div>
+          )}
 
-      {/* Open Hours Status */}
-      {venue.openNow !== null && venue.openNow !== undefined && (
-        <div className="flex items-center gap-1.5 mt-2">
-          <Clock className="w-4 h-4 text-muted-foreground" />
-          <span
-            className={`text-xs font-medium ${venue.openNow ? 'text-mint-600' : 'text-red-600'}`}
-          >
-            {venue.openNow ? 'Open now' : 'Closed'}
-          </span>
-        </div>
-      )}
+          {/* Open Status */}
+          {venue.openNow !== null && venue.openNow !== undefined && (
+            <div className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+              <span
+                className={`text-xs font-medium ${venue.openNow ? 'text-mint-600' : 'text-red-600'}`}
+              >
+                {venue.openNow ? 'Open' : 'Closed'}
+              </span>
+            </div>
+          )}
 
-      {/* Category Badge */}
-      <div className="flex flex-wrap gap-1 mt-3">
-        <span className="px-2 py-0.5 text-xs rounded-full bg-coral-50 text-coral-700 capitalize">
-          {venue.category.replace('_', ' ')}
-        </span>
-        {venue.priceLevel && (
-          <span className="px-2 py-0.5 text-xs rounded-full bg-mint-50 text-mint-700">
-            {'$'.repeat(venue.priceLevel)}
-          </span>
-        )}
+          {/* Price Level */}
+          {venue.priceLevel && (
+            <span className="text-xs font-medium text-muted-foreground">
+              {'$'.repeat(venue.priceLevel)}
+            </span>
+          )}
+        </div>
+
+        {/* Right side - Like Button */}
+        <VoteButton venueId={venue.id} voteCount={venue.voteCount} venue={venue} />
       </div>
     </div>
   );

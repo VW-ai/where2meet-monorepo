@@ -7,12 +7,21 @@ import { Building2, Users } from 'lucide-react';
 import { useUIStore, type ActiveView } from '@/store/ui-store';
 import { cn } from '@/lib/utils/cn';
 import catLogo from '@/components/cat/image.png';
+import { ParticipantIconFlash } from './participant-icon-flash';
 
 export function PillNav() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { activeView, setActiveView, isSidebarVisible, toggleSidebar, showSidebar } = useUIStore();
+  const {
+    activeView,
+    setActiveView,
+    isSidebarVisible,
+    toggleSidebar,
+    showSidebar,
+    shouldFlashParticipantIcon,
+    resetParticipantFlash,
+  } = useUIStore();
 
   // Sync URL params with store on mount
   useEffect(() => {
@@ -81,7 +90,12 @@ export function PillNav() {
               : 'bg-white text-foreground border-2 border-border hover:border-coral-500 hover:bg-coral-50'
           )}
         >
-          <Users className="w-5 h-5" />
+          <ParticipantIconFlash
+            shouldFlash={shouldFlashParticipantIcon}
+            onFlashComplete={resetParticipantFlash}
+          >
+            <Users className="w-5 h-5" />
+          </ParticipantIconFlash>
           <span className="hidden md:inline">Participants</span>
         </button>
       </div>
@@ -127,7 +141,12 @@ export function PillNav() {
           )}
           aria-label="Participants"
         >
-          <Users className="w-5 h-5" />
+          <ParticipantIconFlash
+            shouldFlash={shouldFlashParticipantIcon}
+            onFlashComplete={resetParticipantFlash}
+          >
+            <Users className="w-5 h-5" />
+          </ParticipantIconFlash>
         </button>
       </div>
     </div>

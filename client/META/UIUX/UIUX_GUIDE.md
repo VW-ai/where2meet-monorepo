@@ -29,11 +29,90 @@
 
 ### Visual Language
 
+- **Floating elements** - Borderless cards that appear to float over the canvas (Google Maps style)
+- **Elevation through shadows** - Components use shadow depth instead of borders for separation
 - **Rounded everything** - Pills, circles, and soft edges
 - **Playful details** - Cat tails, ears, and paws as decorative elements
-- **Subtle shadows** - Gentle depth, nothing harsh
+- **Subtle shadows** - Gentle depth creates hierarchy, nothing harsh
 - **Smooth transitions** - Everything feels fluid and natural
-- **Friendly spacing** - Comfortable, breathable layouts
+- **Friendly spacing** - Comfortable, breathable layouts with generous whitespace
+
+---
+
+## Floating UI Design System
+
+### Philosophy - Inspired by Google Maps
+
+The Where2Meet interface adopts a **borderless, floating design** where UI elements appear to hover over the canvas rather than being boxed in with visible borders. This creates a cleaner, more modern feel while maintaining excellent visual hierarchy through shadow elevation.
+
+### Key Principles
+
+**1. No Structural Borders**
+- Remove `border`, `border-2`, and similar border classes from cards, pills, and containers
+- Use shadows for visual separation instead
+- Exception: Selected states can use subtle `ring-2` for accent
+
+**2. Elevation Through Shadows**
+```tsx
+// Resting state - floating appearance
+className="shadow-lg"           // Standard floating elevation
+
+// Hover state - lifts higher
+className="hover:shadow-xl"     // Increased elevation on hover
+
+// Selected state - emphasized with ring
+className="shadow-xl ring-2 ring-coral-500/30"  // Subtle colored ring + shadow
+```
+
+**3. Shadow Hierarchy**
+```tsx
+// Subtle - Small elements (input fields, badges)
+className="shadow-md"           // 4-6px blur, subtle depth
+
+// Standard - Cards, pills, floating elements
+className="shadow-lg"           // 10-15px blur, clear floating effect
+
+// Elevated - Selected states, modals, emphasized elements
+className="shadow-xl"           // 20-25px blur, significant elevation
+
+// Maximum - Major overlays, dropdowns
+className="shadow-2xl"          // 40-50px blur, dramatic lift
+```
+
+**4. Whitespace & Breathing Room**
+- Increase spacing between elements to compensate for removed borders
+- Use generous padding inside components
+- Let shadows define boundaries naturally
+
+### Migration from Bordered to Floating
+
+**Before (Bordered):**
+```tsx
+<div className="bg-white border-2 border-border rounded-xl p-4 hover:border-coral-500">
+  Card content
+</div>
+```
+
+**After (Floating):**
+```tsx
+<div className="bg-white shadow-lg hover:shadow-xl rounded-xl p-4 transition-shadow">
+  Card content
+</div>
+```
+
+**Selected State (Before):**
+```tsx
+<div className="bg-coral-50 border-2 border-coral-500 rounded-xl p-4">
+  Selected content
+</div>
+```
+
+**Selected State (After):**
+```tsx
+<div className="bg-coral-50 shadow-xl ring-2 ring-coral-500/30 rounded-xl p-4">
+  Selected content
+</div>
+```
 
 ---
 
@@ -299,16 +378,16 @@ aria-label="Close">
 
 ### Input Fields
 
-#### Text Input (Rounded, Clean)
+#### Text Input (Floating Design)
 ```tsx
 <input
   type="text"
   className="
     w-full px-4 py-2.5
-    bg-white border border-border
-    rounded-full
+    bg-white shadow-md
+    rounded-xl
     text-foreground placeholder:text-placeholder
-    focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent
+    focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-coral-500/20
     transition-all duration-200
   "
   placeholder="Enter location..."
@@ -371,31 +450,28 @@ aria-label="Close">
 
 ### Cards
 
-#### Basic Card (Soft Shadow)
+#### Basic Card (Floating Design)
 ```tsx
 <div className="
   bg-white rounded-xl
-  border border-border
   p-6
-  shadow-sm
+  shadow-lg
   transition-shadow duration-200
-  hover:shadow-md
+  hover:shadow-xl
 ">
   <h3 className="text-lg font-medium text-foreground mb-2">Card Title</h3>
   <p className="text-sm text-muted-foreground">Card content</p>
 </div>
 ```
 
-#### Venue Card (Image + Info)
+#### Venue Card (Image + Info - Floating)
 ```tsx
 <div className="
   bg-white rounded-2xl
-  border border-border
   overflow-hidden
-  shadow-sm hover:shadow-lg
+  shadow-lg hover:shadow-xl
   transition-all duration-200
   cursor-pointer
-  hover:scale-[1.02]
 ">
   {/* Image */}
   <div className="h-40 bg-gray-100">
@@ -434,25 +510,23 @@ aria-label="Close">
 </div>
 ```
 
-#### Clickable Card (Selected State)
+#### Clickable Card (Selected State - Floating)
 ```tsx
-// Default
+// Default - Floating
 <div className="
   bg-white rounded-xl
-  border-2 border-border
   p-6 cursor-pointer
-  hover:border-coral-500
+  shadow-lg hover:shadow-xl
   transition-all duration-200
 ">
   Content
 </div>
 
-// Selected
+// Selected - Ring accent + elevated shadow
 <div className="
   bg-coral-50 rounded-xl
-  border-2 border-coral-500
   p-6
-  shadow-md
+  shadow-xl ring-2 ring-coral-500/30
 ">
   Selected Content
 </div>
@@ -496,12 +570,12 @@ Based on your ParticipantComponent.ts - this is the heart of our cute design!
       </svg>
     </div>
 
-    {/* Main Pill Container */}
+    {/* Main Pill Container - Floating Design */}
     <div className="
       flex-1 flex items-center justify-between
-      bg-background border border-border
-      rounded-full px-4 py-2
-      shadow-sm hover:shadow-md
+      bg-background
+      rounded-2xl px-4 py-3
+      shadow-lg hover:shadow-xl
       transition-shadow
     ">
       {/* Info */}
@@ -1334,20 +1408,23 @@ import {
 
 ## Quick Reference
 
-### Essential Classes
+### Essential Classes (Floating Design)
 
 ```tsx
 // Primary Button
-"bg-coral-500 hover:bg-coral-600 text-white px-6 py-2.5 rounded-full transition-all shadow-sm hover:shadow-md"
+"bg-coral-500 hover:bg-coral-600 text-white px-6 py-2.5 rounded-full transition-all shadow-md hover:shadow-lg"
 
-// Input
-"w-full px-4 py-2.5 border border-border rounded-full focus:outline-none focus:ring-2 focus:ring-coral-500"
+// Input (Floating)
+"w-full px-4 py-2.5 shadow-md rounded-xl focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-coral-500/20 transition-all"
 
-// Card
-"bg-white rounded-xl border border-border p-6 shadow-sm hover:shadow-md transition-shadow"
+// Card (Floating)
+"bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow"
 
-// Pill Badge
-"px-4 py-2 rounded-full bg-white border-2 border-border hover:border-coral-500 transition-all"
+// Pill Badge (Floating)
+"px-4 py-2 rounded-full bg-white shadow-lg hover:shadow-xl transition-all"
+
+// Selected Card (Floating + Ring)
+"bg-coral-50 rounded-xl p-6 shadow-xl ring-2 ring-coral-500/30"
 
 // Modal Backdrop
 "fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center"
@@ -1368,8 +1445,16 @@ import {
 
 When creating new components, ensure:
 
-- [ ] Uses rounded shapes (rounded-full for pills, rounded-xl for cards)
-- [ ] Includes hover states with smooth transitions
+### Floating Design Principles
+- [ ] **No structural borders** - Use `shadow-*` classes instead of `border` for separation
+- [ ] **Proper elevation** - Use shadow hierarchy (shadow-md < shadow-lg < shadow-xl < shadow-2xl)
+- [ ] **Hover interactions** - Increase shadow on hover for lift effect
+- [ ] **Selected states** - Use `ring-2 ring-color/30` for subtle accent + `shadow-xl`
+- [ ] **Generous spacing** - Adequate padding and margins for floating elements
+
+### Core Design
+- [ ] Uses rounded shapes (rounded-full for pills, rounded-xl/2xl for cards)
+- [ ] Includes hover states with smooth transitions (duration-200)
 - [ ] Has proper focus states (ring-2 ring-coral-500)
 - [ ] Uses color palette (coral, mint, sky, lavender)
 - [ ] Includes loading states where applicable

@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, EyeOff } from 'lucide-react';
+import { MapPin, EyeOff, Edit2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { TravelTimeBubble } from './travel-time-bubble';
 import type { Participant } from '@/types';
@@ -9,6 +9,8 @@ interface ParticipantPillProps {
   participant: Participant;
   travelTime?: string;
   onClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const getInitials = (name: string): string => {
@@ -20,7 +22,13 @@ const getInitials = (name: string): string => {
     .slice(0, 2);
 };
 
-export function ParticipantPill({ participant, travelTime, onClick }: ParticipantPillProps) {
+export function ParticipantPill({
+  participant,
+  travelTime,
+  onClick,
+  onEdit,
+  onDelete,
+}: ParticipantPillProps) {
   const initials = getInitials(participant.name);
 
   return (
@@ -101,9 +109,39 @@ export function ParticipantPill({ participant, travelTime, onClick }: Participan
               </div>
             </div>
 
-            {/* Right side - Avatar Head */}
-            <div className="relative flex-shrink-0">
-              {/* Cat Ears - Positioned relative to avatar container */}
+            {/* Right side - Avatar Head and Actions */}
+            <div className="relative flex items-center flex-shrink-0">
+              {/* Edit/Delete Actions - appear on hover, positioned absolutely */}
+              {(onEdit || onDelete) && (
+                <div className="absolute right-12 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+                  {onEdit && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit();
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-coral-50 text-muted-foreground hover:text-coral-600 transition-colors bg-white shadow-sm"
+                      aria-label="Edit participant"
+                      title="Edit participant"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete();
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors bg-white shadow-sm"
+                      aria-label="Delete participant"
+                      title="Delete participant"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Face/Avatar */}
               <div

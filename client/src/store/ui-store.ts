@@ -2,8 +2,14 @@ import { create } from 'zustand';
 
 export type ActiveView = 'participant' | 'venue';
 export type CategoryFilter = 'bar' | 'gym' | 'cafe' | 'things_to_do' | null;
+export type TravelMode = 'car' | 'transit' | 'walk' | 'bike';
 
 interface UIStore {
+  // Organizer mode (controls visibility of edit/add features)
+  isOrganizerMode: boolean;
+  setOrganizerMode: (isOrganizer: boolean) => void;
+  toggleOrganizerMode: () => void;
+
   // Active view (participant vs venue section)
   activeView: ActiveView;
   setActiveView: (view: ActiveView) => void;
@@ -17,6 +23,27 @@ interface UIStore {
   // Category filter
   selectedCategory: CategoryFilter;
   setSelectedCategory: (category: CategoryFilter) => void;
+
+  // Travel mode filter
+  selectedTravelMode: TravelMode;
+  setTravelMode: (mode: TravelMode) => void;
+
+  // Search query (for communication between header filters and search bar)
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+
+  // Executed search query (persisted for venue results display)
+  executedSearchQuery: string;
+  setExecutedSearchQuery: (query: string) => void;
+
+  // Search execution trigger (for category filters to trigger venue search)
+  searchExecutionTrigger: number;
+  triggerSearchExecution: () => void;
+
+  // Participant icon flash animation trigger
+  shouldFlashParticipantIcon: boolean;
+  triggerParticipantFlash: () => void;
+  resetParticipantFlash: () => void;
 
   // Modals
   isShareModalOpen: boolean;
@@ -46,9 +73,19 @@ interface UIStore {
   selectedVenueId: string | null;
   openVenueInfo: (venueId: string) => void;
   closeVenueInfo: () => void;
+
+  // Participant stats slide-out
+  isParticipantStatsOpen: boolean;
+  toggleParticipantStats: () => void;
+  closeParticipantStats: () => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
+  // Organizer mode (default to true - organizer can see all controls)
+  isOrganizerMode: true,
+  setOrganizerMode: (isOrganizer) => set({ isOrganizerMode: isOrganizer }),
+  toggleOrganizerMode: () => set((state) => ({ isOrganizerMode: !state.isOrganizerMode })),
+
   // View state
   activeView: 'participant',
   setActiveView: (view) => set({ activeView: view }),
@@ -62,6 +99,32 @@ export const useUIStore = create<UIStore>((set) => ({
   // Filter state
   selectedCategory: null,
   setSelectedCategory: (category) => set({ selectedCategory: category }),
+
+  // Travel mode (default to car)
+  selectedTravelMode: 'car',
+  setTravelMode: (mode) => {
+    set({ selectedTravelMode: mode, shouldFlashParticipantIcon: true });
+  },
+
+  // Search query
+  searchQuery: '',
+  setSearchQuery: (query) => set({ searchQuery: query }),
+
+  // Executed search query (persisted)
+  executedSearchQuery: '',
+  setExecutedSearchQuery: (query) => set({ executedSearchQuery: query }),
+
+  // Search execution trigger (timestamp-based trigger for category filters)
+  searchExecutionTrigger: 0,
+  triggerSearchExecution: () =>
+    set((state) => ({
+      searchExecutionTrigger: state.searchExecutionTrigger + 1,
+    })),
+
+  // Participant icon flash
+  shouldFlashParticipantIcon: false,
+  triggerParticipantFlash: () => set({ shouldFlashParticipantIcon: true }),
+  resetParticipantFlash: () => set({ shouldFlashParticipantIcon: false }),
 
   // Modals
   isShareModalOpen: false,
@@ -91,4 +154,10 @@ export const useUIStore = create<UIStore>((set) => ({
   selectedVenueId: null,
   openVenueInfo: (venueId) => set({ isVenueInfoOpen: true, selectedVenueId: venueId }),
   closeVenueInfo: () => set({ isVenueInfoOpen: false, selectedVenueId: null }),
+
+  // Participant stats
+  isParticipantStatsOpen: false,
+  toggleParticipantStats: () =>
+    set((state) => ({ isParticipantStatsOpen: !state.isParticipantStatsOpen })),
+  closeParticipantStats: () => set({ isParticipantStatsOpen: false }),
 }));

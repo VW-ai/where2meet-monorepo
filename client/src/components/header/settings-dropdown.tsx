@@ -12,7 +12,11 @@ interface SettingsDropdownProps {
 export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { openEditEventModal, openPublishModal, openDeleteConfirmation } = useUIStore();
+  const { isOrganizerMode, openEditEventModal, openPublishModal, openDeleteConfirmation } =
+    useUIStore();
+
+  // Don't render if not in organizer mode
+  if (!isOrganizerMode) return null;
 
   // Close dropdown when clicking outside
   useEffect(() => {

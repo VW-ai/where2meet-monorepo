@@ -4,6 +4,12 @@
 
 import { Location } from './map';
 
+export interface VenueVote {
+  venueId: string;
+  userId: string;
+  timestamp: number;
+}
+
 export interface Venue {
   id: string;
   name: string;
@@ -19,7 +25,9 @@ export interface Venue {
   phoneNumber?: string;
   website?: string;
   description?: string;
+  votes?: VenueVote[];
   voteCount?: number;
+  isSaved?: boolean; // Whether this venue is saved by the current user
 }
 
 export type VenueCategory =

@@ -24,6 +24,14 @@ interface MeetingState {
   selectedParticipant: Participant | null;
 
   // ============================================================================
+  // Venue State
+  // ============================================================================
+  savedVenues: string[]; // Array of saved venue IDs
+  likedVenueData: Record<string, Venue>; // Full venue data for liked venues (for persistent markers)
+  userVotes: Record<string, boolean>; // Map of venueId -> voted status
+  searchedVenues: Venue[]; // Venues from current search results
+
+  // ============================================================================
   // Map State
   // ============================================================================
   searchRadius: number; // in meters
@@ -60,6 +68,15 @@ interface MeetingState {
   setMapCenter: (center: Location | null) => void;
 
   // ============================================================================
+  // Venue Actions
+  // ============================================================================
+  setSearchedVenues: (venues: Venue[]) => void;
+  voteForVenue: (venueId: string, venue?: Venue) => void;
+  unvoteForVenue: (venueId: string) => void;
+  saveVenue: (venueId: string, venue?: Venue) => void;
+  unsaveVenue: (venueId: string) => void;
+
+  // ============================================================================
   // Utility Actions
   // ============================================================================
   reset: () => void;
@@ -75,6 +92,12 @@ const initialState = {
   activeSection: 'participants' as ActiveSection,
   selectedVenue: null,
   selectedParticipant: null,
+
+  // Venue state
+  savedVenues: [] as string[],
+  likedVenueData: {} as Record<string, Venue>,
+  userVotes: {} as Record<string, boolean>,
+  searchedVenues: [] as Venue[],
 
   // Map state
   searchRadius: 5000, // 5km default
@@ -168,6 +191,75 @@ export const useMeetingStore = create<MeetingState>()(
       setMapCenter: (center) => {
         set({ mapCenter: center });
       },
+
+      // Venue actions
+      setSearchedVenues: (venues) => set({ searchedVenues: venues }),
+
+      voteForVenue: (venueId, venue) =>
+        set((state) => {
+          // Voting automatically saves the venue
+          const newSavedVenues = state.savedVenues.includes(venueId)
+            ? state.savedVenues
+            : [...state.savedVenues, venueId];
+
+          // Store venue data if provided
+          const newLikedVenueData = venue
+            ? { ...state.likedVenueData, [venueId]: venue }
+            : state.likedVenueData;
+
+          return {
+            userVotes: {
+              ...state.userVotes,
+              [venueId]: true,
+            },
+            savedVenues: newSavedVenues,
+            likedVenueData: newLikedVenueData,
+          };
+        }),
+
+      unvoteForVenue: (venueId) =>
+        set((state) => {
+          const newVotes = { ...state.userVotes };
+          delete newVotes[venueId];
+
+          // Unvoting removes from saved venues and liked data
+          const newLikedVenueData = { ...state.likedVenueData };
+          delete newLikedVenueData[venueId];
+
+          return {
+            userVotes: newVotes,
+            savedVenues: state.savedVenues.filter((id) => id !== venueId),
+            likedVenueData: newLikedVenueData,
+          };
+        }),
+
+      saveVenue: (venueId, venue) =>
+        set((state) => {
+          if (state.savedVenues.includes(venueId)) {
+            return state;
+          }
+
+          // Store venue data if provided
+          const newLikedVenueData = venue
+            ? { ...state.likedVenueData, [venueId]: venue }
+            : state.likedVenueData;
+
+          return {
+            savedVenues: [...state.savedVenues, venueId],
+            likedVenueData: newLikedVenueData,
+          };
+        }),
+
+      unsaveVenue: (venueId) =>
+        set((state) => {
+          const newLikedVenueData = { ...state.likedVenueData };
+          delete newLikedVenueData[venueId];
+
+          return {
+            savedVenues: state.savedVenues.filter((id) => id !== venueId),
+            likedVenueData: newLikedVenueData,
+          };
+        }),
 
       // Utility actions
       reset: () => {

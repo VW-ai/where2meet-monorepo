@@ -72,6 +72,8 @@ Mascot is a Cat
         - **Interaction:** Draggable search radius.
         - **Route**: when user clicked on a venue, on the map will show its route to the the venue with it corresponding travel type. If the user then opens participant section and clicks on other participant, then the route will show going from that other participant to that venue.
     - **Popups:** Clicking a venue shows a detailed card overlay with "Travel Time" graphs.
+    - Searching will only show results inside the draggable blake circle.
+    - After searching, the returned venues will shown on the map and in the list.
 
 **3. Critical Logic & Data**
 

@@ -3,6 +3,7 @@
 import { PillNav } from './pill-nav';
 import { FilterPills } from './filter-pills';
 import { TopRightActions } from './top-right-actions';
+import { ModeToggle } from './mode-toggle';
 
 interface HeaderProps {
   eventId: string;
@@ -26,8 +27,9 @@ export function Header({ eventId }: HeaderProps) {
             <FilterPills />
           </div>
 
-          {/* Right: Settings + Share */}
+          {/* Right: Mode Toggle + Settings + Share */}
           <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+            <ModeToggle />
             <TopRightActions eventId={eventId} />
           </div>
         </div>
