@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventService } from "../../src/services/event.js";
 import type { PrismaClient } from "../../src/generated/prisma/index.js";
+import { generateEventId } from "../../src/utils/id.js";
+
+/** Test event ID in semantic format */
+const TEST_EVENT_ID = "evt_1702000000000_abcdefghijklmnop";
 
 /**
  * Creates a mock Prisma client for testing.
@@ -29,7 +33,7 @@ describe("EventService", () => {
   describe("createEvent", () => {
     it("should return event entity and 64-char organizerToken", async () => {
       const mockEvent = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+        id: TEST_EVENT_ID,
         title: "Test Event",
         meetingTime: new Date("2024-12-15T12:00:00Z"),
         organizerToken: "a".repeat(64),
@@ -57,7 +61,7 @@ describe("EventService", () => {
 
     it("should create an event without meetingTime", async () => {
       const mockEvent = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+        id: TEST_EVENT_ID,
         title: "Quick Meetup",
         meetingTime: null,
         organizerToken: "b".repeat(64),
@@ -83,7 +87,7 @@ describe("EventService", () => {
         const token = (args as { data: { organizerToken: string } }).data.organizerToken;
         tokens.push(token);
         return {
-          id: crypto.randomUUID(),
+          id: generateEventId(),
           title: "Test",
           meetingTime: null,
           organizerToken: token,
@@ -105,7 +109,7 @@ describe("EventService", () => {
   describe("getEvent", () => {
     it("should return raw event entity", async () => {
       const mockEvent = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+        id: TEST_EVENT_ID,
         title: "Test Event",
         meetingTime: new Date("2024-12-15T12:00:00Z"),
         organizerToken: "secret-token",
@@ -138,7 +142,7 @@ describe("EventService", () => {
 
     it("should return participants as raw entities", async () => {
       const mockEvent = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+        id: TEST_EVENT_ID,
         title: "Test Event",
         meetingTime: null,
         organizerToken: "token",
@@ -149,7 +153,7 @@ describe("EventService", () => {
         participants: [
           {
             id: "participant-1",
-            eventId: "550e8400-e29b-41d4-a716-446655440000",
+            eventId: TEST_EVENT_ID,
             name: "Alice",
             address: "123 Main St",
             lat: 40.7128,

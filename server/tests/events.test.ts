@@ -145,7 +145,7 @@ describe("Event Endpoints", () => {
     it("should return 404 for non-existent event", async () => {
       const response = await server.inject({
         method: "GET",
-        url: "/api/events/00000000-0000-0000-0000-000000000000",
+        url: "/api/events/evt_1702000000000_nonexistent12345",
       });
 
       expect(response.statusCode).toBe(404);
@@ -153,10 +153,10 @@ describe("Event Endpoints", () => {
       expect(body.error.code).toBe("EVENT_NOT_FOUND");
     });
 
-    it("should return 400 for invalid UUID format", async () => {
+    it("should return 400 for invalid event ID format", async () => {
       const response = await server.inject({
         method: "GET",
-        url: "/api/events/invalid-uuid",
+        url: "/api/events/invalid-event-id",
       });
 
       expect(response.statusCode).toBe(400);
@@ -268,7 +268,7 @@ describe("Event Endpoints", () => {
     it("should return 404 for non-existent event", async () => {
       const response = await server.inject({
         method: "PATCH",
-        url: "/api/events/00000000-0000-0000-0000-000000000000",
+        url: "/api/events/evt_1702000000000_nonexistent12345",
         headers: {
           authorization: `Bearer ${organizerToken}`,
         },
@@ -361,7 +361,7 @@ describe("Event Endpoints", () => {
     it("should return 404 for non-existent event", async () => {
       const response = await server.inject({
         method: "DELETE",
-        url: "/api/events/00000000-0000-0000-0000-000000000000",
+        url: "/api/events/evt_1702000000000_nonexistent12345",
         headers: {
           authorization: `Bearer ${organizerToken}`,
         },

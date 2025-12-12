@@ -9,6 +9,8 @@
 
 import { z } from "zod";
 
+import { EVENT_ID_PATTERN } from "../utils/id.js";
+
 /**
  * Schema for creating a new event.
  */
@@ -47,9 +49,10 @@ export type UpdateEventInput = z.infer<typeof UpdateEventSchema>;
 
 /**
  * Schema for validating event ID parameter.
+ * Expects semantic ID format: evt_<timestamp>_<random16>
  */
 export const EventIdSchema = z.object({
-  id: z.uuid("Invalid event ID format"),
+  id: z.string().regex(EVENT_ID_PATTERN, "Invalid event ID format"),
 });
 
 export type EventIdParam = z.infer<typeof EventIdSchema>;

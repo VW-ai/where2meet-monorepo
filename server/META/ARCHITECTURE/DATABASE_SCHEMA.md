@@ -21,7 +21,7 @@
 ┌─────────────────────────────────────────────────────────┐
 │  Event                                                  │
 ├─────────────────────────────────────────────────────────┤
-│  id              UUID        PK                         │
+│  id              VARCHAR(64)  PK (semantic ID)          │
 │  title           VARCHAR(100)    NOT NULL               │
 │  meeting_time    TIMESTAMP       NULL                   │
 │  organizer_token VARCHAR(64)     NOT NULL, UNIQUE       │
@@ -34,7 +34,7 @@
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `id` | UUID | 主键 |
+| `id` | VARCHAR(64) | 主键，语义化 ID (格式: `evt_<timestamp>_<random16>`) |
 | `title` | VARCHAR(100) | 活动标题 |
 | `meeting_time` | TIMESTAMP | 预计见面时间（可为空） |
 | `organizer_token` | VARCHAR(64) | 组织者令牌（用于编辑权限） |
@@ -57,7 +57,7 @@
 │  Participant                                            │
 ├─────────────────────────────────────────────────────────┤
 │  id              UUID        PK                         │
-│  event_id        UUID        FK -> Event.id, NOT NULL   │
+│  event_id        VARCHAR(64) FK -> Event.id, NOT NULL   │
 │  name            VARCHAR(50)     NOT NULL               │
 │  address         VARCHAR(255)    NOT NULL               │
 │  formatted_address VARCHAR(255)  NULL                   │
@@ -72,7 +72,7 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | UUID | 主键 |
-| `event_id` | UUID | 外键，关联 Event |
+| `event_id` | VARCHAR(64) | 外键，关联 Event |
 | `name` | VARCHAR(50) | 参与者姓名 |
 | `address` | VARCHAR(255) | 用户输入的原始地址 |
 | `formatted_address` | VARCHAR(255) | Google 返回的标准化地址 |
@@ -97,7 +97,7 @@
 │  Venue                                                  │
 ├─────────────────────────────────────────────────────────┤
 │  id              VARCHAR(255)  PK  (Google Place ID)    │
-│  event_id        UUID        FK -> Event.id, NOT NULL   │
+│  event_id        VARCHAR(64) FK -> Event.id, NOT NULL   │
 │  name            VARCHAR(255)    NOT NULL               │
 │  address         VARCHAR(255)    NULL                   │
 │  lat             DECIMAL(10,7)   NOT NULL               │
@@ -115,7 +115,7 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | VARCHAR(255) | Google Place ID（主键之一） |
-| `event_id` | UUID | 外键，关联 Event（主键之一） |
+| `event_id` | VARCHAR(64) | 外键，关联 Event（主键之一） |
 | `name` | VARCHAR(255) | 场所名称 |
 | `address` | VARCHAR(255) | 地址 |
 | `lat` | DECIMAL(10,7) | 纬度 |
@@ -140,7 +140,7 @@
 │  Vote                                                   │
 ├─────────────────────────────────────────────────────────┤
 │  id              UUID        PK                         │
-│  event_id        UUID        FK -> Event.id, NOT NULL   │
+│  event_id        VARCHAR(64) FK -> Event.id, NOT NULL   │
 │  participant_id  UUID        FK -> Participant.id, NOT NULL │
 │  venue_id        VARCHAR(255)    FK -> Venue.id, NOT NULL │
 │  created_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
@@ -152,7 +152,7 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | UUID | 主键 |
-| `event_id` | UUID | 外键，关联 Event |
+| `event_id` | VARCHAR(64) | 外键，关联 Event |
 | `participant_id` | UUID | 外键，关联 Participant（谁投的票） |
 | `venue_id` | VARCHAR(255) | 外键，关联 Venue（投给哪个场所） |
 | `created_at` | TIMESTAMP | 投票时间 |
@@ -297,7 +297,7 @@ ALTER TABLE vote ADD CONSTRAINT unique_vote
 ```
 输入: { title, meetingTime }
   ↓
-生成: id = uuid(), organizer_token = random(64)
+生成: id = evt_<timestamp>_<random16>, organizer_token = random(64)
   ↓
 INSERT INTO event (id, title, meeting_time, organizer_token)
   ↓

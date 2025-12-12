@@ -86,7 +86,7 @@ POST /api/events
 **后端输出（成功 201）：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | string | 活动 UUID |
+| id | string | 活动 ID (格式: `evt_<timestamp>_<random16>`) |
 | title | string | 活动标题 |
 | meetingTime | string \| null | 预计见面时间 |
 | organizerToken | string | 组织者令牌（仅创建时返回） |

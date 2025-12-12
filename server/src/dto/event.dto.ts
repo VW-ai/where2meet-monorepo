@@ -5,6 +5,8 @@
  */
 
 import { z } from "zod";
+
+import { EVENT_ID_PATTERN } from "../utils/id.js";
 import { LocationResponseSchema } from "./common.dto.js";
 import { ParticipantResponseSchema } from "./participant.dto.js";
 
@@ -32,7 +34,7 @@ export type EventSettingsResponse = z.infer<typeof EventSettingsResponseSchema>;
  * Note: organizerToken is NOT included.
  */
 export const EventResponseSchema = z.object({
-  id: z.uuid(),
+  id: z.string().regex(EVENT_ID_PATTERN),
   title: z.string(),
   meetingTime: z.string().nullable(),
   participants: z.array(ParticipantResponseSchema),

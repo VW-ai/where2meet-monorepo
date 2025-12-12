@@ -15,7 +15,7 @@ Core event CRUD operations with organizer authentication.
 - [x] `DELETE /api/events/:id` - Delete event (requires token)
 
 ### 2.2 Event Service
-- [x] Generate UUID for event ID
+- [x] Generate semantic event ID (format: `evt_<timestamp>_<random16>`)
 - [x] Generate secure organizerToken (64 chars)
 - [x] Validate organizer token for protected operations
 - [x] Return organizerToken only on creation
@@ -29,7 +29,7 @@ Core event CRUD operations with organizer authentication.
 ### 2.4 Input Validation (Zod)
 - [x] CreateEventSchema: `{ title: string, meetingTime?: string }`
 - [x] UpdateEventSchema: `{ title?: string, meetingTime?: string }`
-- [x] Validate UUID format for event ID
+- [x] Validate semantic ID format for event ID (regex pattern)
 
 ### 2.5 Auth Middleware
 - [x] Extract token from `Authorization: Bearer {token}`
@@ -44,7 +44,7 @@ Core event CRUD operations with organizer authentication.
 ```
 POST /api/events
 Body: { "title": "Team Lunch", "meetingTime": "2024-01-15T12:00:00Z" }
-Response 201: { "id": "uuid", "title": "...", "organizerToken": "..." }
+Response 201: { "id": "evt_1702000000000_abc...", "title": "...", "organizerToken": "..." }
 ```
 
 ### Get Event
@@ -90,12 +90,14 @@ Response 200: { "id": "...", "title": "...", "participants": [], ... }
 | File | Purpose |
 |------|---------|
 | `src/plugins/db.ts` | Fastify plugin for Prisma dependency injection |
+| `src/utils/id.ts` | Semantic ID generation (`evt_<timestamp>_<random16>`) |
 | `src/schemas/event.ts` | Zod validation schemas |
-| `src/repositories/event.ts` | Database operations |
+| `src/repositories/event.ts` | Database operations (with ID collision retry) |
 | `src/services/event.ts` | Business logic |
 | `src/hooks/auth.ts` | organizerToken verification |
 | `src/routes/events.ts` | API endpoints |
-| `tests/events.test.ts` | Integration tests (22 cases) |
+| `tests/utils/id.test.ts` | ID generation tests (11 cases) |
+| `tests/events.test.ts` | Integration tests (20 cases) |
 | `tests/services/event.test.ts` | Unit tests (14 cases) |
 | `docker-compose.yml` | Development database setup |
 
