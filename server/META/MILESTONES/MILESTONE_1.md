@@ -41,6 +41,12 @@ src/
 - [x] Request logging (Pino)
 - [x] Environment variable configuration (dotenv)
 
+### 1.6 Fastify Runtime Documentation
+- [x] Document Prisma/Redis infrastructure插件与 `decorate` 注入（含 `onClose` 资源释放）
+- [x] Document 全局 `setErrorHandler` + `setNotFoundHandler` 输出契约
+- [x] Document lifecycle hooks 对应的 cross-cutting concern 映射
+- [x] Document 生产级 guardrails（日志脱敏、schema 单一来源、`app.inject` 测试、外部调用并发阀门）
+
 ---
 
 ## Testing

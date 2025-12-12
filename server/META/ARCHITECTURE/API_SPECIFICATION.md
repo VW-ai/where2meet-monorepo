@@ -26,6 +26,49 @@
 
 ---
 
+## Fastify 运行时约定（依赖注入 / 错误出口 / Hooks）
+
+> 本章节把架构规范进一步落到 Fastify 的运行时机制，确保团队写新路由时自动继承依赖注入、错误处理和横切关注点，而不是靠「大家自觉」。
+
+### 1. 基础设施插件（decorate 注入依赖）
+
+- **`plugins/db.ts`**：创建 PrismaClient，`app.decorate("db", prisma)`，在 `onClose` 中 `await prisma.$disconnect()`。
+- **`plugins/cache.ts`**：创建 Redis client，`app.decorate("cache", redis)`，在 `onClose` 中 `await redis.quit()`。
+- **使用方式**：业务层/路由通过 `request.server.db`、`request.server.cache` 访问依赖，禁止直接 `import` 全局单例，测试可以用 `app.withTypeProvider().decorate(...)` 注入 mock。
+
+### 2. 统一错误出口（`setErrorHandler` + `NotFound` Handler）
+
+- 所有业务异常继承 `AppError`：包含 `statusCode` + `code` + `message`，业务层只需 `throw`。
+- `app.setErrorHandler` 负责：
+  - **Zod/Fastify Schema 校验错误** → `400 VALIDATION_ERROR`
+  - **Prisma 唯一键冲突** → `409 CONFLICT`
+  - **外部服务 429/5xx** → `502/503 EXTERNAL_SERVICE_ERROR`（并写入 requestId + 原始错误）
+  - **业务错误**（`EventNotFoundError` 等）→ 对应状态码/错误码
+- `app.setNotFoundHandler` 返回 `{ error: { code: "NOT_FOUND", message: "Route not found" } }`，避免 Fastify 默认 HTML。
+- 所有响应都经由统一 handler，保证脱敏 message、结构化日志（使用 requestId、eventId 等上下文）。
+
+### 3. Lifecycle Hooks & Cross-cutting Concerns
+
+| Hook | 负责事项 | 说明 |
+|------|----------|------|
+| `onRequest` | requestId 注入、基础日志、全局速率限制入口 | 结合 Pino，把 organizerToken、API Key 通过 `redact` 脱敏 |
+| `preValidation` | 字符串 trim/normalize、幂等 key 解析、严格 schema | 建议使用 `fastify-type-provider-zod`，保持 schema 单一来源 |
+| `preHandler` | 鉴权/授权（如 organizerToken 校验）、RBAC、feature flag | 可针对 `/api/events/:id/*` 设专属 hook，集中校验 event 状态 |
+| `onResponse` | latency/状态码指标、缓存命中统计 | 写入 Prometheus 计数器 + 结构化日志 |
+| `onSend` | 统一响应 envelope/headers（如 `Cache-Control`、`X-Request-Id`） | 需要时可在这里做 gzip、脱敏兜底 |
+
+> 通过 `app.register(moduleRoutes, { prefix, onRequest: [...], preHandler: [...] })` 将 hook 精准作用在模块级别，保持「分层边界」与「运行时机制」一致。
+
+### 4. 额外生产级防护（推荐）
+
+- **资源关闭**：所有插件在 `onClose` 中优雅关闭，配合 `vitest`/`app.inject` 避免句柄泄漏。
+- **日志脱敏**：Pino `redact` 针对 `organizerToken`、地址、Google API Key 等敏感字段。
+- **Schema 单一来源**：Zod → JSON Schema（`fastify-type-provider-zod`）以便既做校验又生成类型/文档。
+- **测试首选 `app.inject`**：无需监听端口，直接注入请求，搭配自定义插件便于替换依赖。
+- **外部调用并发阀门**：对 Maps/Places/Directions 调用增加信号量/队列，防止瞬时压爆配额。
+
+---
+
 ## 二、Event 模块
 
 ### 2.1 创建活动
