@@ -59,3 +59,13 @@ Ref: MILESTONE_X
 ```
 
 Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+
+---
+
+## Agents
+
+| Agent | Role |
+|-------|------|
+| [where2meet-backend-dev](.claude/agents/where2meet-backend-dev.md) | Implementation |
+| [architecture-advisor](.claude/agents/architecture-advisor.md) | Design decisions |
+| [qa-devops-engineer](.claude/agents/qa-devops-engineer.md) | Testing & CI/CD |
