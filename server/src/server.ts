@@ -2,6 +2,7 @@
  * Fastify server setup module.
  *
  * Creates and configures the Fastify server with:
+ * - CORS (enabled for all origins in dev)
  * - Pino logging (pretty in dev, JSON in prod)
  * - Rate limiting
  * - Error handling
@@ -12,6 +13,7 @@
  */
 
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import { config, isTest } from "./lib/config.js";
 import { errorHandler } from "./utils/errorHandler.js";
@@ -60,6 +62,12 @@ export async function buildServer() {
     requestIdHeader: "x-request-id",
     requestIdLogLabel: "requestId",
     disableRequestLogging: isTest,
+  });
+
+  // Register CORS (allow all origins in dev, configure for prod)
+  await server.register(cors, {
+    origin: config.NODE_ENV === "production" ? false : true,
+    credentials: true,
   });
 
   // Register rate limiting
