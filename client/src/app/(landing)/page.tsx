@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HeroInput } from '@/components/landing/hero-input';
 import { ActionButtons } from '@/components/landing/action-buttons';
+import { api } from '@/lib/api';
 
 export default function LandingPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [meetingTime, setMeetingTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
   const handleCreateEvent = async () => {
     if (!title || !meetingTime) {
       return;
@@ -18,22 +20,17 @@ export default function LandingPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          meetingTime: new Date(meetingTime).toISOString(),
-        }),
+      // Calls backend directly, returns event with UUID from backend
+      const event = await api.events.create({
+        title,
+        meetingTime: new Date(meetingTime).toISOString(),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create event');
+      // TODO: Save organizerToken to localStorage for organizer actions
+      if (event.organizerToken) {
+        localStorage.setItem(`organizer_token_${event.id}`, event.organizerToken);
       }
 
-      const event = await response.json();
       router.push(`/meet/${event.id}`);
     } catch (error) {
       console.error('Error creating event:', error);

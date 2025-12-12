@@ -26,10 +26,14 @@ export async function POST(request: NextRequest) {
 
     // Create event
     const event = mockStore.createEvent({
-      ...body,
-      organizerId: `org_${Date.now()}`,
+      title: body.title,
+      meetingTime: body.meetingTime || null,
       organizerToken: `mock_token_${Date.now()}`,
-      settings: { organizerOnly: false },
+      updatedAt: new Date().toISOString(),
+      mec: null,
+      publishedVenueId: null,
+      publishedAt: null,
+      settings: { allowParticipantsAfterPublish: false },
     });
 
     return NextResponse.json(event, { status: 201 });

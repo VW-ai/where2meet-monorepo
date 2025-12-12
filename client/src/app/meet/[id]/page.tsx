@@ -9,7 +9,7 @@ import { VenueInfo } from '@/components/sidebar/venue/venue-info';
 import { ParticipantStats } from '@/components/sidebar/participant/participant-stats';
 import { ModalProvider } from '@/components/modals';
 import { useMeetingStore } from '@/store/useMeetingStore';
-import { api } from '@/lib/api/client';
+import { api } from '@/lib/api';
 
 export default function MeetPage() {
   const params = useParams();

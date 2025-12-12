@@ -1,5 +1,6 @@
 /**
  * Event-related type definitions
+ * Aligned with backend API (Milestone 2)
  */
 
 import { Participant } from './participant';
@@ -7,24 +8,36 @@ import { Participant } from './participant';
 export interface Event {
   id: string;
   title: string;
-  meetingTime: string; // ISO 8601 format
-  organizerId: string;
-  organizerToken?: string; // Only sent on creation
+  meetingTime: string | null; // ISO 8601 format, null if not set
+  organizerToken?: string; // Only returned on creation (POST), save it!
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
   participants: Participant[];
-  publishedVenueId?: string | null;
-  publishedAt?: string | null;
+  mec: MEC | null; // Minimum Enclosing Circle (calculated when participants have locations)
+  publishedVenueId: string | null;
+  publishedAt: string | null;
   settings: EventSettings;
 }
 
+export interface MEC {
+  center: {
+    lat: number;
+    lng: number;
+  };
+  radiusMeters: number;
+}
+
 export interface EventSettings {
-  organizerOnly: boolean;
+  allowParticipantsAfterPublish: boolean;
 }
 
 // DTOs
-export type CreateEventDTO = Pick<Event, 'title' | 'meetingTime'>;
+export interface CreateEventDTO {
+  title: string;
+  meetingTime?: string; // Optional ISO 8601 datetime
+}
 
-export type UpdateEventDTO = Partial<Pick<Event, 'title' | 'meetingTime'>> & {
-  settings?: Partial<EventSettings>;
-};
+export interface UpdateEventDTO {
+  title?: string;
+  meetingTime?: string;
+}

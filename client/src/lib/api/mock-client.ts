@@ -32,10 +32,14 @@ export async function mockApiCall<T>(endpoint: string, options?: RequestInit): P
   if (endpoint === '/api/events' && method === 'POST') {
     const data = body as CreateEventDTO;
     const event = mockStore.createEvent({
-      ...data,
-      organizerId: `org_${Date.now()}`,
+      title: data.title,
+      meetingTime: data.meetingTime || null,
       organizerToken: `mock_token_${Date.now()}`,
-      settings: { organizerOnly: false },
+      updatedAt: new Date().toISOString(),
+      mec: null,
+      publishedVenueId: null,
+      publishedAt: null,
+      settings: { allowParticipantsAfterPublish: false },
     });
     return event as T;
   }
