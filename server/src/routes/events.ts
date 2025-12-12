@@ -2,6 +2,8 @@
  * Event routes module.
  *
  * Provides API endpoints for event CRUD operations.
+ * Uses mappers to transform entities to Response DTOs.
+ *
  * @module routes/events
  */
 
@@ -15,6 +17,8 @@ import {
   type UpdateEventInput,
   type EventIdParam,
 } from "../schemas/event.js";
+import { toEventResponse, toCreateEventResponse } from "../mappers/event.mapper.js";
+import { createDeleteSuccessResponse } from "../dto/index.js";
 import { verifyOrganizerToken } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
 
@@ -49,9 +53,10 @@ export function eventRoutes(fastify: FastifyInstance): void {
         throw parseResult.error;
       }
 
-      const event = await eventService.createEvent(parseResult.data);
+      const { event, organizerToken } = await eventService.createEvent(parseResult.data);
+      const response = toCreateEventResponse(event, organizerToken);
 
-      return reply.status(201).send(event);
+      return reply.status(201).send(response);
     }
   );
 
@@ -69,8 +74,9 @@ export function eventRoutes(fastify: FastifyInstance): void {
       }
 
       const event = await eventService.getEvent(parseResult.data.id);
+      const response = toEventResponse(event);
 
-      return reply.send(event);
+      return reply.send(response);
     }
   );
 
@@ -100,8 +106,9 @@ export function eventRoutes(fastify: FastifyInstance): void {
         paramsResult.data.id,
         bodyResult.data
       );
+      const response = toEventResponse(event);
 
-      return reply.send(event);
+      return reply.send(response);
     }
   );
 
@@ -123,10 +130,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
       await eventService.deleteEvent(parseResult.data.id);
 
-      return reply.send({
-        success: true,
-        message: "Event deleted successfully",
-      });
+      return reply.send(createDeleteSuccessResponse("Event deleted successfully"));
     }
   );
 }

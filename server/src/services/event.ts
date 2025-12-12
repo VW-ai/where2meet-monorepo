@@ -2,6 +2,9 @@
  * Event service module.
  *
  * Contains business logic for event operations.
+ * Returns raw database entities - transformation to Response DTOs
+ * is handled by mappers in the route handlers.
+ *
  * @module services/event
  */
 
@@ -12,17 +15,20 @@ import {
   type EventRepository,
   type EventWithParticipants,
 } from "../repositories/event.js";
-import type {
-  CreateEventInput,
-  UpdateEventInput,
-  EventResponse,
-  CreateEventResponse,
-  ParticipantResponse,
-} from "../schemas/event.js";
+import type { CreateEventInput, UpdateEventInput } from "../schemas/event.js";
 import { EventNotFoundError } from "../types/errors.js";
 
 /** Length of the organizer token in characters */
 const ORGANIZER_TOKEN_LENGTH = 64;
+
+/**
+ * Result of creating an event.
+ * Includes both the entity and the organizerToken.
+ */
+export interface CreateEventResult {
+  event: EventWithParticipants;
+  organizerToken: string;
+}
 
 /**
  * Generates a cryptographically secure random token.
@@ -34,45 +40,10 @@ function generateSecureToken(length: number): string {
 }
 
 /**
- * Transforms a database participant to API response format.
- */
-function transformParticipant(participant: EventWithParticipants["participants"][0]): ParticipantResponse {
-  return {
-    id: participant.id,
-    name: participant.name,
-    address: participant.address,
-    location: {
-      lat: Number(participant.lat),
-      lng: Number(participant.lng),
-    },
-    color: participant.color,
-    fuzzyLocation: participant.fuzzyLocation,
-  };
-}
-
-/**
- * Transforms a database event to API response format.
- * Does NOT include organizerToken.
- */
-function transformEventResponse(event: EventWithParticipants): EventResponse {
-  return {
-    id: event.id,
-    title: event.title,
-    meetingTime: event.meetingTime?.toISOString() ?? null,
-    organizerId: event.id, // For now, organizerId equals event id
-    participants: event.participants.map(transformParticipant),
-    publishedVenueId: event.publishedVenueId,
-    publishedAt: event.publishedAt?.toISOString() ?? null,
-    createdAt: event.createdAt.toISOString(),
-    updatedAt: event.updatedAt.toISOString(),
-    settings: {
-      allowParticipantsAfterPublish: false,
-    },
-  };
-}
-
-/**
  * Service for event business logic.
+ *
+ * All methods return raw database entities. Transformation to
+ * Response DTOs should be done in route handlers using mappers.
  */
 export class EventService {
   private readonly repository: EventRepository;
@@ -84,9 +55,9 @@ export class EventService {
   /**
    * Creates a new event.
    * @param input - Event creation data
-   * @returns Created event with organizerToken (only time token is returned)
+   * @returns Created event entity and organizerToken
    */
-  async createEvent(input: CreateEventInput): Promise<CreateEventResponse> {
+  async createEvent(input: CreateEventInput): Promise<CreateEventResult> {
     const organizerToken = generateSecureToken(ORGANIZER_TOKEN_LENGTH);
 
     const event = await this.repository.create({
@@ -94,44 +65,39 @@ export class EventService {
       organizerToken,
     });
 
-    return {
-      ...transformEventResponse(event),
-      organizerToken,
-    };
+    return { event, organizerToken };
   }
 
   /**
    * Gets an event by ID.
    * @param id - Event UUID
-   * @returns Event data (without organizerToken)
+   * @returns Event entity with participants
    * @throws EventNotFoundError if event doesn't exist
    */
-  async getEvent(id: string): Promise<EventResponse> {
+  async getEvent(id: string): Promise<EventWithParticipants> {
     const event = await this.repository.findById(id);
 
     if (!event) {
       throw new EventNotFoundError(id);
     }
 
-    return transformEventResponse(event);
+    return event;
   }
 
   /**
    * Updates an event.
    * @param id - Event UUID
    * @param input - Fields to update
-   * @returns Updated event data
+   * @returns Updated event entity
    * @throws EventNotFoundError if event doesn't exist
    */
-  async updateEvent(id: string, input: UpdateEventInput): Promise<EventResponse> {
-    // Check event exists first
+  async updateEvent(id: string, input: UpdateEventInput): Promise<EventWithParticipants> {
     const exists = await this.repository.exists(id);
     if (!exists) {
       throw new EventNotFoundError(id);
     }
 
-    const event = await this.repository.update(id, input);
-    return transformEventResponse(event);
+    return this.repository.update(id, input);
   }
 
   /**

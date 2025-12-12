@@ -27,7 +27,7 @@ describe("EventService", () => {
   });
 
   describe("createEvent", () => {
-    it("should create an event with a 64-char organizerToken", async () => {
+    it("should return event entity and 64-char organizerToken", async () => {
       const mockEvent = {
         id: "550e8400-e29b-41d4-a716-446655440000",
         title: "Test Event",
@@ -47,10 +47,11 @@ describe("EventService", () => {
         meetingTime: "2024-12-15T12:00:00Z",
       });
 
-      expect(result).toHaveProperty("id");
+      // Service returns { event, organizerToken }
+      expect(result).toHaveProperty("event");
       expect(result).toHaveProperty("organizerToken");
       expect(result.organizerToken).toHaveLength(64);
-      expect(result.title).toBe("Test Event");
+      expect(result.event.title).toBe("Test Event");
       expect(mockPrisma.event.create).toHaveBeenCalledTimes(1);
     });
 
@@ -71,8 +72,8 @@ describe("EventService", () => {
 
       const result = await service.createEvent({ title: "Quick Meetup" });
 
-      expect(result.title).toBe("Quick Meetup");
-      expect(result.meetingTime).toBeNull();
+      expect(result.event.title).toBe("Quick Meetup");
+      expect(result.event.meetingTime).toBeNull();
     });
 
     it("should generate unique tokens for each event", async () => {
@@ -102,7 +103,7 @@ describe("EventService", () => {
   });
 
   describe("getEvent", () => {
-    it("should return event without organizerToken", async () => {
+    it("should return raw event entity", async () => {
       const mockEvent = {
         id: "550e8400-e29b-41d4-a716-446655440000",
         title: "Test Event",
@@ -119,9 +120,11 @@ describe("EventService", () => {
 
       const result = await service.getEvent(mockEvent.id);
 
-      expect(result).not.toHaveProperty("organizerToken");
+      // Service now returns raw entity (includes organizerToken)
+      // Transformation to Response DTO happens in route handlers
       expect(result.id).toBe(mockEvent.id);
       expect(result.title).toBe("Test Event");
+      expect(result.organizerToken).toBe("secret-token");
     });
 
     it("should throw EventNotFoundError for non-existent event", async () => {
@@ -133,7 +136,7 @@ describe("EventService", () => {
       });
     });
 
-    it("should transform participants correctly", async () => {
+    it("should return participants as raw entities", async () => {
       const mockEvent = {
         id: "550e8400-e29b-41d4-a716-446655440000",
         title: "Test Event",
@@ -146,12 +149,15 @@ describe("EventService", () => {
         participants: [
           {
             id: "participant-1",
+            eventId: "550e8400-e29b-41d4-a716-446655440000",
             name: "Alice",
             address: "123 Main St",
             lat: 40.7128,
             lng: -74.006,
             color: "#FF5733",
             fuzzyLocation: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         ],
       };
@@ -160,20 +166,16 @@ describe("EventService", () => {
 
       const result = await service.getEvent(mockEvent.id);
 
+      // Returns raw entities - transformation to Response DTO happens in mapper
       expect(result.participants).toHaveLength(1);
-      expect(result.participants[0]).toEqual({
-        id: "participant-1",
-        name: "Alice",
-        address: "123 Main St",
-        location: { lat: 40.7128, lng: -74.006 },
-        color: "#FF5733",
-        fuzzyLocation: false,
-      });
+      expect(result.participants[0].name).toBe("Alice");
+      expect(result.participants[0].lat).toBe(40.7128);
+      expect(result.participants[0].lng).toBe(-74.006);
     });
   });
 
   describe("updateEvent", () => {
-    it("should update event title", async () => {
+    it("should return updated event entity", async () => {
       vi.mocked(mockPrisma.event.count).mockResolvedValue(1);
       vi.mocked(mockPrisma.event.update).mockResolvedValue({
         id: "event-id",

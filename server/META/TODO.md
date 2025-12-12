@@ -28,6 +28,14 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 
 ## 2025-12-12
 
+### DTO Layer Refactoring (COMPLETED)
+- [x] Create `src/dto/` folder with atomic files
+- [x] Add Zod schemas for runtime response validation
+- [x] Create mappers with `.parse()` validation
+- [x] Refactor EventService to return raw entities
+- [x] Update routes to use mappers
+- [x] Update API spec to match DTOs
+
 ### Next: Milestone 3 - Maps + Participant
 - [ ] Create Maps service (Google Geocoding API wrapper)
 - [ ] POST /api/events/:id/participants - Add participant
@@ -36,3 +44,7 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [ ] Implement MEC (Minimum Enclosing Circle) algorithm
 - [ ] Add participant color assignment
 - [ ] Write tests for Participant endpoints
+
+### Future: OpenAPI Documentation (see issue M2_FastifySchemaVsMapperValidation)
+- [ ] Evaluate need for auto-generated API docs
+- [ ] If needed: migrate to `fastify-type-provider-zod` + `@fastify/swagger`

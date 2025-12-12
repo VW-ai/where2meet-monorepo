@@ -46,3 +46,17 @@ This tracker serves as a log of what we have accomplished. sections are separate
 - Created integration tests (`tests/events.test.ts`) - 22 test cases
 - Created docker-compose.test.yml for test database
 - TypeScript compiles, ESLint passes
+
+### DTO Layer Refactoring
+- Created `src/dto/` folder with atomic DTO files:
+  - `common.dto.ts` - LocationResponse, DeleteSuccessResponse, helper functions
+  - `participant.dto.ts` - ParticipantResponse
+  - `event.dto.ts` - EventResponse, CreateEventResponse, MECResponse, EventSettingsResponse
+  - `index.ts` - Barrel exports
+- Added Zod schemas for runtime response validation (types derived from schemas)
+- Created `src/mappers/event.mapper.ts` - entity-to-DTO transformation with `.parse()` validation
+- Refactored EventService to return raw entities (transformation in route layer)
+- Updated routes to use mappers and `createDeleteSuccessResponse()` helper
+- Cleaned up `src/schemas/event.ts` - now only contains request DTOs
+- Updated API specification - removed phantom `organizerId` field
+- Created issue: M2_FastifySchemaVsMapperValidation_2025-12-12.md

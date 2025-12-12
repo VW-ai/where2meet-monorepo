@@ -1,7 +1,9 @@
 /**
- * Event validation schemas.
+ * Event validation schemas (Request DTOs).
  *
  * Zod schemas for validating event-related API requests.
+ * Response DTOs are defined in dto/.
+ *
  * @module schemas/event
  */
 
@@ -51,57 +53,3 @@ export const EventIdSchema = z.object({
 });
 
 export type EventIdParam = z.infer<typeof EventIdSchema>;
-
-/**
- * Participant response schema (for nested response).
- */
-export const ParticipantResponseSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  address: z.string(),
-  location: z.object({
-    lat: z.number(),
-    lng: z.number(),
-  }),
-  color: z.string(),
-  fuzzyLocation: z.boolean(),
-});
-
-export type ParticipantResponse = z.infer<typeof ParticipantResponseSchema>;
-
-/**
- * Event settings schema.
- */
-export const EventSettingsSchema = z.object({
-  allowParticipantsAfterPublish: z.boolean().default(false),
-});
-
-export type EventSettings = z.infer<typeof EventSettingsSchema>;
-
-/**
- * Full event response schema (for GET /api/events/:id).
- * Note: organizerToken is NOT included in response.
- */
-export const EventResponseSchema = z.object({
-  id: z.uuid(),
-  title: z.string(),
-  meetingTime: z.iso.datetime().nullable(),
-  organizerId: z.string(),
-  participants: z.array(ParticipantResponseSchema),
-  publishedVenueId: z.string().nullable(),
-  publishedAt: z.iso.datetime().nullable(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
-  settings: EventSettingsSchema,
-});
-
-export type EventResponse = z.infer<typeof EventResponseSchema>;
-
-/**
- * Event creation response (includes organizerToken, only returned on create).
- */
-export const CreateEventResponseSchema = EventResponseSchema.extend({
-  organizerToken: z.string(),
-});
-
-export type CreateEventResponse = z.infer<typeof CreateEventResponseSchema>;
