@@ -2,37 +2,39 @@
 
 Core event CRUD operations with organizer authentication.
 
+**STATUS: COMPLETED** (2025-12-12)
+
 ---
 
 ## Deliverables
 
 ### 2.1 Event Routes
-- [ ] `POST /api/events` - Create event
-- [ ] `GET /api/events/:id` - Get event details
-- [ ] `PATCH /api/events/:id` - Update event (requires token)
-- [ ] `DELETE /api/events/:id` - Delete event (requires token)
+- [x] `POST /api/events` - Create event
+- [x] `GET /api/events/:id` - Get event details
+- [x] `PATCH /api/events/:id` - Update event (requires token)
+- [x] `DELETE /api/events/:id` - Delete event (requires token)
 
 ### 2.2 Event Service
-- [ ] Generate UUID for event ID
-- [ ] Generate secure organizerToken (64 chars)
-- [ ] Validate organizer token for protected operations
-- [ ] Return organizerToken only on creation
+- [x] Generate UUID for event ID
+- [x] Generate secure organizerToken (64 chars)
+- [x] Validate organizer token for protected operations
+- [x] Return organizerToken only on creation
 
 ### 2.3 Event Repository
-- [ ] Create event in database
-- [ ] Find event by ID
-- [ ] Update event fields
-- [ ] Delete event (cascade to participants)
+- [x] Create event in database
+- [x] Find event by ID
+- [x] Update event fields
+- [x] Delete event (cascade to participants)
 
 ### 2.4 Input Validation (Zod)
-- [ ] CreateEventSchema: `{ title: string, meetingTime?: string }`
-- [ ] UpdateEventSchema: `{ title?: string, meetingTime?: string }`
-- [ ] Validate UUID format for event ID
+- [x] CreateEventSchema: `{ title: string, meetingTime?: string }`
+- [x] UpdateEventSchema: `{ title?: string, meetingTime?: string }`
+- [x] Validate UUID format for event ID
 
 ### 2.5 Auth Middleware
-- [ ] Extract token from `Authorization: Bearer {token}`
-- [ ] Verify token matches event's organizerToken
-- [ ] Return 401/403 appropriately
+- [x] Extract token from `Authorization: Bearer {token}`
+- [x] Verify token matches event's organizerToken
+- [x] Return 401/403 appropriately
 
 ---
 
@@ -75,8 +77,35 @@ Response 200: { "id": "...", "title": "...", "participants": [], ... }
 
 ## Exit Criteria
 
-- [ ] All 4 Event endpoints working
-- [ ] Token auth protects PATCH/DELETE
-- [ ] Zod validation rejects bad input
-- [ ] Unit tests for EventService
-- [ ] Integration tests for all endpoints
+- [x] All 4 Event endpoints working
+- [x] Token auth protects PATCH/DELETE
+- [x] Zod validation rejects bad input
+- [x] Unit tests for EventService
+- [x] Integration tests for all endpoints
+
+---
+
+## Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/plugins/db.ts` | Fastify plugin for Prisma dependency injection |
+| `src/schemas/event.ts` | Zod validation schemas |
+| `src/repositories/event.ts` | Database operations |
+| `src/services/event.ts` | Business logic |
+| `src/hooks/auth.ts` | organizerToken verification |
+| `src/routes/events.ts` | API endpoints |
+| `tests/events.test.ts` | Integration tests (22 cases) |
+| `tests/services/event.test.ts` | Unit tests (14 cases) |
+| `docker-compose.yml` | Development database setup |
+
+---
+
+## Note: DTO Refactoring
+
+Current implementation has transformation logic embedded in `EventService`.
+The formal DTO/Mapper pattern will be established in **Milestone 3** (section 3.0).
+
+Files to be created in M3:
+- `src/types/responses.ts` - Response DTO interfaces
+- `src/mappers/event.mapper.ts` - Entity → Response transformation

@@ -27,6 +27,11 @@ Google Directions integration and publish venue feature.
 - [ ] `text`: imperial by default (miles/feet, mins/hours)
 - [ ] Conversion helpers for metric option
 
+### 6.5 Directions DTOs & Mappers
+- [ ] Define `DirectionsResponse`, `RouteResponse` in `src/types/responses.ts`
+- [ ] Create `src/mappers/directions.mapper.ts` - Google Directions → RouteResponse
+- [ ] Include distance/duration formatting in mapper
+
 ---
 
 ## API Contracts
