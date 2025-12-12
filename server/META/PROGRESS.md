@@ -26,3 +26,37 @@ This tracker serves as a log of what we have accomplished. sections are separate
 - Added JSDoc/TSDoc ESLint plugin for documentation linting
 - Created .gitignore and .env.example files
 - All tests passing, lint passing
+
+---
+
+## 2025-12-12
+
+### Milestone 2: Event Module (COMPLETED)
+- Created DB plugin (`src/plugins/db.ts`) - decorates Fastify with Prisma client
+- Created Zod schemas (`src/schemas/event.ts`) using Zod v4 syntax
+- Created Event repository (`src/repositories/event.ts`) - CRUD operations
+- Created Event service (`src/services/event.ts`) - business logic with token generation
+- Created Auth hook (`src/hooks/auth.ts`) - organizerToken verification
+- Created Event routes (`src/routes/events.ts`):
+  - POST /api/events - Create event (returns organizerToken)
+  - GET /api/events/:id - Get event details (no organizerToken)
+  - PATCH /api/events/:id - Update event (requires auth)
+  - DELETE /api/events/:id - Delete event (requires auth)
+- Registered plugins and routes in server.ts
+- Created integration tests (`tests/events.test.ts`) - 22 test cases
+- Created docker-compose.test.yml for test database
+- TypeScript compiles, ESLint passes
+
+### DTO Layer Refactoring
+- Created `src/dto/` folder with atomic DTO files:
+  - `common.dto.ts` - LocationResponse, DeleteSuccessResponse, helper functions
+  - `participant.dto.ts` - ParticipantResponse
+  - `event.dto.ts` - EventResponse, CreateEventResponse, MECResponse, EventSettingsResponse
+  - `index.ts` - Barrel exports
+- Added Zod schemas for runtime response validation (types derived from schemas)
+- Created `src/mappers/event.mapper.ts` - entity-to-DTO transformation with `.parse()` validation
+- Refactored EventService to return raw entities (transformation in route layer)
+- Updated routes to use mappers and `createDeleteSuccessResponse()` helper
+- Cleaned up `src/schemas/event.ts` - now only contains request DTOs
+- Updated API specification - removed phantom `organizerId` field
+- Created issue: M2_FastifySchemaVsMapperValidation_2025-12-12.md

@@ -28,6 +28,11 @@ Participant voting on venues.
 - [ ] RemoveVoteSchema: `{ participantId, venueId }`
 - [ ] Validate UUIDs and placeId format
 
+### 5.5 Vote DTOs & Mappers
+- [ ] Define `VoteResponse`, `VoteStatisticsResponse` in `src/types/responses.ts`
+- [ ] Create `src/mappers/vote.mapper.ts` - Vote entity → VoteResponse
+- [ ] Controller calls mapper to transform service output
+
 ---
 
 ## API Contracts

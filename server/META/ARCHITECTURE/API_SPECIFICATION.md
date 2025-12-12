@@ -88,12 +88,14 @@ POST /api/events
 |------|------|------|
 | id | string | 活动 UUID |
 | title | string | 活动标题 |
-| meetingTime | string | 预计见面时间 |
-| organizerId | string | 组织者标识 |
+| meetingTime | string \| null | 预计见面时间 |
 | organizerToken | string | 组织者令牌（仅创建时返回） |
 | participants | array | 参与者列表（空） |
-| publishedVenueId | null | 已发布场所 ID |
-| publishedAt | null | 发布时间 |
+| mec | object \| null | 最小外接圆（MEC） |
+| publishedVenueId | string \| null | 已发布场所 ID |
+| publishedAt | string \| null | 发布时间 |
+| createdAt | string | 创建时间 |
+| updatedAt | string | 更新时间 |
 | settings | object | 活动设置 |
 
 **错误响应：**
@@ -120,11 +122,13 @@ GET /api/events/:id
 |------|------|------|
 | id | string | 活动 UUID |
 | title | string | 活动标题 |
-| meetingTime | string | 预计见面时间 |
-| organizerId | string | 组织者标识 |
+| meetingTime | string \| null | 预计见面时间 |
 | participants | Participant[] | 参与者列表 |
+| mec | object \| null | 最小外接圆（MEC） |
 | publishedVenueId | string \| null | 已发布场所 ID |
 | publishedAt | string \| null | 发布时间 |
+| createdAt | string | 创建时间 |
+| updatedAt | string | 更新时间 |
 | settings | object | 活动设置 |
 
 **注意**：不返回 organizerToken（防止泄露）

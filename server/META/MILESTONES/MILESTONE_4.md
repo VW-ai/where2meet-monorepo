@@ -22,9 +22,14 @@ Google Places integration and venue search functionality.
 - [ ] Accept user-provided searchRadius
 - [ ] Support text search, category filter, or both
 - [ ] Sort results by rating/distance
-- [ ] Transform Google response to our Venue format
+- [ ] Return raw venue data to controller
 
-### 4.4 Input Validation
+### 4.4 Venue DTOs & Mappers
+- [ ] Define `VenueResponse`, `VenueSearchResponse` in `src/types/responses.ts`
+- [ ] Create `src/mappers/venue.mapper.ts` - Google Place → VenueResponse
+- [ ] Controller calls mapper to transform service output
+
+### 4.5 Input Validation
 - [ ] SearchVenuesSchema: `{ eventId, searchRadius, query?, categories? }`
 - [ ] Require at least one of query or categories
 - [ ] Validate searchRadius > 0

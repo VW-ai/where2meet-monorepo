@@ -2,9 +2,18 @@
 
 Google Geocoding integration, participant management, and MEC calculation.
 
+**Includes**: DTO/Mapper infrastructure setup for proper response handling.
+
 ---
 
 ## Deliverables
+
+### 3.0 DTO Infrastructure (Prerequisite)
+- [ ] Create `src/types/responses.ts` - Response DTO interfaces
+- [ ] Create `src/mappers/event.mapper.ts` - Event entity → EventResponse
+- [ ] Create `src/mappers/participant.mapper.ts` - Participant entity → ParticipantResponse
+- [ ] Refactor `EventService` to return raw entities, move transformation to route handlers
+- [ ] Define `EventResponse`, `ParticipantResponse`, `MECResponse` interfaces
 
 ### 3.1 Maps Service (Google Geocoding)
 - [ ] Geocode address → `{ lat, lng, formattedAddress }`

@@ -7,13 +7,14 @@
 ## 目录
 
 1. [整体架构](#一整体架构)
-2. [输入验证](#二输入验证不信任任何外部数据)
-3. [输出处理](#三输出处理谨慎暴露信息)
-4. [安全机制](#四安全机制)
-5. [数据一致性](#五数据一致性)
-6. [外部服务集成](#六外部服务集成)
-7. [可观测性](#七可观测性)
-8. [Where2Meet 开发 Checklist](#八where2meet-开发-checklist)
+2. [DTO 层设计](#二dto-层设计)
+3. [输入验证](#三输入验证不信任任何外部数据)
+4. [输出处理](#四输出处理谨慎暴露信息)
+5. [安全机制](#五安全机制)
+6. [数据一致性](#六数据一致性)
+7. [外部服务集成](#七外部服务集成)
+8. [可观测性](#八可观测性)
+9. [Where2Meet 开发 Checklist](#九where2meet-开发-checklist)
 
 ---
 
@@ -77,9 +78,154 @@
 
 ---
 
-## 二、输入验证：不信任任何外部数据
+## 二、DTO 层设计
 
-### 2.1 HTTP 输入校验（Controller 层）
+### 2.1 什么是 DTO？
+
+DTO（Data Transfer Object）是专门用于层间数据传输的对象，职责是：
+
+| 类型 | 职责 | 位置 |
+|------|------|------|
+| **Request DTO** | 定义外部请求的数据结构和校验规则 | Controller 入口 |
+| **Response DTO** | 定义返回给客户端的数据结构 | Controller 出口 |
+| **Internal DTO** | Service 层间传递的内部数据结构 | Service 层内部 |
+
+### 2.2 为什么需要 DTO？
+
+**不用 DTO 的问题**：
+- 直接暴露 DB 实体 → 泄露内部字段（如 organizerToken）
+- 校验逻辑散落各处 → 难以维护
+- 层间耦合 → 改 DB schema 影响 API 响应
+
+**使用 DTO 的好处**：
+- 明确的数据契约
+- 集中的转换逻辑
+- 解耦 DB schema 和 API 响应
+
+### 2.3 DTO 与 Zod Schema 的关系
+
+在 TypeScript + Zod 项目中，推荐方式：
+
+```typescript
+// src/schemas/event.ts - Request DTO (Zod schemas)
+export const CreateEventSchema = z.object({
+  title: z.string().min(1).max(100),
+  meetingTime: z.iso.datetime().optional(),
+});
+
+export type CreateEventInput = z.infer<typeof CreateEventSchema>;
+
+// src/types/responses.ts - Response DTO (TypeScript interfaces)
+export interface EventResponse {
+  id: string;
+  title: string;
+  meetingTime: string | null;
+  participants: ParticipantResponse[];
+  mec: MECResponse | null;
+  // 注意：不包含 organizerToken
+}
+
+// Response DTO 在创建时特殊处理
+export interface CreateEventResponse extends EventResponse {
+  organizerToken: string;  // 仅创建时返回
+}
+```
+
+### 2.4 转换函数
+
+集中管理 DB Entity → Response DTO 的转换：
+
+```typescript
+// src/mappers/event.mapper.ts
+export function toEventResponse(entity: EventWithParticipants): EventResponse {
+  return {
+    id: entity.id,
+    title: entity.title,
+    meetingTime: entity.meetingTime?.toISOString() ?? null,
+    participants: entity.participants.map(toParticipantResponse),
+    mec: entity.mecCenter ? toMECResponse(entity) : null,
+  };
+}
+
+export function toParticipantResponse(entity: Participant): ParticipantResponse {
+  return {
+    id: entity.id,
+    name: entity.name,
+    address: entity.address,
+    location: { lat: entity.lat, lng: entity.lng },
+    color: entity.color,
+    fuzzyLocation: entity.fuzzyLocation,
+  };
+}
+```
+
+### 2.5 数据流中的 DTO
+
+```
+外部请求 (JSON)
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Controller 层                                                   │
+│  ─────────────────────────────────────────────────────────────  │
+│  1. Zod Schema 校验 → Request DTO (CreateEventInput)             │
+│  2. 调用 Service 层                                              │
+│  3. 接收内部对象，调用 Mapper → Response DTO                       │
+└─────────────────────────────────────────────────────────────────┘
+      │                                           │
+      ▼ Request DTO                               ▼ Response DTO
+┌─────────────────────────────────────────────────────────────────┐
+│  Service 层                                                      │
+│  ─────────────────────────────────────────────────────────────  │
+│  接收 Request DTO，返回 DB Entity 或 Internal DTO                 │
+│  业务逻辑处理，不关心 HTTP 响应格式                                 │
+└─────────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Repository 层                                                   │
+│  ─────────────────────────────────────────────────────────────  │
+│  操作 DB Entity (Prisma model)                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 2.6 文件组织
+
+推荐的文件结构：
+
+```
+src/
+├── schemas/           # Request DTOs (Zod schemas)
+│   ├── event.ts
+│   ├── participant.ts
+│   └── venue.ts
+├── types/
+│   ├── responses.ts   # Response DTO interfaces
+│   ├── errors.ts      # Error types
+│   └── internal.ts    # Internal DTOs (Service 层间)
+├── mappers/           # Entity → Response DTO 转换
+│   ├── event.mapper.ts
+│   ├── participant.mapper.ts
+│   └── venue.mapper.ts
+├── services/          # 业务逻辑
+├── repositories/      # 数据访问
+└── routes/            # Controller (Fastify routes)
+```
+
+### 2.7 Where2Meet 具体示例
+
+| 场景 | Request DTO | Response DTO |
+|------|-------------|--------------|
+| 创建活动 | `CreateEventInput` | `CreateEventResponse` (含 token) |
+| 获取活动 | `EventIdParams` | `EventResponse` (不含 token) |
+| 添加参与者 | `AddParticipantInput` | `ParticipantResponse` |
+| 搜索场所 | `VenueSearchInput` | `VenueSearchResponse` |
+
+---
+
+## 三、输入验证：不信任任何外部数据
+
+### 3.1 HTTP 输入校验（Controller 层）
 
 | 校验项 | 说明 |
 |--------|------|
@@ -92,7 +238,7 @@
 
 **幂等性支持**：POST 请求可选支持 `idempotencyKey`，防止网络重试导致重复创建
 
-### 2.2 业务层二次防御（Service 层）
+### 3.2 业务层二次防御（Service 层）
 
 即使 Controller 校验过，Service 层仍需检查「系统状态相关」的部分：
 
@@ -113,7 +259,7 @@
 
 所有坐标以服务端 geocode 的结果为准。
 
-### 2.3 外部 API 输入校验
+### 3.3 外部 API 输入校验
 
 不要假设外部服务返回的数据一定正确：
 
@@ -127,9 +273,9 @@
 
 ---
 
-## 三、输出处理：谨慎暴露信息
+## 四、输出处理：谨慎暴露信息
 
-### 3.1 响应 DTO 映射
+### 4.1 响应 DTO 映射
 
 **永远不要直接返回数据库记录**
 
@@ -140,7 +286,7 @@
 | 统一格式 | 枚举/状态用前端友好的值 |
 | 解耦 DB schema | 未来改 DB 不会直接导致 API 变化 |
 
-### 3.2 距离/时间单位标准化
+### 4.2 距离/时间单位标准化
 
 **原则**：后端统一用国际单位，前端负责本地化显示
 
@@ -160,7 +306,7 @@
 
 ---
 
-### 3.3 错误响应标准化
+### 4.3 错误响应标准化
 
 **对外：简洁统一**
 
@@ -183,9 +329,9 @@
 
 ---
 
-## 四、安全机制
+## 五、安全机制
 
-### 4.1 鉴权与授权
+### 5.1 鉴权与授权
 
 #### 模式一：无账号，基于链接 Token（初期）
 
@@ -203,7 +349,7 @@
 
 **原则**：永远不信任前端传的 `isOrganizer: true`
 
-### 4.2 Rate Limiting
+### 5.2 Rate Limiting
 
 | 接口 | 限制 | 原因 |
 |------|------|------|
@@ -215,9 +361,9 @@
 
 ---
 
-## 五、数据一致性
+## 六、数据一致性
 
-### 5.1 数据库约束
+### 6.1 数据库约束
 
 | 约束类型 | 示例 |
 |----------|------|
@@ -228,14 +374,14 @@
 
 不要只靠业务代码保证「不重复」，DB 层要有约束。
 
-### 5.2 事务处理
+### 6.2 事务处理
 
 需要事务的场景：
 - 添加 participant + 更新 MEC
 - 发布 venue + 更新 event 状态
 - 批量操作
 
-### 5.3 并发处理
+### 6.3 并发处理
 
 场景：两个人同时添加 participant
 
@@ -247,9 +393,9 @@
 
 ---
 
-## 六、外部服务集成
+## 七、外部服务集成
 
-### 6.1 Google Maps 服务要求
+### 7.1 Google Maps 服务要求
 
 | 要求 | 说明 |
 |------|------|
@@ -258,7 +404,7 @@
 | **Retry + Backoff** | 429/5xx 时指数退避重试 |
 | **错误分类** | 400 不重试，429/5xx 重试 |
 
-### 6.2 降级策略
+### 7.2 降级策略
 
 | 场景 | 降级方案 |
 |------|----------|
@@ -268,7 +414,7 @@
 
 **原则**：外部服务挂了不能导致整个页面白屏
 
-### 6.3 缓存注意点
+### 7.3 缓存注意点
 
 | 点 | 说明 |
 |----|------|
@@ -278,9 +424,9 @@
 
 ---
 
-## 七、可观测性
+## 八、可观测性
 
-### 7.1 结构化日志
+### 8.1 结构化日志
 
 每个请求记录：
 - requestId（贯穿整个请求链路）
@@ -292,7 +438,7 @@
 - error name, message, stack
 - 外部调用类型和原始错误（脱敏后）
 
-### 7.2 指标收集
+### 8.2 指标收集
 
 | 指标 | 用途 |
 |------|------|
@@ -301,7 +447,7 @@
 | 缓存命中率 | 优化缓存策略 |
 | 4xx vs 5xx 比例 | 区分用户错误和系统错误 |
 
-### 7.3 错误分级
+### 8.3 错误分级
 
 | 级别 | 含义 | 告警 |
 |------|------|------|
@@ -310,7 +456,14 @@
 
 ---
 
-## 八、Where2Meet 开发 Checklist
+## 九、Where2Meet 开发 Checklist
+
+### DTO 层
+- [ ] Request DTO 使用 Zod schemas 定义 (`src/schemas/`)
+- [ ] Response DTO 使用 TypeScript interfaces 定义 (`src/types/responses.ts`)
+- [ ] Mapper 函数集中管理转换逻辑 (`src/mappers/`)
+- [ ] 不直接返回 Prisma entity 给客户端
+- [ ] organizerToken 只在创建响应中返回
 
 ### 输入验证
 - [ ] 所有 HTTP 输入用 Schema 校验（Zod）

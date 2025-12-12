@@ -369,8 +369,13 @@ Created ──► Active ──► Published
 ┌─────────────────────────────────────────────────────────────┐
 │                      Controller Layer                       │
 │  EventController | ParticipantController | VenueController  │
+│  ─────────────────────────────────────────────────────────  │
+│  • 接收 HTTP 请求                                            │
+│  • Zod Schema 校验 → Request DTO                            │
+│  • 调用 Service 层                                          │
+│  • Mapper 转换 → Response DTO                               │
 └────────────────────────────┬────────────────────────────────┘
-                             │
+                             │ Request DTO
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                       Service Layer                         │
@@ -389,12 +394,18 @@ Created ──► Active ──► Published
 │  VenueService ───────────► MapsService                      │
 │                            (Places, Directions)             │
 │                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│  • 接收 Request DTO，返回 DB Entity 或 Internal DTO          │
+│  • 业务逻辑处理，不关心 HTTP 响应格式                          │
 └─────────────────────────────────────────────────────────────┘
-                             │
+                             │ DB Entity
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     Repository Layer                        │
 │     EventRepo    |    ParticipantRepo    |    VenueRepo     │
+│  ─────────────────────────────────────────────────────────  │
+│  • 操作 Prisma Entity                                       │
+│  • 返回 DB Entity                                           │
 └─────────────────────────────────────────────────────────────┘
                              │
                              ▼
@@ -402,6 +413,20 @@ Created ──► Active ──► Published
 │                    External Services                        │
 │         Database (PostgreSQL)  |  Google Maps API           │
 └─────────────────────────────────────────────────────────────┘
+```
+
+### DTO 与 Mapper 层
+
+在 Controller 和 Service 之间，我们使用 DTO 进行数据传递：
+
+| 组件 | 位置 | 职责 |
+|------|------|------|
+| **Request DTO** | `src/schemas/*.ts` | Zod schemas，定义输入格式和校验规则 |
+| **Response DTO** | `src/types/responses.ts` | TypeScript interfaces，定义输出格式 |
+| **Mappers** | `src/mappers/*.ts` | DB Entity → Response DTO 转换函数 |
+
+```
+HTTP Request → Zod Schema → Request DTO → Service → DB Entity → Mapper → Response DTO
 ```
 
 ### 依赖说明
@@ -481,18 +506,22 @@ Created ──► Active ──► Published
          │
          ▼
     Controller
-    ├── Schema 校验
+    ├── Zod Schema 校验 → CreateEventInput (Request DTO)
     └── 调用 EventService
          │
          ▼
     EventService
     ├── 生成 eventId
     ├── 生成 organizerToken
-    └── 存储到 DB
+    └── 存储到 DB，返回 Event entity
          │
          ▼
-    返回 Event + organizerToken
-    (token 仅在创建时返回一次)
+    Controller
+    └── toCreateEventResponse(entity) → CreateEventResponse (Response DTO)
+         │
+         ▼
+    返回 CreateEventResponse
+    (含 organizerToken，仅创建时返回)
 ```
 
 ### 5.2 添加参与者流程
@@ -502,7 +531,7 @@ Created ──► Active ──► Published
          │
          ▼
     Controller
-    ├── Schema 校验
+    ├── Zod Schema 校验 → AddParticipantInput (Request DTO)
     └── 调用 ParticipantService
          │
          ▼
@@ -518,7 +547,7 @@ Created ──► Active ──► Published
     │         │
     ├── 如果 fuzzyLocation，添加随机偏移
     ├── 分配颜色
-    ├── 存储 Participant
+    ├── 存储 Participant，返回 Participant entity
     └── 触发 MEC 重算
          │
          ▼
@@ -528,7 +557,11 @@ Created ──► Active ──► Published
     └── 更新 Event 的 MEC 数据
          │
          ▼
-    返回 Participant
+    Controller
+    └── toParticipantResponse(entity) → ParticipantResponse (Response DTO)
+         │
+         ▼
+    返回 ParticipantResponse
 ```
 
 ### 5.3 搜索场所流程
@@ -542,7 +575,7 @@ Created ──► Active ──► Published
          │  3. 混合搜索：query + categories
          ▼
     Controller
-    ├── Schema 校验
+    ├── Zod Schema 校验 → VenueSearchInput (Request DTO)
     │   ├── searchRadius > 0
     │   └── query 和 categories 至少有一个
     └── 调用 VenueService
@@ -563,10 +596,14 @@ Created ──► Active ──► Published
     ├── 调用 Google Places API
     │   ├── Text Search API（文字搜索）
     │   └── Nearby Search API（类别搜索）
-    └── 返回场所列表
+    └── 返回场所列表 (internal DTOs)
          │
          ▼
-    返回 Venue[]
+    Controller
+    └── venues.map(toVenueResponse) → VenueResponse[] (Response DTO)
+         │
+         ▼
+    返回 VenueSearchResponse
 ```
 
 **Google Places API 选择**：
@@ -614,3 +651,26 @@ Created ──► Active ──► Published
 | **MEC** | 几何计算 | 不负责数据存储 |
 | **Venue** | 场所搜索、路线聚合 | 不负责 API 调用细节 |
 | **Auth** | 权限验证 | 不负责业务逻辑 |
+| **DTO/Mapper** | 数据格式转换、Response 构建 | 不负责业务逻辑、数据校验 |
+
+### 文件组织参考
+
+```
+src/
+├── schemas/           # Request DTOs (Zod schemas)
+│   ├── event.ts       # CreateEventSchema, UpdateEventSchema
+│   ├── participant.ts # AddParticipantSchema
+│   └── venue.ts       # VenueSearchSchema
+├── types/
+│   ├── responses.ts   # Response DTO interfaces
+│   ├── errors.ts      # Error types
+│   └── internal.ts    # Internal DTOs (Service 层间)
+├── mappers/           # Entity → Response DTO 转换
+│   ├── event.mapper.ts
+│   ├── participant.mapper.ts
+│   └── venue.mapper.ts
+├── services/          # 业务逻辑
+├── repositories/      # 数据访问
+├── hooks/             # Auth hooks
+└── routes/            # Controller (Fastify routes)
+```
