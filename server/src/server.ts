@@ -5,7 +5,9 @@
  * - Pino logging (pretty in dev, JSON in prod)
  * - Rate limiting
  * - Error handling
+ * - Database connection (Prisma)
  * - Health check routes
+ * - Event routes
  * @module server
  */
 
@@ -13,7 +15,9 @@ import Fastify from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { config, isTest } from "./lib/config.js";
 import { errorHandler } from "./utils/errorHandler.js";
+import dbPlugin from "./plugins/db.js";
 import { healthRoutes } from "./routes/health.js";
+import { eventRoutes } from "./routes/events.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -73,8 +77,12 @@ export async function buildServer() {
   // Set error handler
   server.setErrorHandler(errorHandler);
 
+  // Register database plugin
+  await server.register(dbPlugin);
+
   // Register routes
   await server.register(healthRoutes);
+  await server.register(eventRoutes);
 
   return server;
 }
