@@ -52,7 +52,7 @@ print_status "Launching Docker containers..."
 docker-compose up -d 2>/dev/null
 
 if [ $? -eq 0 ]; then
-    print_success "PostgreSQL is running on ${YELLOW}localhost:5432${NC}"
+    print_success "PostgreSQL is running on ${YELLOW}localhost:5434${NC}"
 else
     echo -e "${RED}Failed to start Docker containers${NC}"
     exit 1
@@ -60,10 +60,9 @@ fi
 
 # Wait for database to be ready
 print_status "Waiting for database to be ready..."
-sleep 2
 
-# Check database connection
-until docker-compose exec -T db pg_isready -U where2meet > /dev/null 2>&1; do
+# Check database connection (service=postgres, user=postgres, port=5434)
+until docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do
     sleep 1
 done
 print_success "Database connection established"
@@ -87,7 +86,7 @@ echo -e "${CYAN}║${NC}  ${ROCKET} ${GREEN}${BOLD}Server starting...${NC}      
 echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  ${WHITE}API:${NC}      ${YELLOW}http://localhost:3000${NC}                            ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  ${WHITE}Health:${NC}   ${YELLOW}http://localhost:3000/health${NC}                      ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  ${WHITE}Database:${NC} ${YELLOW}postgresql://localhost:5432/where2meet${NC}            ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  ${WHITE}Database:${NC} ${YELLOW}postgresql://localhost:5434/where2meet${NC}            ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  ${GRAY}Press Ctrl+C to stop${NC}                                        ${CYAN}║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"

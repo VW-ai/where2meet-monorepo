@@ -56,7 +56,7 @@ fi
 
 # Wait for database
 print_status "Connecting to database..."
-until docker-compose exec -T db pg_isready -U where2meet > /dev/null 2>&1; do
+until docker-compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do
     sleep 1
 done
 print_success "Database connection established"
