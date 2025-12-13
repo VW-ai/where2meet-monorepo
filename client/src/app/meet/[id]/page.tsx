@@ -9,6 +9,7 @@ import { VenueInfo } from '@/components/sidebar/venue/venue-info';
 import { ParticipantStats } from '@/components/sidebar/participant/participant-stats';
 import { ModalProvider } from '@/components/modals';
 import { useMeetingStore } from '@/store/useMeetingStore';
+import { useUIStore } from '@/store/ui-store';
 import { api } from '@/lib/api';
 
 export default function MeetPage() {
@@ -16,6 +17,14 @@ export default function MeetPage() {
   const eventId = params.id as string;
   const { setCurrentEvent, setLoadingEvent, setEventError, isLoadingEvent, eventError } =
     useMeetingStore();
+  const { initializeOrganizerMode } = useUIStore();
+
+  // Initialize organizer mode based on localStorage token
+  useEffect(() => {
+    if (eventId) {
+      initializeOrganizerMode(eventId);
+    }
+  }, [eventId, initializeOrganizerMode]);
 
   useEffect(() => {
     async function loadEvent() {

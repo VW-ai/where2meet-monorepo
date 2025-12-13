@@ -15,9 +15,6 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
   const { isOrganizerMode, openEditEventModal, openPublishModal, openDeleteConfirmation } =
     useUIStore();
 
-  // Don't render if not in organizer mode
-  if (!isOrganizerMode) return null;
-
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -34,6 +31,9 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
+
+  // Don't render if not in organizer mode
+  if (!isOrganizerMode) return null;
 
   const handleEdit = () => {
     setIsOpen(false);

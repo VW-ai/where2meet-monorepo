@@ -6,9 +6,11 @@ export type TravelMode = 'car' | 'transit' | 'walk' | 'bike';
 
 interface UIStore {
   // Organizer mode (controls visibility of edit/add features)
+  // Determined automatically by checking localStorage for organizer token
   isOrganizerMode: boolean;
-  setOrganizerMode: (isOrganizer: boolean) => void;
-  toggleOrganizerMode: () => void;
+  organizerToken: string | null; // Token for current event (from localStorage)
+  initializeOrganizerMode: (eventId: string) => void; // Check localStorage for token
+  clearOrganizerToken: () => void; // Clear on 401/403
 
   // Active view (participant vs venue section)
   activeView: ActiveView;
@@ -81,10 +83,22 @@ interface UIStore {
 }
 
 export const useUIStore = create<UIStore>((set) => ({
-  // Organizer mode (default to true - organizer can see all controls)
-  isOrganizerMode: true,
-  setOrganizerMode: (isOrganizer) => set({ isOrganizerMode: isOrganizer }),
-  toggleOrganizerMode: () => set((state) => ({ isOrganizerMode: !state.isOrganizerMode })),
+  // Organizer mode (default to false until token is checked)
+  isOrganizerMode: false,
+  organizerToken: null,
+  initializeOrganizerMode: (eventId: string) => {
+    // Check localStorage for organizer token
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem(`organizer_token_${eventId}`);
+    if (token) {
+      set({ isOrganizerMode: true, organizerToken: token });
+    } else {
+      set({ isOrganizerMode: false, organizerToken: null });
+    }
+  },
+  clearOrganizerToken: () => {
+    set({ isOrganizerMode: false, organizerToken: null });
+  },
 
   // View state
   activeView: 'participant',
