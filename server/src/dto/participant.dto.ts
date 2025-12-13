@@ -1,6 +1,5 @@
 /**
  * Participant DTO interfaces and schemas.
- *
  * @module dto/participant
  */
 

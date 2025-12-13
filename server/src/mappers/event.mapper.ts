@@ -3,7 +3,6 @@
  *
  * Transforms database entities to Response DTOs with runtime validation.
  * Centralizes all transformation logic for Event and Participant entities.
- *
  * @module mappers/event
  */
 

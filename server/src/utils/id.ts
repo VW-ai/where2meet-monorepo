@@ -14,7 +14,6 @@
  * Additional safety:
  * - Database has @unique constraint on id field
  * - Repository layer implements collision retry logic
- *
  * @module utils/id
  */
 
@@ -33,7 +32,6 @@ const RANDOM_SUFFIX_LENGTH = 16;
  * Uses crypto.randomBytes for cryptographically secure randomness.
  * Note: Using modulo 62 introduces slight bias (~2.3%) but is acceptable
  * for ID generation purposes given the high entropy.
- *
  * @param length - Number of characters to generate
  * @returns Random base62 string of specified length
  */
@@ -51,7 +49,6 @@ function generateBase62(length: number): string {
  *
  * Format: evt_<timestamp>_<random>
  * Total length: 4 + 13-15 + 1 + 16 = 34-36 characters
- *
  * @returns Generated event ID
  * @example
  * generateEventId() // "evt_1702000000000_a8K3mX2pQrS7nBvW"
@@ -72,7 +69,6 @@ export const EVENT_ID_PATTERN = /^evt_\d{13,15}_[a-zA-Z0-9]{16}$/;
 
 /**
  * Validates whether a string is a valid Event ID format.
- *
  * @param id - String to validate
  * @returns True if the string matches Event ID format
  */

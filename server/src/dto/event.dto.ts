@@ -1,6 +1,5 @@
 /**
  * Event DTO interfaces and schemas.
- *
  * @module dto/event
  */
 

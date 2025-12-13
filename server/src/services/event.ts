@@ -4,7 +4,6 @@
  * Contains business logic for event operations.
  * Returns raw database entities - transformation to Response DTOs
  * is handled by mappers in the route handlers.
- *
  * @module services/event
  */
 

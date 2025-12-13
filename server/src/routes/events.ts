@@ -3,7 +3,6 @@
  *
  * Provides API endpoints for event CRUD operations.
  * Uses mappers to transform entities to Response DTOs.
- *
  * @module routes/events
  */
 

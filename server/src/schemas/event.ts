@@ -3,7 +3,6 @@
  *
  * Zod schemas for validating event-related API requests.
  * Response DTOs are defined in dto/.
- *
  * @module schemas/event
  */
 

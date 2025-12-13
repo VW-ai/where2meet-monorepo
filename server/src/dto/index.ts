@@ -2,7 +2,6 @@
  * DTO barrel exports.
  *
  * Re-exports all DTO types, schemas, and helpers for convenient importing.
- *
  * @module dto
  */
 
