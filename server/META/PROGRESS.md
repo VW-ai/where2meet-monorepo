@@ -60,3 +60,52 @@ This tracker serves as a log of what we have accomplished. sections are separate
 - Cleaned up `src/schemas/event.ts` - now only contains request DTOs
 - Updated API specification - removed phantom `organizerId` field
 - Created issue: M2_FastifySchemaVsMapperValidation_2025-12-12.md
+
+---
+
+## 2025-12-13
+
+### Milestone 3: Maps + Participant Module (IN PROGRESS)
+
+#### 3.1 MEC Algorithm (COMPLETED)
+- Created `src/lib/mec.ts` - Minimum Enclosing Circle implementation
+  - Welzl's randomized algorithm for O(n) expected time
+  - Haversine formula for geographic distance calculations
+  - Equirectangular projection for lat/lng to Cartesian conversion
+  - Exports: `calculateMEC()`, `haversineDistance()`, `geographicMidpoint()`, `geographicCentroid()`
+- Created `tests/unit/mec.test.ts` - 25 unit tests
+  - Edge cases: 0, 1, 2, 3+ points
+  - Real-world coordinates (NYC, Brazil cities)
+  - Tolerance handling for projection errors at large distances
+
+#### 3.2 Maps Service (COMPLETED)
+- Added Google Maps config to `src/lib/config.ts`:
+  - `GOOGLE_MAPS_API_KEY`, `GEOCODE_CACHE_TTL_SECONDS` (30 days), `GEOCODE_TIMEOUT_MS` (5s)
+- Created `src/lib/maps.ts` - Google Geocoding service
+  - `geocode(address)` → `{ lat, lng, formattedAddress }`
+  - Redis caching with normalized cache keys
+  - Retry with exponential backoff (100ms → 400ms → 1600ms)
+  - Custom errors: `AddressNotFoundError`, `GeocodingApiError`
+  - `isMapsConfigured()` health check
+- Created `tests/unit/maps.test.ts` - 21 unit tests
+  - Cache hit/miss, API responses, retry logic, error handling
+- Created issue: M4_ExtendMapsServiceWithPlacesAPI_2025-12-13.md (for future Places API)
+
+#### 3.3 Participant Repository (COMPLETED)
+- Created `src/schemas/participant.ts` - Request validation schemas
+  - `CreateParticipantSchema` (name, address, fuzzyLocation)
+  - `UpdateParticipantSchema` (partial update with refinement)
+  - `ParticipantIdSchema` (UUID validation)
+- Created `src/repositories/participant.ts` - Database operations
+  - `create()`, `findById()`, `findByEventId()`, `update()`, `delete()`
+  - `getUsedColors()` for color assignment support
+  - `belongsToEvent()` for authorization checks
+- Created `tests/schemas/participant.test.ts` - 21 unit tests
+- Created `tests/schemas/event.test.ts` - 21 unit tests (for consistency)
+
+#### Test Summary
+- Total unit tests: 88 passing
+  - `mec.test.ts`: 25 tests
+  - `maps.test.ts`: 21 tests
+  - `participant.test.ts`: 21 tests
+  - `event.test.ts`: 21 tests
