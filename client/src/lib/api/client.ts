@@ -32,12 +32,17 @@ export async function backendCall<T>(endpoint: string, options?: RequestInit): P
   try {
     const url = `${BACKEND_URL}${endpoint}`;
 
+    // Only include Content-Type header when there's a body
+    const headers: HeadersInit = {
+      ...options?.headers,
+    };
+    if (options?.body) {
+      (headers as Record<string, string>)['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -67,12 +72,17 @@ export async function apiCall<T>(endpoint: string, options?: RequestInit): Promi
   try {
     const url = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
 
+    // Only include Content-Type header when there's a body
+    const headers: HeadersInit = {
+      ...options?.headers,
+    };
+    if (options?.body) {
+      (headers as Record<string, string>)['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
+      headers,
       credentials: 'include',
     });
 

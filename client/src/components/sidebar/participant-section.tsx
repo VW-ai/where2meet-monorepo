@@ -4,19 +4,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useMapStore } from '@/store/map-store';
 import { useUIStore } from '@/store/ui-store';
-import { Users, Plus, BarChart3 } from 'lucide-react';
+import { Users, Plus, BarChart3, UserPlus } from 'lucide-react';
 import { AddParticipant, type ParticipantFormData } from './participant/add-participant';
 import { ParticipantPill } from './participant/participant-pill';
-import { geocodeAddress } from '@/lib/api/mock/geocoding';
-import { getRandomColor } from '@/lib/utils/participant-colors';
-import { applyFuzzyOffset } from '@/lib/utils/location';
+import { api } from '@/lib/api';
 import type { Participant } from '@/types';
 
 export function ParticipantSection() {
   const { currentEvent, addParticipant, updateParticipant, removeParticipant, selectedVenue } =
     useMeetingStore();
   const { selectedParticipantId, setSelectedParticipantId, routes } = useMapStore();
-  const { isOrganizerMode, toggleParticipantStats } = useUIStore();
+  const {
+    isOrganizerMode,
+    organizerToken,
+    isParticipantMode,
+    participantToken,
+    currentParticipantId,
+    setParticipantInfo,
+    clearParticipantInfo,
+    toggleParticipantStats,
+  } = useUIStore();
 
   // Helper to get travel time for a participant from calculated routes
   const getTravelTime = (participantId: string): string | undefined => {
@@ -61,41 +68,66 @@ export function ParticipantSection() {
 
   // Handle participant form submission (add or edit)
   const handleSubmitParticipant = async (data: ParticipantFormData) => {
+    if (!currentEvent) return;
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      // Geocode the address to get coordinates
-      let location = await geocodeAddress(data.address, data.placeId);
-
-      // Apply fuzzy offset if enabled
-      if (data.fuzzyLocation) {
-        location = applyFuzzyOffset(location);
-      }
-
       if (editingParticipant) {
-        // Update existing participant
-        updateParticipant(editingParticipant.id, {
-          name: data.name,
-          address: data.address,
-          location,
-          fuzzyLocation: data.fuzzyLocation,
-        });
+        // Update existing participant via API
+        const token = isOrganizerMode ? organizerToken : participantToken;
+        if (!token) {
+          throw new Error('No authorization token available');
+        }
+
+        const updatedParticipant = await api.participants.update(
+          currentEvent.id,
+          editingParticipant.id,
+          {
+            name: data.name,
+            address: data.address,
+            fuzzyLocation: data.fuzzyLocation,
+          },
+          token
+        );
+
+        // Update local store
+        updateParticipant(editingParticipant.id, updatedParticipant);
         setEditingParticipant(null);
       } else {
-        // Create new participant
-        const newParticipant: Participant = {
-          id: crypto.randomUUID(),
-          name: data.name,
-          address: data.address,
-          location,
-          color: getRandomColor(),
-          fuzzyLocation: data.fuzzyLocation,
-          createdAt: new Date().toISOString(),
-        };
+        // Create new participant via API
+        if (isOrganizerMode && organizerToken) {
+          // Organizer adds a participant
+          const newParticipant = await api.participants.add(
+            currentEvent.id,
+            {
+              name: data.name,
+              address: data.address,
+              fuzzyLocation: data.fuzzyLocation,
+            },
+            organizerToken
+          );
 
-        // Add to store
-        addParticipant(newParticipant);
+          // Add to local store
+          addParticipant(newParticipant);
+        } else {
+          // Self-registration (user joins themselves)
+          const response = await api.participants.join(currentEvent.id, {
+            name: data.name,
+            address: data.address,
+            fuzzyLocation: data.fuzzyLocation,
+          });
+
+          // Store participant token for self-management
+          if (response.participantToken) {
+            setParticipantInfo(currentEvent.id, response.id, response.participantToken);
+          }
+
+          // Add to local store (strip the token before storing)
+          const { participantToken: _, ...participant } = response;
+          addParticipant(participant as Participant);
+        }
       }
 
       // Close form
@@ -124,9 +156,30 @@ export function ParticipantSection() {
   };
 
   // Confirm delete
-  const confirmDelete = () => {
-    if (deletingParticipantId) {
+  const confirmDelete = async () => {
+    if (!deletingParticipantId || !currentEvent) return;
+
+    try {
+      // Determine which token to use
+      const token = isOrganizerMode ? organizerToken : participantToken;
+      if (!token) {
+        throw new Error('No authorization token available');
+      }
+
+      // Call API to delete
+      await api.participants.remove(currentEvent.id, deletingParticipantId, token);
+
+      // If deleting own participant, clear the token
+      if (deletingParticipantId === currentParticipantId) {
+        clearParticipantInfo(currentEvent.id);
+      }
+
+      // Remove from local store
       removeParticipant(deletingParticipantId);
+      setDeletingParticipantId(null);
+    } catch (error) {
+      console.error('Error deleting participant:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete participant');
       setDeletingParticipantId(null);
     }
   };
@@ -157,7 +210,7 @@ export function ParticipantSection() {
         </div>
       </div>
 
-      {/* Add Participant Button (when form is hidden and organizer mode) */}
+      {/* Add Participant Button (organizer mode) */}
       {!showAddForm && isOrganizerMode && (
         <button
           onClick={() => setShowAddForm(true)}
@@ -165,6 +218,17 @@ export function ParticipantSection() {
         >
           <Plus className="w-4 h-4" />
           Add Participant
+        </button>
+      )}
+
+      {/* Join Event Button (non-organizer, not yet joined) */}
+      {!showAddForm && !isOrganizerMode && !isParticipantMode && (
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="w-full px-4 py-3 bg-coral-500 text-white shadow-lg hover:shadow-xl hover:bg-coral-600 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium"
+        >
+          <UserPlus className="w-4 h-4" />
+          Join Event
         </button>
       )}
 
@@ -228,8 +292,18 @@ export function ParticipantSection() {
                   setSelectedParticipantId(participant.id);
                 }
               }}
-              onEdit={isOrganizerMode ? () => handleEditParticipant(participant) : undefined}
-              onDelete={isOrganizerMode ? () => handleDeleteParticipant(participant.id) : undefined}
+              onEdit={
+                // Organizer can edit anyone, participant can only edit themselves
+                isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId)
+                  ? () => handleEditParticipant(participant)
+                  : undefined
+              }
+              onDelete={
+                // Organizer can delete anyone, participant can only delete themselves (leave)
+                isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId)
+                  ? () => handleDeleteParticipant(participant.id)
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -262,13 +336,26 @@ export function ParticipantSection() {
           >
             {/* Header */}
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">Delete Participant</h3>
+              <h3 className="text-lg font-semibold text-foreground">
+                {deletingParticipantId === currentParticipantId
+                  ? 'Leave Event'
+                  : 'Delete Participant'}
+              </h3>
               <p className="text-sm text-muted-foreground">
-                Are you sure you want to remove{' '}
-                <span className="font-medium text-foreground">
-                  {currentEvent?.participants?.find((p) => p.id === deletingParticipantId)?.name}
-                </span>
-                ? This action cannot be undone.
+                {deletingParticipantId === currentParticipantId ? (
+                  'Are you sure you want to leave this event? You can rejoin later with a new registration.'
+                ) : (
+                  <>
+                    Are you sure you want to remove{' '}
+                    <span className="font-medium text-foreground">
+                      {
+                        currentEvent?.participants?.find((p) => p.id === deletingParticipantId)
+                          ?.name
+                      }
+                    </span>
+                    ? This action cannot be undone.
+                  </>
+                )}
               </p>
             </div>
 
@@ -284,7 +371,7 @@ export function ParticipantSection() {
                 onClick={confirmDelete}
                 className="flex-1 px-4 py-2.5 text-sm font-medium bg-red-500 text-white rounded-full hover:bg-red-600 active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
-                Delete
+                {deletingParticipantId === currentParticipantId ? 'Leave' : 'Delete'}
               </button>
             </div>
           </div>

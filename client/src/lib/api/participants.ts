@@ -1,28 +1,63 @@
 /**
  * Participants API
  *
- * Status: MOCK (Next.js API routes)
- * TODO: Migrate when backend Milestone 3 is ready
+ * Status: MIGRATED to backend (Milestone 3)
+ * Calls backend directly at http://localhost:3000
  */
 
-import { CreateParticipantDTO } from '@/types';
-import { apiCall } from './client';
+import {
+  CreateParticipantDTO,
+  UpdateParticipantDTO,
+  ParticipantResponse,
+  Participant,
+} from '@/types';
+import { backendCall } from './client';
 
 export const participantsApi = {
-  add: (eventId: string, data: CreateParticipantDTO) =>
-    apiCall(`/api/events/${eventId}/participants`, {
+  /**
+   * Self-registration: User joins event themselves (no auth required)
+   * Returns participantToken for self-management
+   */
+  join: (eventId: string, data: CreateParticipantDTO) =>
+    backendCall<ParticipantResponse>(`/api/events/${eventId}/participants`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  update: (eventId: string, participantId: string, data: Partial<CreateParticipantDTO>) =>
-    apiCall(`/api/events/${eventId}/participants/${participantId}`, {
-      method: 'PATCH',
+  /**
+   * Organizer adds a participant (requires organizerToken)
+   * No participantToken returned - organizer manages this participant
+   */
+  add: (eventId: string, data: CreateParticipantDTO, organizerToken: string) =>
+    backendCall<Participant>(`/api/events/${eventId}/participants`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${organizerToken}` },
       body: JSON.stringify(data),
     }),
 
-  remove: (eventId: string, participantId: string) =>
-    apiCall(`/api/events/${eventId}/participants/${participantId}`, {
-      method: 'DELETE',
+  /**
+   * Update a participant (requires token)
+   * - organizerToken: can update any participant
+   * - participantToken: can only update own record
+   */
+  update: (eventId: string, participantId: string, data: UpdateParticipantDTO, token: string) =>
+    backendCall<Participant>(`/api/events/${eventId}/participants/${participantId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
     }),
+
+  /**
+   * Remove a participant (requires token)
+   * - organizerToken: can delete any participant
+   * - participantToken: can only delete own record (leave event)
+   */
+  remove: (eventId: string, participantId: string, token: string) =>
+    backendCall<{ success: true; message: string }>(
+      `/api/events/${eventId}/participants/${participantId}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    ),
 };

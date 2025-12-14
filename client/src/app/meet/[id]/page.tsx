@@ -17,14 +17,15 @@ export default function MeetPage() {
   const eventId = params.id as string;
   const { setCurrentEvent, setLoadingEvent, setEventError, isLoadingEvent, eventError } =
     useMeetingStore();
-  const { initializeOrganizerMode } = useUIStore();
+  const { initializeOrganizerMode, initializeParticipantMode } = useUIStore();
 
-  // Initialize organizer mode based on localStorage token
+  // Initialize organizer and participant modes based on localStorage tokens
   useEffect(() => {
     if (eventId) {
       initializeOrganizerMode(eventId);
+      initializeParticipantMode(eventId);
     }
-  }, [eventId, initializeOrganizerMode]);
+  }, [eventId, initializeOrganizerMode, initializeParticipantMode]);
 
   useEffect(() => {
     async function loadEvent() {

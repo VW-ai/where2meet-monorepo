@@ -12,8 +12,16 @@ export interface Participant {
   color: string; // Tailwind color class (e.g., 'bg-coral-500')
   fuzzyLocation: boolean;
   avatarUrl?: string;
-  createdAt: string;
+  createdAt?: string;
   updatedAt?: string;
+}
+
+/**
+ * Response from participant API endpoints
+ * participantToken is only returned on self-registration (no auth header)
+ */
+export interface ParticipantResponse extends Participant {
+  participantToken?: string;
 }
 
 // DTOs

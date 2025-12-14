@@ -12,6 +12,15 @@ interface UIStore {
   initializeOrganizerMode: (eventId: string) => void; // Check localStorage for token
   clearOrganizerToken: () => void; // Clear on 401/403
 
+  // Participant mode (current user is a registered participant)
+  // Determined automatically by checking localStorage for participant token
+  isParticipantMode: boolean;
+  participantToken: string | null; // Token for self-management
+  currentParticipantId: string | null; // ID of current user's participant record
+  initializeParticipantMode: (eventId: string) => void; // Check localStorage for token
+  setParticipantInfo: (eventId: string, participantId: string, token: string) => void; // Store after registration
+  clearParticipantInfo: (eventId: string) => void; // Clear on leave/401/403
+
   // Active view (participant vs venue section)
   activeView: ActiveView;
   setActiveView: (view: ActiveView) => void;
@@ -98,6 +107,42 @@ export const useUIStore = create<UIStore>((set) => ({
   },
   clearOrganizerToken: () => {
     set({ isOrganizerMode: false, organizerToken: null });
+  },
+
+  // Participant mode (default to false until token is checked)
+  isParticipantMode: false,
+  participantToken: null,
+  currentParticipantId: null,
+  initializeParticipantMode: (eventId: string) => {
+    // Check localStorage for participant token
+    if (typeof window === 'undefined') return;
+    const participantId = localStorage.getItem(`participant_id_${eventId}`);
+    const token = localStorage.getItem(`participant_token_${eventId}`);
+    if (participantId && token) {
+      set({
+        isParticipantMode: true,
+        participantToken: token,
+        currentParticipantId: participantId,
+      });
+    } else {
+      set({ isParticipantMode: false, participantToken: null, currentParticipantId: null });
+    }
+  },
+  setParticipantInfo: (eventId: string, participantId: string, token: string) => {
+    // Store in localStorage and update state
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`participant_id_${eventId}`, participantId);
+      localStorage.setItem(`participant_token_${eventId}`, token);
+    }
+    set({ isParticipantMode: true, participantToken: token, currentParticipantId: participantId });
+  },
+  clearParticipantInfo: (eventId: string) => {
+    // Remove from localStorage and update state
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(`participant_id_${eventId}`);
+      localStorage.removeItem(`participant_token_${eventId}`);
+    }
+    set({ isParticipantMode: false, participantToken: null, currentParticipantId: null });
   },
 
   // View state
