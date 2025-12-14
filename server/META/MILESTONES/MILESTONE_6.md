@@ -40,7 +40,7 @@ Google Directions integration and publish venue feature.
 ```
 POST /api/directions
 Body: {
-  "eventId": "uuid",
+  "eventId": "evt_...",
   "venueId": "ChIJ...",
   "travelMode": "driving"
 }
@@ -62,7 +62,7 @@ POST /api/events/:id/publish
 Headers: Authorization: Bearer {organizerToken}
 Body: { "venueId": "ChIJ..." }
 Response 200: {
-  "id": "event-uuid",
+  "id": "evt_...",
   "publishedVenueId": "ChIJ...",
   "publishedAt": "2024-01-15T12:00:00Z",
   ...

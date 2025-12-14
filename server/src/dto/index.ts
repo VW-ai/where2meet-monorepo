@@ -2,7 +2,6 @@
  * DTO barrel exports.
  *
  * Re-exports all DTO types, schemas, and helpers for convenient importing.
- *
  * @module dto
  */
 
@@ -15,8 +14,8 @@ export {
 export type { LocationResponse, DeleteSuccessResponse } from "./common.dto.js";
 
 // Participant DTOs
-export { ParticipantResponseSchema } from "./participant.dto.js";
-export type { ParticipantResponse } from "./participant.dto.js";
+export { ParticipantResponseSchema, CreateParticipantResponseSchema } from "./participant.dto.js";
+export type { ParticipantResponse, CreateParticipantResponse } from "./participant.dto.js";
 
 // Event DTOs
 export {

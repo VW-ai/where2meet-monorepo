@@ -3,7 +3,6 @@
  *
  * Transforms database entities to Response DTOs with runtime validation.
  * Centralizes all transformation logic for Event and Participant entities.
- *
  * @module mappers/event
  */
 
@@ -13,9 +12,11 @@ import {
   EventResponseSchema,
   CreateEventResponseSchema,
   ParticipantResponseSchema,
+  CreateParticipantResponseSchema,
   type EventResponse,
   type CreateEventResponse,
   type ParticipantResponse,
+  type CreateParticipantResponse,
   type MECResponse,
   type EventSettingsResponse,
 } from "../dto/index.js";
@@ -38,6 +39,31 @@ export function toParticipantResponse(entity: Participant): ParticipantResponse 
   };
 
   return ParticipantResponseSchema.parse(response);
+}
+
+/**
+ * Transforms a Participant entity to CreateParticipantResponse DTO.
+ * Includes optional participantToken for self-registration.
+ * Validates output at runtime to ensure contract compliance.
+ */
+export function toCreateParticipantResponse(
+  entity: Participant,
+  participantToken?: string
+): CreateParticipantResponse {
+  const response = {
+    id: entity.id,
+    name: entity.name,
+    address: entity.address,
+    location: {
+      lat: Number(entity.lat),
+      lng: Number(entity.lng),
+    },
+    color: entity.color,
+    fuzzyLocation: entity.fuzzyLocation,
+    participantToken,
+  };
+
+  return CreateParticipantResponseSchema.parse(response);
 }
 
 /**

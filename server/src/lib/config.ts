@@ -40,6 +40,11 @@ const envSchema = z.object({
   // Rate Limiting
   RATE_LIMIT_MAX: stringToNumber(100).pipe(z.number().min(1)),
   RATE_LIMIT_WINDOW_MS: stringToNumber(900000).pipe(z.number().min(1000)),
+
+  // Google Maps
+  GOOGLE_MAPS_API_KEY: z.string().default(""),
+  GEOCODE_CACHE_TTL_SECONDS: stringToNumber(2592000).pipe(z.number().min(0)), // 30 days
+  GEOCODE_TIMEOUT_MS: stringToNumber(5000).pipe(z.number().min(100).max(30000)),
 });
 
 /**

@@ -30,7 +30,9 @@ describe("Event Endpoints", () => {
       expect(body).toHaveProperty("title", "Team Lunch");
       expect(body).toHaveProperty("meetingTime", "2024-12-15T12:00:00.000Z");
       expect(body).toHaveProperty("organizerToken");
-      expect(body.organizerToken).toHaveLength(64);
+      // Token format: ot_ + 64 hex chars = 67 chars total
+      expect(body.organizerToken).toHaveLength(67);
+      expect(body.organizerToken).toMatch(/^ot_[a-f0-9]{64}$/);
       expect(body).toHaveProperty("participants");
       expect(body.participants).toEqual([]);
     });
@@ -145,7 +147,7 @@ describe("Event Endpoints", () => {
     it("should return 404 for non-existent event", async () => {
       const response = await server.inject({
         method: "GET",
-        url: "/api/events/00000000-0000-0000-0000-000000000000",
+        url: "/api/events/evt_1702000000000_nonexistent12345",
       });
 
       expect(response.statusCode).toBe(404);
@@ -153,10 +155,10 @@ describe("Event Endpoints", () => {
       expect(body.error.code).toBe("EVENT_NOT_FOUND");
     });
 
-    it("should return 400 for invalid UUID format", async () => {
+    it("should return 400 for invalid event ID format", async () => {
       const response = await server.inject({
         method: "GET",
-        url: "/api/events/invalid-uuid",
+        url: "/api/events/invalid-event-id",
       });
 
       expect(response.statusCode).toBe(400);
@@ -268,7 +270,7 @@ describe("Event Endpoints", () => {
     it("should return 404 for non-existent event", async () => {
       const response = await server.inject({
         method: "PATCH",
-        url: "/api/events/00000000-0000-0000-0000-000000000000",
+        url: "/api/events/evt_1702000000000_nonexistent12345",
         headers: {
           authorization: `Bearer ${organizerToken}`,
         },
@@ -361,7 +363,7 @@ describe("Event Endpoints", () => {
     it("should return 404 for non-existent event", async () => {
       const response = await server.inject({
         method: "DELETE",
-        url: "/api/events/00000000-0000-0000-0000-000000000000",
+        url: "/api/events/evt_1702000000000_nonexistent12345",
         headers: {
           authorization: `Bearer ${organizerToken}`,
         },

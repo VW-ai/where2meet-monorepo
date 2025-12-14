@@ -42,7 +42,7 @@ Google Places integration and venue search functionality.
 ```
 POST /api/venues/search
 Body: {
-  "eventId": "uuid",
+  "eventId": "evt_...",
   "searchRadius": 5000,
   "query": "coffee",
   "categories": ["cafe"]

@@ -2,6 +2,7 @@
  * Fastify server setup module.
  *
  * Creates and configures the Fastify server with:
+ * - CORS (enabled for all origins in dev)
  * - Pino logging (pretty in dev, JSON in prod)
  * - Rate limiting
  * - Error handling
@@ -12,12 +13,14 @@
  */
 
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import { config, isTest } from "./lib/config.js";
 import { errorHandler } from "./utils/errorHandler.js";
 import dbPlugin from "./plugins/db.js";
 import { healthRoutes } from "./routes/health.js";
 import { eventRoutes } from "./routes/events.js";
+import { participantRoutes } from "./routes/participants.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -45,6 +48,10 @@ export async function buildServer() {
       ? false
       : {
           level: config.NODE_ENV === "production" ? "info" : "debug",
+          redact: {
+            paths: ["req.headers.authorization", "res.headers.authorization"],
+            censor: "[REDACTED]",
+          },
           transport:
             config.NODE_ENV === "development"
               ? {
@@ -60,6 +67,13 @@ export async function buildServer() {
     requestIdHeader: "x-request-id",
     requestIdLogLabel: "requestId",
     disableRequestLogging: isTest,
+  });
+
+  // Register CORS (allow all origins in dev, configure for prod)
+  await server.register(cors, {
+    origin: config.NODE_ENV === "production" ? false : true,
+    credentials: true,
+    methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });
 
   // Register rate limiting
@@ -83,6 +97,7 @@ export async function buildServer() {
   // Register routes
   await server.register(healthRoutes);
   await server.register(eventRoutes);
+  await server.register(participantRoutes);
 
   return server;
 }

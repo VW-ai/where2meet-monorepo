@@ -3,7 +3,6 @@
  *
  * Each DTO has both a Zod schema (runtime validation) and
  * a TypeScript type derived from it (compile-time safety).
- *
  * @module dto/common
  */
 

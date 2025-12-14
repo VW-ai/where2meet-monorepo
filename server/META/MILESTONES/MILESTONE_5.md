@@ -26,7 +26,7 @@ Participant voting on venues.
 ### 5.4 Input Validation
 - [ ] CastVoteSchema: `{ participantId, venueId, venueData }`
 - [ ] RemoveVoteSchema: `{ participantId, venueId }`
-- [ ] Validate UUIDs and placeId format
+- [ ] Validate event ID (semantic format), participant UUIDs, and placeId format
 
 ### 5.5 Vote DTOs & Mappers
 - [ ] Define `VoteResponse`, `VoteStatisticsResponse` in `src/types/responses.ts`

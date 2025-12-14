@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventService } from "../../src/services/event.js";
 import type { PrismaClient } from "../../src/generated/prisma/index.js";
+import { generateEventId } from "../../src/utils/id.js";
+import { hashToken } from "../../src/utils/token.js";
+
+/** Test event ID in semantic format */
+const TEST_EVENT_ID = "evt_1702000000000_abcdefghijklmnop";
 
 /**
  * Creates a mock Prisma client for testing.
@@ -27,12 +32,12 @@ describe("EventService", () => {
   });
 
   describe("createEvent", () => {
-    it("should return event entity and 64-char organizerToken", async () => {
+    it("should return event entity and organizerToken with ot_ prefix", async () => {
       const mockEvent = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+        id: TEST_EVENT_ID,
         title: "Test Event",
         meetingTime: new Date("2024-12-15T12:00:00Z"),
-        organizerToken: "a".repeat(64),
+        organizerTokenHash: hashToken("ot_" + "a".repeat(64)),
         publishedVenueId: null,
         publishedAt: null,
         createdAt: new Date(),
@@ -50,17 +55,19 @@ describe("EventService", () => {
       // Service returns { event, organizerToken }
       expect(result).toHaveProperty("event");
       expect(result).toHaveProperty("organizerToken");
-      expect(result.organizerToken).toHaveLength(64);
+      // Token format: ot_ + 64 hex chars = 67 chars total
+      expect(result.organizerToken).toHaveLength(67);
+      expect(result.organizerToken).toMatch(/^ot_[a-f0-9]{64}$/);
       expect(result.event.title).toBe("Test Event");
       expect(mockPrisma.event.create).toHaveBeenCalledTimes(1);
     });
 
     it("should create an event without meetingTime", async () => {
       const mockEvent = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+        id: TEST_EVENT_ID,
         title: "Quick Meetup",
         meetingTime: null,
-        organizerToken: "b".repeat(64),
+        organizerTokenHash: hashToken("ot_" + "b".repeat(64)),
         publishedVenueId: null,
         publishedAt: null,
         createdAt: new Date(),
@@ -76,17 +83,17 @@ describe("EventService", () => {
       expect(result.event.meetingTime).toBeNull();
     });
 
-    it("should generate unique tokens for each event", async () => {
-      const tokens: string[] = [];
+    it("should generate unique token hashes for each event", async () => {
+      const hashes: string[] = [];
 
       vi.mocked(mockPrisma.event.create).mockImplementation(async (args) => {
-        const token = (args as { data: { organizerToken: string } }).data.organizerToken;
-        tokens.push(token);
+        const hash = (args as { data: { organizerTokenHash: string } }).data.organizerTokenHash;
+        hashes.push(hash);
         return {
-          id: crypto.randomUUID(),
+          id: generateEventId(),
           title: "Test",
           meetingTime: null,
-          organizerToken: token,
+          organizerTokenHash: hash,
           publishedVenueId: null,
           publishedAt: null,
           createdAt: new Date(),
@@ -98,17 +105,17 @@ describe("EventService", () => {
       await service.createEvent({ title: "Event 1" });
       await service.createEvent({ title: "Event 2" });
 
-      expect(tokens[0]).not.toBe(tokens[1]);
+      expect(hashes[0]).not.toBe(hashes[1]);
     });
   });
 
   describe("getEvent", () => {
     it("should return raw event entity", async () => {
       const mockEvent = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+        id: TEST_EVENT_ID,
         title: "Test Event",
         meetingTime: new Date("2024-12-15T12:00:00Z"),
-        organizerToken: "secret-token",
+        organizerTokenHash: hashToken("ot_secret"),
         publishedVenueId: null,
         publishedAt: null,
         createdAt: new Date(),
@@ -120,11 +127,12 @@ describe("EventService", () => {
 
       const result = await service.getEvent(mockEvent.id);
 
-      // Service now returns raw entity (includes organizerToken)
+      // Service returns raw entity (organizerTokenHash is internal, not exposed)
       // Transformation to Response DTO happens in route handlers
       expect(result.id).toBe(mockEvent.id);
       expect(result.title).toBe("Test Event");
-      expect(result.organizerToken).toBe("secret-token");
+      // Note: organizerTokenHash is stored, not the plaintext token
+      expect(result.organizerTokenHash).toBeDefined();
     });
 
     it("should throw EventNotFoundError for non-existent event", async () => {
@@ -138,10 +146,10 @@ describe("EventService", () => {
 
     it("should return participants as raw entities", async () => {
       const mockEvent = {
-        id: "550e8400-e29b-41d4-a716-446655440000",
+        id: TEST_EVENT_ID,
         title: "Test Event",
         meetingTime: null,
-        organizerToken: "token",
+        organizerTokenHash: hashToken("ot_token"),
         publishedVenueId: null,
         publishedAt: null,
         createdAt: new Date(),
@@ -149,7 +157,7 @@ describe("EventService", () => {
         participants: [
           {
             id: "participant-1",
-            eventId: "550e8400-e29b-41d4-a716-446655440000",
+            eventId: TEST_EVENT_ID,
             name: "Alice",
             address: "123 Main St",
             lat: 40.7128,
@@ -181,7 +189,7 @@ describe("EventService", () => {
         id: "event-id",
         title: "Updated Title",
         meetingTime: null,
-        organizerToken: "token",
+        organizerTokenHash: hashToken("ot_token"),
         publishedVenueId: null,
         publishedAt: null,
         createdAt: new Date(),
@@ -223,7 +231,7 @@ describe("EventService", () => {
         id: "event-id",
         title: "Deleted Event",
         meetingTime: null,
-        organizerToken: "token",
+        organizerTokenHash: hashToken("ot_token"),
         publishedVenueId: null,
         publishedAt: null,
         createdAt: new Date(),
@@ -251,17 +259,12 @@ describe("EventService", () => {
 
   describe("verifyOrganizerToken", () => {
     it("should return true for valid token", async () => {
-      const token = "valid-token-that-is-64-chars-long".padEnd(64, "x");
+      const token = "ot_" + "a".repeat(64);
+      const storedHash = hashToken(token);
+
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue({
-        id: "event-id",
-        title: "Test",
-        meetingTime: null,
-        organizerToken: token,
-        publishedVenueId: null,
-        publishedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+        organizerTokenHash: storedHash,
+      } as never);
 
       const result = await service.verifyOrganizerToken("event-id", token);
 
@@ -269,21 +272,15 @@ describe("EventService", () => {
     });
 
     it("should return false for invalid token", async () => {
-      vi.mocked(mockPrisma.event.findUnique).mockResolvedValue({
-        id: "event-id",
-        title: "Test",
-        meetingTime: null,
-        organizerToken: "correct-token".padEnd(64, "x"),
-        publishedVenueId: null,
-        publishedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      const correctToken = "ot_" + "a".repeat(64);
+      const wrongToken = "ot_" + "b".repeat(64);
+      const storedHash = hashToken(correctToken);
 
-      const result = await service.verifyOrganizerToken(
-        "event-id",
-        "wrong-token".padEnd(64, "y")
-      );
+      vi.mocked(mockPrisma.event.findUnique).mockResolvedValue({
+        organizerTokenHash: storedHash,
+      } as never);
+
+      const result = await service.verifyOrganizerToken("event-id", wrongToken);
 
       expect(result).toBe(false);
     });
@@ -299,21 +296,15 @@ describe("EventService", () => {
       });
     });
 
-    it("should use timing-safe comparison", async () => {
-      // This test ensures the comparison doesn't short-circuit on first mismatch
-      const storedToken = "a".repeat(64);
-      const wrongToken = "b".repeat(64);
+    it("should use timing-safe comparison via hash verification", async () => {
+      // This test ensures the comparison uses timing-safe hash comparison
+      const storedToken = "ot_" + "a".repeat(64);
+      const wrongToken = "ot_" + "b".repeat(64);
+      const storedHash = hashToken(storedToken);
 
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue({
-        id: "event-id",
-        title: "Test",
-        meetingTime: null,
-        organizerToken: storedToken,
-        publishedVenueId: null,
-        publishedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+        organizerTokenHash: storedHash,
+      } as never);
 
       const result = await service.verifyOrganizerToken("event-id", wrongToken);
 
