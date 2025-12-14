@@ -39,7 +39,8 @@ function generateBase62(length: number): string {
   const bytes = crypto.randomBytes(length);
   let result = "";
   for (let i = 0; i < length; i++) {
-    result += BASE62_CHARS[bytes[i] % BASE62_CHARS.length];
+    const byte = bytes[i]!;
+    result += BASE62_CHARS[byte % BASE62_CHARS.length];
   }
   return result;
 }

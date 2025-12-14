@@ -27,7 +27,7 @@ export interface EventWithParticipants extends Event {
  * Data for creating a new event in the database.
  */
 export interface CreateEventData extends CreateEventInput {
-  organizerToken: string;
+  organizerTokenHash: string;
 }
 
 /**
@@ -54,7 +54,7 @@ export class EventRepository {
             id: eventId,
             title: data.title,
             meetingTime: data.meetingTime ? new Date(data.meetingTime) : null,
-            organizerToken: data.organizerToken,
+            organizerTokenHash: data.organizerTokenHash,
           },
           include: {
             participants: true,
@@ -102,15 +102,17 @@ export class EventRepository {
   }
 
   /**
-   * Finds an event by its ID, including the organizerToken.
+   * Gets the organizerTokenHash for an event.
    * Used for authentication verification.
    * @param id - Event ID (semantic format: evt_timestamp_random)
-   * @returns Event with organizerToken, or null if not found
+   * @returns Token hash or null if event doesn't exist
    */
-  async findByIdWithToken(id: string): Promise<Event | null> {
-    return this.db.event.findUnique({
+  async getTokenHash(id: string): Promise<string | null> {
+    const event = await this.db.event.findUnique({
       where: { id },
+      select: { organizerTokenHash: true },
     });
+    return event?.organizerTokenHash ?? null;
   }
 
   /**
@@ -162,6 +164,19 @@ export class EventRepository {
       where: { id },
     });
     return count > 0;
+  }
+
+  /**
+   * Gets the publish status of an event.
+   * Lightweight query that only fetches publishedAt field.
+   * @param id - Event ID (semantic format: evt_timestamp_random)
+   * @returns publishedAt timestamp or null, or undefined if event doesn't exist
+   */
+  async getPublishStatus(id: string): Promise<{ publishedAt: Date | null } | null> {
+    return this.db.event.findUnique({
+      where: { id },
+      select: { publishedAt: true },
+    });
   }
 }
 

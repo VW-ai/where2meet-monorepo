@@ -65,6 +65,7 @@
 │  lng             DECIMAL(10,7)   NOT NULL               │
 │  fuzzy_location  BOOLEAN         DEFAULT FALSE          │
 │  color           VARCHAR(20)     NOT NULL               │
+│  token_hash      VARCHAR(64)     NULL                   │
 │  created_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -80,6 +81,7 @@
 | `lng` | DECIMAL(10,7) | 经度（后端 geocode 结果） |
 | `fuzzy_location` | BOOLEAN | 是否模糊位置 |
 | `color` | VARCHAR(20) | 显示颜色（如 "coral"） |
+| `token_hash` | VARCHAR(64) | 参与者令牌哈希（SHA-256），用于自助管理 |
 | `created_at` | TIMESTAMP | 创建时间 |
 
 **说明**：

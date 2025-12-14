@@ -86,7 +86,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
   fastify.patch<{ Params: { id: string }; Body: UpdateEventInput }>(
     "/api/events/:id",
     {
-      preHandler: [verifyOrganizerToken],
+      preHandler: [verifyOrganizerToken()],
     },
     async (request, reply) => {
       // Validate params
@@ -118,7 +118,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
   fastify.delete<{ Params: { id: string } }>(
     "/api/events/:id",
     {
-      preHandler: [verifyOrganizerToken],
+      preHandler: [verifyOrganizerToken()],
     },
     async (request, reply) => {
       // Validate params

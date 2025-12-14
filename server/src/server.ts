@@ -20,6 +20,7 @@ import { errorHandler } from "./utils/errorHandler.js";
 import dbPlugin from "./plugins/db.js";
 import { healthRoutes } from "./routes/health.js";
 import { eventRoutes } from "./routes/events.js";
+import { participantRoutes } from "./routes/participants.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -47,6 +48,10 @@ export async function buildServer() {
       ? false
       : {
           level: config.NODE_ENV === "production" ? "info" : "debug",
+          redact: {
+            paths: ["req.headers.authorization", "res.headers.authorization"],
+            censor: "[REDACTED]",
+          },
           transport:
             config.NODE_ENV === "development"
               ? {
@@ -91,6 +96,7 @@ export async function buildServer() {
   // Register routes
   await server.register(healthRoutes);
   await server.register(eventRoutes);
+  await server.register(participantRoutes);
 
   return server;
 }

@@ -13,9 +13,9 @@
 | Event | /api/events/:id | PATCH | 更新活动 |
 | Event | /api/events/:id | DELETE | 删除活动 |
 | Event | /api/events/:id/publish | POST | 发布场所 |
-| Participant | /api/events/:id/participants | POST | 添加参与者 |
-| Participant | /api/events/:id/participants/:pid | PATCH | 更新参与者 |
-| Participant | /api/events/:id/participants/:pid | DELETE | 移除参与者 |
+| Participant | /api/events/:id/participants | POST | 添加参与者（可选认证） |
+| Participant | /api/events/:id/participants/:pid | PATCH | 更新参与者（双令牌） |
+| Participant | /api/events/:id/participants/:pid | DELETE | 移除参与者（双令牌） |
 | Venue | /api/venues/search | POST | 搜索场所 |
 | Venue | /api/venues/:id | GET | 获取场所详情 |
 | Vote | /api/events/:id/votes | POST | 投票 |
@@ -224,27 +224,38 @@ POST /api/events/:id/publish
 
 ## 三、Participant 模块
 
-### 3.1 添加参与者
+### 3.1 添加参与者（可选认证）
 
 ```
 POST /api/events/:id/participants
 ```
 
+**说明**：统一端点，支持两种模式：
+- **无认证**：参与者自行加入（返回 participantToken）
+- **有 organizerToken**：组织者添加他人（不返回 participantToken）
+
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
-| id | URL Path | string | ✓ | 活动 UUID |
+| id | URL Path | string | ✓ | 活动 ID |
+| Authorization | Header | string | - | Bearer {organizerToken}（可选） |
 | name | Body | string | ✓ | 参与者姓名，max 50 |
 | address | Body | string | ✓ | 地址（用户输入） |
 | fuzzyLocation | Body | boolean | - | 是否模糊位置，默认 false |
 
 **后端处理**：
-1. 调用 Google Geocode 获取坐标
-2. 如果 fuzzyLocation=true，对坐标添加随机偏移
-3. 分配颜色
-4. 保存到数据库
+1. 验证活动存在且未发布
+2. 检查参与者数量上限（50人）
+3. 如有 Authorization header：
+   - 验证 organizerToken → 失败则 403
+4. 调用 Google Geocode 获取坐标
+5. 如果 fuzzyLocation=true，对坐标添加随机偏移
+6. 分配颜色
+7. 如**无认证**：生成 participantToken，存储 hash
+8. 保存到数据库
 
 **后端输出（成功 201）：**
+
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | string | 参与者 UUID |
@@ -253,14 +264,22 @@ POST /api/events/:id/participants
 | location | Location | { lat, lng } 坐标（后端 geocode 结果） |
 | color | string | 分配的颜色 |
 | fuzzyLocation | boolean | 是否模糊 |
+| participantToken | string | 参与者令牌（**仅无认证时返回**，用于自管理） |
 
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
 | 400 | VALIDATION_ERROR | 缺少必填字段 |
 | 400 | ADDRESS_NOT_FOUND | 无法解析地址 |
-| 404 | NOT_FOUND | 活动不存在 |
+| 403 | FORBIDDEN | 无效的 organizerToken |
+| 404 | EVENT_NOT_FOUND | 活动不存在 |
 | 409 | EVENT_ALREADY_PUBLISHED | 活动已发布，不能添加 |
+| 409 | PARTICIPANT_LIMIT_EXCEEDED | 参与者数量已达上限 |
+| 429 | RATE_LIMIT_EXCEEDED | 请求过于频繁（仅无认证时） |
+
+**限流规则（仅无认证时）：**
+- 10 次/IP/小时
+- 50 次/活动/小时
 
 ---
 
@@ -270,14 +289,22 @@ POST /api/events/:id/participants
 PATCH /api/events/:id/participants/:participantId
 ```
 
+**说明**：支持双令牌认证 - 组织者可更新任何参与者，参与者只能更新自己。
+
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
-| id | URL Path | string | ✓ | 活动 UUID |
+| id | URL Path | string | ✓ | 活动 ID |
 | participantId | URL Path | string | ✓ | 参与者 UUID |
+| Authorization | Header | string | ✓ | Bearer {organizerToken} 或 Bearer {participantToken} |
 | name | Body | string | - | 新姓名 |
 | address | Body | string | - | 新地址（会触发重新 geocode） |
 | fuzzyLocation | Body | boolean | - | 是否模糊 |
+
+**认证逻辑**：
+1. 尝试验证为 organizerToken → 可更新任何参与者
+2. 尝试验证为 participantToken → 只能更新自己（participantId 必须匹配）
+3. 都不匹配 → 403 Forbidden
 
 **后端输出（成功 200）：**
 
@@ -287,7 +314,9 @@ PATCH /api/events/:id/participants/:participantId
 | 状态码 | code | 说明 |
 |--------|------|------|
 | 400 | ADDRESS_NOT_FOUND | 新地址无法解析 |
-| 404 | NOT_FOUND | 参与者不存在 |
+| 401 | UNAUTHORIZED | 缺少认证头 |
+| 403 | FORBIDDEN | 无效令牌或无权限 |
+| 404 | PARTICIPANT_NOT_FOUND | 参与者不存在 |
 | 409 | EVENT_ALREADY_PUBLISHED | 活动已发布，不能修改 |
 
 ---
@@ -298,22 +327,32 @@ PATCH /api/events/:id/participants/:participantId
 DELETE /api/events/:id/participants/:participantId
 ```
 
+**说明**：支持双令牌认证 - 组织者可删除任何参与者，参与者可删除自己（退出活动）。
+
 **前端输入：**
-| 参数 | 位置 | 说明 |
-|------|------|------|
-| id | URL Path | 活动 UUID |
-| participantId | URL Path | 参与者 UUID |
+| 参数 | 位置 | 类型 | 必填 | 说明 |
+|------|------|------|------|------|
+| id | URL Path | string | ✓ | 活动 ID |
+| participantId | URL Path | string | ✓ | 参与者 UUID |
+| Authorization | Header | string | ✓ | Bearer {organizerToken} 或 Bearer {participantToken} |
+
+**认证逻辑**：
+1. 尝试验证为 organizerToken → 可删除任何参与者
+2. 尝试验证为 participantToken → 只能删除自己（participantId 必须匹配）
+3. 都不匹配 → 403 Forbidden
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | success | boolean | true |
-| message | string | "Participant removed successfully" |
+| message | string | "Participant deleted successfully" |
 
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
-| 404 | NOT_FOUND | 参与者不存在 |
+| 401 | UNAUTHORIZED | 缺少认证头 |
+| 403 | FORBIDDEN | 无效令牌或无权限 |
+| 404 | PARTICIPANT_NOT_FOUND | 参与者不存在 |
 | 409 | EVENT_ALREADY_PUBLISHED | 活动已发布，不能删除 |
 
 ---
@@ -611,14 +650,50 @@ POST /api/directions
 
 ## 八、认证方式
 
-| 场景 | 方式 |
-|------|------|
-| 创建活动 | 无需认证 |
-| 查看活动 | 无需认证 |
-| 修改/删除活动 | Header: Authorization: Bearer {organizerToken} |
-| 发布场所 | Header: Authorization: Bearer {organizerToken} |
-| 添加/修改/删除参与者 | 无需认证（任何人都可以） |
-| 投票 | 需要 participantId（参与者身份） |
+### 8.1 令牌类型
+
+| 令牌类型 | 生成时机 | 存储 | 用途 |
+|----------|----------|------|------|
+| organizerToken | 创建活动时 | Event.organizerToken (SHA-256 hash) | 活动完全控制权 |
+| participantToken | 加入活动时 | Participant.tokenHash (SHA-256 hash) | 自我管理（只能操作自己） |
+
+### 8.2 端点认证矩阵
+
+| 场景 | 无认证 | participantToken | organizerToken |
+|------|--------|------------------|----------------|
+| 创建活动 | ✓ | - | - |
+| 查看活动 | ✓ | - | - |
+| 修改活动 | - | - | ✓ |
+| 删除活动 | - | - | ✓ |
+| 发布场所 | - | - | ✓ |
+| 添加参与者 | ✓（自加入，返回token） | - | ✓（添加他人） |
+| 更新参与者 | - | ✓（仅自己） | ✓（任何人） |
+| 删除参与者 | - | ✓（仅自己） | ✓（任何人） |
+| 投票 | - | ✓ | - |
+
+### 8.3 双令牌认证流程
+
+参与者管理端点（PATCH/DELETE /participants/:pid）支持双令牌认证：
+
+```
+1. 提取 Authorization: Bearer {token}
+2. 尝试作为 organizerToken 验证
+   - 成功 → 允许操作任何参与者
+3. 尝试作为 participantToken 验证
+   - 成功 → 验证 participantId 匹配
+   - 匹配 → 允许操作
+   - 不匹配 → 403 Forbidden
+4. 都失败 → 403 Forbidden
+```
+
+### 8.4 安全措施
+
+| 措施 | 值 | 说明 |
+|------|-----|------|
+| 令牌长度 | 64 hex (256 bits) | 防止枚举攻击 |
+| 存储方式 | SHA-256 hash | 数据库泄露不暴露原始令牌 |
+| 加入限流 | 10 次/IP/小时 | 防止垃圾注册 |
+| 参与者上限 | 50 人/活动 | 防止活动过载 |
 
 ---
 
@@ -631,9 +706,9 @@ POST /api/directions
 | PATCH /api/events/:id | ✅ 已实现 | |
 | DELETE /api/events/:id | ✅ 已实现 | |
 | POST /api/events/:id/publish | ❌ 未实现 | 前端有调用 |
-| POST /api/events/:id/participants | ✅ 已实现 | |
-| PATCH /api/events/:id/participants/:pid | ✅ 已实现 | |
-| DELETE /api/events/:id/participants/:pid | ✅ 已实现 | |
+| POST /api/events/:id/participants | ✅ 已实现 | 需升级：可选认证 + participantToken |
+| PATCH /api/events/:id/participants/:pid | ✅ 已实现 | 需升级为双令牌 |
+| DELETE /api/events/:id/participants/:pid | ✅ 已实现 | 需升级为双令牌 |
 | POST /api/venues/search | ✅ 已实现 | |
 | GET /api/venues/:id | ✅ 已实现 | |
 | POST /api/events/:id/votes | ❌ 未实现 | 需新增 |

@@ -23,6 +23,15 @@ import {
 import { geocode, AddressNotFoundError, GeocodingApiError } from "../lib/maps.js";
 import { assignColor } from "../utils/colors.js";
 import { createLogger } from "../lib/logger.js";
+import { generateParticipantToken, verifyToken } from "../utils/token.js";
+
+/**
+ * Result of adding a participant, optionally includes token for self-registration.
+ */
+export interface AddParticipantResult {
+  participant: Participant;
+  participantToken?: string;
+}
 
 const logger = createLogger("ParticipantService");
 
@@ -108,16 +117,17 @@ export class ParticipantService {
 
   /**
    * Checks if an event is published.
+   * Uses lightweight query that only fetches publishedAt field.
    * @param eventId - Event ID
    * @returns True if event is published
    * @throws EventNotFoundError if event doesn't exist
    */
   private async isEventPublished(eventId: string): Promise<boolean> {
-    const event = await this.eventRepo.findById(eventId);
-    if (!event) {
+    const status = await this.eventRepo.getPublishStatus(eventId);
+    if (!status) {
       throw new EventNotFoundError(eventId);
     }
-    return event.publishedAt !== null;
+    return status.publishedAt !== null;
   }
 
   /**
@@ -136,12 +146,18 @@ export class ParticipantService {
    * Adds a new participant to an event.
    * @param eventId - Event ID
    * @param input - Participant creation data
-   * @returns Created participant entity
+   * @param options - Options for participant creation
+   * @param options.generateToken - If true, generates a participantToken for self-management
+   * @returns Created participant and optional token
    * @throws EventNotFoundError if event doesn't exist
    * @throws EventAlreadyPublishedError if event is published
    * @throws BusinessAddressNotFoundError if address cannot be geocoded
    */
-  async addParticipant(eventId: string, input: CreateParticipantInput): Promise<Participant> {
+  async addParticipant(
+    eventId: string,
+    input: CreateParticipantInput,
+    options: { generateToken?: boolean } = {}
+  ): Promise<AddParticipantResult> {
     // Check event exists and is not published
     await this.ensureEventModifiable(eventId);
 
@@ -160,6 +176,15 @@ export class ParticipantService {
     const usedColors = await this.participantRepo.getUsedColors(eventId);
     const color = assignColor(usedColors);
 
+    // Generate token if requested (for self-registration)
+    let tokenHash: string | undefined;
+    let participantToken: string | undefined;
+    if (options.generateToken) {
+      const tokenData = generateParticipantToken();
+      tokenHash = tokenData.hash;
+      participantToken = tokenData.token;
+    }
+
     // Create participant
     const participant = await this.participantRepo.create({
       eventId,
@@ -170,14 +195,15 @@ export class ParticipantService {
       lng,
       fuzzyLocation: input.fuzzyLocation,
       color,
+      tokenHash,
     });
 
     logger.info(
-      { eventId, participantId: participant.id, color },
+      { eventId, participantId: participant.id, color, hasToken: !!participantToken },
       "Participant added"
     );
 
-    return participant;
+    return { participant, participantToken };
   }
 
   /**
@@ -325,6 +351,20 @@ export class ParticipantService {
     }
 
     return participant;
+  }
+
+  /**
+   * Verifies a participant token.
+   * @param participantId - Participant ID
+   * @param token - Plaintext participant token
+   * @returns True if token is valid for the participant
+   */
+  async verifyParticipantToken(participantId: string, token: string): Promise<boolean> {
+    const storedHash = await this.participantRepo.getTokenHash(participantId);
+    if (!storedHash) {
+      return false;
+    }
+    return verifyToken(token, storedHash);
   }
 }
 

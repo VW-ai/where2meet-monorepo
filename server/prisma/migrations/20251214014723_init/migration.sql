@@ -3,7 +3,7 @@ CREATE TABLE "event" (
     "id" VARCHAR(64) NOT NULL,
     "title" VARCHAR(100) NOT NULL,
     "meeting_time" TIMESTAMP(3),
-    "organizer_token" VARCHAR(64) NOT NULL,
+    "organizer_token_hash" VARCHAR(64) NOT NULL,
     "published_venue_id" VARCHAR(255),
     "published_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -23,6 +23,7 @@ CREATE TABLE "participant" (
     "lng" DECIMAL(10,7) NOT NULL,
     "fuzzy_location" BOOLEAN NOT NULL DEFAULT false,
     "color" VARCHAR(20) NOT NULL,
+    "token_hash" VARCHAR(64),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "participant_pkey" PRIMARY KEY ("id")
@@ -57,7 +58,7 @@ CREATE TABLE "vote" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "event_organizer_token_key" ON "event"("organizer_token");
+CREATE UNIQUE INDEX "event_organizer_token_hash_key" ON "event"("organizer_token_hash");
 
 -- CreateIndex
 CREATE INDEX "event_created_at_idx" ON "event"("created_at");

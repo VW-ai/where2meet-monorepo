@@ -23,6 +23,7 @@ export interface CreateParticipantData {
   lng: number;
   fuzzyLocation: boolean;
   color: string;
+  tokenHash?: string;
 }
 
 /**
@@ -62,6 +63,7 @@ export class ParticipantRepository {
         lng: data.lng,
         fuzzyLocation: data.fuzzyLocation,
         color: data.color,
+        tokenHash: data.tokenHash,
       },
     });
   }
@@ -191,6 +193,19 @@ export class ParticipantRepository {
       where: { id, eventId },
     });
     return count > 0;
+  }
+
+  /**
+   * Gets the tokenHash for a participant.
+   * @param id - Participant UUID
+   * @returns Token hash or null if participant doesn't exist or has no token
+   */
+  async getTokenHash(id: string): Promise<string | null> {
+    const participant = await this.db.participant.findUnique({
+      where: { id },
+      select: { tokenHash: true },
+    });
+    return participant?.tokenHash ?? null;
   }
 }
 

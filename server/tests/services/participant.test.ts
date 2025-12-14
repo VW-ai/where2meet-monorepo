@@ -127,8 +127,10 @@ describe("ParticipantService", () => {
         fuzzyLocation: false,
       });
 
-      expect(result.name).toBe("Alice");
-      expect(result.color).toBe("coral");
+      // Result now returns { participant, participantToken? }
+      expect(result.participant.name).toBe("Alice");
+      expect(result.participant.color).toBe("coral");
+      expect(result.participantToken).toBeUndefined(); // No token when not self-registering
       expect(mockGeocode).toHaveBeenCalledWith("123 Main St");
       expect(mockPrisma.participant.create).toHaveBeenCalledWith(
         expect.objectContaining({

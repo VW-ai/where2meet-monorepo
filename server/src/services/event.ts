@@ -7,7 +7,6 @@
  * @module services/event
  */
 
-import crypto from "crypto";
 import type { PrismaClient } from "../generated/prisma/index.js";
 import {
   createEventRepository,
@@ -16,9 +15,7 @@ import {
 } from "../repositories/event.js";
 import type { CreateEventInput, UpdateEventInput } from "../schemas/event.js";
 import { EventNotFoundError } from "../types/errors.js";
-
-/** Length of the organizer token in characters */
-const ORGANIZER_TOKEN_LENGTH = 64;
+import { generateOrganizerToken, verifyToken } from "../utils/token.js";
 
 /**
  * Result of creating an event.
@@ -27,15 +24,6 @@ const ORGANIZER_TOKEN_LENGTH = 64;
 export interface CreateEventResult {
   event: EventWithParticipants;
   organizerToken: string;
-}
-
-/**
- * Generates a cryptographically secure random token.
- * @param length - Length of the token in characters
- * @returns Random hex string
- */
-function generateSecureToken(length: number): string {
-  return crypto.randomBytes(length / 2).toString("hex");
 }
 
 /**
@@ -57,11 +45,11 @@ export class EventService {
    * @returns Created event entity and organizerToken
    */
   async createEvent(input: CreateEventInput): Promise<CreateEventResult> {
-    const organizerToken = generateSecureToken(ORGANIZER_TOKEN_LENGTH);
+    const { token: organizerToken, hash: organizerTokenHash } = generateOrganizerToken();
 
     const event = await this.repository.create({
       ...input,
-      organizerToken,
+      organizerTokenHash,
     });
 
     return { event, organizerToken };
@@ -115,27 +103,19 @@ export class EventService {
 
   /**
    * Verifies that a token matches the event's organizerToken.
-   * @param eventId - Event UUID
-   * @param token - Token to verify
+   * @param eventId - Event ID
+   * @param token - Plaintext token to verify
    * @returns True if token is valid
    * @throws EventNotFoundError if event doesn't exist
    */
   async verifyOrganizerToken(eventId: string, token: string): Promise<boolean> {
-    const event = await this.repository.findByIdWithToken(eventId);
+    const storedHash = await this.repository.getTokenHash(eventId);
 
-    if (!event) {
+    if (storedHash === null) {
       throw new EventNotFoundError(eventId);
     }
 
-    // Use timing-safe comparison to prevent timing attacks
-    const tokenBuffer = Buffer.from(token);
-    const storedBuffer = Buffer.from(event.organizerToken);
-
-    if (tokenBuffer.length !== storedBuffer.length) {
-      return false;
-    }
-
-    return crypto.timingSafeEqual(tokenBuffer, storedBuffer);
+    return verifyToken(token, storedHash);
   }
 }
 

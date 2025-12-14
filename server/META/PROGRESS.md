@@ -103,9 +103,72 @@ This tracker serves as a log of what we have accomplished. sections are separate
 - Created `tests/schemas/participant.test.ts` - 21 unit tests
 - Created `tests/schemas/event.test.ts` - 21 unit tests (for consistency)
 
+#### 3.4 Participant Service (COMPLETED)
+- Created `src/utils/colors.ts` - Color palette utility
+  - 16-color predefined palette for map markers
+  - `assignColor(usedColors)` - picks first unused, cycles if all used
+  - `getColorByIndex(count)` - simple index-based assignment
+- Created `tests/utils/colors.test.ts` - 15 unit tests
+- Created `src/services/participant.ts` - Business logic service
+  - `addParticipant()` - geocode, assign color, create with fuzzy offset
+  - `updateParticipant()` - re-geocode on address change, handle fuzzy toggle
+  - `deleteParticipant()` - with authorization checks
+  - `getParticipant()` - with event/participant ownership validation
+  - `applyFuzzyOffset()` - deterministic offset based on name hash (100-800m)
+  - Converts maps errors to business errors (AddressNotFoundError, ExternalServiceError)
+- Created `tests/services/participant.test.ts` - 18 unit tests
+
+#### 3.5 Participant Routes (COMPLETED)
+- Created `src/routes/participants.ts` - API endpoints
+  - POST /api/events/:id/participants - Add participant (auth required)
+  - PATCH /api/events/:id/participants/:participantId - Update participant (auth required)
+  - DELETE /api/events/:id/participants/:participantId - Remove participant (auth required)
+- Registered routes in `src/server.ts`
+- Created `tests/participants.test.ts` - 17 integration tests
+  - Tests add, update, delete operations
+  - Auth validation (401 missing, 403 invalid)
+  - Input validation (400 missing fields, invalid address)
+  - Error cases (404 event/participant not found)
+
 #### Test Summary
-- Total unit tests: 88 passing
-  - `mec.test.ts`: 25 tests
-  - `maps.test.ts`: 21 tests
-  - `participant.test.ts`: 21 tests
-  - `event.test.ts`: 21 tests
+- Total tests: 185 passing
+  - Unit tests (schema/util): 93 tests
+    - `mec.test.ts`: 25 tests
+    - `maps.test.ts`: 21 tests
+    - `schemas/participant.test.ts`: 21 tests
+    - `schemas/event.test.ts`: 21 tests
+    - `utils/colors.test.ts`: 15 tests
+  - Service tests: 32 tests
+    - `services/event.test.ts`: 14 tests
+    - `services/participant.test.ts`: 18 tests
+  - Integration tests: 39 tests
+    - `events.test.ts`: 20 tests
+    - `participants.test.ts`: 17 tests
+    - `health.test.ts`: 2 tests
+  - ID tests: 11 tests
+
+#### 3.6 Participant Self-Registration (COMPLETED)
+- Added `tokenHash` column to Participant model (Prisma schema)
+- Created `src/utils/token.ts` - secure token generation and verification
+  - `generateOrganizerToken()`, `generateParticipantToken()` - 256-bit entropy tokens
+  - `hashToken()` - SHA-256 hashing for storage
+  - `verifyToken()` - timing-safe comparison to prevent timing attacks
+- Created `src/utils/auth.ts` - auth utilities
+  - `extractBearerToken()`, `requireBearerToken()` - header extraction
+  - `validateEventId()`, `validateParticipantId()` - parameter validation
+- Consolidated auth hooks in `src/hooks/auth.ts`:
+  - `verifyOrganizerToken({ optional })` - factory function with optional mode
+  - `verifyParticipantAccess` - dual-token auth (organizerToken OR participantToken)
+- Updated POST /api/events/:id/participants - optional auth for self-registration
+  - No auth: Returns `participantToken` for self-management
+  - With organizerToken: No token returned (organizer-created)
+- Updated PATCH/DELETE to accept either token type
+- Added logger redaction for Authorization headers (security)
+- Added lightweight `getPublishStatus()` repository method (performance)
+- Updated mappers for `CreateParticipantResponse` with optional token
+- All 190 tests passing
+
+#### Code Quality Fixes
+- Regenerated Prisma migration with correct column names (`organizer_token_hash`, `token_hash`)
+- Removed unused `isOrganizerTokenFormat()`, `isParticipantTokenFormat()` validators
+- Updated route documentation to reflect dual-token authentication

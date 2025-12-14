@@ -224,17 +224,89 @@ Location: `src/services/event.ts` (modify existing)
 
 ---
 
+### 3.8 Participant Self-Registration (via existing endpoint)
+
+Upgrade `POST /api/events/:id/participants` to support self-registration with optional auth.
+
+**Database Changes:**
+- [ ] Add `token_hash VARCHAR(64) NULL` to Participant table
+- [ ] Create Prisma migration
+
+**Endpoint Upgrade:** `POST /api/events/:id/participants`
+- [ ] Make Authorization header optional
+- [ ] No auth → self-join (generate & return participantToken)
+- [ ] With organizerToken → organizer adds (no participantToken)
+- [ ] Rate limiting (no auth only): 10 requests/IP/hour, 50 requests/event/hour
+- [ ] Participant cap: 50 per event
+
+**Response Changes:**
+```json
+// Without auth (self-join):
+{
+  "id": "uuid",
+  "name": "Alice",
+  "address": "123 Main St",
+  "location": { "lat": 40.7128, "lng": -74.006 },
+  "color": "coral",
+  "fuzzyLocation": false,
+  "participantToken": "pt_abc123..."  // Only returned when no auth
+}
+
+// With organizerToken:
+{
+  "id": "uuid",
+  "name": "Alice",
+  // ... same fields, NO participantToken
+}
+```
+
+**Token Management:**
+- [ ] Generate secure token: `pt_<random32>`
+- [ ] Store SHA-256 hash in `token_hash` column
+- [ ] Return plaintext token only on creation (never stored)
+
+**Dual-Token Authentication (for PATCH/DELETE):**
+- [ ] Update `verifyParticipantAuth` hook to accept either:
+  - Organizer token (full access to all participants)
+  - Participant token (access to own record only)
+- [ ] PATCH/DELETE endpoints check token ownership
+
+**Service Methods:**
+- [ ] `ParticipantService.addParticipant()` - Updated to handle optional auth
+- [ ] `ParticipantService.verifyParticipantToken(participantId, token)` - Validates ownership
+
+**Security Considerations:**
+- [ ] Timing-safe token comparison
+- [ ] Rate limiting on unauthenticated requests
+- [ ] No token enumeration possible
+
+---
+
 ## API Contracts
 
-### Add Participant
+### Add Participant (Unified Endpoint)
 ```
 POST /api/events/:id/participants
+Headers: Authorization: Bearer {organizerToken}  (OPTIONAL)
 Body: {
   "name": "Alice",
   "address": "123 Main St, New York, NY",
   "fuzzyLocation": false
 }
-Response 201: {
+
+Response 201 (no auth - self join):
+{
+  "id": "uuid",
+  "name": "Alice",
+  "address": "123 Main St, New York, NY",
+  "location": { "lat": 40.7128, "lng": -74.0060 },
+  "color": "coral",
+  "fuzzyLocation": false,
+  "participantToken": "pt_a1b2c3d4..."
+}
+
+Response 201 (with organizerToken):
+{
   "id": "uuid",
   "name": "Alice",
   "address": "123 Main St, New York, NY",
@@ -312,6 +384,19 @@ Response 200: {
 | Event not found | POST to bad eventId | 404 EVENT_NOT_FOUND |
 | Participant not found | PATCH bad participantId | 404 PARTICIPANT_NOT_FOUND |
 
+**Self-Registration Flow** (`tests/integration/participants.test.ts` - extend):
+| Test | Method | Expected |
+|------|--------|----------|
+| Self-join (no auth) | POST /participants (no header) | 201, token returned |
+| Self-join with fuzzy | POST /participants fuzzyLocation=true | 201, offset location |
+| Organizer add (with auth) | POST /participants + organizerToken | 201, no token |
+| Invalid auth token | POST /participants + bad token | 403 FORBIDDEN |
+| Update own info with token | PATCH with participantToken | 200, updated |
+| Update other's info | PATCH wrong participantToken | 403 FORBIDDEN |
+| Delete self with token | DELETE with participantToken | 200, deleted |
+| Rate limit (no auth) | Multiple POST /participants | 429 RATE_LIMIT_EXCEEDED |
+| Participant cap reached | POST at limit | 409 PARTICIPANT_LIMIT_EXCEEDED |
+
 **MEC via Event** (`tests/integration/events.test.ts` - extend):
 | Test | Setup | Expected MEC |
 |------|-------|--------------|
@@ -373,13 +458,16 @@ Response 200: {
 - `src/repositories/participant.ts` - Participant data access
 - `src/services/participant.ts` - Participant business logic
 - `src/schemas/participant.ts` - Request validation schemas
-- `src/routes/participants.ts` - API endpoints
+- `src/routes/participants.ts` - API endpoints (with optional auth for self-join)
+- `src/hooks/participantAuth.ts` - Dual-token auth hook
 - `tests/unit/mec.test.ts` - MEC unit tests
 - `tests/unit/maps.test.ts` - Maps service unit tests
-- `tests/integration/participants.test.ts` - Participant API tests
+- `tests/integration/participants.test.ts` - Participant API tests (includes self-registration)
 
 ### Modified Files
 - `src/lib/config.ts` - Add GOOGLE_MAPS_API_KEY, cache TTL config
 - `src/mappers/event.mapper.ts` - Update toMECResponse() to compute MEC
 - `src/server.ts` - Register participant routes
+- `src/hooks/auth.ts` - Update for dual-token support
+- `prisma/schema.prisma` - Add tokenHash field to Participant
 - `tests/integration/events.test.ts` - Add MEC tests

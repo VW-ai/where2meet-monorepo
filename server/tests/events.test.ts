@@ -30,7 +30,9 @@ describe("Event Endpoints", () => {
       expect(body).toHaveProperty("title", "Team Lunch");
       expect(body).toHaveProperty("meetingTime", "2024-12-15T12:00:00.000Z");
       expect(body).toHaveProperty("organizerToken");
-      expect(body.organizerToken).toHaveLength(64);
+      // Token format: ot_ + 64 hex chars = 67 chars total
+      expect(body.organizerToken).toHaveLength(67);
+      expect(body.organizerToken).toMatch(/^ot_[a-f0-9]{64}$/);
       expect(body).toHaveProperty("participants");
       expect(body.participants).toEqual([]);
     });
