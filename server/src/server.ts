@@ -73,6 +73,7 @@ export async function buildServer() {
   await server.register(cors, {
     origin: config.NODE_ENV === "production" ? false : true,
     credentials: true,
+    methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });
 
   // Register rate limiting

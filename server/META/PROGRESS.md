@@ -172,3 +172,4 @@ This tracker serves as a log of what we have accomplished. sections are separate
 - Regenerated Prisma migration with correct column names (`organizer_token_hash`, `token_hash`)
 - Removed unused `isOrganizerTokenFormat()`, `isParticipantTokenFormat()` validators
 - Updated route documentation to reflect dual-token authentication
+- Fixed CORS config to allow PATCH/PUT/DELETE methods (was defaulting to GET/HEAD/POST only)
