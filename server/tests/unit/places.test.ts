@@ -539,6 +539,9 @@ describe("Places Module", () => {
       expect(CATEGORY_TO_PLACE_TYPE.park).toBe("park");
       expect(CATEGORY_TO_PLACE_TYPE.library).toBe("library");
       expect(CATEGORY_TO_PLACE_TYPE.gym).toBe("gym");
+      expect(CATEGORY_TO_PLACE_TYPE.museum).toBe("museum");
+      expect(CATEGORY_TO_PLACE_TYPE.shopping).toBe("shopping_mall");
+      expect(CATEGORY_TO_PLACE_TYPE.things_to_do).toBe("tourist_attraction");
     });
   });
 

@@ -28,6 +28,11 @@ vi.mock("../../src/lib/places/index.js", () => ({
     restaurant: "restaurant",
     bar: "bar",
     park: "park",
+    library: "library",
+    gym: "gym",
+    museum: "museum",
+    shopping: "shopping_mall",
+    things_to_do: "tourist_attraction",
   },
 }));
 
