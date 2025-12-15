@@ -11,6 +11,9 @@ export const CATEGORY_TO_PLACE_TYPE: Record<string, string> = {
   park: "park",
   library: "library",
   gym: "gym",
+  museum: "museum",
+  shopping: "shopping_mall",
+  things_to_do: "tourist_attraction",
 };
 
 /** Supported category names */
