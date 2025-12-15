@@ -11,7 +11,7 @@ import {
   geographicMidpoint,
   geographicCentroid,
   GeoPoint,
-} from "../../src/lib/mec.js";
+} from "../../src/utils/mec.js";
 
 describe("MEC Module", () => {
   describe("haversineDistance", () => {

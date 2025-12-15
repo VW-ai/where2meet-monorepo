@@ -1,0 +1,183 @@
+/**
+ * Venue service module.
+ *
+ * Contains business logic for venue search operations.
+ * Returns raw PlaceResult/PlaceDetails - transformation to Response DTOs
+ * is handled by mappers in the route handlers.
+ * @module services/venue
+ */
+
+import type { PrismaClient } from "../generated/prisma/index.js";
+import {
+  createEventRepository,
+  type EventRepository,
+} from "../repositories/event.js";
+import {
+  searchNearbyPlaces,
+  textSearchPlaces,
+  getPlaceDetails,
+  PlacesApiError,
+  type PlaceResult,
+  type PlaceDetails,
+  type GeoPoint,
+  CATEGORY_TO_PLACE_TYPE,
+} from "../lib/places/index.js";
+import { calculateMEC } from "../utils/mec.js";
+import { EventNotFoundError, ValidationError, ExternalServiceError } from "../types/errors.js";
+
+/**
+ * Result of a venue search operation.
+ */
+export interface VenueSearchResult {
+  places: PlaceResult[];
+  searchCenter: GeoPoint;
+}
+
+/**
+ * Options for venue search.
+ */
+export interface SearchVenuesOptions {
+  query?: string;
+  categories?: string[];
+}
+
+/**
+ * Service for venue business logic.
+ *
+ * All methods return raw Places API results. Transformation to
+ * Response DTOs should be done in route handlers using mappers.
+ */
+export class VenueService {
+  private readonly eventRepository: EventRepository;
+
+  constructor(db: PrismaClient) {
+    this.eventRepository = createEventRepository(db);
+  }
+
+  /**
+   * Searches for venues near an event's MEC center.
+   * @param eventId - Event ID to get participants from
+   * @param searchRadius - Search radius in meters
+   * @param options - Search filters (query and/or categories)
+   * @returns Array of place results and search center
+   * @throws EventNotFoundError if event doesn't exist
+   * @throws ValidationError if event has no participants
+   * @throws ExternalServiceError if Places API fails
+   */
+  async searchVenues(
+    eventId: string,
+    searchRadius: number,
+    options: SearchVenuesOptions
+  ): Promise<VenueSearchResult> {
+    // Get event with participants
+    const event = await this.eventRepository.findById(eventId);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    // Calculate MEC center from participants
+    if (event.participants.length === 0) {
+      throw new ValidationError("Cannot search venues: event has no participants");
+    }
+
+    const participantLocations: GeoPoint[] = event.participants.map((p) => ({
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+    }));
+
+    const mec = calculateMEC(participantLocations);
+    if (!mec) {
+      throw new ValidationError("Cannot calculate search center");
+    }
+
+    const searchCenter = mec.center;
+
+    try {
+      let places: PlaceResult[] = [];
+
+      // Search by query (text search)
+      if (options.query) {
+        const textResults = await textSearchPlaces(options.query, searchCenter, searchRadius);
+        places = [...places, ...textResults];
+      }
+
+      // Search by categories (nearby search)
+      if (options.categories && options.categories.length > 0) {
+        for (const category of options.categories) {
+          const placeType = CATEGORY_TO_PLACE_TYPE[category];
+          if (placeType) {
+            const categoryResults = await searchNearbyPlaces(searchCenter, searchRadius, {
+              type: placeType,
+            });
+            places = [...places, ...categoryResults];
+          }
+        }
+      }
+
+      // Deduplicate by placeId
+      const uniquePlaces = this.deduplicatePlaces(places);
+
+      // Sort by rating (highest first), nulls last
+      const sortedPlaces = this.sortByRating(uniquePlaces);
+
+      return { places: sortedPlaces, searchCenter };
+    } catch (error) {
+      if (error instanceof PlacesApiError) {
+        throw new ExternalServiceError("Google Places", error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Gets detailed information about a venue.
+   * @param placeId - Google Place ID
+   * @returns Detailed place information
+   * @throws ExternalServiceError if Places API fails
+   */
+  async getVenueDetails(placeId: string): Promise<PlaceDetails> {
+    try {
+      return await getPlaceDetails(placeId);
+    } catch (error) {
+      if (error instanceof PlacesApiError) {
+        throw new ExternalServiceError("Google Places", error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Removes duplicate places by placeId.
+   */
+  private deduplicatePlaces(places: PlaceResult[]): PlaceResult[] {
+    const seen = new Set<string>();
+    return places.filter((place) => {
+      if (seen.has(place.placeId)) {
+        return false;
+      }
+      seen.add(place.placeId);
+      return true;
+    });
+  }
+
+  /**
+   * Sorts places by rating (highest first), nulls last.
+   */
+  private sortByRating(places: PlaceResult[]): PlaceResult[] {
+    return [...places].sort((a, b) => {
+      if (a.rating === null && b.rating === null) return 0;
+      if (a.rating === null) return 1;
+      if (b.rating === null) return -1;
+      return b.rating - a.rating;
+    });
+  }
+}
+
+/**
+ * Creates a new VenueService instance.
+ * @param db - Prisma client instance
+ * @returns VenueService instance
+ */
+export function createVenueService(db: PrismaClient): VenueService {
+  return new VenueService(db);
+}

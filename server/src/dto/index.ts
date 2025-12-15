@@ -30,3 +30,15 @@ export type {
   EventResponse,
   CreateEventResponse,
 } from "./event.dto.js";
+
+// Venue DTOs
+export {
+  VenueResponseSchema,
+  VenueDetailsResponseSchema,
+  VenueSearchResponseSchema,
+} from "./venue.dto.js";
+export type {
+  VenueResponse,
+  VenueDetailsResponse,
+  VenueSearchResponse,
+} from "./venue.dto.js";
