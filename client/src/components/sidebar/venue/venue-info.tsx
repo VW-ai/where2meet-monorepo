@@ -19,7 +19,7 @@ import {
 import { useUIStore } from '@/store/ui-store';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useMapStore } from '@/store/map-store';
-import { getPlaceDetails } from '@/lib/google-maps/places-nearby';
+import { api } from '@/lib/api';
 import { getVenueCategoryDisplay } from '@/types/venue';
 import type { Venue } from '@/types';
 import { cn } from '@/lib/utils/cn';
@@ -82,8 +82,8 @@ export function VenueInfo() {
     async function fetchVenueDetails() {
       setLoading(true);
       try {
-        // Fetch detailed information from Google Places Details API
-        const details = await getPlaceDetails(venueToFetch.id);
+        // Fetch detailed information from backend API
+        const details = await api.venues.get(venueToFetch.id);
         setVenueDetails(details);
       } catch (error) {
         console.error('Failed to fetch venue details:', error);
