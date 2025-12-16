@@ -24,6 +24,9 @@ import {
 } from "../lib/places/index.js";
 import { calculateMEC } from "../utils/mec.js";
 import { EventNotFoundError, ValidationError, ExternalServiceError } from "../types/errors.js";
+import { createLogger } from "../lib/logger.js";
+
+const logger = createLogger("VenueService");
 
 /**
  * Result of a venue search operation.
@@ -120,9 +123,21 @@ export class VenueService {
       // Sort by rating (highest first), nulls last
       const sortedPlaces = this.sortByRating(uniquePlaces);
 
+      logger.info(
+        {
+          eventId,
+          searchRadius,
+          query: options.query,
+          categories: options.categories,
+          resultCount: sortedPlaces.length,
+        },
+        "Venue search completed"
+      );
+
       return { places: sortedPlaces, searchCenter };
     } catch (error) {
       if (error instanceof PlacesApiError) {
+        logger.error({ error, eventId }, "Places API error during search");
         throw new ExternalServiceError("Google Places", error.message);
       }
       throw error;
@@ -137,9 +152,12 @@ export class VenueService {
    */
   async getVenueDetails(placeId: string): Promise<PlaceDetails> {
     try {
-      return await getPlaceDetails(placeId);
+      const details = await getPlaceDetails(placeId);
+      logger.info({ placeId, name: details.name }, "Venue details fetched");
+      return details;
     } catch (error) {
       if (error instanceof PlacesApiError) {
+        logger.error({ error, placeId }, "Places API error fetching details");
         throw new ExternalServiceError("Google Places", error.message);
       }
       throw error;
