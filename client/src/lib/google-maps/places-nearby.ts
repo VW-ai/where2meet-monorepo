@@ -7,13 +7,6 @@
 import { loadGoogleMaps } from './loader';
 import { Venue, VenueCategory, Location } from '@/types';
 
-// Extended PlaceResult type to include editorial_summary
-interface ExtendedPlaceResult extends google.maps.places.PlaceResult {
-  editorial_summary?: {
-    overview?: string;
-  };
-}
-
 // Map our internal categories to Google Places types
 const CATEGORY_TO_GOOGLE_TYPE: Record<VenueCategory, string> = {
   cafe: 'cafe',
@@ -30,11 +23,7 @@ const CATEGORY_TO_GOOGLE_TYPE: Record<VenueCategory, string> = {
 /**
  * Convert Google Place to our Venue type
  */
-function convertPlaceToVenue(
-  place: google.maps.places.PlaceResult,
-  category: VenueCategory
-): Venue {
-  const extendedPlace = place as ExtendedPlaceResult;
+function convertPlaceToVenue(place: google.maps.places.PlaceResult, googleType: string): Venue {
   return {
     id: place.place_id || `place_${Date.now()}`,
     name: place.name || 'Unknown',
@@ -43,16 +32,16 @@ function convertPlaceToVenue(
       lat: place.geometry?.location?.lat() || 0,
       lng: place.geometry?.location?.lng() || 0,
     },
-    category,
-    rating: place.rating,
-    priceLevel: place.price_level,
-    photoUrl: place.photos?.[0]?.getUrl({ maxWidth: 400 }),
-    photos: place.photos?.slice(0, 5).map((photo) => photo.getUrl({ maxWidth: 800 })),
-    openNow: place.opening_hours?.isOpen(),
-    openingHours: place.opening_hours?.weekday_text,
-    phoneNumber: place.formatted_phone_number,
+    types: place.types || [googleType],
+    rating: place.rating ?? null,
+    userRatingsTotal: place.user_ratings_total ?? null,
+    priceLevel: place.price_level ?? null,
+    openNow: place.opening_hours?.isOpen() ?? null,
+    photoUrl: place.photos?.[0]?.getUrl({ maxWidth: 400 }) ?? null,
+    // Detail fields (populated by getPlaceDetails)
+    formattedPhoneNumber: place.formatted_phone_number,
     website: place.website,
-    description: extendedPlace.editorial_summary?.overview,
+    openingHours: place.opening_hours?.weekday_text,
   };
 }
 
@@ -90,13 +79,7 @@ export async function searchNearbyPlaces(
 
         service.nearbySearch(request, (results, status) => {
           if (status === maps.places.PlacesServiceStatus.OK && results) {
-            // Find matching category for this type
-            const category =
-              (Object.keys(CATEGORY_TO_GOOGLE_TYPE) as VenueCategory[]).find(
-                (cat) => CATEGORY_TO_GOOGLE_TYPE[cat] === type
-              ) || 'things_to_do';
-
-            const venues = results.map((place) => convertPlaceToVenue(place, category));
+            const venues = results.map((place) => convertPlaceToVenue(place, type));
             resolve(venues);
           } else if (status === maps.places.PlacesServiceStatus.ZERO_RESULTS) {
             resolve([]);
@@ -146,20 +129,10 @@ export async function searchPlacesByText(
     return new Promise((resolve, reject) => {
       service.textSearch(request, (results, status) => {
         if (status === maps.places.PlacesServiceStatus.OK && results) {
-          // Try to infer category from types
           const venues = results.map((place) => {
-            let category: VenueCategory = 'things_to_do';
-
-            if (place.types) {
-              for (const [cat, googleType] of Object.entries(CATEGORY_TO_GOOGLE_TYPE)) {
-                if (place.types.includes(googleType)) {
-                  category = cat as VenueCategory;
-                  break;
-                }
-              }
-            }
-
-            return convertPlaceToVenue(place, category);
+            // Use first type from place, or 'point_of_interest' as fallback
+            const googleType = place.types?.[0] || 'point_of_interest';
+            return convertPlaceToVenue(place, googleType);
           });
           resolve(venues);
         } else if (status === maps.places.PlacesServiceStatus.ZERO_RESULTS) {
@@ -204,11 +177,9 @@ export async function getPlaceDetails(placeId: string): Promise<Partial<Venue>> 
         if (status === maps.places.PlacesServiceStatus.OK && place) {
           const details: Partial<Venue> = {
             openingHours: place.opening_hours?.weekday_text,
-            openNow: place.opening_hours?.isOpen(),
-            description: (place as ExtendedPlaceResult).editorial_summary?.overview,
-            phoneNumber: place.formatted_phone_number,
+            openNow: place.opening_hours?.isOpen() ?? null,
+            formattedPhoneNumber: place.formatted_phone_number,
             website: place.website,
-            photos: place.photos?.slice(0, 5).map((photo) => photo.getUrl({ maxWidth: 800 })),
           };
           resolve(details);
         } else {

@@ -12,11 +12,35 @@ import {
   CreateParticipantDTO,
   GeocodeResult,
   Location,
+  Venue,
 } from '@/types';
+import { LegacyVenue, CATEGORY_TO_GOOGLE_TYPE } from '@/types/venue';
 
 // Simulate network delay (200-500ms)
 const delay = (ms: number = 300) =>
   new Promise((resolve) => setTimeout(resolve, ms + Math.random() * 200));
+
+/**
+ * Convert LegacyVenue to new Venue format
+ */
+function convertLegacyVenue(legacy: LegacyVenue): Venue {
+  const googleType = CATEGORY_TO_GOOGLE_TYPE[legacy.category] || 'point_of_interest';
+  return {
+    id: legacy.id,
+    name: legacy.name,
+    address: legacy.address,
+    location: legacy.location,
+    types: [googleType],
+    rating: legacy.rating ?? null,
+    userRatingsTotal: null,
+    priceLevel: legacy.priceLevel ?? null,
+    openNow: legacy.openNow ?? null,
+    photoUrl: legacy.photoUrl ?? null,
+    formattedPhoneNumber: legacy.phoneNumber,
+    website: legacy.website,
+    openingHours: legacy.openingHours,
+  };
+}
 
 export async function mockApiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   await delay(); // Simulate network latency
@@ -145,13 +169,18 @@ export async function mockApiCall<T>(endpoint: string, options?: RequestInit): P
   // Venue Endpoints
   // ============================================================================
 
-  // POST /api/venues/search - Search venues
+  // POST /api/venues/search - Search venues (legacy mock - backend handles this now)
+  // This mock is kept for local development without backend
   if (endpoint === '/api/venues/search' && method === 'POST') {
-    const { center, radius, categories } = body;
-    const venues = mockStore.searchVenues(center, radius, categories);
+    const { searchRadius, categories } = body;
+    // Mock implementation - in production, backend calculates center from eventId
+    const mockCenter = { lat: 40.7128, lng: -74.006 }; // NYC default
+    const legacyVenues = mockStore.searchVenues(mockCenter, searchRadius || 5000, categories);
+    const venues = legacyVenues.map(convertLegacyVenue);
     const response: VenueSearchResponse = {
       venues,
       totalResults: venues.length,
+      searchCenter: mockCenter,
     };
     return response as T;
   }
@@ -159,11 +188,11 @@ export async function mockApiCall<T>(endpoint: string, options?: RequestInit): P
   // GET /api/venues/:id - Get venue details
   const getVenueMatch = endpoint.match(/^\/api\/venues\/([^\/]+)$/);
   if (getVenueMatch && method === 'GET') {
-    const venue = mockStore.getVenue(getVenueMatch[1]);
-    if (!venue) {
+    const legacyVenue = mockStore.getVenue(getVenueMatch[1]);
+    if (!legacyVenue) {
       throw new MockAPIError(404, 'NOT_FOUND', 'Venue not found');
     }
-    return venue as T;
+    return convertLegacyVenue(legacyVenue) as T;
   }
 
   // ============================================================================

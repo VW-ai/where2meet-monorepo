@@ -9,16 +9,23 @@ import { Venue, VenueCategory } from './venue';
 // API Request/Response Types
 // ============================================================================
 
+/**
+ * Venue search request for backend API
+ */
 export interface VenueSearchRequest {
-  center: Location;
-  radius: number; // In meters
-  categories?: VenueCategory[];
-  travelMode?: TravelMode;
+  eventId: string;
+  searchRadius: number; // meters (100-50000)
+  query?: string; // text search
+  categories?: VenueCategory[]; // category filter
 }
 
+/**
+ * Venue search response from backend API
+ */
 export interface VenueSearchResponse {
   venues: Venue[];
   totalResults: number;
+  searchCenter: Location; // MEC center of all participants
 }
 
 export interface DirectionsRequest {

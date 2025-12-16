@@ -1,19 +1,34 @@
 /**
  * Venues API
  *
- * Status: MOCK (Next.js API routes)
- * TODO: Migrate when backend Milestone 4 is ready
+ * Status: BACKEND (Milestone 4)
+ * Endpoints:
+ * - POST /api/venues/search - Search venues near event center
+ * - GET /api/venues/:id - Get venue details
  */
 
-import { VenueSearchRequest } from '@/types';
-import { apiCall } from './client';
+import { VenueSearchRequest, VenueSearchResponse, Venue } from '@/types';
+import { backendCall } from './client';
+
+/**
+ * Venue details response from backend
+ * Same as Venue but with guaranteed detail fields (may be null)
+ */
+type VenueDetailsResponse = Venue;
 
 export const venuesApi = {
+  /**
+   * Search for venues near the event's participant center (MEC)
+   * Requires at least one of: query or categories
+   */
   search: (data: VenueSearchRequest) =>
-    apiCall('/api/venues/search', {
+    backendCall<VenueSearchResponse>('/api/venues/search', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  get: (id: string) => apiCall(`/api/venues/${id}`),
+  /**
+   * Get detailed information about a specific venue
+   */
+  get: (placeId: string) => backendCall<VenueDetailsResponse>(`/api/venues/${placeId}`),
 };

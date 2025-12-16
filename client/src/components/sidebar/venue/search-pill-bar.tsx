@@ -5,6 +5,7 @@ import { Search, X, Star, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { searchPlacesByText } from '@/lib/google-maps/places-nearby';
 import { useUIStore } from '@/store/ui-store';
+import { getVenueCategoryDisplay } from '@/types/venue';
 import type { Venue } from '@/types';
 
 interface SearchPillBarProps {
@@ -251,7 +252,7 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {/* Category Badge */}
                   <span className="px-2 py-0.5 text-xs rounded-full bg-coral-50 text-coral-700 capitalize">
-                    {venue.category.replace('_', ' ')}
+                    {getVenueCategoryDisplay(venue)}
                   </span>
                   {/* Rating */}
                   {venue.rating && (

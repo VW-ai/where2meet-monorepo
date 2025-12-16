@@ -5,14 +5,15 @@
  * Simulates backend database and API operations
  */
 
-import { Event, Participant, Venue, Location } from '@/types';
+import { Event, Participant, Location } from '@/types';
+import { LegacyVenue } from '@/types/venue';
 import { MOCK_VENUES } from './data/venues';
 import { geocodeAddress, calculateDistance } from './services/geocoding';
 import { loadDataSync, saveData, saveDataSync } from './services/persistence';
 
 class MockDataStore {
   private events: Map<string, Event> = new Map();
-  private venues: Map<string, Venue> = new Map();
+  private venues: Map<string, LegacyVenue> = new Map();
 
   constructor() {
     this.seedInitialData();
@@ -236,7 +237,7 @@ class MockDataStore {
   // Venue Operations
   // ============================================================================
 
-  searchVenues(center: Location, radius: number, categories?: string[]): Venue[] {
+  searchVenues(center: Location, radius: number, categories?: string[]): LegacyVenue[] {
     let results = Array.from(this.venues.values());
 
     // Filter by category
@@ -257,7 +258,7 @@ class MockDataStore {
     return results;
   }
 
-  getVenue(id: string): Venue | undefined {
+  getVenue(id: string): LegacyVenue | undefined {
     return this.venues.get(id);
   }
 
@@ -306,7 +307,7 @@ class MockDataStore {
   /**
    * Get all venues (for debugging)
    */
-  getAllVenues(): Venue[] {
+  getAllVenues(): LegacyVenue[] {
     return Array.from(this.venues.values());
   }
 }
