@@ -23,8 +23,8 @@ const CATEGORY_TO_GOOGLE_TYPE: Record<VenueCategory, string> = {
   park: 'park',
   museum: 'museum',
   library: 'library',
+  shopping: 'shopping_mall',
   things_to_do: 'tourist_attraction',
-  other: 'point_of_interest',
 };
 
 /**
@@ -94,7 +94,7 @@ export async function searchNearbyPlaces(
             const category =
               (Object.keys(CATEGORY_TO_GOOGLE_TYPE) as VenueCategory[]).find(
                 (cat) => CATEGORY_TO_GOOGLE_TYPE[cat] === type
-              ) || 'other';
+              ) || 'things_to_do';
 
             const venues = results.map((place) => convertPlaceToVenue(place, category));
             resolve(venues);
@@ -148,7 +148,7 @@ export async function searchPlacesByText(
         if (status === maps.places.PlacesServiceStatus.OK && results) {
           // Try to infer category from types
           const venues = results.map((place) => {
-            let category: VenueCategory = 'other';
+            let category: VenueCategory = 'things_to_do';
 
             if (place.types) {
               for (const [cat, googleType] of Object.entries(CATEGORY_TO_GOOGLE_TYPE)) {

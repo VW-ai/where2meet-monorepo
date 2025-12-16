@@ -38,8 +38,8 @@ export type VenueCategory =
   | 'park'
   | 'museum'
   | 'library'
-  | 'things_to_do'
-  | 'other';
+  | 'shopping'
+  | 'things_to_do';
 
 export const VENUE_CATEGORIES: VenueCategory[] = [
   'cafe',
@@ -49,6 +49,6 @@ export const VENUE_CATEGORIES: VenueCategory[] = [
   'park',
   'museum',
   'library',
+  'shopping',
   'things_to_do',
-  'other',
 ];
