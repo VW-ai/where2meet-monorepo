@@ -45,6 +45,11 @@ const envSchema = z.object({
   GOOGLE_MAPS_API_KEY: z.string().default(""),
   GEOCODE_CACHE_TTL_SECONDS: stringToNumber(2592000).pipe(z.number().min(0)), // 30 days
   GEOCODE_TIMEOUT_MS: stringToNumber(5000).pipe(z.number().min(100).max(30000)),
+
+  // Google Places
+  PLACES_SEARCH_CACHE_TTL_SECONDS: stringToNumber(3600).pipe(z.number().min(0)), // 1 hour
+  PLACES_DETAILS_CACHE_TTL_SECONDS: stringToNumber(86400).pipe(z.number().min(0)), // 24 hours
+  PLACES_TIMEOUT_MS: stringToNumber(5000).pipe(z.number().min(100).max(30000)),
 });
 
 /**

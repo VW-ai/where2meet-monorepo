@@ -21,6 +21,7 @@ import dbPlugin from "./plugins/db.js";
 import { healthRoutes } from "./routes/health.js";
 import { eventRoutes } from "./routes/events.js";
 import { participantRoutes } from "./routes/participants.js";
+import { venueRoutes } from "./routes/venues.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -98,6 +99,7 @@ export async function buildServer() {
   await server.register(healthRoutes);
   await server.register(eventRoutes);
   await server.register(participantRoutes);
+  await server.register(venueRoutes);
 
   return server;
 }

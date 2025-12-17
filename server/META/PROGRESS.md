@@ -173,3 +173,61 @@ This tracker serves as a log of what we have accomplished. sections are separate
 - Removed unused `isOrganizerTokenFormat()`, `isParticipantTokenFormat()` validators
 - Updated route documentation to reflect dual-token authentication
 - Fixed CORS config to allow PATCH/PUT/DELETE methods (was defaulting to GET/HEAD/POST only)
+
+---
+
+## 2025-12-15
+
+### Milestone 4: Venue Search (COMPLETED)
+
+#### 4.1 Google Places API Integration
+- Added Places API config to `src/lib/config.ts`:
+  - `PLACES_SEARCH_CACHE_TTL_SECONDS` (1 hour), `PLACES_DETAILS_CACHE_TTL_SECONDS` (24 hours)
+  - `PLACES_TIMEOUT_MS` (5s default)
+- Created `src/lib/places/` folder with atomic modules:
+  - `types.ts` - PlaceResult, PlaceDetails, GeoPoint, Google API response types
+  - `errors.ts` - PlaceNotFoundError, PlacesApiError, status code handling
+  - `cache.ts` - Redis caching with search/details TTL
+  - `client.ts` - HTTP client with retry logic (100ms → 400ms → 1600ms)
+  - `search.ts` - searchNearbyPlaces, textSearchPlaces, getPlaceDetails, buildPhotoUrl
+  - `index.ts` - Public API exports
+- Created `tests/unit/places.test.ts` - 31 unit tests
+- Moved `src/lib/mec.ts` to `src/utils/mec.ts` (pure algorithm belongs in utils)
+
+#### 4.2 Venue Schemas & DTOs
+- Created `src/schemas/venue.ts` - Request validation schemas
+  - `SearchVenuesSchema` - eventId, searchRadius, query/categories (at least one required)
+  - `GetVenueDetailsSchema` - placeId parameter validation
+  - Category enum: cafe, restaurant, bar, park, museum, shopping, entertainment
+- Created `src/dto/venue.dto.ts` - Response DTOs
+  - `VenueResponseSchema`, `SearchVenuesResponseSchema`, `VenueDetailsResponseSchema`
+- Created `src/mappers/venue.mapper.ts` - PlaceResult → VenueResponse transformation
+  - `toVenueResponse()`, `toSearchVenuesResponse()`, `toVenueDetailsResponse()`
+
+#### 4.3 Venue Service
+- Created `src/services/venue.ts` - Venue business logic
+  - `searchVenues()` - Get event, calculate MEC center, search Places API
+  - `getVenueDetails()` - Fetch detailed place info
+  - Deduplication by placeId, sorting by rating (nulls last)
+  - Maps PlacesApiError to ExternalServiceError
+- Created `tests/services/venue.test.ts` - 12 unit tests
+
+#### 4.4 Venue Routes
+- Created `src/routes/venues.ts` - API endpoints
+  - POST /api/venues/search - Search venues near event MEC center (no auth)
+  - GET /api/venues/:id - Get venue details (no auth)
+- Registered routes in `src/server.ts`
+- Created `tests/venues.test.ts` - 9 integration tests
+  - Search with query/categories, validation errors, 404 for non-existent event
+  - Venue details with photo URL generation
+
+#### Issues Created
+- `META/ISSUES/M4_VenueEndpointAuthStrategy_2025-12-14.md` - Auth strategy discussion (GitHub #7)
+- `META/ISSUES/M3_RemoveGeocodingAPIForAutocomplete_2025-12-14.md` - Frontend autocomplete removes geocoding need (GitHub #8)
+
+#### Test Summary
+- Total tests: 209 passing
+  - Places API: 31 tests
+  - VenueService: 12 tests
+  - Venue integration: 9 tests
+  - Previous tests: 157 tests

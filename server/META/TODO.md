@@ -36,15 +36,39 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [x] Update routes to use mappers
 - [x] Update API spec to match DTOs
 
-### Next: Milestone 3 - Maps + Participant
-- [ ] Create Maps service (Google Geocoding API wrapper)
-- [ ] POST /api/events/:id/participants - Add participant
-- [ ] PATCH /api/events/:id/participants/:pid - Update participant
-- [ ] DELETE /api/events/:id/participants/:pid - Remove participant
-- [ ] Implement MEC (Minimum Enclosing Circle) algorithm
-- [ ] Add participant color assignment
-- [ ] Write tests for Participant endpoints
+### Milestone 3: Maps + Participant (COMPLETED)
+- [x] Create Maps service (Google Geocoding API wrapper)
+- [x] POST /api/events/:id/participants - Add participant
+- [x] PATCH /api/events/:id/participants/:pid - Update participant
+- [x] DELETE /api/events/:id/participants/:pid - Remove participant
+- [x] Implement MEC (Minimum Enclosing Circle) algorithm
+- [x] Add participant color assignment
+- [x] Write tests for Participant endpoints
+- [x] Implement dual-token auth (organizerToken OR participantToken)
+
+---
+
+## 2025-12-15
+
+### Milestone 4: Venue Search (COMPLETED)
+- [x] Create Places API service (`src/lib/places/`)
+- [x] POST /api/venues/search - Search venues near MEC center
+- [x] GET /api/venues/:id - Get venue details
+- [x] Create venue schemas, DTOs, mappers
+- [x] Redis caching for Places API responses
+- [x] Write unit and integration tests
+
+### Next: Milestone 5 - Voting
+- [ ] Add Vote model operations
+- [ ] POST /api/events/:id/votes - Cast vote
+- [ ] GET /api/events/:id/votes - Get voting results
+- [ ] Finalize venue selection
+- [ ] Write voting tests
 
 ### Future: OpenAPI Documentation (see issue M2_FastifySchemaVsMapperValidation)
 - [ ] Evaluate need for auto-generated API docs
 - [ ] If needed: migrate to `fastify-type-provider-zod` + `@fastify/swagger`
+
+### Future: Auth Strategy Review (see issue M4_VenueEndpointAuthStrategy)
+- [ ] Decide on venue search endpoint authentication
+- [ ] Implement auth if needed based on frontend requirements
