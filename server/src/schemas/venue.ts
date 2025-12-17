@@ -22,9 +22,9 @@ export const SearchVenuesSchema = z
     eventId: z.string().min(1, "Event ID is required"),
     searchRadius: z
       .number()
-      .int("Search radius must be an integer")
       .min(100, "Search radius must be at least 100 meters")
-      .max(50000, "Search radius cannot exceed 50,000 meters"),
+      .max(50000, "Search radius cannot exceed 50,000 meters")
+      .transform((val) => Math.round(val)),
     query: z
       .string()
       .min(1, "Query cannot be empty")
