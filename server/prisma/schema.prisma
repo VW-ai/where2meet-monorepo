@@ -24,7 +24,6 @@ model Event {
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
   participants Participant[]
-  venues       Venue[]
   votes        Vote[]
 
   @@index([createdAt])
@@ -52,10 +51,11 @@ model Participant {
   @@map("participant")
 }
 
-// Venue - Cached venue information from Google Places
+// Venue - Global venue cache from Google Places (with refresh logic)
+// Design: Single source of truth for venue data, shared across all events
+// The Vote table tracks which venues are voted on in which events
 model Venue {
-  id         String   @db.VarChar(255)
-  eventId    String   @map("event_id") @db.VarChar(64)
+  id         String   @id @db.VarChar(255) // Google Place ID
   name       String   @db.VarChar(255)
   address    String?  @db.VarChar(255)
   lat        Decimal  @db.Decimal(10, 7)
@@ -65,16 +65,15 @@ model Venue {
   priceLevel Int?     @map("price_level") @db.SmallInt
   photoUrl   String?  @map("photo_url") @db.Text
   createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at") // For 5-day refresh logic
 
-  event Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
   votes Vote[]
 
-  @@id([id, eventId])
-  @@index([eventId])
   @@map("venue")
 }
 
-// Vote - Participant votes for venues
+// Vote - Junction table tracking which participants voted for which venues in which events
+// This is the vote tracking table that handles the many-to-many-to-many relationship
 model Vote {
   id            String   @id @default(uuid()) @db.Uuid
   eventId       String   @map("event_id") @db.VarChar(64)
@@ -84,7 +83,7 @@ model Vote {
 
   event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  venue       Venue       @relation(fields: [venueId, eventId], references: [id, eventId], onDelete: Cascade)
+  venue       Venue       @relation(fields: [venueId], references: [id])
 
   @@unique([eventId, participantId, venueId])
   @@index([eventId])

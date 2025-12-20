@@ -42,3 +42,17 @@ export type {
   VenueDetailsResponse,
   VenueSearchResponse,
 } from "./venue.dto.js";
+
+// Vote DTOs
+export {
+  VoteResponseSchema,
+  VenueWithVotesSchema,
+  VoteStatisticsResponseSchema,
+  VoteRemovalResponseSchema,
+} from "./vote.dto.js";
+export type {
+  VoteResponse,
+  VenueWithVotes,
+  VoteStatisticsResponse,
+  VoteRemovalResponse,
+} from "./vote.dto.js";

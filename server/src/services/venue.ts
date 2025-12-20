@@ -7,11 +7,16 @@
  * @module services/venue
  */
 
-import type { PrismaClient } from "../generated/prisma/index.js";
+import type { PrismaClient, Venue } from "../generated/prisma/index.js";
 import {
   createEventRepository,
   type EventRepository,
 } from "../repositories/event.js";
+import {
+  createVenueRepository,
+  type VenueRepository,
+  type VenueData,
+} from "../repositories/venue.js";
 import {
   searchNearbyPlaces,
   textSearchPlaces,
@@ -52,9 +57,11 @@ export interface SearchVenuesOptions {
  */
 export class VenueService {
   private readonly eventRepository: EventRepository;
+  private readonly venueRepository: VenueRepository;
 
   constructor(db: PrismaClient) {
     this.eventRepository = createEventRepository(db);
+    this.venueRepository = createVenueRepository(db);
   }
 
   /**
@@ -145,15 +152,46 @@ export class VenueService {
   }
 
   /**
-   * Gets detailed information about a venue.
+   * Gets detailed information about a venue with three-tier caching.
+   *
+   * Caching strategy:
+   * 1. Check PostgreSQL (5-day TTL) - fastest, cheapest
+   * 2. If stale/missing, call getPlaceDetails() which handles:
+   *    - Redis (24h TTL) - fast
+   *    - Google API - authoritative source
+   * 3. Upsert fresh data to PostgreSQL for future requests
+   *
    * @param placeId - Google Place ID
    * @returns Detailed place information
    * @throws ExternalServiceError if Places API fails
    */
   async getVenueDetails(placeId: string): Promise<PlaceDetails> {
     try {
+      // Tier 1: Check PostgreSQL for fresh data (< 5 days old)
+      const isStale = await this.venueRepository.isStale(placeId);
+
+      if (!isStale) {
+        // Venue exists and is fresh in DB
+        const venue = await this.venueRepository.findById(placeId);
+        if (venue) {
+          logger.info({ placeId, source: "postgres" }, "Venue details from database");
+          return this.venueToPlaceDetails(venue);
+        }
+      }
+
+      // Tier 2 & 3: Data is stale or missing
+      // Call getPlaceDetails() which handles Redis (24h) → Google API flow
+      logger.debug({ placeId, isStale }, "Fetching fresh venue data from API");
       const details = await getPlaceDetails(placeId);
-      logger.info({ placeId, name: details.name }, "Venue details fetched");
+
+      // Persist to PostgreSQL for future requests (async, don't block response)
+      this.venueRepository
+        .upsert(this.placeDetailsToVenueData(details))
+        .catch((error) => {
+          logger.error({ error, placeId }, "Failed to upsert venue to database");
+        });
+
+      logger.info({ placeId, source: "api", name: details.name }, "Venue details fetched");
       return details;
     } catch (error) {
       if (error instanceof PlacesApiError) {
@@ -162,6 +200,51 @@ export class VenueService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Converts a Venue database entity to PlaceDetails API type.
+   * Fields not stored in DB (types, openingHours, etc.) are set to null.
+   */
+  private venueToPlaceDetails(venue: Venue): PlaceDetails {
+    return {
+      placeId: venue.id,
+      name: venue.name,
+      address: venue.address ?? "",
+      location: {
+        lat: Number(venue.lat),
+        lng: Number(venue.lng),
+      },
+      types: venue.category ? [venue.category] : [],
+      rating: venue.rating ? Number(venue.rating) : null,
+      userRatingsTotal: null, // Not stored in DB
+      priceLevel: venue.priceLevel,
+      openNow: null, // Not stored in DB
+      photoReference: null, // We store photoUrl, not photoReference
+      formattedPhoneNumber: null, // Not stored in DB
+      website: null, // Not stored in DB
+      openingHours: null, // Not stored in DB
+    };
+  }
+
+  /**
+   * Converts PlaceDetails API type to VenueData for database storage.
+   * Extracts and simplifies fields for persistent cache.
+   */
+  private placeDetailsToVenueData(details: PlaceDetails): VenueData {
+    return {
+      id: details.placeId,
+      name: details.name,
+      address: details.address ? details.address : null,
+      lat: details.location.lat,
+      lng: details.location.lng,
+      category: details.types && details.types.length > 0 ? (details.types[0] ?? null) : null,
+      rating: details.rating,
+      priceLevel: details.priceLevel,
+      photoUrl: details.photoReference
+        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photoReference}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+        : null,
+    };
   }
 
   /**

@@ -441,7 +441,7 @@ POST /api/events/:id/votes
 | id | URL Path | string | ✓ | 活动 UUID |
 | participantId | Body | string | ✓ | 投票人（参与者 UUID） |
 | venueId | Body | string | ✓ | 被投的场所（Google Place ID） |
-| venueData | Body | object | ✓ | 场所信息（用于缓存） |
+| venueData | Body | object | ✓ | 场所信息（来自 Milestone 4 Redis 缓存/Google API 响应，用于持久化存储） |
 
 **venueData 结构：**
 | 字段 | 类型 | 说明 |
@@ -458,8 +458,12 @@ POST /api/events/:id/votes
 **后端处理**：
 1. 验证 event 存在
 2. 验证 participant 属于该 event
-3. 缓存 venue 信息（如果不存在）
-4. 创建投票记录（重复投票忽略）
+3. 持久化 venue 快照到数据库（如果不存在则插入）
+   - 保存投票时的场所信息（历史准确性）
+   - 支持外键约束和高效查询
+4. 创建投票记录（重复投票通过 UNIQUE 约束自动忽略）
+
+**缓存说明**：Milestone 4 的 `/api/venues/search` 与 `/api/venues/:id` 依旧负责 Redis 缓存；Vote 路由不直接调用 Google API，而是使用前端附带的 `venueData`，在 Redis 命中失败时由前端先调用详情 API 再来投票。
 
 **后端输出（成功 201）：**
 | 字段 | 类型 | 说明 |
@@ -525,6 +529,8 @@ GET /api/events/:id/votes
 | ...Venue | - | 所有 Venue 字段 |
 | voteCount | number | 该场所获得的票数 |
 | voters | string[] | 投票者 ID 列表 |
+
+**实现说明**：该统计接口只 JOIN PostgreSQL（Venue + Vote），不要为统计再次访问 Redis 或 Google API。
 
 ---
 
