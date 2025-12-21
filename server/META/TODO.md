@@ -71,6 +71,16 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 
 ## 2025-12-21
 
+### Vote API Refactoring (COMPLETED)
+- [x] Fix security bug: organizer can vote on behalf of any participant
+- [x] Add `isOrganizer` field to Participant, make location nullable
+- [x] Auto-create organizer participant on event creation
+- [x] Change vote URLs to `/api/events/:id/participants/:participantId/votes`
+- [x] Create `createVerifyParticipantAccess({ selfOnly })` auth hook factory
+- [x] Update vote routes to use selfOnly hook
+- [x] Update all vote tests for new URL pattern
+- [x] Update documentation (API_SPECIFICATION.md, DATABASE_SCHEMA.md)
+
 ### Next: Milestone 6 - Results & Publishing
 - [ ] Add event publishing logic
 - [ ] POST /api/events/:id/publish - Finalize venue selection

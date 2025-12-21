@@ -278,9 +278,10 @@ export class ParticipantService {
         updateData.lat = geocodeResult.lat;
         updateData.lng = geocodeResult.lng;
       }
-    } else if (input.fuzzyLocation !== undefined && input.fuzzyLocation !== current.fuzzyLocation) {
+    } else if (input.fuzzyLocation !== undefined && input.fuzzyLocation !== current.fuzzyLocation && current.address !== null) {
       // Fuzzy setting changed but address didn't - need to re-apply or remove offset
       // For simplicity, we re-geocode to get clean coordinates
+      // Note: Skip this for organizer participants (null address)
       const geocodeResult = await geocodeWithBusinessErrors(current.address);
       const nameForOffset = input.name ?? current.name;
 

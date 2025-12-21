@@ -15,7 +15,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
-import { config, isTest } from "./lib/config.js";
+import { config, isTest, isProduction } from "./lib/config.js";
 import { errorHandler } from "./utils/errorHandler.js";
 import dbPlugin from "./plugins/db.js";
 import { healthRoutes } from "./routes/health.js";
@@ -78,8 +78,8 @@ export async function buildServer() {
     methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });
 
-  // Register rate limiting (disabled in test environment)
-  if (!isTest) {
+  // Register rate limiting (production only)
+  if (isProduction) {
     await server.register(rateLimit, {
       max: config.RATE_LIMIT_MAX,
       timeWindow: config.RATE_LIMIT_WINDOW_MS,

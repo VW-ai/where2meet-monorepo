@@ -110,21 +110,26 @@ Request: GET /api/venues/:id or POST /api/events/:id/votes
 
 ### Cast Vote
 ```
-POST /api/events/:id/votes
+POST /api/events/:id/participants/:participantId/votes
+Headers: Authorization: Bearer {participantToken|organizerToken}
 Body: {
-  "participantId": "uuid",
   "venueId": "ChIJ...",
   "venueData": { "name": "Starbucks", "address": "...", "lat": 40.7, "lng": -74.0, ... }
 }
 Response 201: { "success": true, "voteId": "uuid" }
 ```
 
+**Auth**: Only can vote for yourself (participantId must match token identity).
+Organizer uses their `organizerParticipantId` from event creation.
+
 ### Remove Vote
 ```
-DELETE /api/events/:id/votes
-Body: { "participantId": "uuid", "venueId": "ChIJ..." }
-Response 200: { "success": true }
+DELETE /api/events/:id/participants/:participantId/votes/:venueId
+Headers: Authorization: Bearer {participantToken|organizerToken}
+Response 200: { "success": true, "deleted": true }
 ```
+
+**Auth**: Only can remove your own votes.
 
 ### Get Vote Statistics
 ```
@@ -136,6 +141,8 @@ Response 200: {
   "totalVotes": 5
 }
 ```
+
+**Auth**: No authentication required (public statistics).
 
 ---
 

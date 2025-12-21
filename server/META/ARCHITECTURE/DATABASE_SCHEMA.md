@@ -25,14 +25,15 @@
 ┌─────────────────────────────────────────────────────────┐
 │  Event                                                  │
 ├─────────────────────────────────────────────────────────┤
-│  id              VARCHAR(64)  PK (semantic ID)          │
-│  title           VARCHAR(100)    NOT NULL               │
-│  meeting_time    TIMESTAMP       NULL                   │
-│  organizer_token VARCHAR(64)     NOT NULL, UNIQUE       │
-│  published_venue_id  VARCHAR(255)  NULL                 │
-│  published_at    TIMESTAMP       NULL                   │
-│  created_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
-│  updated_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
+│  id                     VARCHAR(64)  PK (semantic ID)   │
+│  title                  VARCHAR(100)    NOT NULL        │
+│  meeting_time           TIMESTAMP       NULL            │
+│  organizer_token_hash   VARCHAR(64)     NOT NULL        │
+│  organizer_participant_id UUID         FK -> Participant│
+│  published_venue_id     VARCHAR(255)    NULL            │
+│  published_at           TIMESTAMP       NULL            │
+│  created_at             TIMESTAMP       NOT NULL        │
+│  updated_at             TIMESTAMP       NOT NULL        │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -41,7 +42,8 @@
 | `id` | VARCHAR(64) | 主键，语义化 ID (格式: `evt_<timestamp>_<random16>`) |
 | `title` | VARCHAR(100) | 活动标题 |
 | `meeting_time` | TIMESTAMP | 预计见面时间（可为空） |
-| `organizer_token` | VARCHAR(64) | 组织者令牌（用于编辑权限） |
+| `organizer_token_hash` | VARCHAR(64) | 组织者令牌哈希（用于编辑权限） |
+| `organizer_participant_id` | UUID | 组织者参与者 ID（用于投票） |
 | `published_venue_id` | VARCHAR(255) | 已发布的场所 ID（Google Place ID） |
 | `published_at` | TIMESTAMP | 发布时间 |
 | `created_at` | TIMESTAMP | 创建时间 |
@@ -50,7 +52,8 @@
 **说明**：
 - `published_venue_id` 存 Google Place ID，不存完整 venue 信息
 - 不存 MEC（从 participants 实时计算）
-- 不存 organizer_id（当前无用户系统）
+- `organizer_participant_id` 指向自动创建的组织者参与者，用于投票
+- 创建活动时自动创建组织者参与者（isOrganizer=true，无位置信息）
 
 ---
 
@@ -63,12 +66,13 @@
 │  id              UUID        PK                         │
 │  event_id        VARCHAR(64) FK -> Event.id, NOT NULL   │
 │  name            VARCHAR(50)     NOT NULL               │
-│  address         VARCHAR(255)    NOT NULL               │
+│  address         VARCHAR(255)    NULL (组织者可为空)     │
 │  formatted_address VARCHAR(255)  NULL                   │
-│  lat             DECIMAL(10,7)   NOT NULL               │
-│  lng             DECIMAL(10,7)   NOT NULL               │
+│  lat             DECIMAL(10,7)   NULL (组织者可为空)     │
+│  lng             DECIMAL(10,7)   NULL (组织者可为空)     │
 │  fuzzy_location  BOOLEAN         DEFAULT FALSE          │
 │  color           VARCHAR(20)     NOT NULL               │
+│  is_organizer    BOOLEAN         DEFAULT FALSE          │
 │  token_hash      VARCHAR(64)     NULL                   │
 │  created_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
 └─────────────────────────────────────────────────────────┘
@@ -79,20 +83,23 @@
 | `id` | UUID | 主键 |
 | `event_id` | VARCHAR(64) | 外键，关联 Event |
 | `name` | VARCHAR(50) | 参与者姓名 |
-| `address` | VARCHAR(255) | 用户输入的原始地址 |
+| `address` | VARCHAR(255) | 用户输入的原始地址（组织者可为空） |
 | `formatted_address` | VARCHAR(255) | Google 返回的标准化地址 |
-| `lat` | DECIMAL(10,7) | 纬度（后端 geocode 结果） |
-| `lng` | DECIMAL(10,7) | 经度（后端 geocode 结果） |
+| `lat` | DECIMAL(10,7) | 纬度（组织者可为空，不计入 MEC） |
+| `lng` | DECIMAL(10,7) | 经度（组织者可为空，不计入 MEC） |
 | `fuzzy_location` | BOOLEAN | 是否模糊位置 |
 | `color` | VARCHAR(20) | 显示颜色（如 "coral"） |
+| `is_organizer` | BOOLEAN | 是否为组织者参与者 |
 | `token_hash` | VARCHAR(64) | 参与者令牌哈希（SHA-256），用于自助管理 |
 | `created_at` | TIMESTAMP | 创建时间 |
 
 **说明**：
-- `address`：用户输入的原始地址（如 "台北101"）
+- `address`：用户输入的原始地址（如 "台北101"），组织者可为空
 - `formatted_address`：Google Geocode 返回的标准化地址（如 "110台北市信義區信義路五段7號"）
 - lat/lng 由后端 geocode 填入，不接受前端传入
 - 如果 fuzzy_location=true，存储的是偏移后的坐标
+- `is_organizer=true` 的参与者在创建活动时自动创建，无需提供位置信息
+- 组织者参与者（lat/lng 为 NULL）不计入 MEC 计算
 
 ---
 

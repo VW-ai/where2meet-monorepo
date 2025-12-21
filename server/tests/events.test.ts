@@ -33,8 +33,13 @@ describe("Event Endpoints", () => {
       // Token format: ot_ + 64 hex chars = 67 chars total
       expect(body.organizerToken).toHaveLength(67);
       expect(body.organizerToken).toMatch(/^ot_[a-f0-9]{64}$/);
+      // Auto-created organizer participant
+      expect(body).toHaveProperty("organizerParticipantId");
       expect(body).toHaveProperty("participants");
-      expect(body.participants).toEqual([]);
+      expect(body.participants).toHaveLength(1);
+      expect(body.participants[0].isOrganizer).toBe(true);
+      expect(body.participants[0].name).toBe("Organizer");
+      expect(body.participants[0].location).toBeNull();
     });
 
     it("should create an event without meetingTime", async () => {

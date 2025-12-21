@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "participant" ADD COLUMN     "is_organizer" BOOLEAN NOT NULL DEFAULT false,
+ALTER COLUMN "address" DROP NOT NULL,
+ALTER COLUMN "lat" DROP NOT NULL,
+ALTER COLUMN "lng" DROP NOT NULL;

@@ -36,6 +36,7 @@ describe("Vote Endpoints", () => {
   let db: PrismaClient;
   let testEventId: string;
   let testOrganizerToken: string;
+  let organizerParticipantId: string;
   let testParticipantId: string;
   let testParticipantToken: string;
   let secondParticipantId: string;
@@ -72,6 +73,7 @@ describe("Vote Endpoints", () => {
     const event = eventResponse.json();
     testEventId = event.id;
     testOrganizerToken = event.organizerToken;
+    organizerParticipantId = event.organizerParticipantId;
 
     // Add a participant (self-registration to get participantToken)
     const participantResponse = await server.inject({
@@ -130,10 +132,9 @@ describe("Vote Endpoints", () => {
     it("should cast a vote successfully with participantToken", async () => {
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
@@ -148,10 +149,9 @@ describe("Vote Endpoints", () => {
     it("should cast a vote successfully with organizerToken", async () => {
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${organizerParticipantId}/votes`,
         headers: { authorization: `Bearer ${testOrganizerToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
@@ -169,10 +169,9 @@ describe("Vote Endpoints", () => {
       // Vote to trigger venue creation
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId,
           venueData: mockVenueData,
         },
@@ -191,7 +190,6 @@ describe("Vote Endpoints", () => {
     it("should handle duplicate votes idempotently", async () => {
       const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
       const votePayload = {
-        participantId: testParticipantId,
         venueId,
         venueData: mockVenueData,
       };
@@ -199,7 +197,7 @@ describe("Vote Endpoints", () => {
       // First vote
       const response1 = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: votePayload,
       });
@@ -211,7 +209,7 @@ describe("Vote Endpoints", () => {
       // Duplicate vote (same participant, same venue, same event)
       const response2 = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: votePayload,
       });
@@ -236,10 +234,9 @@ describe("Vote Endpoints", () => {
       // Vote for first venue
       const response1 = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: venue1,
           venueData: mockVenueData,
         },
@@ -248,10 +245,9 @@ describe("Vote Endpoints", () => {
       // Vote for second venue
       const response2 = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: venue2,
           venueData: { ...mockVenueData, name: "Pizza Place" },
         },
@@ -270,9 +266,8 @@ describe("Vote Endpoints", () => {
     it("should return 401 without authorization header", async () => {
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         payload: {
-          participantId: testParticipantId,
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
@@ -286,10 +281,9 @@ describe("Vote Endpoints", () => {
     it("should return 403 with invalid token", async () => {
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: "Bearer invalid-token" },
         payload: {
-          participantId: testParticipantId,
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
@@ -303,10 +297,9 @@ describe("Vote Endpoints", () => {
     it("should return 403 when participant tries to vote for another participant", async () => {
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${secondParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: secondParticipantId, // Trying to vote for someone else
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
@@ -317,30 +310,28 @@ describe("Vote Endpoints", () => {
       expect(body.error.code).toBe("FORBIDDEN");
     });
 
-    it("should allow organizer to vote on behalf of any participant", async () => {
+    it("should reject organizer trying to vote for another participant", async () => {
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${secondParticipantId}/votes`,
         headers: { authorization: `Bearer ${testOrganizerToken}` },
         payload: {
-          participantId: secondParticipantId,
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
       });
 
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(403);
       const body = response.json();
-      expect(body.success).toBe(true);
+      expect(body.error.code).toBe("FORBIDDEN");
     });
 
     it("should return 404 for non-existent event", async () => {
       const response = await server.inject({
         method: "POST",
-        url: "/api/events/evt_1702000000000_nonexistent12345/votes",
+        url: `/api/events/evt_1702000000000_nonexistent12345/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testOrganizerToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
@@ -352,20 +343,21 @@ describe("Vote Endpoints", () => {
     });
 
     it("should return 404 for non-existent participant", async () => {
+      // Use testParticipantToken but with a non-existent participant ID in URL
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        url: `/api/events/${testEventId}/participants/550e8400-e29b-41d4-a716-446655440000/votes`,
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: "550e8400-e29b-41d4-a716-446655440000",
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
       });
 
-      expect(response.statusCode).toBe(404);
+      // Should get 403 FORBIDDEN because selfOnly hook checks participantId from token doesn't match URL
+      expect(response.statusCode).toBe(403);
       const body = response.json();
-      expect(body.error.code).toBe("PARTICIPANT_NOT_FOUND");
+      expect(body.error.code).toBe("FORBIDDEN");
     });
 
     it("should return 409 when voting on a published event", async () => {
@@ -377,10 +369,9 @@ describe("Vote Endpoints", () => {
 
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
         },
@@ -394,10 +385,9 @@ describe("Vote Endpoints", () => {
     it("should return 400 for missing required fields", async () => {
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           // Missing venueId and venueData
         },
       });
@@ -410,10 +400,9 @@ describe("Vote Endpoints", () => {
     it("should return 400 for invalid venue data", async () => {
       const response = await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: {
             name: "Cafe",
@@ -442,10 +431,9 @@ describe("Vote Endpoints", () => {
       // Cast a vote before each delete test
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId,
           venueData: mockVenueData,
         },
@@ -455,12 +443,8 @@ describe("Vote Endpoints", () => {
     it("should remove a vote successfully with participantToken", async () => {
       const response = await server.inject({
         method: "DELETE",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${venueId}`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
-        payload: {
-          participantId: testParticipantId,
-          venueId,
-        },
       });
 
       expect(response.statusCode).toBe(200);
@@ -482,14 +466,22 @@ describe("Vote Endpoints", () => {
     });
 
     it("should remove a vote successfully with organizerToken", async () => {
-      const response = await server.inject({
-        method: "DELETE",
-        url: `/api/events/${testEventId}/votes`,
+      // First, organizer needs to vote for themselves
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${organizerParticipantId}/votes`,
         headers: { authorization: `Bearer ${testOrganizerToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId,
+          venueData: mockVenueData,
         },
+      });
+
+      // Now organizer can delete their own vote
+      const response = await server.inject({
+        method: "DELETE",
+        url: `/api/events/${testEventId}/participants/${organizerParticipantId}/votes/${venueId}`,
+        headers: { authorization: `Bearer ${testOrganizerToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -503,12 +495,8 @@ describe("Vote Endpoints", () => {
 
       const response = await server.inject({
         method: "DELETE",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${nonExistentVenueId}`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
-        payload: {
-          participantId: testParticipantId,
-          venueId: nonExistentVenueId,
-        },
       });
 
       expect(response.statusCode).toBe(200);
@@ -521,12 +509,8 @@ describe("Vote Endpoints", () => {
       // Remove the vote
       await server.inject({
         method: "DELETE",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${venueId}`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
-        payload: {
-          participantId: testParticipantId,
-          venueId,
-        },
       });
 
       // Verify venue still exists in global table
@@ -538,12 +522,8 @@ describe("Vote Endpoints", () => {
     it("should return 403 when participant tries to remove another participant's vote", async () => {
       const response = await server.inject({
         method: "DELETE",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${secondParticipantId}/votes/${venueId}`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
-        payload: {
-          participantId: secondParticipantId, // Trying to remove someone else's vote
-          venueId,
-        },
       });
 
       expect(response.statusCode).toBe(403);
@@ -551,43 +531,23 @@ describe("Vote Endpoints", () => {
       expect(body.error.code).toBe("FORBIDDEN");
     });
 
-    it("should allow organizer to remove any participant's vote", async () => {
-      // Create a vote from second participant
-      await server.inject({
-        method: "POST",
-        url: `/api/events/${testEventId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
-        payload: {
-          participantId: secondParticipantId,
-          venueId,
-          venueData: mockVenueData,
-        },
-      });
-
-      // Organizer removes second participant's vote
+    it("should reject organizer trying to remove another participant's vote", async () => {
+      // Organizer tries to remove testParticipant's vote (not their own)
       const response = await server.inject({
         method: "DELETE",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${venueId}`,
         headers: { authorization: `Bearer ${testOrganizerToken}` },
-        payload: {
-          participantId: secondParticipantId,
-          venueId,
-        },
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(403);
       const body = response.json();
-      expect(body.deleted).toBe(true);
+      expect(body.error.code).toBe("FORBIDDEN");
     });
 
     it("should return 401 without authorization header", async () => {
       const response = await server.inject({
         method: "DELETE",
-        url: `/api/events/${testEventId}/votes`,
-        payload: {
-          participantId: testParticipantId,
-          venueId,
-        },
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${venueId}`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -598,12 +558,8 @@ describe("Vote Endpoints", () => {
     it("should return 403 with invalid token", async () => {
       const response = await server.inject({
         method: "DELETE",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${venueId}`,
         headers: { authorization: "Bearer invalid-token" },
-        payload: {
-          participantId: testParticipantId,
-          venueId,
-        },
       });
 
       expect(response.statusCode).toBe(403);
@@ -654,10 +610,9 @@ describe("Vote Endpoints", () => {
       // Cast votes
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: venue1Id,
           venueData: mockVenue1Data,
         },
@@ -690,21 +645,33 @@ describe("Vote Endpoints", () => {
       // Both participants vote for venue1
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: venue1Id,
           venueData: mockVenue1Data,
         },
       });
 
+      // Need to get secondParticipant's token to vote as them
+      // Create a third participant with self-registration to get their token
+      const participant3Response = await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        payload: {
+          name: "Charlie",
+          address: "321 Elm St",
+        },
+      });
+      const participant3 = participant3Response.json();
+      const participant3Id = participant3.id;
+      const participant3Token = participant3.participantToken;
+
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        url: `/api/events/${testEventId}/participants/${participant3Id}/votes`,
+        headers: { authorization: `Bearer ${participant3Token}` },
         payload: {
-          participantId: secondParticipantId,
           venueId: venue1Id,
           venueData: mockVenue1Data,
         },
@@ -724,28 +691,39 @@ describe("Vote Endpoints", () => {
       expect(venue.voteCount).toBe(2);
       expect(venue.voters).toHaveLength(2);
       expect(venue.voters).toContain(testParticipantId);
-      expect(venue.voters).toContain(secondParticipantId);
+      expect(venue.voters).toContain(participant3Id);
     });
 
     it("should return statistics for multiple venues sorted by vote count", async () => {
       // 2 votes for venue1
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: venue1Id,
           venueData: mockVenue1Data,
         },
       });
 
+      // Create another participant to vote for venue1
+      const participant3Response = await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        payload: {
+          name: "Charlie",
+          address: "321 Elm St",
+        },
+      });
+      const participant3 = participant3Response.json();
+      const participant3Id = participant3.id;
+      const participant3Token = participant3.participantToken;
+
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        url: `/api/events/${testEventId}/participants/${participant3Id}/votes`,
+        headers: { authorization: `Bearer ${participant3Token}` },
         payload: {
-          participantId: secondParticipantId,
           venueId: venue1Id,
           venueData: mockVenue1Data,
         },
@@ -754,10 +732,9 @@ describe("Vote Endpoints", () => {
       // 1 vote for venue2
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: venue2Id,
           venueData: mockVenue2Data,
         },
@@ -784,10 +761,9 @@ describe("Vote Endpoints", () => {
       // Cast a vote first
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: venue1Id,
           venueData: mockVenue1Data,
         },
@@ -853,24 +829,23 @@ describe("Vote Endpoints", () => {
       });
       const event2 = event2Response.json();
       const event2Id = event2.id;
-      const event2Token = event2.organizerToken;
 
-      // Add participant to second event
+      // Add participant to second event (self-registration)
       const participant2Response = await server.inject({
         method: "POST",
         url: `/api/events/${event2Id}/participants`,
-        headers: { authorization: `Bearer ${event2Token}` },
         payload: { name: "Charlie", address: "999 Elm St" },
       });
-      const participant2Id = participant2Response.json().id;
+      const participant2 = participant2Response.json();
+      const participant2Id = participant2.id;
+      const participant2Token = participant2.participantToken;
 
       // Vote for same venue in both events
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: sharedVenueId,
           venueData: mockVenueData,
         },
@@ -878,10 +853,9 @@ describe("Vote Endpoints", () => {
 
       await server.inject({
         method: "POST",
-        url: `/api/events/${event2Id}/votes`,
-        headers: { authorization: `Bearer ${event2Token}` },
+        url: `/api/events/${event2Id}/participants/${participant2Id}/votes`,
+        headers: { authorization: `Bearer ${participant2Token}` },
         payload: {
-          participantId: participant2Id,
           venueId: sharedVenueId,
           venueData: mockVenueData,
         },
@@ -902,10 +876,9 @@ describe("Vote Endpoints", () => {
       // Cast a vote
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: cascadeVenueId,
           venueData: mockVenueData,
         },
@@ -941,10 +914,9 @@ describe("Vote Endpoints", () => {
       // Cast a vote
       await server.inject({
         method: "POST",
-        url: `/api/events/${testEventId}/votes`,
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
         headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
-          participantId: testParticipantId,
           venueId: participantVenueId,
           venueData: mockVenueData,
         },

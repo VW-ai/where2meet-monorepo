@@ -96,51 +96,97 @@ export function verifyOrganizerToken(options: VerifyOrganizerTokenOptions = {}) 
 }
 
 /**
- * PreHandler hook that verifies either organizer or participant token.
+ * Options for participant access verification.
+ */
+interface VerifyParticipantAccessOptions {
+  /**
+   * If true, even organizers can only access their own participant record.
+   * Used for voting endpoints where organizer shouldn't vote on behalf of others.
+   * Default: false (organizer has full access to any participant)
+   */
+  selfOnly?: boolean;
+}
+
+/**
+ * Creates a preHandler hook that verifies either organizer or participant token.
  *
  * For PATCH/DELETE on /api/events/:id/participants/:participantId:
- * 1. Try organizerToken → full access to any participant
+ * 1. Try organizerToken → full access to any participant (unless selfOnly)
  * 2. Try participantToken → self-access only (participantId must match)
  *
+ * When selfOnly=true, organizer must also match the participantId:
+ * - Organizer participant's tokenHash = organizerTokenHash
+ * - URL participantId must match the organizer's participant ID
+ *
  * Sets request.participantAuth with auth context for use in handlers.
+ *
+ * @param options.selfOnly - If true, organizer can only access their own participant
+ * @returns Fastify preHandler hook
  *
  * @throws UnauthorizedError (401) if no token provided
  * @throws ForbiddenError (403) if token invalid or insufficient permissions
  */
-export async function verifyParticipantAccess(
-  request: FastifyRequest<{ Params: { id: string; participantId: string } }>,
-  _reply: FastifyReply
-): Promise<void> {
-  const token = requireBearerToken(request.headers.authorization);
-  const { id: eventId, participantId } = request.params;
+export function createVerifyParticipantAccess(options: VerifyParticipantAccessOptions = {}) {
+  const { selfOnly = false } = options;
 
-  validateEventId(eventId);
-  validateParticipantId(participantId);
+  return async function verifyParticipantAccessHook(
+    request: FastifyRequest<{ Params: { id: string; participantId: string } }>,
+    _reply: FastifyReply
+  ): Promise<void> {
+    const token = requireBearerToken(request.headers.authorization);
+    const { id: eventId, participantId } = request.params;
 
-  // Try as organizerToken first (full access)
-  const eventService = createEventService(request.server.db);
-  const isOrganizerValid = await eventService.verifyOrganizerToken(eventId, token);
+    validateEventId(eventId);
+    validateParticipantId(participantId);
 
-  if (isOrganizerValid) {
-    request.participantAuth = { authType: "organizer" };
-    return;
-  }
+    const eventService = createEventService(request.server.db);
+    const participantService = createParticipantService(request.server.db);
 
-  // Try as participantToken (self-access only)
-  const participantService = createParticipantService(request.server.db);
-  const isParticipantValid = await participantService.verifyParticipantToken(
-    participantId,
-    token
-  );
+    // Try as organizerToken first
+    const isOrganizerValid = await eventService.verifyOrganizerToken(eventId, token);
 
-  if (isParticipantValid) {
-    request.participantAuth = {
-      authType: "participant",
-      authenticatedParticipantId: participantId,
-    };
-    return;
-  }
+    if (isOrganizerValid) {
+      if (selfOnly) {
+        // Organizer must match the participantId - verify via token hash
+        // Organizer participant's tokenHash = organizerTokenHash
+        const isAlsoParticipant = await participantService.verifyParticipantToken(
+          participantId,
+          token
+        );
+        if (!isAlsoParticipant) {
+          throw new ForbiddenError("Organizer can only access their own participant record for this operation");
+        }
+      }
+      request.participantAuth = {
+        authType: "organizer",
+        authenticatedParticipantId: participantId,
+      };
+      return;
+    }
 
-  // Neither token is valid
-  throw new ForbiddenError("Invalid token or insufficient permissions");
+    // Try as participantToken (self-access only by nature)
+    const isParticipantValid = await participantService.verifyParticipantToken(
+      participantId,
+      token
+    );
+
+    if (isParticipantValid) {
+      request.participantAuth = {
+        authType: "participant",
+        authenticatedParticipantId: participantId,
+      };
+      return;
+    }
+
+    // Neither token is valid
+    throw new ForbiddenError("Invalid token or insufficient permissions");
+  };
 }
+
+/**
+ * PreHandler hook that verifies either organizer or participant token.
+ * This is the default hook where organizer has full access to any participant.
+ *
+ * @deprecated Use createVerifyParticipantAccess() for new code
+ */
+export const verifyParticipantAccess = createVerifyParticipantAccess();

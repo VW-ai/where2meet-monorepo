@@ -317,3 +317,40 @@ This tracker serves as a log of what we have accomplished. sections are separate
 - Total tests: 299 passing
   - Vote integration: 32 tests
   - Previous tests: 267 tests
+
+#### 5.9 Vote API Refactoring (Bug Fix)
+- **Issue**: Organizer could vote on behalf of any participant (security bug)
+- **Root Cause**: Vote API accepted `participantId` in request body, allowing spoofing
+- **Solution**: RESTful URL pattern + selfOnly auth hook
+
+**Schema Changes**:
+- Added `isOrganizer` boolean to Participant model (default: false)
+- Made `address`, `lat`, `lng` nullable for organizer participants
+- Organizer participant auto-created on event creation (no location, excluded from MEC)
+
+**API Changes**:
+- POST `/api/events/:id/votes` → POST `/api/events/:id/participants/:participantId/votes`
+- DELETE `/api/events/:id/votes` → DELETE `/api/events/:id/participants/:participantId/votes/:venueId`
+- Removed `participantId` from request body (now in URL)
+- Event creation response now includes `organizerParticipantId`
+
+**Auth Hook Enhancement**:
+- Created `createVerifyParticipantAccess({ selfOnly: boolean })` factory function
+- When `selfOnly: true`, organizer can only access their own participant record
+- Organizer participant has `tokenHash` matching `organizerTokenHash` for auth linkage
+
+**Files Modified**:
+- `prisma/schema.prisma` - Added `isOrganizer`, made location nullable
+- `src/services/event.ts` - Auto-create organizer participant in transaction
+- `src/hooks/auth.ts` - Added `createVerifyParticipantAccess()` factory with selfOnly option
+- `src/routes/votes.ts` - New URL pattern, uses selfOnly hook
+- `src/dto/event.dto.ts` - Added `organizerParticipantId` to CreateEventResponse
+- `src/dto/participant.dto.ts` - Made location nullable, added `isOrganizer`
+- `src/mappers/event.mapper.ts` - Handle null location for organizer
+- `META/ARCHITECTURE/API_SPECIFICATION.md` - Updated vote routes section
+- `META/ARCHITECTURE/DATABASE_SCHEMA.md` - Updated Participant schema
+
+**Tests Updated**: 299 tests passing
+- `tests/votes.test.ts` - Updated all URLs and payloads
+- `tests/events.test.ts` - Verify organizerParticipantId in response
+- `tests/participants.test.ts` - Account for organizer participant in color assignment

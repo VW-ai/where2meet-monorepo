@@ -2,30 +2,22 @@
  * Vote routes module.
  *
  * Provides API endpoints for voting operations.
- * Supports dual-token authentication:
- * - organizerToken: Can vote on behalf of any participant
- * - participantToken: Can only vote for themselves
+ * Uses selfOnly authentication: participants can only vote for themselves.
  * @module routes/votes
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { z } from "zod";
 import { createVoteService } from "../services/vote.js";
-import { createEventService } from "../services/event.js";
-import { createParticipantService } from "../services/participant.js";
-import {
-  CastVoteSchema,
-  RemoveVoteSchema,
-  type CastVoteInput,
-  type RemoveVoteInput,
-} from "../schemas/vote.js";
+import { VenueDataSchema } from "../schemas/vote.js";
 import { EventIdSchema } from "../schemas/event.js";
 import {
   toVoteResponse,
   toVoteStatisticsResponse,
   toVoteRemovalResponse,
 } from "../mappers/vote.mapper.js";
-import { requireBearerToken } from "../utils/auth.js";
-import { ValidationError, ForbiddenError } from "../types/errors.js";
+import { createVerifyParticipantAccess } from "../hooks/auth.js";
+import { ValidationError } from "../types/errors.js";
 
 /**
  * Route parameter types.
@@ -34,78 +26,91 @@ interface EventParams {
   id: string;
 }
 
+interface VoteParams extends EventParams {
+  participantId: string;
+}
+
+interface RemoveVoteParams extends VoteParams {
+  venueId: string;
+}
+
+/**
+ * Schema for cast vote request body (participantId now in URL).
+ */
+const CastVoteBodySchema = z.object({
+  venueId: z.string().min(1, "Venue ID is required"),
+  venueData: VenueDataSchema,
+});
+
+type CastVoteBody = z.infer<typeof CastVoteBodySchema>;
+
+/**
+ * Schema for vote params validation.
+ */
+const VoteParamsSchema = z.object({
+  id: z.string().regex(/^evt_/, "Invalid event ID format"),
+  participantId: z.string().uuid("Invalid participant ID format"),
+});
+
+/**
+ * Schema for remove vote params validation.
+ */
+const RemoveVoteParamsSchema = VoteParamsSchema.extend({
+  venueId: z.string().min(1, "Venue ID is required"),
+});
+
 /**
  * Registers vote routes on the Fastify instance.
  *
  * Endpoints:
- * - POST /api/events/:id/votes - Cast a vote
- * - DELETE /api/events/:id/votes - Remove a vote
- * - GET /api/events/:id/votes - Get vote statistics
+ * - POST /api/events/:id/participants/:participantId/votes - Cast a vote
+ * - DELETE /api/events/:id/participants/:participantId/votes/:venueId - Remove a vote
+ * - GET /api/events/:id/votes - Get vote statistics (public)
  *
  * Authentication:
- * - POST/DELETE: REQUIRED - organizerToken (any participant) or participantToken (self only)
+ * - POST/DELETE: REQUIRED with selfOnly - token must match participantId
  * - GET: None (public vote statistics)
  */
 export function voteRoutes(fastify: FastifyInstance): void {
   const voteService = createVoteService(fastify.db);
-  const eventService = createEventService(fastify.db);
-  const participantService = createParticipantService(fastify.db);
+
+  // Create selfOnly hook - participants can only vote for themselves
+  const verifySelfOnly = createVerifyParticipantAccess({ selfOnly: true });
 
   /**
-   * POST /api/events/:id/votes
+   * POST /api/events/:id/participants/:participantId/votes
    * Casts a vote for a venue in an event.
    *
    * Authentication:
    * - REQUIRED - organizerToken OR participantToken
-   * - participantToken: Can only vote for themselves (participantId must match)
-   * - organizerToken: Can vote on behalf of any participant
+   * - selfOnly: Token must match the participantId in URL
    *
    * Transaction: Atomically verifies event/participant and upserts venue+vote.
    * Idempotent: Duplicate votes return existing vote (no error).
    */
-  fastify.post<{ Params: EventParams; Body: CastVoteInput }>(
-    "/api/events/:id/votes",
+  fastify.post<{ Params: VoteParams; Body: CastVoteBody }>(
+    "/api/events/:id/participants/:participantId/votes",
+    {
+      preHandler: [verifySelfOnly],
+    },
     async (
-      request: FastifyRequest<{ Params: EventParams; Body: CastVoteInput }>,
+      request: FastifyRequest<{ Params: VoteParams; Body: CastVoteBody }>,
       reply: FastifyReply
     ) => {
-      // Validate event ID
-      const paramsResult = EventIdSchema.safeParse(request.params);
+      // Validate params
+      const paramsResult = VoteParamsSchema.safeParse(request.params);
       if (!paramsResult.success) {
-        throw new ValidationError("Invalid event ID format");
+        throw new ValidationError("Invalid event ID or participant ID format");
       }
 
       // Validate body
-      const bodyResult = CastVoteSchema.safeParse(request.body);
+      const bodyResult = CastVoteBodySchema.safeParse(request.body);
       if (!bodyResult.success) {
         throw bodyResult.error;
       }
 
-      const eventId = paramsResult.data.id;
-      const { participantId, venueId, venueData } = bodyResult.data;
-
-      // Require authentication token
-      const token = requireBearerToken(request.headers.authorization);
-
-      // Try organizerToken first (can vote for any participant)
-      const isOrganizerValid = await eventService.verifyOrganizerToken(eventId, token);
-
-      if (!isOrganizerValid) {
-        // Try participantToken (can only vote for themselves)
-        const isParticipantValid = await participantService.verifyParticipantToken(
-          participantId,
-          token
-        );
-
-        if (!isParticipantValid) {
-          throw new ForbiddenError("Invalid token or insufficient permissions");
-        }
-
-        // Participant token is valid, but verify they're voting for themselves
-        // (participantId from body must match the authenticated participant)
-        // This is already enforced by verifyParticipantToken - if token is valid
-        // for participantId, then they can vote for themselves
-      }
+      const { id: eventId, participantId } = paramsResult.data;
+      const { venueId, venueData } = bodyResult.data;
 
       // Build complete venue data with ID
       const completeVenueData = {
@@ -135,57 +140,31 @@ export function voteRoutes(fastify: FastifyInstance): void {
   );
 
   /**
-   * DELETE /api/events/:id/votes
+   * DELETE /api/events/:id/participants/:participantId/votes/:venueId
    * Removes a vote for a venue in an event.
    *
    * Authentication:
    * - REQUIRED - organizerToken OR participantToken
-   * - participantToken: Can only remove their own votes
-   * - organizerToken: Can remove any participant's vote
+   * - selfOnly: Token must match the participantId in URL
    *
    * Idempotent: No error if vote doesn't exist.
    */
-  fastify.delete<{ Params: EventParams; Body: RemoveVoteInput }>(
-    "/api/events/:id/votes",
+  fastify.delete<{ Params: RemoveVoteParams }>(
+    "/api/events/:id/participants/:participantId/votes/:venueId",
+    {
+      preHandler: [verifySelfOnly],
+    },
     async (
-      request: FastifyRequest<{ Params: EventParams; Body: RemoveVoteInput }>,
+      request: FastifyRequest<{ Params: RemoveVoteParams }>,
       reply: FastifyReply
     ) => {
-      // Validate event ID
-      const paramsResult = EventIdSchema.safeParse(request.params);
+      // Validate params
+      const paramsResult = RemoveVoteParamsSchema.safeParse(request.params);
       if (!paramsResult.success) {
-        throw new ValidationError("Invalid event ID format");
+        throw new ValidationError("Invalid event ID, participant ID, or venue ID format");
       }
 
-      // Validate body
-      const bodyResult = RemoveVoteSchema.safeParse(request.body);
-      if (!bodyResult.success) {
-        throw bodyResult.error;
-      }
-
-      const eventId = paramsResult.data.id;
-      const { participantId, venueId } = bodyResult.data;
-
-      // Require authentication token
-      const token = requireBearerToken(request.headers.authorization);
-
-      // Try organizerToken first (can remove any vote)
-      const isOrganizerValid = await eventService.verifyOrganizerToken(eventId, token);
-
-      if (!isOrganizerValid) {
-        // Try participantToken (can only remove own votes)
-        const isParticipantValid = await participantService.verifyParticipantToken(
-          participantId,
-          token
-        );
-
-        if (!isParticipantValid) {
-          throw new ForbiddenError("Invalid token or insufficient permissions");
-        }
-
-        // Participant token is valid and matches participantId
-        // They can remove their own vote
-      }
+      const { id: eventId, participantId, venueId } = paramsResult.data;
 
       // Remove vote (idempotent)
       const deleted = await voteService.removeVote(eventId, participantId, venueId);

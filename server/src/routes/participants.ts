@@ -19,7 +19,7 @@ import {
 import { EventIdSchema } from "../schemas/event.js";
 import { toParticipantResponse, toCreateParticipantResponse } from "../mappers/event.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
-import { verifyOrganizerToken, verifyParticipantAccess } from "../hooks/auth.js";
+import { verifyOrganizerToken, createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
 
 /**
@@ -107,7 +107,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
   fastify.patch<{ Params: ParticipantParams; Body: UpdateParticipantInput }>(
     "/api/events/:id/participants/:participantId",
     {
-      preHandler: [verifyParticipantAccess],
+      preHandler: [createVerifyParticipantAccess()],
     },
     async (request: FastifyRequest<{ Params: ParticipantParams; Body: UpdateParticipantInput }>, reply: FastifyReply) => {
       // Validate body (params already validated by auth hook)
@@ -140,7 +140,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
   fastify.delete<{ Params: ParticipantParams }>(
     "/api/events/:id/participants/:participantId",
     {
-      preHandler: [verifyParticipantAccess],
+      preHandler: [createVerifyParticipantAccess()],
     },
     async (request: FastifyRequest<{ Params: ParticipantParams }>, reply: FastifyReply) => {
       // Params already validated by auth hook

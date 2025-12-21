@@ -2,9 +2,10 @@
 
 **Date**: 2025-12-21
 **Milestone**: 5 (Voting System)
-**Status**: Open
+**Status**: In Progress (Resolution Implemented)
 **Type**: Design Bug
 **Severity**: High
+**Resolution**: Option A+B Combined - Auto-create organizer participant at event creation
 
 ---
 
@@ -129,9 +130,38 @@ This aligns with the product expectation that the organizer is a participant in 
 
 ---
 
+## Resolution (2025-12-21)
+
+**Chosen Solution**: Combination of Option A and B
+
+When creating an event:
+1. Auto-create organizer participant with `isOrganizer=true`
+2. Organizer participant has no location (address, lat, lng are NULL)
+3. Return `organizerParticipantId` in create event response
+4. Organizer uses this ID for voting
+
+**Additional Fixes**:
+1. Changed vote routes to use participantId in URL path:
+   - `POST /api/events/:id/participants/:participantId/votes`
+   - `DELETE /api/events/:id/participants/:participantId/votes/:venueId`
+2. Added `selfOnly` option to auth hook - organizer can only vote for themselves
+3. MEC calculation excludes participants with null coordinates
+
+**Files Changed**:
+- `prisma/schema.prisma` - Add `isOrganizer` field, make location nullable
+- `src/hooks/auth.ts` - Add `createVerifyParticipantAccess({ selfOnly })` factory
+- `src/routes/votes.ts` - New URL pattern, use selfOnly hook
+- `src/services/event.ts` - Create organizer participant on event creation
+- `src/dto/event.dto.ts` - Add `organizerParticipantId` to response
+- `META/ARCHITECTURE/API_SPECIFICATION.md` - Updated vote routes and auth matrix
+- `META/ARCHITECTURE/DATABASE_SCHEMA.md` - Updated Participant and Event schema
+
+---
+
 ## References
 
 - [Vote routes](../../src/routes/votes.ts)
 - [Vote service](../../src/services/vote.ts)
 - [Prisma schema](../../prisma/schema.prisma)
 - [PRODUCT.md](../CORE/PRODUCT.md) - Product requirements
+- [Plan file](/.claude/plans/polished-soaring-wreath.md) - Implementation plan

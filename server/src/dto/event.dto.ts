@@ -49,10 +49,11 @@ export type EventResponse = z.infer<typeof EventResponseSchema>;
 
 /**
  * Event creation response.
- * Includes organizerToken (only returned on create).
+ * Includes organizerToken and organizerParticipantId (only returned on create).
  */
 export const CreateEventResponseSchema = EventResponseSchema.extend({
   organizerToken: z.string(),
+  organizerParticipantId: z.uuid(),
 });
 
 export type CreateEventResponse = z.infer<typeof CreateEventResponseSchema>;

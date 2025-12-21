@@ -93,7 +93,8 @@ describe("Participant Endpoints", () => {
       expect(body).toHaveProperty("location");
       expect(body.location).toHaveProperty("lat", 40.7128);
       expect(body.location).toHaveProperty("lng", -74.006);
-      expect(body).toHaveProperty("color", "coral");
+      // Note: organizer participant gets "coral", so first added participant gets "teal"
+      expect(body).toHaveProperty("color", "teal");
       expect(body).toHaveProperty("fuzzyLocation", false);
     });
 
@@ -141,8 +142,9 @@ describe("Participant Endpoints", () => {
       const body1 = response1.json();
       const body2 = response2.json();
 
-      expect(body1.color).toBe("coral");
-      expect(body2.color).toBe("teal");
+      // Note: organizer participant gets "coral", so colors shift by 1
+      expect(body1.color).toBe("teal");
+      expect(body2.color).toBe("gold");
     });
 
     it("should allow self-registration without auth and return participantToken", async () => {
@@ -364,11 +366,14 @@ describe("Participant Endpoints", () => {
       expect(body.message).toBe("Participant deleted successfully");
 
       // Verify participant is gone by checking event
+      // Note: organizer participant still exists
       const eventResponse = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}`,
       });
-      expect(eventResponse.json().participants).toHaveLength(0);
+      const participants = eventResponse.json().participants;
+      expect(participants).toHaveLength(1);
+      expect(participants[0].isOrganizer).toBe(true);
     });
 
     it("should return 401 without organizer token", async () => {
