@@ -7,19 +7,34 @@ import { hashToken } from "../../src/utils/token.js";
 /** Test event ID in semantic format */
 const TEST_EVENT_ID = "evt_1702000000000_abcdefghijklmnop";
 
+/** Test organizer participant ID */
+const TEST_ORGANIZER_PARTICIPANT_ID = "550e8400-e29b-41d4-a716-446655440000";
+
 /**
  * Creates a mock Prisma client for testing.
  */
 function createMockPrisma() {
-  return {
+  const mockPrisma = {
     event: {
       create: vi.fn(),
       findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
     },
-  } as unknown as PrismaClient;
+    participant: {
+      create: vi.fn(),
+    },
+    $transaction: vi.fn(),
+  };
+
+  // Make $transaction execute the callback with the mock prisma as argument
+  mockPrisma.$transaction.mockImplementation(async (callback: (tx: typeof mockPrisma) => Promise<unknown>) => {
+    return callback(mockPrisma);
+  });
+
+  return mockPrisma as unknown as PrismaClient;
 }
 
 describe("EventService", () => {
@@ -32,7 +47,7 @@ describe("EventService", () => {
   });
 
   describe("createEvent", () => {
-    it("should return event entity and organizerToken with ot_ prefix", async () => {
+    it("should return event entity, organizerToken with ot_ prefix, and organizerParticipantId", async () => {
       const mockEvent = {
         id: TEST_EVENT_ID,
         title: "Test Event",
@@ -45,21 +60,47 @@ describe("EventService", () => {
         participants: [],
       };
 
+      const mockOrganizerParticipant = {
+        id: TEST_ORGANIZER_PARTICIPANT_ID,
+        eventId: TEST_EVENT_ID,
+        name: "Organizer",
+        address: null,
+        formattedAddress: null,
+        lat: null,
+        lng: null,
+        fuzzyLocation: false,
+        color: "coral",
+        tokenHash: mockEvent.organizerTokenHash,
+        isOrganizer: true,
+        createdAt: new Date(),
+      };
+
+      const mockEventWithParticipants = {
+        ...mockEvent,
+        participants: [mockOrganizerParticipant],
+      };
+
       vi.mocked(mockPrisma.event.create).mockResolvedValue(mockEvent);
+      vi.mocked(mockPrisma.participant.create).mockResolvedValue(mockOrganizerParticipant);
+      vi.mocked(mockPrisma.event.findUniqueOrThrow).mockResolvedValue(mockEventWithParticipants);
 
       const result = await service.createEvent({
         title: "Test Event",
         meetingTime: "2024-12-15T12:00:00Z",
       });
 
-      // Service returns { event, organizerToken }
+      // Service returns { event, organizerToken, organizerParticipantId }
       expect(result).toHaveProperty("event");
       expect(result).toHaveProperty("organizerToken");
+      expect(result).toHaveProperty("organizerParticipantId");
       // Token format: ot_ + 64 hex chars = 67 chars total
       expect(result.organizerToken).toHaveLength(67);
       expect(result.organizerToken).toMatch(/^ot_[a-f0-9]{64}$/);
       expect(result.event.title).toBe("Test Event");
-      expect(mockPrisma.event.create).toHaveBeenCalledTimes(1);
+      expect(result.organizerParticipantId).toBe(TEST_ORGANIZER_PARTICIPANT_ID);
+      // Verify organizer participant is in the participants array
+      expect(result.event.participants).toHaveLength(1);
+      expect(result.event.participants[0].isOrganizer).toBe(true);
     });
 
     it("should create an event without meetingTime", async () => {
@@ -75,12 +116,33 @@ describe("EventService", () => {
         participants: [],
       };
 
+      const mockOrganizerParticipant = {
+        id: TEST_ORGANIZER_PARTICIPANT_ID,
+        eventId: TEST_EVENT_ID,
+        name: "Organizer",
+        address: null,
+        formattedAddress: null,
+        lat: null,
+        lng: null,
+        fuzzyLocation: false,
+        color: "coral",
+        tokenHash: mockEvent.organizerTokenHash,
+        isOrganizer: true,
+        createdAt: new Date(),
+      };
+
       vi.mocked(mockPrisma.event.create).mockResolvedValue(mockEvent);
+      vi.mocked(mockPrisma.participant.create).mockResolvedValue(mockOrganizerParticipant);
+      vi.mocked(mockPrisma.event.findUniqueOrThrow).mockResolvedValue({
+        ...mockEvent,
+        participants: [mockOrganizerParticipant],
+      });
 
       const result = await service.createEvent({ title: "Quick Meetup" });
 
       expect(result.event.title).toBe("Quick Meetup");
       expect(result.event.meetingTime).toBeNull();
+      expect(result.organizerParticipantId).toBe(TEST_ORGANIZER_PARTICIPANT_ID);
     });
 
     it("should generate unique token hashes for each event", async () => {
@@ -101,6 +163,33 @@ describe("EventService", () => {
           participants: [],
         };
       });
+
+      vi.mocked(mockPrisma.participant.create).mockImplementation(async () => ({
+        id: TEST_ORGANIZER_PARTICIPANT_ID,
+        eventId: TEST_EVENT_ID,
+        name: "Organizer",
+        address: null,
+        formattedAddress: null,
+        lat: null,
+        lng: null,
+        fuzzyLocation: false,
+        color: "coral",
+        tokenHash: hashes[hashes.length - 1] || "",
+        isOrganizer: true,
+        createdAt: new Date(),
+      }));
+
+      vi.mocked(mockPrisma.event.findUniqueOrThrow).mockImplementation(async () => ({
+        id: generateEventId(),
+        title: "Test",
+        meetingTime: null,
+        organizerTokenHash: hashes[hashes.length - 1] || "",
+        publishedVenueId: null,
+        publishedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        participants: [],
+      }));
 
       await service.createEvent({ title: "Event 1" });
       await service.createEvent({ title: "Event 2" });

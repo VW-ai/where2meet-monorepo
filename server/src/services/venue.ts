@@ -85,12 +85,17 @@ export class VenueService {
       throw new EventNotFoundError(eventId);
     }
 
-    // Calculate MEC center from participants
-    if (event.participants.length === 0) {
-      throw new ValidationError("Cannot search venues: event has no participants");
+    // Calculate MEC center from participants with valid locations
+    // Filter out organizer participants (isOrganizer=true) and any with null coordinates
+    const participantsWithLocation = event.participants.filter(
+      (p) => p.lat !== null && p.lng !== null
+    );
+
+    if (participantsWithLocation.length === 0) {
+      throw new ValidationError("Cannot search venues: no participants with valid locations");
     }
 
-    const participantLocations: GeoPoint[] = event.participants.map((p) => ({
+    const participantLocations: GeoPoint[] = participantsWithLocation.map((p) => ({
       lat: Number(p.lat),
       lng: Number(p.lng),
     }));
