@@ -96,7 +96,7 @@ async function geocodeWithBusinessErrors(
       throw new BusinessAddressNotFoundError(address);
     }
     if (error instanceof GeocodingApiError) {
-      logger.error({ error, address }, "Geocoding API error");
+      logger.error({ err: error, address }, "Geocoding API error");
       throw new ExternalServiceError("Google Maps", error.message);
     }
     throw error;

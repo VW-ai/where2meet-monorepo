@@ -44,15 +44,12 @@ export function errorHandler(
   reply: FastifyReply
 ) {
   // Log error with request context
+  // Use 'err' key for Pino's built-in error serializer
   const logContext = {
     requestId: request.id,
     method: request.method,
     url: request.url,
-    error: {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    },
+    err: error,
   };
 
   // Handle AppError (our custom errors)

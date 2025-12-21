@@ -144,7 +144,7 @@ export class VenueService {
       return { places: sortedPlaces, searchCenter };
     } catch (error) {
       if (error instanceof PlacesApiError) {
-        logger.error({ error, eventId }, "Places API error during search");
+        logger.error({ err: error, eventId }, "Places API error during search");
         throw new ExternalServiceError("Google Places", error.message);
       }
       throw error;
@@ -174,14 +174,14 @@ export class VenueService {
       this.venueRepository
         .upsert(this.placeDetailsToVenueData(details))
         .catch((error) => {
-          logger.error({ error, placeId }, "Failed to upsert venue to database");
+          logger.error({ err: error, placeId }, "Failed to upsert venue to database");
         });
 
       logger.info({ placeId, source: "api", name: details.name }, "Venue details fetched");
       return details;
     } catch (error) {
       if (error instanceof PlacesApiError) {
-        logger.error({ error, placeId }, "Places API error fetching details");
+        logger.error({ err: error, placeId }, "Places API error fetching details");
         throw new ExternalServiceError("Google Places", error.message);
       }
       throw error;
