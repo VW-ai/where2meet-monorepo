@@ -152,39 +152,25 @@ export class VenueService {
   }
 
   /**
-   * Gets detailed information about a venue with three-tier caching.
+   * Gets detailed information about a venue.
    *
-   * Caching strategy:
-   * 1. Check PostgreSQL (5-day TTL) - fastest, cheapest
-   * 2. If stale/missing, call getPlaceDetails() which handles:
-   *    - Redis (24h TTL) - fast
-   *    - Google API - authoritative source
-   * 3. Upsert fresh data to PostgreSQL for future requests
+   * Uses Redis → Google API flow to ensure complete field coverage.
+   * PostgreSQL cache only stores subset of fields for voting operations,
+   * so we bypass it here to return full PlaceDetails (phone, website, hours, etc.).
+   *
+   * Still upserts to PostgreSQL in background for voting cache efficiency.
    *
    * @param placeId - Google Place ID
-   * @returns Detailed place information
+   * @returns Detailed place information with all fields
    * @throws ExternalServiceError if Places API fails
    */
   async getVenueDetails(placeId: string): Promise<PlaceDetails> {
     try {
-      // Tier 1: Check PostgreSQL for fresh data (< 5 days old)
-      const isStale = await this.venueRepository.isStale(placeId);
-
-      if (!isStale) {
-        // Venue exists and is fresh in DB
-        const venue = await this.venueRepository.findById(placeId);
-        if (venue) {
-          logger.info({ placeId, source: "postgres" }, "Venue details from database");
-          return this.venueToPlaceDetails(venue);
-        }
-      }
-
-      // Tier 2 & 3: Data is stale or missing
-      // Call getPlaceDetails() which handles Redis (24h) → Google API flow
-      logger.debug({ placeId, isStale }, "Fetching fresh venue data from API");
+      // Always use Redis → Google API for full field coverage
+      // PostgreSQL only stores a subset of fields for voting operations
       const details = await getPlaceDetails(placeId);
 
-      // Persist to PostgreSQL for future requests (async, don't block response)
+      // Background upsert to PostgreSQL for voting cache (non-blocking)
       this.venueRepository
         .upsert(this.placeDetailsToVenueData(details))
         .catch((error) => {

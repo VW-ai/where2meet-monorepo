@@ -130,58 +130,42 @@ export class VoteService {
         },
       });
 
-      // Step 4: Insert vote record (with P2002 handling for idempotency)
-      try {
-        const vote = await tx.vote.create({
-          data: {
+      // Step 4: Check for existing vote first (idempotent behavior)
+      // PostgreSQL aborts transaction on unique constraint violation,
+      // so we check first to avoid the error entirely.
+      const existingVote = await tx.vote.findUnique({
+        where: {
+          eventId_participantId_venueId: {
             eventId,
             participantId,
             venueId,
           },
-        });
+        },
+      });
 
+      if (existingVote) {
         logger.info(
-          { eventId, participantId, venueId, voteId: vote.id },
-          "Vote created successfully"
+          { eventId, participantId, venueId, voteId: existingVote.id },
+          "Vote already exists (idempotent return)"
         );
-
-        return vote;
-      } catch (error) {
-        // Handle Prisma P2002 (unique constraint violation)
-        // This means participant already voted for this venue in this event
-        if (
-          error &&
-          typeof error === "object" &&
-          "code" in error &&
-          error.code === "P2002"
-        ) {
-          logger.info(
-            { eventId, participantId, venueId },
-            "Duplicate vote detected (idempotent)"
-          );
-
-          // Return existing vote (idempotent behavior)
-          const existingVote = await tx.vote.findUnique({
-            where: {
-              eventId_participantId_venueId: {
-                eventId,
-                participantId,
-                venueId,
-              },
-            },
-          });
-
-          if (!existingVote) {
-            // This should never happen, but handle it gracefully
-            throw new Error("Failed to retrieve existing vote after P2002 error");
-          }
-
-          return existingVote;
-        }
-
-        // Re-throw if not P2002 error
-        throw error;
+        return existingVote;
       }
+
+      // Create new vote
+      const vote = await tx.vote.create({
+        data: {
+          eventId,
+          participantId,
+          venueId,
+        },
+      });
+
+      logger.info(
+        { eventId, participantId, venueId, voteId: vote.id },
+        "Vote created successfully"
+      );
+
+      return vote;
     });
   }
 

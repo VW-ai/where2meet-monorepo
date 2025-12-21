@@ -57,7 +57,7 @@ export type VoteStatisticsResponse = z.infer<typeof VoteStatisticsResponseSchema
  */
 export const VoteRemovalResponseSchema = z.object({
   success: z.boolean(),
-  message: z.string(),
+  deleted: z.boolean(),
 });
 
 export type VoteRemovalResponse = z.infer<typeof VoteRemovalResponseSchema>;

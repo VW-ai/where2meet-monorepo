@@ -91,9 +91,7 @@ export function toVoteStatisticsResponse(
 export function toVoteRemovalResponse(deleted: boolean): VoteRemovalResponse {
   const response = {
     success: true,
-    message: deleted
-      ? "Vote removed successfully"
-      : "Vote not found (already removed or never existed)",
+    deleted,
   };
 
   return VoteRemovalResponseSchema.parse(response);

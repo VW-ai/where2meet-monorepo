@@ -78,17 +78,19 @@ export async function buildServer() {
     methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });
 
-  // Register rate limiting
-  await server.register(rateLimit, {
-    max: config.RATE_LIMIT_MAX,
-    timeWindow: config.RATE_LIMIT_WINDOW_MS,
-    errorResponseBuilder: () => ({
-      error: {
-        code: "RATE_LIMIT_EXCEEDED",
-        message: "Too many requests, please try again later",
-      },
-    }),
-  });
+  // Register rate limiting (disabled in test environment)
+  if (!isTest) {
+    await server.register(rateLimit, {
+      max: config.RATE_LIMIT_MAX,
+      timeWindow: config.RATE_LIMIT_WINDOW_MS,
+      errorResponseBuilder: () => ({
+        error: {
+          code: "RATE_LIMIT_EXCEEDED",
+          message: "Too many requests, please try again later",
+        },
+      }),
+    });
+  }
 
   // Set error handler
   server.setErrorHandler(errorHandler);
