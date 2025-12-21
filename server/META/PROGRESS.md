@@ -354,3 +354,35 @@ This tracker serves as a log of what we have accomplished. sections are separate
 - `tests/votes.test.ts` - Updated all URLs and payloads
 - `tests/events.test.ts` - Verify organizerParticipantId in response
 - `tests/participants.test.ts` - Account for organizer participant in color assignment
+
+#### 5.10 Bug Fixes Post-Refactoring
+
+**Bug 1: MEC calculation including phantom (0,0) location**
+- **Issue**: Organizer participant with `lat: null, lng: null` was included in MEC calculation
+- **Root Cause**: `Number(null)` evaluates to `0`, causing phantom point at (0,0)
+- **Solution**: Filter participants with null lat/lng before MEC calculation
+- **File**: `src/services/venue.ts:65-75`
+  ```typescript
+  const participantsWithLocation = event.participants.filter(
+    (p) => p.lat !== null && p.lng !== null
+  );
+  ```
+
+**Bug 2: Event service bypassing repository ID collision retry**
+- **Issue**: `EventService.createEvent()` did direct `$transaction` call, skipping retry logic
+- **Root Cause**: Refactoring introduced atomic event+participant creation but bypassed repository
+- **Solution**: Added `EventRepository.createWithOrganizerParticipant()` method with P2002 retry
+- **Files**:
+  - `src/repositories/event.ts:209-284` - New method with 3-attempt retry loop
+  - `src/services/event.ts:51-73` - Delegates to repository method
+
+**Repository Method Signature**:
+```typescript
+async createWithOrganizerParticipant(
+  eventData: CreateEventData,
+  organizerData: OrganizerParticipantData
+): Promise<CreateEventWithOrganizerResult>
+```
+
+**Tests Updated**: 299 tests passing
+- `tests/services/venue.test.ts` - Updated error message expectation
