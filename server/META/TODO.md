@@ -58,12 +58,25 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [x] Redis caching for Places API responses
 - [x] Write unit and integration tests
 
-### Next: Milestone 5 - Voting
-- [ ] Add Vote model operations
-- [ ] POST /api/events/:id/votes - Cast vote
-- [ ] GET /api/events/:id/votes - Get voting results
-- [ ] Finalize venue selection
-- [ ] Write voting tests
+### Milestone 5: Voting (COMPLETED)
+- [x] Add Vote model operations
+- [x] POST /api/events/:id/votes - Cast vote
+- [x] DELETE /api/events/:id/votes - Remove vote
+- [x] GET /api/events/:id/votes - Get voting results
+- [x] Create global venue table for caching
+- [x] Implement transactional voting with idempotency
+- [x] Write 32 voting integration tests
+
+---
+
+## 2025-12-21
+
+### Next: Milestone 6 - Results & Publishing
+- [ ] Add event publishing logic
+- [ ] POST /api/events/:id/publish - Finalize venue selection
+- [ ] Calculate winning venue based on vote count
+- [ ] Prevent voting after event is published
+- [ ] Write publishing tests
 
 ### Future: OpenAPI Documentation (see issue M2_FastifySchemaVsMapperValidation)
 - [ ] Evaluate need for auto-generated API docs
