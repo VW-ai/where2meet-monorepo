@@ -13,6 +13,7 @@
 | Event | /api/events/:id | PATCH | 更新活动 |
 | Event | /api/events/:id | DELETE | 删除活动 |
 | Event | /api/events/:id/publish | POST | 发布场所 |
+| Event | /api/events/:id/publish | DELETE | 取消发布场所 |
 | Participant | /api/events/:id/participants | POST | 添加参与者（可选认证） |
 | Participant | /api/events/:id/participants/:pid | PATCH | 更新参与者（双令牌） |
 | Participant | /api/events/:id/participants/:pid | DELETE | 移除参与者（双令牌） |
@@ -21,8 +22,8 @@
 | Vote | /api/events/:id/participants/:pid/votes | POST | 投票（仅自己） |
 | Vote | /api/events/:id/participants/:pid/votes/:venueId | DELETE | 取消投票（仅自己） |
 | Vote | /api/events/:id/votes | GET | 获取投票统计 |
+| Directions | /api/events/:id/venues/:venueId/directions | GET | 获取路线 |
 | Maps | /api/geocode | POST | 地址转坐标 |
-| Maps | /api/directions | POST | 获取路线 |
 
 ---
 
@@ -217,11 +218,37 @@ POST /api/events/:id/publish
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
-| 400 | VALIDATION_ERROR | 缺少 venueId |
+| 400 | VALIDATION_ERROR | 缺少 venueId 或无效的 venueId |
 | 401 | UNAUTHORIZED | 缺少或无效的 token |
 | 403 | FORBIDDEN | 无权限发布 |
 | 404 | NOT_FOUND | 活动不存在 |
-| 409 | CONFLICT | 活动已发布 |
+| 409 | EVENT_ALREADY_PUBLISHED | 活动已发布 |
+
+---
+
+### 2.6 取消发布场所
+
+```
+DELETE /api/events/:id/publish
+```
+
+**前端输入：**
+| 参数 | 位置 | 类型 | 必填 | 说明 |
+|------|------|------|------|------|
+| id | URL Path | string | ✓ | 活动 UUID |
+| Authorization | Header | string | ✓ | Bearer {organizerToken} |
+
+**后端输出（成功 200）：**
+
+返回更新后的 Event 对象（publishedVenueId 和 publishedAt 为 null）
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 401 | UNAUTHORIZED | 缺少或无效的 token |
+| 403 | FORBIDDEN | 无权限取消发布 |
+| 404 | NOT_FOUND | 活动不存在 |
+| 409 | EVENT_NOT_PUBLISHED | 活动未发布 |
 
 ---
 
@@ -584,24 +611,32 @@ POST /api/geocode
 ### 6.2 获取路线
 
 ```
-POST /api/directions
+GET /api/events/:id/venues/:venueId/directions
 ```
 
+**认证**：必须使用 `participantToken` 或 `organizerToken`（任一活动成员）
+
 **前端输入：**
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| origins | Location[] | ✓ | 起点列表 |
-| destination | Location | ✓ | 终点 |
-| travelMode | string | - | 出行方式：driving/walking/transit/bicycling |
+| 参数 | 位置 | 类型 | 必填 | 说明 |
+|------|------|------|------|------|
+| id | URL Path | string | ✓ | 活动 ID |
+| venueId | URL Path | string | ✓ | 目的地场所 ID (Google Place ID) |
+| travelMode | Query | string | - | 出行方式：driving(默认)/walking/transit/bicycling |
+| participantId | Query | string | - | 可选，仅计算指定参与者的路线 |
 
 **后端处理**：
-1. 调用 Google Directions API
-2. 计算每个起点到终点的路线
-3. 缓存结果
+1. 验证认证令牌（organizerToken 或 participantToken）
+2. 验证活动存在
+3. 验证场所存在于数据库
+4. 获取有有效坐标的参与者（排除组织者）
+5. 调用 Google Directions API（带缓存，TTL: 1小时）
+6. 返回格式化结果
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
+| venueId | string | 目的地场所 ID |
+| travelMode | string | 使用的出行方式 |
 | routes | Route[] | 路线列表 |
 
 **Route 结构：**
@@ -612,12 +647,22 @@ POST /api/directions
 | duration | Duration | { text: "12 mins", value: 720 } |
 | polyline | string | 路线编码（用于地图显示） |
 
+**缓存策略**：
+- 缓存键：`directions:{originLat},{originLng}:{destLat},{destLng}:{mode}`
+- 坐标标准化：4位小数（~11米精度）
+- TTL：1小时
+- 参与者坐标变化自动失效（新坐标 = 新缓存键）
+
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
-| 400 | VALIDATION_ERROR | 缺少必填字段 |
-| 400 | ROUTE_NOT_FOUND | 无法计算路线 |
-| 500 | EXTERNAL_SERVICE_ERROR | Google API 调用失败 |
+| 400 | VALIDATION_ERROR | 无效的出行方式或参与者 ID |
+| 400 | VALIDATION_ERROR | 场所不存在于数据库 |
+| 401 | UNAUTHORIZED | 缺少认证令牌 |
+| 403 | FORBIDDEN | 无效令牌或无权访问 |
+| 404 | EVENT_NOT_FOUND | 活动不存在 |
+| 404 | PARTICIPANT_NOT_FOUND | 指定的参与者不存在 |
+| 502 | EXTERNAL_SERVICE_ERROR | Google API 调用失败 |
 
 ---
 
@@ -727,14 +772,15 @@ POST /api/directions
 | GET /api/events/:id | ✅ 已实现 | |
 | PATCH /api/events/:id | ✅ 已实现 | |
 | DELETE /api/events/:id | ✅ 已实现 | |
-| POST /api/events/:id/publish | ❌ 未实现 | 前端有调用 |
-| POST /api/events/:id/participants | ✅ 已实现 | 需升级：可选认证 + participantToken |
-| PATCH /api/events/:id/participants/:pid | ✅ 已实现 | 需升级为双令牌 |
-| DELETE /api/events/:id/participants/:pid | ✅ 已实现 | 需升级为双令牌 |
+| POST /api/events/:id/publish | ✅ 已实现 | 发布场所（验证 Google Places API） |
+| DELETE /api/events/:id/publish | ✅ 已实现 | 取消发布场所 |
+| POST /api/events/:id/participants | ✅ 已实现 | 可选认证 + participantToken |
+| PATCH /api/events/:id/participants/:pid | ✅ 已实现 | 双令牌认证 |
+| DELETE /api/events/:id/participants/:pid | ✅ 已实现 | 双令牌认证 |
 | POST /api/venues/search | ✅ 已实现 | |
 | GET /api/venues/:id | ✅ 已实现 | |
-| POST /api/events/:id/votes | ❌ 未实现 | 需新增 |
-| DELETE /api/events/:id/votes | ❌ 未实现 | 需新增 |
-| GET /api/events/:id/votes | ❌ 未实现 | 需新增 |
+| POST /api/events/:id/participants/:pid/votes | ✅ 已实现 | RESTful 投票（仅自己） |
+| DELETE /api/events/:id/participants/:pid/votes/:venueId | ✅ 已实现 | RESTful 取消投票（仅自己） |
+| GET /api/events/:id/votes | ✅ 已实现 | 投票统计 |
+| GET /api/events/:id/venues/:venueId/directions | ✅ 已实现 | 路线计算（双令牌） |
 | POST /api/geocode | ✅ 已实现 | |
-| POST /api/directions | ✅ 已实现 | |

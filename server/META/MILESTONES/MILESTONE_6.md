@@ -14,7 +14,7 @@ Google Directions integration and publish venue feature.
 - [ ] Redis caching (TTL: 1 hour)
 
 ### 6.2 Directions Route
-- [ ] `POST /api/directions` - Calculate routes
+- [ ] `POST /api/directions` - Calculate routes. note: 这个是不是可以同时在url里有direction/venue:id/user:id 类似的这种穿参呢？
 
 ### 6.3 Publish Feature
 - [ ] `POST /api/events/:id/publish` - Publish final venue
