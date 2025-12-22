@@ -16,14 +16,16 @@ import {
 import type { CreateEventInput, UpdateEventInput } from "../schemas/event.js";
 import { EventNotFoundError } from "../types/errors.js";
 import { generateOrganizerToken, verifyToken } from "../utils/token.js";
+import { PARTICIPANT_COLORS } from "../utils/colors.js";
 
 /**
  * Result of creating an event.
- * Includes both the entity and the organizerToken.
+ * Includes the entity, organizerToken, and organizerParticipantId.
  */
 export interface CreateEventResult {
   event: EventWithParticipants;
   organizerToken: string;
+  organizerParticipantId: string;
 }
 
 /**
@@ -40,19 +42,34 @@ export class EventService {
   }
 
   /**
-   * Creates a new event.
+   * Creates a new event with an auto-created organizer participant.
+   * The organizer participant has no location and is excluded from MEC calculation.
+   * Uses repository with ID collision retry logic.
    * @param input - Event creation data
-   * @returns Created event entity and organizerToken
+   * @returns Created event entity, organizerToken, and organizerParticipantId
    */
   async createEvent(input: CreateEventInput): Promise<CreateEventResult> {
     const { token: organizerToken, hash: organizerTokenHash } = generateOrganizerToken();
 
-    const event = await this.repository.create({
-      ...input,
-      organizerTokenHash,
-    });
+    // Use repository method with ID collision retry logic
+    const result = await this.repository.createWithOrganizerParticipant(
+      {
+        title: input.title,
+        meetingTime: input.meetingTime,
+        organizerTokenHash,
+      },
+      {
+        name: "Organizer",
+        color: PARTICIPANT_COLORS[0],
+        tokenHash: organizerTokenHash,
+      }
+    );
 
-    return { event, organizerToken };
+    return {
+      event: result.event,
+      organizerToken,
+      organizerParticipantId: result.organizerParticipantId,
+    };
   }
 
   /**

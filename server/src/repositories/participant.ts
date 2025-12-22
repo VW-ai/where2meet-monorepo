@@ -13,17 +13,19 @@ const logger = createLogger("ParticipantRepository");
 /**
  * Data for creating a new participant in the database.
  * Coordinates come from geocoding service, color from assignment logic.
+ * Note: Location fields are nullable for organizer participants.
  */
 export interface CreateParticipantData {
   eventId: string;
   name: string;
-  address: string;
-  formattedAddress: string;
-  lat: number;
-  lng: number;
+  address: string | null;
+  formattedAddress: string | null;
+  lat: number | null;
+  lng: number | null;
   fuzzyLocation: boolean;
   color: string;
   tokenHash?: string;
+  isOrganizer?: boolean;
 }
 
 /**
@@ -64,6 +66,7 @@ export class ParticipantRepository {
         fuzzyLocation: data.fuzzyLocation,
         color: data.color,
         tokenHash: data.tokenHash,
+        isOrganizer: data.isOrganizer ?? false,
       },
     });
   }

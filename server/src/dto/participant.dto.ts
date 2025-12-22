@@ -8,14 +8,16 @@ import { LocationResponseSchema } from "./common.dto.js";
 
 /**
  * Participant data in API response.
+ * Note: address and location are nullable for organizer participants.
  */
 export const ParticipantResponseSchema = z.object({
   id: z.uuid(),
   name: z.string(),
-  address: z.string(),
-  location: LocationResponseSchema,
+  address: z.string().nullable(),
+  location: LocationResponseSchema.nullable(),
   color: z.string(),
   fuzzyLocation: z.boolean(),
+  isOrganizer: z.boolean(),
 });
 
 export type ParticipantResponse = z.infer<typeof ParticipantResponseSchema>;
@@ -27,10 +29,11 @@ export type ParticipantResponse = z.infer<typeof ParticipantResponseSchema>;
 export const CreateParticipantResponseSchema = z.object({
   id: z.uuid(),
   name: z.string(),
-  address: z.string(),
-  location: LocationResponseSchema,
+  address: z.string().nullable(),
+  location: LocationResponseSchema.nullable(),
   color: z.string(),
   fuzzyLocation: z.boolean(),
+  isOrganizer: z.boolean(),
   participantToken: z.string().optional(),
 });
 

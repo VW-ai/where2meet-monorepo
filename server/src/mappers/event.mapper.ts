@@ -24,18 +24,19 @@ import {
 /**
  * Transforms a Participant entity to ParticipantResponse DTO.
  * Validates output at runtime to ensure contract compliance.
+ * Handles null lat/lng for organizer participants.
  */
 export function toParticipantResponse(entity: Participant): ParticipantResponse {
   const response = {
     id: entity.id,
     name: entity.name,
     address: entity.address,
-    location: {
-      lat: Number(entity.lat),
-      lng: Number(entity.lng),
-    },
+    location: entity.lat !== null && entity.lng !== null
+      ? { lat: Number(entity.lat), lng: Number(entity.lng) }
+      : null,
     color: entity.color,
     fuzzyLocation: entity.fuzzyLocation,
+    isOrganizer: entity.isOrganizer,
   };
 
   return ParticipantResponseSchema.parse(response);
@@ -45,6 +46,7 @@ export function toParticipantResponse(entity: Participant): ParticipantResponse 
  * Transforms a Participant entity to CreateParticipantResponse DTO.
  * Includes optional participantToken for self-registration.
  * Validates output at runtime to ensure contract compliance.
+ * Handles null lat/lng for organizer participants.
  */
 export function toCreateParticipantResponse(
   entity: Participant,
@@ -54,12 +56,12 @@ export function toCreateParticipantResponse(
     id: entity.id,
     name: entity.name,
     address: entity.address,
-    location: {
-      lat: Number(entity.lat),
-      lng: Number(entity.lng),
-    },
+    location: entity.lat !== null && entity.lng !== null
+      ? { lat: Number(entity.lat), lng: Number(entity.lng) }
+      : null,
     color: entity.color,
     fuzzyLocation: entity.fuzzyLocation,
+    isOrganizer: entity.isOrganizer,
     participantToken,
   };
 
@@ -111,11 +113,12 @@ export function toEventResponse(entity: EventWithParticipants): EventResponse {
 /**
  * Transforms an Event entity to CreateEventResponse DTO.
  * Validates output at runtime to ensure contract compliance.
- * Includes organizerToken (only used after creation).
+ * Includes organizerToken and organizerParticipantId (only used after creation).
  */
 export function toCreateEventResponse(
   entity: EventWithParticipants,
-  organizerToken: string
+  organizerToken: string,
+  organizerParticipantId: string
 ): CreateEventResponse {
   const response = {
     id: entity.id,
@@ -129,6 +132,7 @@ export function toCreateEventResponse(
     updatedAt: entity.updatedAt.toISOString(),
     settings: toEventSettingsResponse(),
     organizerToken,
+    organizerParticipantId,
   };
 
   return CreateEventResponseSchema.parse(response);

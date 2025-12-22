@@ -206,15 +206,29 @@ describe("VenueService", () => {
       ).rejects.toThrow("Event evt_nonexistent not found");
     });
 
-    it("should throw ValidationError for event with no participants", async () => {
+    it("should throw ValidationError when no participants have valid locations", async () => {
+      // Mock event with only organizer participant (no location)
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue({
         ...mockEvent,
-        participants: [],
+        participants: [
+          {
+            id: "organizer-id",
+            eventId: TEST_EVENT_ID,
+            name: "Organizer",
+            address: null,
+            lat: null,
+            lng: null,
+            isOrganizer: true,
+            color: "coral",
+            tokenHash: "hash",
+            createdAt: new Date(),
+          },
+        ],
       } as never);
 
       await expect(
         service.searchVenues(TEST_EVENT_ID, 5000, { query: "coffee" })
-      ).rejects.toThrow("Cannot search venues: event has no participants");
+      ).rejects.toThrow("Cannot search venues: no participants with valid locations");
     });
 
     it("should throw ExternalServiceError on Places API failure", async () => {

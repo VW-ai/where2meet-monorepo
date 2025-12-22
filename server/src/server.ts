@@ -15,13 +15,14 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
-import { config, isTest } from "./lib/config.js";
+import { config, isTest, isProduction } from "./lib/config.js";
 import { errorHandler } from "./utils/errorHandler.js";
 import dbPlugin from "./plugins/db.js";
 import { healthRoutes } from "./routes/health.js";
 import { eventRoutes } from "./routes/events.js";
 import { participantRoutes } from "./routes/participants.js";
 import { venueRoutes } from "./routes/venues.js";
+import { voteRoutes } from "./routes/votes.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -77,17 +78,19 @@ export async function buildServer() {
     methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });
 
-  // Register rate limiting
-  await server.register(rateLimit, {
-    max: config.RATE_LIMIT_MAX,
-    timeWindow: config.RATE_LIMIT_WINDOW_MS,
-    errorResponseBuilder: () => ({
-      error: {
-        code: "RATE_LIMIT_EXCEEDED",
-        message: "Too many requests, please try again later",
-      },
-    }),
-  });
+  // Register rate limiting (production only)
+  if (isProduction) {
+    await server.register(rateLimit, {
+      max: config.RATE_LIMIT_MAX,
+      timeWindow: config.RATE_LIMIT_WINDOW_MS,
+      errorResponseBuilder: () => ({
+        error: {
+          code: "RATE_LIMIT_EXCEEDED",
+          message: "Too many requests, please try again later",
+        },
+      }),
+    });
+  }
 
   // Set error handler
   server.setErrorHandler(errorHandler);
@@ -100,6 +103,7 @@ export async function buildServer() {
   await server.register(eventRoutes);
   await server.register(participantRoutes);
   await server.register(venueRoutes);
+  await server.register(voteRoutes);
 
   return server;
 }

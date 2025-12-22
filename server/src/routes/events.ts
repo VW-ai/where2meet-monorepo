@@ -52,8 +52,8 @@ export function eventRoutes(fastify: FastifyInstance): void {
         throw parseResult.error;
       }
 
-      const { event, organizerToken } = await eventService.createEvent(parseResult.data);
-      const response = toCreateEventResponse(event, organizerToken);
+      const { event, organizerToken, organizerParticipantId } = await eventService.createEvent(parseResult.data);
+      const response = toCreateEventResponse(event, organizerToken, organizerParticipantId);
 
       return reply.status(201).send(response);
     }

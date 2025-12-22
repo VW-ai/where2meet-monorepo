@@ -231,3 +231,158 @@ This tracker serves as a log of what we have accomplished. sections are separate
   - VenueService: 12 tests
   - Venue integration: 9 tests
   - Previous tests: 157 tests
+
+---
+
+## 2025-12-21
+
+### Milestone 5: Voting System (COMPLETED)
+
+#### 5.1 Global Venue Design Decision
+- Chose "Global Venue Table" architecture over "per-event caching"
+- Reasoning: Venues are persistent entities shared across events
+- Benefits:
+  - One venue row = one Google Place ID (deduplication)
+  - Cascade delete on Vote only, not Venue
+  - 5-day staleness TTL for venue data refresh
+
+#### 5.2 Database Schema Updates
+- Created `venue` table (global cache):
+  - `id` (Google Place ID, PK)
+  - `name`, `address`, `lat`, `lng`, `category`, `rating`, `priceLevel`, `photoUrl`
+  - `createdAt`, `updatedAt` (for staleness tracking)
+- Created `vote` table (junction table):
+  - `id` (UUID)
+  - `eventId`, `participantId`, `venueId` (foreign keys)
+  - UNIQUE constraint on (`eventId`, `participantId`, `venueId`)
+  - CASCADE delete on Event/Participant delete (Venue persists)
+
+#### 5.3 Repository Layer
+- Created `src/repositories/venue.ts` - VenueRepository
+  - `upsert()`, `findById()`, `isStale()` (5-day TTL check)
+- Created `src/repositories/vote.ts` - VoteRepository
+  - `create()`, `findByEventId()`, `deleteByEventParticipantVenue()`
+  - `hasVoted()`, `getVoteStatistics()` (aggregated by venue)
+
+#### 5.4 Service Layer
+- Updated `src/services/venue.ts` - VenueService
+  - `getVenueDetails()` bypasses PostgreSQL tier for full field coverage
+  - Uses Redis → Google API flow for complete PlaceDetails (phone, website, hours)
+  - Background upsert to PostgreSQL for voting cache efficiency
+- Created `src/services/vote.ts` - VoteService
+  - `castVote()` - Transactional with Prisma `$transaction`:
+    1. Verify event exists and not published
+    2. Verify participant belongs to event
+    3. Upsert venue to global table
+    4. Check for existing vote (idempotency)
+    5. Create vote if not exists
+  - `removeVote()` - Idempotent delete (deleteMany)
+  - `getVoteStatistics()` - Aggregated counts per venue
+
+#### 5.5 DTO & Mapper Layer
+- Created `src/dto/vote.dto.ts` - Vote response schemas
+  - `VoteResponseSchema` (success, voteId)
+  - `VenueWithVotesSchema` (venue + voteCount + voters)
+  - `VoteStatisticsResponseSchema` (venues[], totalVotes)
+  - `VoteRemovalResponseSchema` (success, deleted)
+- Created `src/mappers/vote.mapper.ts` - Vote response transformations
+  - `toVoteResponse()`, `toVenueWithVotesResponse()`
+  - `toVoteStatisticsResponse()`, `toVoteRemovalResponse()`
+
+#### 5.6 Route Layer
+- Created `src/routes/votes.ts` - Vote endpoints
+  - POST /api/events/:id/votes - Cast vote (requires auth)
+  - DELETE /api/events/:id/votes - Remove vote (requires auth)
+  - GET /api/events/:id/votes - Get statistics (no auth)
+- Dual-token authentication:
+  - organizerToken: Can vote/unvote for any participant
+  - participantToken: Can only vote/unvote for self
+
+#### 5.7 Infrastructure Fixes
+- Fixed rate limiting: Disabled in test environment
+  - Root cause: After 22 tests (~100 requests), rate limiter blocked subsequent requests
+  - Solution: Skip @fastify/rate-limit registration when `isTest` is true
+- Fixed P2002 idempotency handling:
+  - PostgreSQL aborts entire transaction after unique constraint violation
+  - Solution: Check for existing vote BEFORE attempting create (not catch after)
+
+#### 5.8 Integration Tests
+- Created `tests/votes.test.ts` - 32 integration tests
+  - POST /votes: 14 tests (cast, duplicate idempotency, auth, validation)
+  - DELETE /votes: 8 tests (remove, idempotency, auth)
+  - GET /votes: 7 tests (statistics, aggregation, sorting)
+  - Global venue/cascade: 3 tests (shared venue, cascade delete behavior)
+
+#### Test Summary
+- Total tests: 299 passing
+  - Vote integration: 32 tests
+  - Previous tests: 267 tests
+
+#### 5.9 Vote API Refactoring (Bug Fix)
+- **Issue**: Organizer could vote on behalf of any participant (security bug)
+- **Root Cause**: Vote API accepted `participantId` in request body, allowing spoofing
+- **Solution**: RESTful URL pattern + selfOnly auth hook
+
+**Schema Changes**:
+- Added `isOrganizer` boolean to Participant model (default: false)
+- Made `address`, `lat`, `lng` nullable for organizer participants
+- Organizer participant auto-created on event creation (no location, excluded from MEC)
+
+**API Changes**:
+- POST `/api/events/:id/votes` → POST `/api/events/:id/participants/:participantId/votes`
+- DELETE `/api/events/:id/votes` → DELETE `/api/events/:id/participants/:participantId/votes/:venueId`
+- Removed `participantId` from request body (now in URL)
+- Event creation response now includes `organizerParticipantId`
+
+**Auth Hook Enhancement**:
+- Created `createVerifyParticipantAccess({ selfOnly: boolean })` factory function
+- When `selfOnly: true`, organizer can only access their own participant record
+- Organizer participant has `tokenHash` matching `organizerTokenHash` for auth linkage
+
+**Files Modified**:
+- `prisma/schema.prisma` - Added `isOrganizer`, made location nullable
+- `src/services/event.ts` - Auto-create organizer participant in transaction
+- `src/hooks/auth.ts` - Added `createVerifyParticipantAccess()` factory with selfOnly option
+- `src/routes/votes.ts` - New URL pattern, uses selfOnly hook
+- `src/dto/event.dto.ts` - Added `organizerParticipantId` to CreateEventResponse
+- `src/dto/participant.dto.ts` - Made location nullable, added `isOrganizer`
+- `src/mappers/event.mapper.ts` - Handle null location for organizer
+- `META/ARCHITECTURE/API_SPECIFICATION.md` - Updated vote routes section
+- `META/ARCHITECTURE/DATABASE_SCHEMA.md` - Updated Participant schema
+
+**Tests Updated**: 299 tests passing
+- `tests/votes.test.ts` - Updated all URLs and payloads
+- `tests/events.test.ts` - Verify organizerParticipantId in response
+- `tests/participants.test.ts` - Account for organizer participant in color assignment
+
+#### 5.10 Bug Fixes Post-Refactoring
+
+**Bug 1: MEC calculation including phantom (0,0) location**
+- **Issue**: Organizer participant with `lat: null, lng: null` was included in MEC calculation
+- **Root Cause**: `Number(null)` evaluates to `0`, causing phantom point at (0,0)
+- **Solution**: Filter participants with null lat/lng before MEC calculation
+- **File**: `src/services/venue.ts:65-75`
+  ```typescript
+  const participantsWithLocation = event.participants.filter(
+    (p) => p.lat !== null && p.lng !== null
+  );
+  ```
+
+**Bug 2: Event service bypassing repository ID collision retry**
+- **Issue**: `EventService.createEvent()` did direct `$transaction` call, skipping retry logic
+- **Root Cause**: Refactoring introduced atomic event+participant creation but bypassed repository
+- **Solution**: Added `EventRepository.createWithOrganizerParticipant()` method with P2002 retry
+- **Files**:
+  - `src/repositories/event.ts:209-284` - New method with 3-attempt retry loop
+  - `src/services/event.ts:51-73` - Delegates to repository method
+
+**Repository Method Signature**:
+```typescript
+async createWithOrganizerParticipant(
+  eventData: CreateEventData,
+  organizerData: OrganizerParticipantData
+): Promise<CreateEventWithOrganizerResult>
+```
+
+**Tests Updated**: 299 tests passing
+- `tests/services/venue.test.ts` - Updated error message expectation

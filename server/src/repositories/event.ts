@@ -31,6 +31,23 @@ export interface CreateEventData extends CreateEventInput {
 }
 
 /**
+ * Data for creating organizer participant alongside event.
+ */
+export interface OrganizerParticipantData {
+  name: string;
+  color: string;
+  tokenHash: string;
+}
+
+/**
+ * Result of creating event with organizer participant.
+ */
+export interface CreateEventWithOrganizerResult {
+  event: EventWithParticipants;
+  organizerParticipantId: string;
+}
+
+/**
  * Repository for Event database operations.
  */
 export class EventRepository {
@@ -177,6 +194,93 @@ export class EventRepository {
       where: { id },
       select: { publishedAt: true },
     });
+  }
+
+  /**
+   * Creates a new event with an organizer participant atomically.
+   *
+   * Generates a semantic event ID and handles collision retry.
+   * Both event and organizer participant are created in a single transaction.
+   * @param eventData - Event data including generated organizerToken
+   * @param organizerData - Organizer participant data
+   * @returns Created event with participants and organizerParticipantId
+   * @throws Error if ID generation fails after max retries
+   */
+  async createWithOrganizerParticipant(
+    eventData: CreateEventData,
+    organizerData: OrganizerParticipantData
+  ): Promise<CreateEventWithOrganizerResult> {
+    for (let attempt = 1; attempt <= MAX_ID_GENERATION_RETRIES; attempt++) {
+      const eventId = generateEventId();
+
+      try {
+        const result = await this.db.$transaction(async (tx) => {
+          // Create the event
+          const event = await tx.event.create({
+            data: {
+              id: eventId,
+              title: eventData.title,
+              meetingTime: eventData.meetingTime ? new Date(eventData.meetingTime) : null,
+              organizerTokenHash: eventData.organizerTokenHash,
+            },
+          });
+
+          // Create organizer participant (no location, excluded from MEC)
+          const organizerParticipant = await tx.participant.create({
+            data: {
+              eventId: event.id,
+              name: organizerData.name,
+              address: null,
+              formattedAddress: null,
+              lat: null,
+              lng: null,
+              fuzzyLocation: false,
+              color: organizerData.color,
+              tokenHash: organizerData.tokenHash,
+              isOrganizer: true,
+            },
+          });
+
+          // Re-fetch event with the new participant included
+          const eventWithParticipants = await tx.event.findUniqueOrThrow({
+            where: { id: event.id },
+            include: {
+              participants: {
+                orderBy: { createdAt: "asc" },
+              },
+            },
+          });
+
+          return {
+            event: eventWithParticipants,
+            organizerParticipantId: organizerParticipant.id,
+          };
+        });
+
+        return result;
+      } catch (error) {
+        // Check for unique constraint violation (ID collision)
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          logger.warn(
+            { eventId, attempt, maxAttempts: MAX_ID_GENERATION_RETRIES },
+            "Event ID collision detected, retrying"
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    logger.error(
+      { maxAttempts: MAX_ID_GENERATION_RETRIES },
+      "Failed to generate unique event ID after max retries"
+    );
+    throw new Error(
+      `Failed to generate unique event ID after ${MAX_ID_GENERATION_RETRIES} attempts`
+    );
   }
 }
 

@@ -44,15 +44,12 @@ export function errorHandler(
   reply: FastifyReply
 ) {
   // Log error with request context
+  // Use 'err' key for Pino's built-in error serializer
   const logContext = {
     requestId: request.id,
     method: request.method,
     url: request.url,
-    error: {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    },
+    err: error,
   };
 
   // Handle AppError (our custom errors)
@@ -95,8 +92,9 @@ export function errorHandler(
     });
   }
 
-  // Handle rate limit errors
-  if (error.statusCode === 429) {
+  // Handle rate limit errors (check both statusCode and response body structure)
+  const errorBody = error as unknown as { error?: { code?: string } };
+  if (error.statusCode === 429 || errorBody.error?.code === "RATE_LIMIT_EXCEEDED") {
     logger.warn(logContext, "Rate limit exceeded");
     return reply.status(429).send({
       error: {

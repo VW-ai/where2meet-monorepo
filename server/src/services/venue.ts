@@ -7,11 +7,16 @@
  * @module services/venue
  */
 
-import type { PrismaClient } from "../generated/prisma/index.js";
+import type { PrismaClient, Venue } from "../generated/prisma/index.js";
 import {
   createEventRepository,
   type EventRepository,
 } from "../repositories/event.js";
+import {
+  createVenueRepository,
+  type VenueRepository,
+  type VenueData,
+} from "../repositories/venue.js";
 import {
   searchNearbyPlaces,
   textSearchPlaces,
@@ -52,9 +57,11 @@ export interface SearchVenuesOptions {
  */
 export class VenueService {
   private readonly eventRepository: EventRepository;
+  private readonly venueRepository: VenueRepository;
 
   constructor(db: PrismaClient) {
     this.eventRepository = createEventRepository(db);
+    this.venueRepository = createVenueRepository(db);
   }
 
   /**
@@ -78,12 +85,17 @@ export class VenueService {
       throw new EventNotFoundError(eventId);
     }
 
-    // Calculate MEC center from participants
-    if (event.participants.length === 0) {
-      throw new ValidationError("Cannot search venues: event has no participants");
+    // Calculate MEC center from participants with valid locations
+    // Filter out organizer participants (isOrganizer=true) and any with null coordinates
+    const participantsWithLocation = event.participants.filter(
+      (p) => p.lat !== null && p.lng !== null
+    );
+
+    if (participantsWithLocation.length === 0) {
+      throw new ValidationError("Cannot search venues: no participants with valid locations");
     }
 
-    const participantLocations: GeoPoint[] = event.participants.map((p) => ({
+    const participantLocations: GeoPoint[] = participantsWithLocation.map((p) => ({
       lat: Number(p.lat),
       lng: Number(p.lng),
     }));
@@ -137,7 +149,7 @@ export class VenueService {
       return { places: sortedPlaces, searchCenter };
     } catch (error) {
       if (error instanceof PlacesApiError) {
-        logger.error({ error, eventId }, "Places API error during search");
+        logger.error({ err: error, eventId }, "Places API error during search");
         throw new ExternalServiceError("Google Places", error.message);
       }
       throw error;
@@ -146,22 +158,84 @@ export class VenueService {
 
   /**
    * Gets detailed information about a venue.
+   *
+   * Uses Redis → Google API flow to ensure complete field coverage.
+   * PostgreSQL cache only stores subset of fields for voting operations,
+   * so we bypass it here to return full PlaceDetails (phone, website, hours, etc.).
+   *
+   * Still upserts to PostgreSQL in background for voting cache efficiency.
+   *
    * @param placeId - Google Place ID
-   * @returns Detailed place information
+   * @returns Detailed place information with all fields
    * @throws ExternalServiceError if Places API fails
    */
   async getVenueDetails(placeId: string): Promise<PlaceDetails> {
     try {
+      // Always use Redis → Google API for full field coverage
+      // PostgreSQL only stores a subset of fields for voting operations
       const details = await getPlaceDetails(placeId);
-      logger.info({ placeId, name: details.name }, "Venue details fetched");
+
+      // Background upsert to PostgreSQL for voting cache (non-blocking)
+      this.venueRepository
+        .upsert(this.placeDetailsToVenueData(details))
+        .catch((error) => {
+          logger.error({ err: error, placeId }, "Failed to upsert venue to database");
+        });
+
+      logger.info({ placeId, source: "api", name: details.name }, "Venue details fetched");
       return details;
     } catch (error) {
       if (error instanceof PlacesApiError) {
-        logger.error({ error, placeId }, "Places API error fetching details");
+        logger.error({ err: error, placeId }, "Places API error fetching details");
         throw new ExternalServiceError("Google Places", error.message);
       }
       throw error;
     }
+  }
+
+  /**
+   * Converts a Venue database entity to PlaceDetails API type.
+   * Fields not stored in DB (types, openingHours, etc.) are set to null.
+   */
+  private venueToPlaceDetails(venue: Venue): PlaceDetails {
+    return {
+      placeId: venue.id,
+      name: venue.name,
+      address: venue.address ?? "",
+      location: {
+        lat: Number(venue.lat),
+        lng: Number(venue.lng),
+      },
+      types: venue.category ? [venue.category] : [],
+      rating: venue.rating ? Number(venue.rating) : null,
+      userRatingsTotal: null, // Not stored in DB
+      priceLevel: venue.priceLevel,
+      openNow: null, // Not stored in DB
+      photoReference: null, // We store photoUrl, not photoReference
+      formattedPhoneNumber: null, // Not stored in DB
+      website: null, // Not stored in DB
+      openingHours: null, // Not stored in DB
+    };
+  }
+
+  /**
+   * Converts PlaceDetails API type to VenueData for database storage.
+   * Extracts and simplifies fields for persistent cache.
+   */
+  private placeDetailsToVenueData(details: PlaceDetails): VenueData {
+    return {
+      id: details.placeId,
+      name: details.name,
+      address: details.address ? details.address : null,
+      lat: details.location.lat,
+      lng: details.location.lng,
+      category: details.types && details.types.length > 0 ? (details.types[0] ?? null) : null,
+      rating: details.rating,
+      priceLevel: details.priceLevel,
+      photoUrl: details.photoReference
+        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photoReference}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+        : null,
+    };
   }
 
   /**

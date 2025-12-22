@@ -18,8 +18,8 @@
 | Participant | /api/events/:id/participants/:pid | DELETE | 移除参与者（双令牌） |
 | Venue | /api/venues/search | POST | 搜索场所 |
 | Venue | /api/venues/:id | GET | 获取场所详情 |
-| Vote | /api/events/:id/votes | POST | 投票 |
-| Vote | /api/events/:id/votes | DELETE | 取消投票 |
+| Vote | /api/events/:id/participants/:pid/votes | POST | 投票（仅自己） |
+| Vote | /api/events/:id/participants/:pid/votes/:venueId | DELETE | 取消投票（仅自己） |
 | Vote | /api/events/:id/votes | GET | 获取投票统计 |
 | Maps | /api/geocode | POST | 地址转坐标 |
 | Maps | /api/directions | POST | 获取路线 |
@@ -90,13 +90,16 @@ POST /api/events
 | title | string | 活动标题 |
 | meetingTime | string \| null | 预计见面时间 |
 | organizerToken | string | 组织者令牌（仅创建时返回） |
-| participants | array | 参与者列表（空） |
-| mec | object \| null | 最小外接圆（MEC） |
+| organizerParticipantId | string | 组织者参与者 ID（用于投票） |
+| participants | array | 参与者列表（包含组织者，isOrganizer=true） |
+| mec | object \| null | 最小外接圆（MEC），不包含组织者 |
 | publishedVenueId | string \| null | 已发布场所 ID |
 | publishedAt | string \| null | 发布时间 |
 | createdAt | string | 创建时间 |
 | updatedAt | string | 更新时间 |
 | settings | object | 活动设置 |
+
+**说明**：创建活动时自动创建组织者参与者（isOrganizer=true，无位置信息），用于投票。组织者不计入 MEC 计算。
 
 **错误响应：**
 | 状态码 | code | 说明 |
@@ -432,16 +435,18 @@ GET /api/venues/:id
 ### 5.1 投票
 
 ```
-POST /api/events/:id/votes
+POST /api/events/:id/participants/:participantId/votes
 ```
+
+**认证**：必须使用 `participantToken` 或 `organizerToken`，且只能为自己投票（participantId 必须匹配认证身份）。
 
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
-| id | URL Path | string | ✓ | 活动 UUID |
-| participantId | Body | string | ✓ | 投票人（参与者 UUID） |
+| id | URL Path | string | ✓ | 活动 ID |
+| participantId | URL Path | string | ✓ | 投票人（参与者 UUID，必须是自己） |
 | venueId | Body | string | ✓ | 被投的场所（Google Place ID） |
-| venueData | Body | object | ✓ | 场所信息（用于缓存） |
+| venueData | Body | object | ✓ | 场所信息（来自 Milestone 4 Redis 缓存/Google API 响应，用于持久化存储） |
 
 **venueData 结构：**
 | 字段 | 类型 | 说明 |
@@ -456,10 +461,14 @@ POST /api/events/:id/votes
 | photoUrl | string | 照片 URL |
 
 **后端处理**：
-1. 验证 event 存在
-2. 验证 participant 属于该 event
-3. 缓存 venue 信息（如果不存在）
-4. 创建投票记录（重复投票忽略）
+1. 验证认证令牌（organizerToken 或 participantToken）
+2. 验证 participantId 与认证身份匹配（只能为自己投票）
+3. 验证 event 存在
+4. 验证 participant 属于该 event
+5. 持久化 venue 快照到数据库（如果不存在则插入）
+6. 创建投票记录（重复投票通过 UNIQUE 约束自动忽略）
+
+**缓存说明**：Milestone 4 的 `/api/venues/search` 与 `/api/venues/:id` 依旧负责 Redis 缓存；Vote 路由不直接调用 Google API，而是使用前端附带的 `venueData`，在 Redis 命中失败时由前端先调用详情 API 再来投票。
 
 **后端输出（成功 201）：**
 | 字段 | 类型 | 说明 |
@@ -471,6 +480,8 @@ POST /api/events/:id/votes
 | 状态码 | code | 说明 |
 |--------|------|------|
 | 400 | VALIDATION_ERROR | 缺少必填字段 |
+| 401 | UNAUTHORIZED | 缺少认证令牌 |
+| 403 | FORBIDDEN | 无权为他人投票 |
 | 404 | EVENT_NOT_FOUND | 活动不存在 |
 | 404 | PARTICIPANT_NOT_FOUND | 参与者不存在 |
 | 409 | ALREADY_VOTED | 已投过该场所（可选，或静默忽略） |
@@ -480,24 +491,29 @@ POST /api/events/:id/votes
 ### 5.2 取消投票
 
 ```
-DELETE /api/events/:id/votes
+DELETE /api/events/:id/participants/:participantId/votes/:venueId
 ```
+
+**认证**：必须使用 `participantToken` 或 `organizerToken`，且只能取消自己的投票（participantId 必须匹配认证身份）。
 
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
-| id | URL Path | string | ✓ | 活动 UUID |
-| participantId | Body/Query | string | ✓ | 投票人 UUID |
-| venueId | Body/Query | string | ✓ | 场所 ID |
+| id | URL Path | string | ✓ | 活动 ID |
+| participantId | URL Path | string | ✓ | 投票人 UUID（必须是自己） |
+| venueId | URL Path | string | ✓ | 场所 ID |
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | success | boolean | true |
+| deleted | boolean | 是否实际删除了投票 |
 
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
+| 401 | UNAUTHORIZED | 缺少认证令牌 |
+| 403 | FORBIDDEN | 无权取消他人投票 |
 | 404 | NOT_FOUND | 投票记录不存在 |
 
 ---
@@ -525,6 +541,8 @@ GET /api/events/:id/votes
 | ...Venue | - | 所有 Venue 字段 |
 | voteCount | number | 该场所获得的票数 |
 | voters | string[] | 投票者 ID 列表 |
+
+**实现说明**：该统计接口只 JOIN PostgreSQL（Venue + Vote），不要为统计再次访问 Redis 或 Google API。
 
 ---
 
@@ -669,7 +687,11 @@ POST /api/directions
 | 添加参与者 | ✓（自加入，返回token） | - | ✓（添加他人） |
 | 更新参与者 | - | ✓（仅自己） | ✓（任何人） |
 | 删除参与者 | - | ✓（仅自己） | ✓（任何人） |
-| 投票 | - | ✓ | - |
+| 投票 | - | ✓（仅自己） | ✓（仅自己，需使用 organizerParticipantId） |
+| 取消投票 | - | ✓（仅自己） | ✓（仅自己，需使用 organizerParticipantId） |
+| 查看投票统计 | ✓ | - | - |
+
+**投票说明**：组织者创建活动时自动获得 `organizerParticipantId`，投票时使用此 ID。组织者不能代替其他参与者投票。
 
 ### 8.3 双令牌认证流程
 
