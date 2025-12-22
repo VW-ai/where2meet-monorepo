@@ -1,12 +1,12 @@
 /**
  * Events API
  *
- * Status: MIGRATED to backend (Milestone 2)
+ * Status: MIGRATED to backend (Milestone 2, Publish/Unpublish in Milestone 6)
  * Calls backend directly at http://localhost:3000
  */
 
 import { Event, CreateEventDTO, UpdateEventDTO } from '@/types';
-import { backendCall, apiCall } from './client';
+import { backendCall } from './client';
 
 export const eventsApi = {
   create: (data: CreateEventDTO) =>
@@ -30,11 +30,23 @@ export const eventsApi = {
       headers: { Authorization: `Bearer ${token}` },
     }),
 
-  // TODO: Migrate when backend Milestone 5 is ready
+  /**
+   * Publish an event with a selected venue
+   * Validates venue via Google Places API before publishing
+   */
   publish: (id: string, venueId: string, token: string) =>
-    apiCall(`/api/events/${id}/publish`, {
+    backendCall<Event>(`/api/events/${id}/publish`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify({ venueId }),
+    }),
+
+  /**
+   * Unpublish an event to allow further modifications
+   */
+  unpublish: (id: string, token: string) =>
+    backendCall<Event>(`/api/events/${id}/publish`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
     }),
 };

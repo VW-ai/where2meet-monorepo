@@ -131,3 +131,26 @@ export interface AnalyticsData {
   duration: { text: string; value: number };
   color: string;
 }
+
+// ============================================================================
+// Directions API Types (Milestone 6)
+// ============================================================================
+
+/**
+ * Route information returned by the backend directions API
+ */
+export interface BackendDirectionsRoute {
+  participantId: string;
+  distance: { text: string; value: number };
+  duration: { text: string; value: number };
+  polyline: string;
+}
+
+/**
+ * Response from GET /api/events/:id/venues/:venueId/directions
+ */
+export interface BackendDirectionsResponse {
+  venueId: string;
+  travelMode: string;
+  routes: BackendDirectionsRoute[];
+}

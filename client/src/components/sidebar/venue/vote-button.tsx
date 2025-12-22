@@ -13,11 +13,13 @@ interface VoteButtonProps {
 }
 
 export function VoteButton({ venueId, voteCount = 0, venue }: VoteButtonProps) {
-  const { userVotes, voteForVenue, unvoteForVenue, voteStatistics } = useMeetingStore();
+  const { currentEvent, userVotes, voteForVenue, unvoteForVenue, voteStatistics } =
+    useMeetingStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const hasVoted = userVotes[venueId] || false;
+  const isPublished = !!currentEvent?.publishedAt;
 
   // Get vote count from backend statistics (preferred) or use prop as fallback
   // Note: Backend count already includes current user's vote if they voted
@@ -25,7 +27,7 @@ export function VoteButton({ venueId, voteCount = 0, venue }: VoteButtonProps) {
   const displayCount = venueStats?.voteCount ?? voteCount;
 
   const handleClick = async () => {
-    if (isLoading) return; // Prevent multiple simultaneous clicks
+    if (isLoading || isPublished) return; // Prevent clicks when loading or published
 
     setIsLoading(true);
     try {
@@ -48,19 +50,24 @@ export function VoteButton({ venueId, voteCount = 0, venue }: VoteButtonProps) {
   return (
     <button
       onClick={handleClick}
-      disabled={isLoading}
+      disabled={isLoading || isPublished}
       className={cn(
         'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
         'focus:outline-none focus:ring-2 focus:ring-coral-500/20',
-        hasVoted
-          ? 'bg-coral-500 text-white shadow-md hover:bg-coral-600'
-          : 'bg-white border-2 border-border text-foreground hover:border-coral-500 hover:bg-coral-50',
+        isPublished
+          ? 'bg-gray-100 border-2 border-gray-200 text-gray-400 cursor-not-allowed'
+          : hasVoted
+            ? 'bg-coral-500 text-white shadow-md hover:bg-coral-600'
+            : 'bg-white border-2 border-border text-foreground hover:border-coral-500 hover:bg-coral-50',
         isAnimating && 'scale-110',
         isLoading && 'opacity-50 cursor-not-allowed'
       )}
-      aria-label={hasVoted ? 'Remove vote' : 'Vote for venue'}
+      aria-label={
+        isPublished ? 'Voting disabled after publish' : hasVoted ? 'Remove vote' : 'Vote for venue'
+      }
       aria-pressed={hasVoted}
       aria-busy={isLoading}
+      title={isPublished ? 'Voting is disabled after event is published' : undefined}
     >
       <ThumbsUp
         className={cn(

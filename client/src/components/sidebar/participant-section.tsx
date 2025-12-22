@@ -8,6 +8,7 @@ import { Users, Plus, BarChart3, UserPlus } from 'lucide-react';
 import { AddParticipant, type ParticipantFormData } from './participant/add-participant';
 import { ParticipantPill } from './participant/participant-pill';
 import { api } from '@/lib/api';
+import { cn } from '@/lib/utils/cn';
 import type { Participant } from '@/types';
 
 export function ParticipantSection() {
@@ -38,6 +39,7 @@ export function ParticipantSection() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const participantCount = currentEvent?.participants?.length || 0;
+  const isPublished = !!currentEvent?.publishedAt;
 
   // Cancel delete
   const cancelDelete = useCallback(() => {
@@ -214,7 +216,14 @@ export function ParticipantSection() {
       {!showAddForm && isOrganizerMode && (
         <button
           onClick={() => setShowAddForm(true)}
-          className="w-full px-4 py-3 bg-white/90 backdrop-blur-sm border-2 border-border shadow-lg hover:shadow-xl hover:bg-coral-50/90 hover:border-coral-500 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-coral-600"
+          disabled={isPublished}
+          className={cn(
+            'w-full px-4 py-3 bg-white/90 backdrop-blur-sm border-2 border-border shadow-lg rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium',
+            isPublished
+              ? 'opacity-50 cursor-not-allowed text-muted-foreground'
+              : 'hover:shadow-xl hover:bg-coral-50/90 hover:border-coral-500 text-muted-foreground hover:text-coral-600'
+          )}
+          title={isPublished ? 'Cannot add participants after event is published' : undefined}
         >
           <Plus className="w-4 h-4" />
           Add Participant
@@ -225,7 +234,14 @@ export function ParticipantSection() {
       {!showAddForm && !isOrganizerMode && !isParticipantMode && (
         <button
           onClick={() => setShowAddForm(true)}
-          className="w-full px-4 py-3 bg-coral-500 text-white shadow-lg hover:shadow-xl hover:bg-coral-600 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium"
+          disabled={isPublished}
+          className={cn(
+            'w-full px-4 py-3 shadow-lg rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium',
+            isPublished
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-coral-500 text-white hover:shadow-xl hover:bg-coral-600'
+          )}
+          title={isPublished ? 'Cannot join after event is published' : undefined}
         >
           <UserPlus className="w-4 h-4" />
           Join Event
@@ -294,13 +310,17 @@ export function ParticipantSection() {
               }}
               onEdit={
                 // Organizer can edit anyone, participant can only edit themselves
-                isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId)
+                // Disabled when event is published
+                !isPublished &&
+                (isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId))
                   ? () => handleEditParticipant(participant)
                   : undefined
               }
               onDelete={
                 // Organizer can delete anyone, participant can only delete themselves (leave)
-                isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId)
+                // Disabled when event is published
+                !isPublished &&
+                (isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId))
                   ? () => handleDeleteParticipant(participant.id)
                   : undefined
               }
