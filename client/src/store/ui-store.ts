@@ -9,7 +9,9 @@ interface UIStore {
   // Determined automatically by checking localStorage for organizer token
   isOrganizerMode: boolean;
   organizerToken: string | null; // Token for current event (from localStorage)
+  organizerParticipantId: string | null; // Organizer's participant ID (for voting)
   initializeOrganizerMode: (eventId: string) => void; // Check localStorage for token
+  setOrganizerInfo: (eventId: string, token: string, participantId: string) => void; // Store both token and participantId
   clearOrganizerToken: () => void; // Clear on 401/403
 
   // Participant mode (current user is a registered participant)
@@ -95,18 +97,28 @@ export const useUIStore = create<UIStore>((set) => ({
   // Organizer mode (default to false until token is checked)
   isOrganizerMode: false,
   organizerToken: null,
+  organizerParticipantId: null,
   initializeOrganizerMode: (eventId: string) => {
-    // Check localStorage for organizer token
+    // Check localStorage for organizer token and participant ID
     if (typeof window === 'undefined') return;
     const token = localStorage.getItem(`organizer_token_${eventId}`);
-    if (token) {
-      set({ isOrganizerMode: true, organizerToken: token });
+    const participantId = localStorage.getItem(`organizer_participant_id_${eventId}`);
+    if (token && participantId) {
+      set({ isOrganizerMode: true, organizerToken: token, organizerParticipantId: participantId });
     } else {
-      set({ isOrganizerMode: false, organizerToken: null });
+      set({ isOrganizerMode: false, organizerToken: null, organizerParticipantId: null });
     }
   },
+  setOrganizerInfo: (eventId: string, token: string, participantId: string) => {
+    // Store in localStorage and update state
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`organizer_token_${eventId}`, token);
+      localStorage.setItem(`organizer_participant_id_${eventId}`, participantId);
+    }
+    set({ isOrganizerMode: true, organizerToken: token, organizerParticipantId: participantId });
+  },
   clearOrganizerToken: () => {
-    set({ isOrganizerMode: false, organizerToken: null });
+    set({ isOrganizerMode: false, organizerToken: null, organizerParticipantId: null });
   },
 
   // Participant mode (default to false until token is checked)

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { HeroInput } from '@/components/landing/hero-input';
 import { ActionButtons } from '@/components/landing/action-buttons';
 import { api } from '@/lib/api';
+import { useUIStore } from '@/store/ui-store';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -26,9 +27,10 @@ export default function LandingPage() {
         meetingTime: new Date(meetingTime).toISOString(),
       });
 
-      // TODO: Save organizerToken to localStorage for organizer actions
-      if (event.organizerToken) {
-        localStorage.setItem(`organizer_token_${event.id}`, event.organizerToken);
+      // Store organizer token and participant ID for organizer actions
+      if (event.organizerToken && event.organizerParticipantId) {
+        const { setOrganizerInfo } = useUIStore.getState();
+        setOrganizerInfo(event.id, event.organizerToken, event.organizerParticipantId);
       }
 
       router.push(`/meet/${event.id}`);

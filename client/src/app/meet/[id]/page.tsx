@@ -15,8 +15,15 @@ import { api } from '@/lib/api';
 export default function MeetPage() {
   const params = useParams();
   const eventId = params.id as string;
-  const { setCurrentEvent, setLoadingEvent, setEventError, isLoadingEvent, eventError } =
-    useMeetingStore();
+  const {
+    currentEvent,
+    setCurrentEvent,
+    setLoadingEvent,
+    setEventError,
+    isLoadingEvent,
+    eventError,
+    loadVoteStatistics,
+  } = useMeetingStore();
   const { initializeOrganizerMode, initializeParticipantMode } = useUIStore();
 
   // Initialize organizer and participant modes based on localStorage tokens
@@ -26,6 +33,25 @@ export default function MeetPage() {
       initializeParticipantMode(eventId);
     }
   }, [eventId, initializeOrganizerMode, initializeParticipantMode]);
+
+  // Initialize vote statistics and set up polling for real-time updates
+  // Only starts after event is successfully loaded to avoid console spam
+  useEffect(() => {
+    if (!eventId || !currentEvent) {
+      return;
+    }
+
+    // Load initial vote statistics
+    loadVoteStatistics();
+
+    // Set up polling interval to refresh vote statistics every 5 seconds
+    const pollInterval = setInterval(() => {
+      loadVoteStatistics();
+    }, 5000);
+
+    // Clean up polling on unmount or when eventId/currentEvent changes
+    return () => clearInterval(pollInterval);
+  }, [eventId, currentEvent, loadVoteStatistics]);
 
   useEffect(() => {
     async function loadEvent() {

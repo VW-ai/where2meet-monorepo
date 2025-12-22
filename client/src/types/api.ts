@@ -39,6 +39,76 @@ export interface DirectionsResponse {
 }
 
 // ============================================================================
+// Voting API Types
+// ============================================================================
+
+/**
+ * Request to cast a vote for a venue
+ * Note: participantId is now in the URL path
+ */
+export interface CastVoteRequest {
+  venueId: string;
+  venueData: {
+    name: string;
+    address?: string;
+    lat: number;
+    lng: number;
+    category?: string;
+    rating?: number;
+    priceLevel?: number;
+    photoUrl?: string;
+  };
+}
+
+/**
+ * Response from casting a vote
+ */
+export interface CastVoteResponse {
+  success: true;
+  voteId: string;
+}
+
+/**
+ * Request to remove a vote for a venue
+ * Note: participantId and venueId are now in the URL path
+ */
+export interface RemoveVoteRequest {
+  // Empty - all data is in URL path
+}
+
+/**
+ * Response from removing a vote
+ */
+export interface RemoveVoteResponse {
+  success: true;
+  deleted: boolean; // false if vote didn't exist
+}
+
+/**
+ * Venue with vote information
+ */
+export interface VenueWithVotes {
+  id: string;
+  name: string;
+  address: string | null;
+  location: { lat: number; lng: number };
+  category: string | null;
+  rating: number | null;
+  priceLevel: number | null;
+  photoUrl: string | null;
+  voteCount: number;
+  voters: string[]; // Array of participant IDs who voted
+}
+
+/**
+ * Vote statistics response
+ */
+export interface VoteStatisticsResponse {
+  venues: VenueWithVotes[];
+  totalVotes: number;
+}
+
+// ============================================================================
 // API Error Types
 // ============================================================================
 

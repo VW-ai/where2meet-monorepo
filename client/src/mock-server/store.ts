@@ -141,17 +141,20 @@ class MockDataStore {
     const event = this.events.get(eventId);
     if (!event) return undefined;
 
-    // Geocode address using Google Maps API or mock
-    const geocodeResult = await geocodeAddress(data.address);
+    // Geocode address using Google Maps API or mock (skip if no address - organizer)
+    let location: Location | null = null;
+    if (data.address) {
+      const geocodeResult = await geocodeAddress(data.address);
 
-    // Apply fuzzy location offset if requested
-    let location = geocodeResult.location;
-    if (data.fuzzyLocation) {
-      const offset = 0.05; // ~5km offset for fuzzy location
-      location = {
-        lat: location.lat + (Math.random() - 0.5) * offset,
-        lng: location.lng + (Math.random() - 0.5) * offset,
-      };
+      // Apply fuzzy location offset if requested
+      location = geocodeResult.location;
+      if (data.fuzzyLocation) {
+        const offset = 0.05; // ~5km offset for fuzzy location
+        location = {
+          lat: location.lat + (Math.random() - 0.5) * offset,
+          lng: location.lng + (Math.random() - 0.5) * offset,
+        };
+      }
     }
 
     const newParticipant: Participant = {

@@ -7,10 +7,11 @@ import { Location } from './map';
 export interface Participant {
   id: string;
   name: string;
-  address: string;
-  location: Location;
+  address: string | null;
+  location: Location | null;
   color: string; // Tailwind color class (e.g., 'bg-coral-500')
   fuzzyLocation: boolean;
+  isOrganizer: boolean;
   avatarUrl?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -25,8 +26,11 @@ export interface ParticipantResponse extends Participant {
 }
 
 // DTOs
-export type CreateParticipantDTO = Pick<Participant, 'name' | 'address'> & {
+export type CreateParticipantDTO = Pick<Participant, 'name'> & {
+  address?: string | null;
   fuzzyLocation?: boolean;
 };
 
-export type UpdateParticipantDTO = Partial<Pick<Participant, 'name' | 'address' | 'fuzzyLocation'>>;
+export type UpdateParticipantDTO = Partial<Pick<Participant, 'name' | 'fuzzyLocation'>> & {
+  address?: string | null;
+};

@@ -187,7 +187,7 @@ export function MapArea() {
 
     const validParticipants =
       currentEvent?.participants?.filter(
-        (p) => p.location.lat !== null && p.location.lng !== null
+        (p) => p.location !== null && p.location.lat !== null && p.location.lng !== null
       ) || [];
 
     // If no valid participants, keep the default search circle
@@ -201,8 +201,8 @@ export function MapArea() {
 
     // Calculate MEC
     const locations = validParticipants.map((p) => ({
-      lat: p.location.lat!,
-      lng: p.location.lng!,
+      lat: p.location!.lat!,
+      lng: p.location!.lng!,
     }));
 
     const mec = calculateMEC(locations);
@@ -298,7 +298,7 @@ export function MapArea() {
 
     // Add participant markers with matching colors
     currentEvent?.participants.forEach((participant) => {
-      if (!participant.location.lat || !participant.location.lng) return;
+      if (!participant.location || !participant.location.lat || !participant.location.lng) return;
 
       const markerColor = getHexColor(participant.color);
       const isSelected = selectedParticipantId === participant.id;
@@ -480,7 +480,7 @@ export function MapArea() {
     // Find the selected participant
     const participant = currentEvent?.participants?.find((p) => p.id === selectedParticipantId);
 
-    if (!participant?.location.lat || !participant?.location.lng) return;
+    if (!participant?.location || !participant.location.lat || !participant.location.lng) return;
 
     // Calculate offset for sidebar (and venue detail panel if open)
     const screenWidth = window.innerWidth;
@@ -518,7 +518,7 @@ export function MapArea() {
     }
 
     const validParticipants = currentEvent?.participants.filter(
-      (p) => p.location.lat !== null && p.location.lng !== null
+      (p) => p.location !== null && p.location.lat !== null && p.location.lng !== null
     );
 
     if (!validParticipants || validParticipants.length === 0) {
@@ -532,7 +532,7 @@ export function MapArea() {
       // Calculate routes for all participants
       const origins = validParticipants.map((p) => ({
         id: p.id,
-        location: { lat: p.location.lat!, lng: p.location.lng! },
+        location: { lat: p.location!.lat!, lng: p.location!.lng! },
       }));
 
       const routeResults = await calculateMultipleRoutes(

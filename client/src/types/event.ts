@@ -10,6 +10,7 @@ export interface Event {
   title: string;
   meetingTime: string | null; // ISO 8601 format, null if not set
   organizerToken?: string; // Only returned on creation (POST), save it!
+  organizerParticipantId?: string; // Organizer's participant ID (only on creation), save it!
   createdAt: string;
   updatedAt: string;
   participants: Participant[];

@@ -8,6 +8,7 @@
 import { eventsApi } from './events';
 import { participantsApi } from './participants';
 import { venuesApi } from './venues';
+import { votesApi } from './votes';
 import { geoApi } from './geo';
 
 export { APIError } from './client';
@@ -16,6 +17,7 @@ export const api = {
   events: eventsApi,
   participants: participantsApi,
   venues: venuesApi,
+  votes: votesApi,
   geocode: geoApi.geocode,
   directions: geoApi.directions,
 };

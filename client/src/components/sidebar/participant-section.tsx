@@ -245,7 +245,7 @@ export function ParticipantSection() {
                 editingParticipant
                   ? {
                       name: editingParticipant.name,
-                      address: editingParticipant.address,
+                      address: editingParticipant.address || '',
                       placeId: '',
                       fuzzyLocation: editingParticipant.fuzzyLocation ?? false,
                     }

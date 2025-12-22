@@ -23,6 +23,7 @@ import { api } from '@/lib/api';
 import { getVenueCategoryDisplay } from '@/types/venue';
 import type { Venue } from '@/types';
 import { cn } from '@/lib/utils/cn';
+import { VoteButton } from './vote-button';
 
 // Helper to get initials from name
 const getInitials = (name: string): string => {
@@ -221,13 +222,8 @@ export function VenueInfo() {
                       {venue.rating.toFixed(1)}
                     </span>
                   </div>
-                  {venue.voteCount !== undefined && venue.voteCount > 0 && (
-                    <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
-                      <span className="text-xs font-medium text-foreground">
-                        {venue.voteCount} {venue.voteCount === 1 ? 'vote' : 'votes'}
-                      </span>
-                    </div>
-                  )}
+                  {/* Interactive vote button - syncs with backend */}
+                  <VoteButton venueId={venue.id} voteCount={venue.voteCount} venue={venue} />
                 </div>
               )}
             </div>
