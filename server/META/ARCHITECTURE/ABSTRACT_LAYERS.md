@@ -152,9 +152,13 @@ export function toParticipantResponse(entity: Participant): ParticipantResponse 
     id: entity.id,
     name: entity.name,
     address: entity.address,
-    location: { lat: entity.lat, lng: entity.lng },
+    // Nullable for organizer participants (no location)
+    location: entity.lat !== null && entity.lng !== null
+      ? { lat: Number(entity.lat), lng: Number(entity.lng) }
+      : null,
     color: entity.color,
     fuzzyLocation: entity.fuzzyLocation,
+    isOrganizer: entity.isOrganizer,  // true for auto-created organizer
   };
 }
 ```
@@ -216,10 +220,15 @@ src/
 
 | 场景 | Request DTO | Response DTO |
 |------|-------------|--------------|
-| 创建活动 | `CreateEventInput` | `CreateEventResponse` (含 token) |
+| 创建活动 | `CreateEventInput` | `CreateEventResponse` (含 token + organizerParticipantId) |
 | 获取活动 | `EventIdParams` | `EventResponse` (不含 token) |
 | 添加参与者 | `AddParticipantInput` | `ParticipantResponse` |
 | 搜索场所 | `VenueSearchInput` | `VenueSearchResponse` |
+| 投票 | `CastVoteBody` (venueId + venueData) | `VoteResponse` |
+| 取消投票 | URL params only | `VoteRemovalResponse` |
+| 获取投票统计 | `EventIdParams` | `VoteStatisticsResponse` |
+
+**注意**：创建活动时会自动创建 organizer 参与者（无位置），返回 `organizerParticipantId` 供投票使用。
 
 ---
 
@@ -348,6 +357,27 @@ src/
 - `event.organizerId === currentUser.id` 检查
 
 **原则**：永远不信任前端传的 `isOrganizer: true`
+
+#### 投票权限：selfOnly 模式
+
+投票端点使用特殊的 `selfOnly` 认证模式，防止代投：
+
+| 操作 | 认证要求 | 说明 |
+|------|----------|------|
+| 投票 | participantId 必须匹配 token | 只能为自己投票 |
+| 取消投票 | participantId 必须匹配 token | 只能取消自己的票 |
+| 查看统计 | 无需认证 | 公开数据 |
+
+**实现**：`createVerifyParticipantAccess({ selfOnly: true })`
+
+```typescript
+// Organizer 也必须使用自己的 participantId
+// 其 tokenHash = organizerTokenHash，通过 verifyParticipantToken 验证
+POST /api/events/:eventId/participants/:participantId/votes
+Authorization: Bearer {organizerToken 或 participantToken}
+```
+
+**关键**：Organizer 在创建活动时自动获得一个 participantId（无位置），用于投票。
 
 ### 5.2 Rate Limiting
 
@@ -484,6 +514,8 @@ src/
 - [ ] organizerToken 不暴露给普通参与者
 - [ ] 后端验证 token，不信任前端声明
 - [ ] 敏感操作需要 organizer 权限
+- [ ] 投票端点使用 selfOnly 模式（只能为自己投票）
+- [ ] Organizer 自动创建为参与者（无位置），用于投票
 
 ### 外部服务
 - [ ] Google API 调用加缓存（Redis）

@@ -95,6 +95,8 @@ Created ──► Active ──► Published
 #### 业务规则
 
 - 活动创建时自动生成 organizerToken（不可更改）
+- **活动创建时自动创建 organizer 参与者**（无位置，排除在 MEC 计算外）
+- 创建响应包含 `organizerParticipantId`，用于 organizer 投票
 - Published 后不能添加/删除参与者（可配置）
 - 删除活动需要 organizer 权限
 
@@ -119,14 +121,17 @@ Created ──► Active ──► Published
 - 添加/删除参与者后需触发 MEC 重算
 - 每个参与者自动分配唯一颜色（用于地图标记）
 - 同一活动可能有参与者数量上限（可配置）
+- **Organizer 参与者**：自动创建，`isOrganizer: true`，无位置（`address/lat/lng: null`）
 
 #### 数据要求
 
 | 字段 | 要求 |
 |------|------|
 | name | 必填，1-50 字符 |
-| address | 必填，1-255 字符 |
+| address | 必填（普通参与者），null（organizer 参与者） |
+| location | 必填（普通参与者），null（organizer 参与者） |
 | fuzzyLocation | 可选，布尔值 |
+| isOrganizer | 系统字段，标识是否为活动创建者 |
 
 ---
 
@@ -468,6 +473,16 @@ HTTP Request → Zod Schema → Request DTO → Service → DB Entity → Mapper
 | POST | `/api/venues/search` | 搜索场所 | 公开 |
 | GET | `/api/venues/:id` | 场所详情 | 公开 |
 
+### Vote 相关
+
+| 方法 | 端点 | 功能 | 权限 |
+|------|------|------|------|
+| POST | `/api/events/:id/participants/:pid/votes` | 投票 | selfOnly（只能为自己投票） |
+| DELETE | `/api/events/:id/participants/:pid/votes/:venueId` | 取消投票 | selfOnly |
+| GET | `/api/events/:id/votes` | 获取投票统计 | 公开 |
+
+**selfOnly 认证**：即使是 organizer，也只能为自己的 participantId 投票，防止代投。
+
 **`/api/venues/search` 请求体**：
 
 ```
@@ -639,18 +654,56 @@ HTTP Request → Zod Schema → Request DTO → Service → DB Entity → Mapper
     返回 Route[] (每个参与者一条)
 ```
 
+### 5.5 投票流程
+
+```
+用户选择场所投票 (participantId in URL, venueId + venueData in body)
+         │
+         ▼
+    Controller (votes.ts)
+    ├── Zod Schema 校验
+    ├── selfOnly 认证 Hook
+    │   ├── 验证 token
+    │   └── 确保 participantId 匹配 token（防代投）
+    └── 调用 VoteService
+         │
+         ▼
+    VoteService
+    ├── 开启事务
+    │   ├── 验证 event 存在且未发布
+    │   ├── 验证 participant 属于该 event
+    │   ├── Upsert venue 到全局表
+    │   ├── 检查是否已投票（幂等性）
+    │   └── 创建 vote 记录
+    └── 提交事务，返回 Vote entity
+         │
+         ▼
+    Controller
+    └── toVoteResponse(entity) → VoteResponse
+         │
+         ▼
+    返回 VoteResponse { success, voteId }
+```
+
+**关键点**：
+- participantId 在 URL 中，不在 body，防止篡改
+- selfOnly hook 确保 organizer 只能用自己的 participantId
+- Venue 是全局表，跨 event 共享
+- 投票操作是幂等的（重复投票返回现有记录）
+
 ---
 
 ## 附录：模块边界总结
 
 | 模块 | 负责 | 不负责 |
 |------|------|--------|
-| **Event** | 活动 CRUD、状态管理、发布 | 不负责参与者管理、地图调用 |
+| **Event** | 活动 CRUD、状态管理、发布、创建 organizer 参与者 | 不负责参与者管理、地图调用 |
 | **Participant** | 参与者 CRUD、触发 MEC | 不负责 geocode 实现细节 |
 | **Maps** | 所有 Google API 调用、缓存 | 不负责业务逻辑 |
-| **MEC** | 几何计算 | 不负责数据存储 |
-| **Venue** | 场所搜索、路线聚合 | 不负责 API 调用细节 |
-| **Auth** | 权限验证 | 不负责业务逻辑 |
+| **MEC** | 几何计算（排除 null 坐标参与者） | 不负责数据存储 |
+| **Venue** | 场所搜索、路线聚合、全局 venue 缓存 | 不负责 API 调用细节 |
+| **Vote** | 投票 CRUD、统计聚合、幂等处理 | 不负责 venue 详情获取 |
+| **Auth** | 权限验证、selfOnly 模式 | 不负责业务逻辑 |
 | **DTO/Mapper** | 数据格式转换、Response 构建 | 不负责业务逻辑、数据校验 |
 
 ### 文件组织参考
@@ -660,17 +713,33 @@ src/
 ├── schemas/           # Request DTOs (Zod schemas)
 │   ├── event.ts       # CreateEventSchema, UpdateEventSchema
 │   ├── participant.ts # AddParticipantSchema
-│   └── venue.ts       # VenueSearchSchema
-├── types/
-│   ├── responses.ts   # Response DTO interfaces
-│   ├── errors.ts      # Error types
-│   └── internal.ts    # Internal DTOs (Service 层间)
+│   ├── venue.ts       # VenueSearchSchema
+│   └── vote.ts        # VenueDataSchema (投票时传的场所数据)
+├── dto/               # Response DTOs (Zod schemas + types)
+│   ├── event.dto.ts   # EventResponse, CreateEventResponse
+│   ├── participant.dto.ts # ParticipantResponse (含 isOrganizer)
+│   ├── venue.dto.ts   # VenueResponse
+│   └── vote.dto.ts    # VoteResponse, VoteStatisticsResponse
 ├── mappers/           # Entity → Response DTO 转换
 │   ├── event.mapper.ts
-│   ├── participant.mapper.ts
-│   └── venue.mapper.ts
+│   ├── participant.mapper.ts  # 处理 null location
+│   ├── venue.mapper.ts
+│   └── vote.mapper.ts
 ├── services/          # 业务逻辑
+│   ├── event.ts       # 含 organizer 参与者创建
+│   ├── participant.ts
+│   ├── venue.ts       # MEC 计算时排除 null 坐标
+│   └── vote.ts        # 投票事务、幂等处理
 ├── repositories/      # 数据访问
+│   ├── event.ts       # createWithOrganizerParticipant
+│   ├── participant.ts
+│   ├── venue.ts       # 全局 venue 表
+│   └── vote.ts
 ├── hooks/             # Auth hooks
+│   └── auth.ts        # createVerifyParticipantAccess({ selfOnly })
 └── routes/            # Controller (Fastify routes)
+    ├── events.ts
+    ├── participants.ts
+    ├── venues.ts
+    └── votes.ts       # selfOnly 认证
 ```
