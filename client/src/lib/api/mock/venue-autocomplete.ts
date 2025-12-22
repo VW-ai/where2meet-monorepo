@@ -1,10 +1,11 @@
-import type { Venue } from '@/types';
+import type { LegacyVenue } from '@/types/venue';
 
 /**
  * Mock NYC venues database for autocomplete search
  * Contains 100+ venues across categories: gym, bar, cafe, things_to_do
+ * @deprecated Uses LegacyVenue format - backend now returns different structure
  */
-const mockVenues: Venue[] = [
+const mockVenues: LegacyVenue[] = [
   // Gyms (25 venues)
   {
     id: 'gym-1',
@@ -355,7 +356,7 @@ const mockVenues: Venue[] = [
 ];
 
 export interface VenueSearchResult {
-  venue: Venue;
+  venue: LegacyVenue;
   matchScore: number;
 }
 

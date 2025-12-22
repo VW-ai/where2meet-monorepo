@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { loadGoogleMaps } from '@/lib/google-maps/loader';
 import { calculateMEC, calculateSearchRadius } from '@/lib/utils/mec';
 import { getHexColor } from '@/lib/utils/participant-colors';
-import { calculateMultipleRoutes } from '@/lib/google-maps/directions';
+import { api } from '@/lib/api';
 import type { TravelMode } from '@/types';
 
 // Convert UI travel mode to Google Maps travel mode
@@ -52,7 +52,8 @@ export function MapArea() {
     savedVenues,
     likedVenueData,
   } = useMeetingStore();
-  const { isVenueInfoOpen, selectedTravelMode, openVenueInfo } = useUIStore();
+  const { isVenueInfoOpen, selectedTravelMode, openVenueInfo, organizerToken, participantToken } =
+    useUIStore();
   const {
     setMecCircle,
     setSearchRadius,
@@ -187,7 +188,7 @@ export function MapArea() {
 
     const validParticipants =
       currentEvent?.participants?.filter(
-        (p) => p.location.lat !== null && p.location.lng !== null
+        (p) => p.location !== null && p.location.lat !== null && p.location.lng !== null
       ) || [];
 
     // If no valid participants, keep the default search circle
@@ -201,8 +202,8 @@ export function MapArea() {
 
     // Calculate MEC
     const locations = validParticipants.map((p) => ({
-      lat: p.location.lat!,
-      lng: p.location.lng!,
+      lat: p.location!.lat!,
+      lng: p.location!.lng!,
     }));
 
     const mec = calculateMEC(locations);
@@ -298,7 +299,7 @@ export function MapArea() {
 
     // Add participant markers with matching colors
     currentEvent?.participants.forEach((participant) => {
-      if (!participant.location.lat || !participant.location.lng) return;
+      if (!participant.location || !participant.location.lat || !participant.location.lng) return;
 
       const markerColor = getHexColor(participant.color);
       const isSelected = selectedParticipantId === participant.id;
@@ -480,7 +481,7 @@ export function MapArea() {
     // Find the selected participant
     const participant = currentEvent?.participants?.find((p) => p.id === selectedParticipantId);
 
-    if (!participant?.location.lat || !participant?.location.lng) return;
+    if (!participant?.location || !participant.location.lat || !participant.location.lng) return;
 
     // Calculate offset for sidebar (and venue detail panel if open)
     const screenWidth = window.innerWidth;
@@ -512,16 +513,24 @@ export function MapArea() {
 
   // Calculate and display routes when venue is selected
   const calculateRoutes = useCallback(async () => {
-    if (!map || !window.google || !selectedVenue) {
+    if (!map || !window.google || !selectedVenue || !currentEvent) {
       clearRoutes();
       return;
     }
 
-    const validParticipants = currentEvent?.participants.filter(
-      (p) => p.location.lat !== null && p.location.lng !== null
+    // Get auth token (prefer organizer, fallback to participant)
+    const authToken = organizerToken || participantToken;
+    if (!authToken) {
+      console.warn('[Map] No auth token available for directions API');
+      clearRoutes();
+      return;
+    }
+
+    const validParticipants = currentEvent.participants.filter(
+      (p) => p.location !== null && p.location.lat !== null && p.location.lng !== null
     );
 
-    if (!validParticipants || validParticipants.length === 0) {
+    if (validParticipants.length === 0) {
       clearRoutes();
       return;
     }
@@ -529,23 +538,19 @@ export function MapArea() {
     setCalculatingRoutes(true);
 
     try {
-      // Calculate routes for all participants
-      const origins = validParticipants.map((p) => ({
-        id: p.id,
-        location: { lat: p.location.lat!, lng: p.location.lng! },
-      }));
-
-      const routeResults = await calculateMultipleRoutes(
-        origins,
-        selectedVenue.location,
-        travelMode
+      // Call backend directions API
+      const response = await api.directions.getDirections(
+        currentEvent.id,
+        selectedVenue.id,
+        travelMode,
+        authToken
       );
 
       // Clear existing polylines
       routePolylinesRef.current.forEach((polyline) => polyline.setMap(null));
       routePolylinesRef.current = [];
 
-      // Draw route polylines
+      // Draw route polylines and build route infos
       const routeInfos: Array<{
         participantId: string;
         distance: string;
@@ -553,16 +558,19 @@ export function MapArea() {
         polyline: string;
       }> = [];
 
-      validParticipants.forEach((participant) => {
-        const result = routeResults.get(participant.id);
-        if (!result) return;
+      response.routes.forEach((route) => {
+        const participant = validParticipants.find((p) => p.id === route.participantId);
+        if (!participant) return;
 
         const participantColor = getHexColor(participant.color);
         const isSelected =
           selectedParticipantId === participant.id || selectedParticipantId === null;
 
+        // Decode the encoded polyline from backend
+        const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline);
+
         const polyline = new google.maps.Polyline({
-          path: result.polyline,
+          path: decodedPath,
           geodesic: true,
           strokeColor: participantColor,
           strokeOpacity: isSelected ? 0.9 : 0.3,
@@ -574,25 +582,28 @@ export function MapArea() {
         routePolylinesRef.current.push(polyline);
 
         routeInfos.push({
-          participantId: participant.id,
-          distance: result.distance,
-          duration: result.duration,
-          polyline: '', // We don't need the encoded string
+          participantId: route.participantId,
+          distance: route.distance.text,
+          duration: route.duration.text,
+          polyline: route.polyline,
         });
       });
 
       setRoutes(routeInfos);
     } catch (error) {
       console.error('[Map] Error calculating routes:', error);
+      clearRoutes();
     } finally {
       setCalculatingRoutes(false);
     }
   }, [
     map,
     selectedVenue,
-    currentEvent?.participants,
+    currentEvent,
     travelMode,
     selectedParticipantId,
+    organizerToken,
+    participantToken,
     clearRoutes,
     setRoutes,
     setCalculatingRoutes,

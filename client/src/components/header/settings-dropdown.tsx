@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Settings, Edit2, CheckCircle, Trash2 } from 'lucide-react';
+import { Settings, Edit2, CheckCircle, XCircle, Trash2, Loader2 } from 'lucide-react';
 import { useUIStore } from '@/store/ui-store';
+import { useMeetingStore } from '@/store/useMeetingStore';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils/cn';
 
 interface SettingsDropdownProps {
@@ -11,12 +13,18 @@ interface SettingsDropdownProps {
 
 export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isUnpublishing, setIsUnpublishing] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { isOrganizerMode, openEditEventModal, openPublishModal, openDeleteConfirmation } =
-    useUIStore();
+  const {
+    isOrganizerMode,
+    organizerToken,
+    openEditEventModal,
+    openPublishModal,
+    openDeleteConfirmation,
+  } = useUIStore();
+  const { currentEvent, setCurrentEvent } = useMeetingStore();
 
-  // Don't render if not in organizer mode
-  if (!isOrganizerMode) return null;
+  const isPublished = !!currentEvent?.publishedAt;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -35,6 +43,9 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
     };
   }, [isOpen]);
 
+  // Don't render if not in organizer mode
+  if (!isOrganizerMode) return null;
+
   const handleEdit = () => {
     setIsOpen(false);
     openEditEventModal();
@@ -43,6 +54,22 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
   const handlePublish = () => {
     setIsOpen(false);
     openPublishModal();
+  };
+
+  const handleUnpublish = async () => {
+    if (!currentEvent || !organizerToken) return;
+
+    setIsUnpublishing(true);
+    try {
+      const updatedEvent = await api.events.unpublish(currentEvent.id, organizerToken);
+      setCurrentEvent(updatedEvent);
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Failed to unpublish event:', error);
+      // Could add toast notification here for error feedback
+    } finally {
+      setIsUnpublishing(false);
+    }
   };
 
   const handleDelete = () => {
@@ -79,14 +106,29 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
             <span>Edit Event</span>
           </button>
 
-          {/* Publish Event */}
-          <button
-            onClick={handlePublish}
-            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors border-t border-border"
-          >
-            <CheckCircle className="w-4 h-4 text-mint-500" />
-            <span>Publish Event</span>
-          </button>
+          {/* Publish/Unpublish Event */}
+          {isPublished ? (
+            <button
+              onClick={handleUnpublish}
+              disabled={isUnpublishing}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors border-t border-border disabled:opacity-50"
+            >
+              {isUnpublishing ? (
+                <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+              ) : (
+                <XCircle className="w-4 h-4 text-orange-500" />
+              )}
+              <span>{isUnpublishing ? 'Unpublishing...' : 'Unpublish Event'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={handlePublish}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors border-t border-border"
+            >
+              <CheckCircle className="w-4 h-4 text-mint-500" />
+              <span>Publish Event</span>
+            </button>
+          )}
 
           {/* Delete Event */}
           <button

@@ -4,15 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useUIStore } from '@/store/ui-store';
+import { api, APIError } from '@/lib/api';
 
 export function EditEventModal() {
-  const { isEditEventModalOpen, closeEditEventModal } = useUIStore();
-  const { currentEvent, updateEvent } = useMeetingStore();
+  const { isEditEventModalOpen, closeEditEventModal, organizerToken, clearOrganizerToken } =
+    useUIStore();
+  const { currentEvent, setCurrentEvent } = useMeetingStore();
 
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize form with current event data
   useEffect(() => {
@@ -45,9 +48,10 @@ export function EditEventModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentEvent || !title.trim()) return;
+    if (!currentEvent || !title.trim() || !organizerToken) return;
 
     setIsSubmitting(true);
+    setError(null);
 
     try {
       // Combine date and time
@@ -58,12 +62,27 @@ export function EditEventModal() {
         meetingTime = new Date(date).toISOString();
       }
 
-      updateEvent({
-        title: title.trim(),
-        meetingTime,
-      });
+      // Call backend API with token
+      const updatedEvent = await api.events.update(
+        currentEvent.id,
+        { title: title.trim(), meetingTime },
+        organizerToken
+      );
 
+      // Update local state with response
+      setCurrentEvent(updatedEvent);
       closeEditEventModal();
+    } catch (err) {
+      if (err instanceof APIError) {
+        if (err.status === 401 || err.status === 403) {
+          setError("You don't have permission to edit this event");
+          clearOrganizerToken();
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Failed to update event');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -147,6 +166,13 @@ export function EditEventModal() {
             />
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex items-center gap-3 pt-4">
             <button
@@ -158,7 +184,7 @@ export function EditEventModal() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !title.trim()}
+              disabled={isSubmitting || !title.trim() || !organizerToken}
               className="flex-1 px-4 py-3 text-sm font-medium bg-coral-500 text-white rounded-full hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isSubmitting ? 'Saving...' : 'Save Changes'}

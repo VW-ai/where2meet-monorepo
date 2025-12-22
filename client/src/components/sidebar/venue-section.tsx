@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useUIStore } from '@/store/ui-store';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useMapStore } from '@/store/map-store';
-import { searchPlacesByText } from '@/lib/google-maps/places-nearby';
+import { api } from '@/lib/api';
 import type { Venue } from '@/types';
 import { VenueCard } from './venue-card';
 import { TravelTypeFilter } from './venue/travel-type-filter';
@@ -12,11 +12,17 @@ import { SearchPillBar } from './venue/search-pill-bar';
 import { LikedFilterButton } from './venue/liked-filter-button';
 
 export function VenueSection() {
-  const { savedVenues, searchedVenues, setSelectedVenue, setSearchedVenues, likedVenueData } =
-    useMeetingStore();
+  const {
+    currentEvent,
+    savedVenues,
+    searchedVenues,
+    setSelectedVenue,
+    setSearchedVenues,
+    likedVenueData,
+  } = useMeetingStore();
   const { searchQuery, searchExecutionTrigger, executedSearchQuery, setExecutedSearchQuery } =
     useUIStore();
-  const { mecCircle, searchRadius } = useMapStore();
+  const { searchRadius } = useMapStore();
 
   // Initialize venues from store (persists across view switches)
   const [venues, setVenues] = useState<Venue[]>(searchedVenues);
@@ -29,8 +35,7 @@ export function VenueSection() {
   const isInitialMount = useRef(true);
   const lastSearchParamsRef = useRef<{
     query: string;
-    centerLat: number | null;
-    centerLng: number | null;
+    eventId: string | null;
     radius: number;
   } | null>(null);
 
@@ -59,8 +64,7 @@ export function VenueSection() {
           // Already have data from store, update refs and skip search
           lastSearchParamsRef.current = {
             query: executedSearchQuery,
-            centerLat: mecCircle?.center?.lat ?? null,
-            centerLng: mecCircle?.center?.lng ?? null,
+            eventId: currentEvent?.id ?? null,
             radius: searchRadius,
           };
           return;
@@ -71,11 +75,15 @@ export function VenueSection() {
         return; // Don't clear - preserve existing results
       }
 
+      if (!currentEvent?.id) {
+        setError('No event selected');
+        return;
+      }
+
       // Check if params have changed
       const currentParams = {
         query: executedSearchQuery,
-        centerLat: mecCircle?.center?.lat ?? null,
-        centerLng: mecCircle?.center?.lng ?? null,
+        eventId: currentEvent.id,
         radius: searchRadius,
       };
 
@@ -83,8 +91,7 @@ export function VenueSection() {
       if (
         lastParams &&
         lastParams.query === currentParams.query &&
-        lastParams.centerLat === currentParams.centerLat &&
-        lastParams.centerLng === currentParams.centerLng &&
+        lastParams.eventId === currentParams.eventId &&
         lastParams.radius === currentParams.radius
       ) {
         return; // Skip - params haven't changed
@@ -94,14 +101,14 @@ export function VenueSection() {
         setLoading(true);
         setError(null);
 
-        // Phase 2: Execute search and populate venue list
-        // Use MEC center and search radius to limit results to the draggable circle
-        const searchCenter = mecCircle?.center;
-        const searchResults = await searchPlacesByText(
-          executedSearchQuery,
-          searchCenter,
-          searchRadius
-        );
+        // Phase 2: Execute search via backend API
+        // Backend calculates MEC center from event participants
+        const response = await api.venues.search({
+          eventId: currentEvent.id,
+          searchRadius,
+          query: executedSearchQuery,
+        });
+        const searchResults = response.venues;
         setVenues(searchResults);
         setSearchedVenues(searchResults); // Update store so map can show markers
         lastSearchParamsRef.current = currentParams;
@@ -116,7 +123,7 @@ export function VenueSection() {
     searchVenues();
   }, [
     executedSearchQuery,
-    mecCircle?.center,
+    currentEvent?.id,
     searchRadius,
     setSearchedVenues,
     searchedVenues.length,

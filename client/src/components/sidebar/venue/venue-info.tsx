@@ -19,9 +19,11 @@ import {
 import { useUIStore } from '@/store/ui-store';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useMapStore } from '@/store/map-store';
-import { getPlaceDetails } from '@/lib/google-maps/places-nearby';
+import { api } from '@/lib/api';
+import { getVenueCategoryDisplay } from '@/types/venue';
 import type { Venue } from '@/types';
 import { cn } from '@/lib/utils/cn';
+import { VoteButton } from './vote-button';
 
 // Helper to get initials from name
 const getInitials = (name: string): string => {
@@ -81,8 +83,8 @@ export function VenueInfo() {
     async function fetchVenueDetails() {
       setLoading(true);
       try {
-        // Fetch detailed information from Google Places Details API
-        const details = await getPlaceDetails(venueToFetch.id);
+        // Fetch detailed information from backend API
+        const details = await api.venues.get(venueToFetch.id);
         setVenueDetails(details);
       } catch (error) {
         console.error('Failed to fetch venue details:', error);
@@ -220,13 +222,8 @@ export function VenueInfo() {
                       {venue.rating.toFixed(1)}
                     </span>
                   </div>
-                  {venue.voteCount !== undefined && venue.voteCount > 0 && (
-                    <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
-                      <span className="text-xs font-medium text-foreground">
-                        {venue.voteCount} {venue.voteCount === 1 ? 'vote' : 'votes'}
-                      </span>
-                    </div>
-                  )}
+                  {/* Interactive vote button - syncs with backend */}
+                  <VoteButton venueId={venue.id} voteCount={venue.voteCount} venue={venue} />
                 </div>
               )}
             </div>
@@ -236,7 +233,7 @@ export function VenueInfo() {
           <div className="p-6 space-y-6">
             {/* Category Badge */}
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-coral-50 text-coral-700 text-sm font-medium capitalize">
-              {venue.category.replace('_', ' ')}
+              {getVenueCategoryDisplay(venue)}
             </div>
 
             {/* Address */}
@@ -344,16 +341,16 @@ export function VenueInfo() {
             )}
 
             {/* Phone Number */}
-            {venue.phoneNumber && (
+            {venue.formattedPhoneNumber && (
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-coral-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">Phone</p>
                   <a
-                    href={`tel:${venue.phoneNumber}`}
+                    href={`tel:${venue.formattedPhoneNumber}`}
                     className="text-sm text-coral-600 hover:text-coral-700 hover:underline"
                   >
-                    {venue.phoneNumber}
+                    {venue.formattedPhoneNumber}
                   </a>
                 </div>
               </div>
@@ -375,14 +372,6 @@ export function VenueInfo() {
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
-              </div>
-            )}
-
-            {/* Description */}
-            {venue.description && (
-              <div className="border-t border-border pt-6">
-                <h3 className="text-lg font-semibold text-foreground mb-2">About</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{venue.description}</p>
               </div>
             )}
 

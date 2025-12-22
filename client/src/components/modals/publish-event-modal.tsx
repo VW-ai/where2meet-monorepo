@@ -1,21 +1,24 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, CheckCircle, MapPin } from 'lucide-react';
+import { X, CheckCircle, MapPin, AlertCircle } from 'lucide-react';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useUIStore } from '@/store/ui-store';
+import { api, APIError } from '@/lib/api';
 
 export function PublishEventModal() {
-  const { isPublishModalOpen, closePublishModal } = useUIStore();
-  const { currentEvent, selectedVenue, updateEvent } = useMeetingStore();
+  const { isPublishModalOpen, closePublishModal, organizerToken } = useUIStore();
+  const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Reset published state when modal opens
+  // Reset state when modal opens
   useEffect(() => {
     if (isPublishModalOpen) {
       setIsPublished(false);
+      setError(null);
     }
   }, [isPublishModalOpen]);
 
@@ -37,23 +40,39 @@ export function PublishEventModal() {
   }, [isPublishModalOpen, handleEscape]);
 
   const handlePublish = async () => {
-    if (!currentEvent) return;
+    if (!currentEvent || !selectedVenue || !organizerToken) return;
 
     setIsPublishing(true);
+    setError(null);
 
     try {
-      // Update event with selected venue as final location
-      updateEvent({
-        publishedVenueId: selectedVenue?.id || null,
-        publishedAt: new Date().toISOString(),
-      });
+      // Call backend API to publish the event
+      const updatedEvent = await api.events.publish(
+        currentEvent.id,
+        selectedVenue.id,
+        organizerToken
+      );
 
+      // Update local state with the returned event data
+      setCurrentEvent(updatedEvent);
       setIsPublished(true);
 
       // Auto close after 2 seconds
       setTimeout(() => {
         closePublishModal();
       }, 2000);
+    } catch (err) {
+      if (err instanceof APIError) {
+        if (err.code === 'EVENT_ALREADY_PUBLISHED') {
+          setError('This event has already been published.');
+        } else if (err.code === 'VENUE_NOT_FOUND') {
+          setError('The selected venue could not be verified. Please try another venue.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsPublishing(false);
     }
@@ -102,6 +121,15 @@ export function PublishEventModal() {
                 participants.
               </p>
 
+              {error && (
+                <div className="p-4 bg-red-50 rounded-xl border border-red-200">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+              )}
+
               {selectedVenue ? (
                 <div className="p-4 bg-mint-50 rounded-xl border border-mint-200">
                   <div className="flex items-start gap-3">
@@ -134,7 +162,7 @@ export function PublishEventModal() {
               </button>
               <button
                 onClick={handlePublish}
-                disabled={isPublishing}
+                disabled={isPublishing || !selectedVenue}
                 className="flex-1 px-4 py-3 text-sm font-medium bg-mint-500 text-white rounded-full hover:bg-mint-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {isPublishing ? 'Publishing...' : 'Publish Event'}

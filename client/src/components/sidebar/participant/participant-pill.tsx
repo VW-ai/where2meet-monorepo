@@ -104,7 +104,11 @@ export function ParticipantPill({
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
                 <MapPin className="w-3 h-3 flex-shrink-0" />
                 <span className="truncate font-medium min-w-0">
-                  {participant.fuzzyLocation ? 'Approximate location' : participant.address}
+                  {participant.isOrganizer
+                    ? 'Event Organizer'
+                    : participant.fuzzyLocation
+                      ? 'Approximate location'
+                      : participant.address}
                 </span>
               </div>
             </div>

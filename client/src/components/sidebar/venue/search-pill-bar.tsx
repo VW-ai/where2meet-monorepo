@@ -3,8 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, X, Star, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { searchPlacesByText } from '@/lib/google-maps/places-nearby';
+import { api } from '@/lib/api';
 import { useUIStore } from '@/store/ui-store';
+import { useMeetingStore } from '@/store/useMeetingStore';
+import { useMapStore } from '@/store/map-store';
+import { getVenueCategoryDisplay } from '@/types/venue';
 import type { Venue } from '@/types';
 
 interface SearchPillBarProps {
@@ -15,6 +18,8 @@ interface SearchPillBarProps {
 
 export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: SearchPillBarProps) {
   const { searchQuery, setSearchQuery } = useUIStore();
+  const { currentEvent } = useMeetingStore();
+  const { searchRadius } = useMapStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Venue[]>([]);
@@ -25,26 +30,39 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Debounced search function - searches ALL venues using Google Places Text Search
-  const performSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      setResults([]);
-      setIsLoading(false);
-      return;
-    }
+  // Debounced search function - searches venues via backend API
+  const performSearch = useCallback(
+    async (searchQueryText: string) => {
+      if (!searchQueryText.trim()) {
+        setResults([]);
+        setIsLoading(false);
+        return;
+      }
 
-    setIsLoading(true);
-    try {
-      // Search ALL venues without category filter (like Google Maps)
-      const searchResults = await searchPlacesByText(searchQuery);
-      setResults(searchResults);
-    } catch (error) {
-      console.error('Search error:', error);
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      if (!currentEvent?.id) {
+        setResults([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Search venues via backend API (constrained to event's MEC area)
+        const response = await api.venues.search({
+          eventId: currentEvent.id,
+          searchRadius,
+          query: searchQueryText,
+        });
+        setResults(response.venues);
+      } catch (error) {
+        console.error('Search error:', error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [currentEvent?.id, searchRadius]
+  );
 
   // Sync store search query to local state when it changes
   useEffect(() => {
@@ -251,7 +269,7 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {/* Category Badge */}
                   <span className="px-2 py-0.5 text-xs rounded-full bg-coral-50 text-coral-700 capitalize">
-                    {venue.category.replace('_', ' ')}
+                    {getVenueCategoryDisplay(venue)}
                   </span>
                   {/* Rating */}
                   {venue.rating && (

@@ -5,19 +5,23 @@ import { useRouter } from 'next/navigation';
 import { X, AlertTriangle } from 'lucide-react';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useUIStore } from '@/store/ui-store';
+import { api, APIError } from '@/lib/api';
 
 export function DeleteEventModal() {
   const router = useRouter();
-  const { isDeleteConfirmationOpen, closeDeleteConfirmation } = useUIStore();
+  const { isDeleteConfirmationOpen, closeDeleteConfirmation, organizerToken, clearOrganizerToken } =
+    useUIStore();
   const { currentEvent, reset } = useMeetingStore();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  // Reset confirm text when modal opens
+  // Reset confirm text and error when modal opens
   useEffect(() => {
     if (isDeleteConfirmationOpen) {
       setConfirmText('');
+      setError(null);
     }
   }, [isDeleteConfirmationOpen]);
 
@@ -39,18 +43,36 @@ export function DeleteEventModal() {
   }, [isDeleteConfirmationOpen, handleEscape]);
 
   const handleDelete = async () => {
-    if (!currentEvent || confirmText !== 'DELETE') return;
+    if (!currentEvent || confirmText !== 'DELETE' || !organizerToken) return;
 
     setIsDeleting(true);
+    setError(null);
 
     try {
+      // Call backend API with token
+      await api.events.delete(currentEvent.id, organizerToken);
+
+      // Clear local token from localStorage
+      localStorage.removeItem(`organizer_token_${currentEvent.id}`);
+
       // Reset the store (clears current event)
       reset();
-
+      clearOrganizerToken();
       closeDeleteConfirmation();
 
       // Redirect to home page
       router.push('/');
+    } catch (err) {
+      if (err instanceof APIError) {
+        if (err.status === 401 || err.status === 403) {
+          setError("You don't have permission to delete this event");
+          clearOrganizerToken();
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Failed to delete event');
+      }
     } finally {
       setIsDeleting(false);
     }
@@ -107,6 +129,13 @@ export function DeleteEventModal() {
               autoComplete="off"
             />
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-100 border border-red-300 rounded-xl text-sm text-red-800">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -120,7 +149,7 @@ export function DeleteEventModal() {
           </button>
           <button
             onClick={handleDelete}
-            disabled={isDeleting || confirmText !== 'DELETE'}
+            disabled={isDeleting || confirmText !== 'DELETE' || !organizerToken}
             className="flex-1 px-4 py-3 text-sm font-medium bg-red-500 text-white rounded-full hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {isDeleting ? 'Deleting...' : 'Delete Event'}
