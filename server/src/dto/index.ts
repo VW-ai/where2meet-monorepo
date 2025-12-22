@@ -56,3 +56,17 @@ export type {
   VoteStatisticsResponse,
   VoteRemovalResponse,
 } from "./vote.dto.js";
+
+// Directions DTOs
+export {
+  TravelModeSchema,
+  FormattedValueSchema,
+  RouteResponseSchema,
+  DirectionsResponseSchema,
+} from "./directions.dto.js";
+export type {
+  TravelMode,
+  FormattedValue,
+  RouteResponse,
+  DirectionsResponse,
+} from "./directions.dto.js";

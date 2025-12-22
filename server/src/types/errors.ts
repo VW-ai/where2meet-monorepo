@@ -170,6 +170,15 @@ export class EventAlreadyPublishedError extends AppError {
 }
 
 /**
+ * Error when attempting to unpublish an event that is not published.
+ */
+export class EventNotPublishedError extends AppError {
+  constructor() {
+    super("Event is not published", 409, "EVENT_NOT_PUBLISHED");
+  }
+}
+
+/**
  * Error when an external service (e.g., Google Maps) fails.
  * @example
  * ```typescript

@@ -55,3 +55,14 @@ export const EventIdSchema = z.object({
 });
 
 export type EventIdParam = z.infer<typeof EventIdSchema>;
+
+/**
+ * Schema for publishing an event with a venue.
+ */
+export const PublishEventSchema = z.object({
+  venueId: z
+    .string()
+    .min(1, "Venue ID is required"),
+});
+
+export type PublishEventInput = z.infer<typeof PublishEventSchema>;

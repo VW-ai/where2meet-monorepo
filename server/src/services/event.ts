@@ -14,9 +14,21 @@ import {
   type EventWithParticipants,
 } from "../repositories/event.js";
 import type { CreateEventInput, UpdateEventInput } from "../schemas/event.js";
-import { EventNotFoundError } from "../types/errors.js";
+import {
+  EventNotFoundError,
+  EventAlreadyPublishedError,
+  EventNotPublishedError,
+  ValidationError,
+  ExternalServiceError,
+} from "../types/errors.js";
+import { getPlaceDetails, PlacesApiError } from "../lib/places/index.js";
+import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
+import { createLogger } from "../lib/logger.js";
+import { config } from "../lib/config.js";
 import { generateOrganizerToken, verifyToken } from "../utils/token.js";
 import { PARTICIPANT_COLORS } from "../utils/colors.js";
+
+const logger = createLogger("EventService");
 
 /**
  * Result of creating an event.
@@ -36,9 +48,11 @@ export interface CreateEventResult {
  */
 export class EventService {
   private readonly repository: EventRepository;
+  private readonly venueRepository: VenueRepository;
 
   constructor(db: PrismaClient) {
     this.repository = createEventRepository(db);
+    this.venueRepository = createVenueRepository(db);
   }
 
   /**
@@ -133,6 +147,93 @@ export class EventService {
     }
 
     return verifyToken(token, storedHash);
+  }
+
+  /**
+   * Publishes an event with the selected venue.
+   *
+   * Validates the venue via Google Places API before publishing.
+   * If venue is valid, upserts it to the database for caching.
+   *
+   * @param eventId - Event ID
+   * @param venueId - Google Place ID of the selected venue
+   * @returns Updated event with publishedVenueId and publishedAt
+   * @throws EventNotFoundError if event doesn't exist
+   * @throws EventAlreadyPublishedError if event is already published
+   * @throws ValidationError if venue ID is invalid
+   * @throws ExternalServiceError if Google Places API fails
+   */
+  async publishEvent(eventId: string, venueId: string): Promise<EventWithParticipants> {
+    // Verify event exists
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    // Check if already published
+    if (event.publishedAt !== null) {
+      throw new EventAlreadyPublishedError();
+    }
+
+    // Validate venue via Google Places API
+    try {
+      const details = await getPlaceDetails(venueId);
+
+      // Upsert venue to database for caching (non-blocking)
+      this.venueRepository
+        .upsert({
+          id: details.placeId,
+          name: details.name,
+          address: details.address,
+          lat: details.location.lat,
+          lng: details.location.lng,
+          category: details.types.length > 0 ? (details.types[0] ?? null) : null,
+          rating: details.rating,
+          priceLevel: details.priceLevel,
+          photoUrl: details.photoReference
+            ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photoReference}&key=${config.GOOGLE_MAPS_API_KEY}`
+            : null,
+        })
+        .catch((error: unknown) => {
+          logger.error({ err: error, venueId }, "Failed to upsert venue to database");
+        });
+    } catch (error) {
+      if (error instanceof PlacesApiError) {
+        // INVALID_REQUEST or NOT_FOUND indicates invalid venue ID
+        if (error.status === "INVALID_REQUEST" || error.status === "NOT_FOUND") {
+          throw new ValidationError(`Invalid venue ID: ${venueId}`);
+        }
+        throw new ExternalServiceError("Google Places", error.message);
+      }
+      throw error;
+    }
+
+    logger.info({ eventId, venueId }, "Publishing event");
+    return this.repository.publish(eventId, venueId);
+  }
+
+  /**
+   * Unpublishes an event, clearing the published venue.
+   *
+   * @param eventId - Event ID
+   * @returns Updated event with publishedVenueId and publishedAt set to null
+   * @throws EventNotFoundError if event doesn't exist
+   * @throws EventNotPublishedError if event is not published
+   */
+  async unpublishEvent(eventId: string): Promise<EventWithParticipants> {
+    // Verify event exists
+    const event = await this.repository.findById(eventId);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    // Check if published
+    if (event.publishedAt === null) {
+      throw new EventNotPublishedError();
+    }
+
+    logger.info({ eventId }, "Unpublishing event");
+    return this.repository.unpublish(eventId);
   }
 }
 
