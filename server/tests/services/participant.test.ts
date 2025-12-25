@@ -82,6 +82,7 @@ function createMockParticipant(overrides: Partial<{
   name: string;
   address: string;
   color: string;
+  isOrganizer: boolean;
 }> = {}) {
   return {
     id: TEST_PARTICIPANT_ID,
@@ -93,6 +94,7 @@ function createMockParticipant(overrides: Partial<{
     lng: new Decimal(-74.006),
     fuzzyLocation: false,
     color: "coral",
+    isOrganizer: false,
     createdAt: new Date(),
     ...overrides,
   };
@@ -343,7 +345,7 @@ describe("ParticipantService", () => {
   describe("deleteParticipant", () => {
     it("should delete participant", async () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
-      vi.mocked(mockPrisma.participant.count).mockResolvedValue(1);
+      vi.mocked(mockPrisma.participant.findUnique).mockResolvedValue(createMockParticipant());
       vi.mocked(mockPrisma.participant.delete).mockResolvedValue(createMockParticipant());
 
       await service.deleteParticipant(TEST_EVENT_ID, TEST_PARTICIPANT_ID);
@@ -355,13 +357,30 @@ describe("ParticipantService", () => {
 
     it("should throw ParticipantNotFoundError when participant does not exist", async () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
-      vi.mocked(mockPrisma.participant.count).mockResolvedValue(0);
+      vi.mocked(mockPrisma.participant.findUnique).mockResolvedValue(null);
 
       await expect(
         service.deleteParticipant(TEST_EVENT_ID, "non-existent")
       ).rejects.toMatchObject({
         code: "PARTICIPANT_NOT_FOUND",
         statusCode: 404,
+      });
+
+      expect(mockPrisma.participant.delete).not.toHaveBeenCalled();
+    });
+
+    it("should throw ForbiddenError when deleting organizer participant", async () => {
+      vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
+      vi.mocked(mockPrisma.participant.findUnique).mockResolvedValue(
+        createMockParticipant({ isOrganizer: true })
+      );
+
+      await expect(
+        service.deleteParticipant(TEST_EVENT_ID, TEST_PARTICIPANT_ID)
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        statusCode: 403,
+        message: "Cannot delete the organizer participant",
       });
 
       expect(mockPrisma.participant.delete).not.toHaveBeenCalled();

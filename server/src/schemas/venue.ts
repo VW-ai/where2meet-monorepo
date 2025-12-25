@@ -13,13 +13,27 @@ import { CATEGORY_TO_PLACE_TYPE } from "../lib/places/index.js";
 const validCategories = Object.keys(CATEGORY_TO_PLACE_TYPE) as [string, ...string[]];
 
 /**
+ * Schema for geographic center point.
+ */
+const CenterSchema = z.object({
+  lat: z
+    .number()
+    .min(-90, "Latitude must be between -90 and 90")
+    .max(90, "Latitude must be between -90 and 90"),
+  lng: z
+    .number()
+    .min(-180, "Longitude must be between -180 and 180")
+    .max(180, "Longitude must be between -180 and 180"),
+});
+
+/**
  * Schema for searching venues.
- * Requires eventId and searchRadius.
+ * Requires center (user-provided search location) and searchRadius.
  * At least one of query or categories must be provided.
  */
 export const SearchVenuesSchema = z
   .object({
-    eventId: z.string().min(1, "Event ID is required"),
+    center: CenterSchema,
     searchRadius: z
       .number()
       .min(100, "Search radius must be at least 100 meters")

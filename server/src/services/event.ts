@@ -17,6 +17,7 @@ import type { CreateEventInput, UpdateEventInput } from "../schemas/event.js";
 import { EventNotFoundError } from "../types/errors.js";
 import { generateOrganizerToken, verifyToken } from "../utils/token.js";
 import { PARTICIPANT_COLORS } from "../utils/colors.js";
+import { calculateMEC, type GeoPoint, type MECResult } from "../utils/mec.js";
 
 /**
  * Result of creating an event.
@@ -133,6 +134,39 @@ export class EventService {
     }
 
     return verifyToken(token, storedHash);
+  }
+
+  /**
+   * Gets the Minimum Enclosing Circle (MEC) for an event's participants.
+   * Only includes participants with valid coordinates (excludes organizer participants).
+   * @param eventId - Event ID
+   * @returns MEC result with center and radius, or null values if no participants have locations
+   * @throws EventNotFoundError if event doesn't exist
+   */
+  async getMEC(eventId: string): Promise<MECResult | null> {
+    const event = await this.repository.findById(eventId);
+
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    // Filter participants with valid coordinates (excludes organizer with null lat/lng)
+    const participantsWithLocation = event.participants.filter(
+      (p): p is typeof p & { lat: NonNullable<typeof p.lat>; lng: NonNullable<typeof p.lng> } =>
+        p.lat !== null && p.lng !== null
+    );
+
+    if (participantsWithLocation.length === 0) {
+      return null;
+    }
+
+    // Convert to GeoPoint array
+    const points: GeoPoint[] = participantsWithLocation.map((p) => ({
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+    }));
+
+    return calculateMEC(points);
   }
 }
 

@@ -386,3 +386,96 @@ async createWithOrganizerParticipant(
 
 **Tests Updated**: 299 tests passing
 - `tests/services/venue.test.ts` - Updated error message expectation
+
+---
+
+## 2025-12-25
+
+### Issue #18: Separate MEC from Venue Search (COMPLETED)
+
+#### Problem Statement
+The `POST /api/venues/search` endpoint coupled two concerns:
+1. MEC calculation (geometric center from participants)
+2. Venue search (Places API query)
+
+This failed when only the organizer existed (no addresses) and didn't support the frontend's draggable search circle feature.
+
+#### Solution: Separate Endpoints with Clear Responsibilities
+
+**New Endpoint: GET /api/events/:id/mec**
+- Returns MEC (Minimum Enclosing Circle) for frontend to display as suggested search area
+- Returns `{ center: null, radiusMeters: null }` when no participants have locations
+- Supports 0, 1, 2, 3+ participants (Welzl algorithm for 3+)
+
+**Modified Endpoint: POST /api/venues/search**
+- Now accepts user-provided `center` coordinates directly (instead of eventId)
+- Removed MEC calculation from search flow
+- Search works immediately without requiring participants with addresses
+
+#### Frontend Flow
+```
+1. GET /api/events/:id/mec → display MEC circle on map as suggestion
+2. User accepts MEC position OR drags circle elsewhere
+3. POST /api/venues/search with chosen center coordinates
+```
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/services/event.ts` | Added `getMEC()` method |
+| `src/dto/event.dto.ts` | Added `GetMECResponseSchema` |
+| `src/dto/index.ts` | Export new schema |
+| `src/mappers/event.mapper.ts` | Added `toGetMECResponse()` mapper |
+| `src/routes/events.ts` | Added `GET /api/events/:id/mec` endpoint |
+| `src/schemas/venue.ts` | Changed `eventId` to `center: { lat, lng }` with validation |
+| `src/services/venue.ts` | Simplified `searchVenues()` to accept center directly |
+| `src/routes/venues.ts` | Updated to use new schema |
+| `tests/events.test.ts` | Added 5 MEC endpoint tests with geocoding mock |
+| `tests/venues.test.ts` | Updated to use `center` instead of `eventId` |
+| `tests/services/venue.test.ts` | Removed event lookup tests, updated to use center |
+| `META/ARCHITECTURE/API_SPECIFICATION.md` | Documented new MEC endpoint and updated venue search |
+
+#### Test Summary
+- All tests passing (302 tests)
+- New tests added: 5 MEC endpoint tests, 1 invalid coordinates test
+- Tests removed: 2 event-not-found tests (no longer applicable)
+
+### Issue #19: Organizer Deletion Protection (COMPLETED)
+
+#### Problem Statement
+The auto-created organizer participant (`isOrganizer: true`) could be deleted like any other participant, which would break event integrity.
+
+#### Solution
+Added validation in `ParticipantService.deleteParticipant()` to reject deletion of organizer participants with a 403 Forbidden error.
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/services/participant.ts` | Added `isOrganizer` check in `deleteParticipant()`, throws `ForbiddenError` |
+| `tests/services/participant.test.ts` | Added unit test for organizer deletion rejection, updated mocks |
+| `tests/participants.test.ts` | Added integration test for 403 response when deleting organizer |
+
+#### Code Change
+```typescript
+async deleteParticipant(eventId: string, participantId: string): Promise<void> {
+  await this.ensureEventModifiable(eventId);
+
+  const participant = await this.participantRepo.findById(participantId);
+  if (!participant || participant.eventId !== eventId) {
+    throw new ParticipantNotFoundError(participantId);
+  }
+
+  // Prevent organizer deletion
+  if (participant.isOrganizer) {
+    throw new ForbiddenError("Cannot delete the organizer participant");
+  }
+
+  await this.participantRepo.delete(participantId);
+}
+```
+
+#### Test Summary
+- All tests passing (304 tests)
+- New tests added: 1 unit test, 1 integration test

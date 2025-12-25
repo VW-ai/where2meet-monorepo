@@ -13,10 +13,11 @@
 | Event | /api/events/:id | PATCH | 更新活动 |
 | Event | /api/events/:id | DELETE | 删除活动 |
 | Event | /api/events/:id/publish | POST | 发布场所 |
+| Event | /api/events/:id/mec | GET | 获取最小外接圆 (MEC) |
 | Participant | /api/events/:id/participants | POST | 添加参与者（可选认证） |
 | Participant | /api/events/:id/participants/:pid | PATCH | 更新参与者（双令牌） |
 | Participant | /api/events/:id/participants/:pid | DELETE | 移除参与者（双令牌） |
-| Venue | /api/venues/search | POST | 搜索场所 |
+| Venue | /api/venues/search | POST | 搜索场所（用户指定中心点） |
 | Venue | /api/venues/:id | GET | 获取场所详情 |
 | Vote | /api/events/:id/participants/:pid/votes | POST | 投票（仅自己） |
 | Vote | /api/events/:id/participants/:pid/votes/:venueId | DELETE | 取消投票（仅自己） |
@@ -225,6 +226,42 @@ POST /api/events/:id/publish
 
 ---
 
+### 2.6 获取最小外接圆 (MEC)
+
+```
+GET /api/events/:id/mec
+```
+
+**说明**：返回参与者位置的最小外接圆 (Minimum Enclosing Circle)，用于前端显示搜索区域建议。
+
+**前端输入：**
+| 参数 | 位置 | 说明 |
+|------|------|------|
+| id | URL Path | 活动 ID |
+
+**后端输出（成功 200）：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| center | Location \| null | MEC 圆心坐标（无参与者位置时为 null） |
+| radiusMeters | number \| null | MEC 半径（米）（无参与者位置时为 null） |
+
+**使用场景**：
+1. 前端调用此端点获取建议的搜索区域
+2. 用户可以接受 MEC 建议或手动拖动搜索圆
+3. 用户选定位置后调用 `POST /api/venues/search` 进行搜索
+
+**边界情况**：
+- 0 个参与者有位置 → `{ center: null, radiusMeters: null }`
+- 1 个参与者 → `{ center: 该点, radiusMeters: 0 }`
+- 2+ 个参与者 → Welzl 算法计算 MEC
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 404 | EVENT_NOT_FOUND | 活动不存在 |
+
+---
+
 ## 三、Participant 模块
 
 ### 3.1 添加参与者（可选认证）
@@ -368,25 +405,30 @@ DELETE /api/events/:id/participants/:participantId
 POST /api/venues/search
 ```
 
+**说明**：根据用户指定的搜索中心点和半径搜索附近场所。搜索中心由前端提供（可来自 MEC 端点建议或用户手动指定）。
+
 **前端输入：**
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| center | Location | ✓ | 搜索中心点 { lat, lng } |
-| radius | number | ✓ | 搜索半径（米） |
-| categories | string[] | - | 类别过滤 ["cafe", "restaurant", "bar", "park", "library"] |
-| query | string | - | 文本搜索关键词 |
-| travelMode | string | - | 出行方式 |
+| center | Location | ✓ | 搜索中心点 { lat: -90~90, lng: -180~180 } |
+| searchRadius | number | ✓ | 搜索半径（米），100~50000 |
+| categories | string[] | - | 类别过滤 ["cafe", "restaurant", "bar", "park", "library", "gym", "museum", "shopping", "things_to_do"] |
+| query | string | - | 文本搜索关键词（1-100 字符） |
+
+**注意**：`query` 和 `categories` 至少需要提供一个。
 
 **后端处理**：
-1. 调用 Google Places API Nearby Search 或 Text Search
-2. 按距离排序
-3. 返回结果
+1. 验证 center 坐标范围、searchRadius 范围
+2. 调用 Google Places API Nearby Search（categories）或 Text Search（query）
+3. 按评分排序（高到低，null 评分排最后）
+4. 返回结果
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | venues | Venue[] | 场所列表 |
 | totalResults | number | 结果总数 |
+| searchCenter | Location | 搜索中心点（与输入 center 相同） |
 
 **Venue 对象结构：**
 | 字段 | 类型 | 说明 |
@@ -727,14 +769,15 @@ POST /api/directions
 | GET /api/events/:id | ✅ 已实现 | |
 | PATCH /api/events/:id | ✅ 已实现 | |
 | DELETE /api/events/:id | ✅ 已实现 | |
-| POST /api/events/:id/publish | ❌ 未实现 | 前端有调用 |
-| POST /api/events/:id/participants | ✅ 已实现 | 需升级：可选认证 + participantToken |
-| PATCH /api/events/:id/participants/:pid | ✅ 已实现 | 需升级为双令牌 |
-| DELETE /api/events/:id/participants/:pid | ✅ 已实现 | 需升级为双令牌 |
-| POST /api/venues/search | ✅ 已实现 | |
+| POST /api/events/:id/publish | ✅ 已实现 | |
+| GET /api/events/:id/mec | ✅ 已实现 | 返回 MEC（可为 null） |
+| POST /api/events/:id/participants | ✅ 已实现 | 可选认证 + participantToken |
+| PATCH /api/events/:id/participants/:pid | ✅ 已实现 | 双令牌认证 |
+| DELETE /api/events/:id/participants/:pid | ✅ 已实现 | 双令牌认证 |
+| POST /api/venues/search | ✅ 已实现 | 用户提供 center 坐标 |
 | GET /api/venues/:id | ✅ 已实现 | |
-| POST /api/events/:id/votes | ❌ 未实现 | 需新增 |
-| DELETE /api/events/:id/votes | ❌ 未实现 | 需新增 |
-| GET /api/events/:id/votes | ❌ 未实现 | 需新增 |
+| POST /api/events/:id/participants/:pid/votes | ✅ 已实现 | 仅自己投票 |
+| DELETE /api/events/:id/participants/:pid/votes/:venueId | ✅ 已实现 | 仅自己取消 |
+| GET /api/events/:id/votes | ✅ 已实现 | 公开统计 |
 | POST /api/geocode | ✅ 已实现 | |
 | POST /api/directions | ✅ 已实现 | |
