@@ -76,7 +76,7 @@ export async function buildServer() {
 
   // Register CORS
   await server.register(cors, {
-    origin: config.CORS_ORIGIN === "*" ? true : config.CORS_ORIGIN.split(",").map(o => o.trim()),
+    origin: config.CORS_ORIGIN === "*" ? true : config.CORS_ORIGIN.split(",").map((o) => o.trim()),
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });
