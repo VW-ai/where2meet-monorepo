@@ -50,7 +50,6 @@ export class DirectionsService {
 
   /**
    * Calculates routes for participants to a venue.
-   *
    * @param eventId - Event ID to get participants from
    * @param venueId - Google Place ID of the destination venue
    * @param travelMode - Travel mode (driving, walking, transit, bicycling)

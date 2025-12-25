@@ -45,17 +45,14 @@ interface VerifyOrganizerTokenOptions {
 
 /**
  * Creates a preHandler hook that verifies the organizer token.
- *
  * @param options.optional - If true, allows requests without token
  * @returns Fastify preHandler hook
- *
  * @example
  * // Required token (event PATCH/DELETE)
  * fastify.patch("/api/events/:id", {
  *   preHandler: [verifyOrganizerToken()],
  *   handler: updateEventHandler,
  * });
- *
  * @example
  * // Optional token (participant POST - self-registration)
  * fastify.post("/api/events/:id/participants", {
@@ -119,10 +116,8 @@ interface VerifyParticipantAccessOptions {
  * - URL participantId must match the organizer's participant ID
  *
  * Sets request.participantAuth with auth context for use in handlers.
- *
  * @param options.selfOnly - If true, organizer can only access their own participant
  * @returns Fastify preHandler hook
- *
  * @throws UnauthorizedError (401) if no token provided
  * @throws ForbiddenError (403) if token invalid or insufficient permissions
  */
@@ -186,7 +181,6 @@ export function createVerifyParticipantAccess(options: VerifyParticipantAccessOp
 /**
  * PreHandler hook that verifies either organizer or participant token.
  * This is the default hook where organizer has full access to any participant.
- *
  * @deprecated Use createVerifyParticipantAccess() for new code
  */
 export const verifyParticipantAccess = createVerifyParticipantAccess();
@@ -202,12 +196,9 @@ export const verifyParticipantAccess = createVerifyParticipantAccess();
  * - GET /api/events/:id/venues/:venueId/directions
  *
  * Sets request.participantAuth with auth context for use in handlers.
- *
  * @returns Fastify preHandler hook
- *
  * @throws UnauthorizedError (401) if no token provided
  * @throws ForbiddenError (403) if token invalid
- *
  * @example
  * fastify.get("/api/events/:id/venues/:venueId/directions", {
  *   preHandler: [createVerifyEventAccess()],

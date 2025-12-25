@@ -6,9 +6,7 @@
  * - Redis caching with 1-hour TTL
  * - Exponential backoff retry for transient failures
  * - Imperial distance/duration formatting
- *
  * @module lib/directions
- *
  * @example
  * ```typescript
  * import { calculateRoute, calculateBatchRoutes } from "./lib/directions/index.js";

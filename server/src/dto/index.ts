@@ -20,12 +20,14 @@ export type { ParticipantResponse, CreateParticipantResponse } from "./participa
 // Event DTOs
 export {
   MECResponseSchema,
+  GetMECResponseSchema,
   EventSettingsResponseSchema,
   EventResponseSchema,
   CreateEventResponseSchema,
 } from "./event.dto.js";
 export type {
   MECResponse,
+  GetMECResponse,
   EventSettingsResponse,
   EventResponse,
   CreateEventResponse,

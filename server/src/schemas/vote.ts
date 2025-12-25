@@ -19,7 +19,7 @@ export const VenueDataSchema = z.object({
   rating: z.number().min(0).max(5).optional().nullable(),
   priceLevel: z.number().int().min(0).max(4).optional().nullable(),
   category: z.string().optional().nullable(),
-  photoUrl: z.string().url().optional().nullable(),
+  photoUrl: z.url().optional().nullable(),
 });
 
 /**
@@ -27,7 +27,7 @@ export const VenueDataSchema = z.object({
  * Request body for POST /api/events/:id/votes
  */
 export const CastVoteSchema = z.object({
-  participantId: z.string().uuid("Invalid participant ID format"),
+  participantId: z.uuid("Invalid participant ID format"),
   venueId: z.string().min(1, "Venue ID is required"),
   venueData: VenueDataSchema,
 });
@@ -37,7 +37,7 @@ export const CastVoteSchema = z.object({
  * Request body for DELETE /api/events/:id/votes
  */
 export const RemoveVoteSchema = z.object({
-  participantId: z.string().uuid("Invalid participant ID format"),
+  participantId: z.uuid("Invalid participant ID format"),
   venueId: z.string().min(1, "Venue ID is required"),
 });
 

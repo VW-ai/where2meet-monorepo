@@ -21,6 +21,7 @@ import { toParticipantResponse, toCreateParticipantResponse } from "../mappers/e
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { verifyOrganizerToken, createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
+import type { ParticipantAddedPayload, ParticipantUpdatedPayload, ParticipantRemovedPayload } from "../types/sse.js";
 
 /**
  * Route parameter types.
@@ -90,6 +91,24 @@ export function participantRoutes(fastify: FastifyInstance): void {
         result.participantToken
       );
 
+      // Broadcast SSE event (non-blocking)
+      const ssePayload: ParticipantAddedPayload = {
+        participant: {
+          id: result.participant.id,
+          name: result.participant.name,
+          address: result.participant.address,
+          lat: result.participant.lat ? Number(result.participant.lat) : null,
+          lng: result.participant.lng ? Number(result.participant.lng) : null,
+          color: result.participant.color,
+          isOrganizer: result.participant.isOrganizer,
+        },
+      };
+      fastify.sse.broadcast({
+        eventId: paramsResult.data.id,
+        type: "participant:added",
+        payload: ssePayload,
+      }).catch(() => { /* SSE broadcast failure is non-critical */ });
+
       return reply.status(201).send(response);
     }
   );
@@ -123,6 +142,24 @@ export function participantRoutes(fastify: FastifyInstance): void {
       );
       const response = toParticipantResponse(participant);
 
+      // Broadcast SSE event (non-blocking)
+      const ssePayload: ParticipantUpdatedPayload = {
+        participant: {
+          id: participant.id,
+          name: participant.name,
+          address: participant.address,
+          lat: participant.lat ? Number(participant.lat) : null,
+          lng: participant.lng ? Number(participant.lng) : null,
+          color: participant.color,
+          isOrganizer: participant.isOrganizer,
+        },
+      };
+      fastify.sse.broadcast({
+        eventId: request.params.id,
+        type: "participant:updated",
+        payload: ssePayload,
+      }).catch(() => { /* SSE broadcast failure is non-critical */ });
+
       return reply.send(response);
     }
   );
@@ -148,6 +185,16 @@ export function participantRoutes(fastify: FastifyInstance): void {
         request.params.id,
         request.params.participantId
       );
+
+      // Broadcast SSE event (non-blocking)
+      const ssePayload: ParticipantRemovedPayload = {
+        participantId: request.params.participantId,
+      };
+      fastify.sse.broadcast({
+        eventId: request.params.id,
+        type: "participant:removed",
+        payload: ssePayload,
+      }).catch(() => { /* SSE broadcast failure is non-critical */ });
 
       return reply.send(createDeleteSuccessResponse("Participant deleted successfully"));
     }

@@ -21,12 +21,12 @@ import {
   ValidationError,
   ExternalServiceError,
 } from "../types/errors.js";
-import { getPlaceDetails, PlacesApiError } from "../lib/places/index.js";
+import { getPlaceDetails, buildPhotoUrl, PlacesApiError } from "../lib/places/index.js";
 import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
 import { createLogger } from "../lib/logger.js";
-import { config } from "../lib/config.js";
 import { generateOrganizerToken, verifyToken } from "../utils/token.js";
 import { PARTICIPANT_COLORS } from "../utils/colors.js";
+import { calculateMEC, type GeoPoint, type MECResult } from "../utils/mec.js";
 
 const logger = createLogger("EventService");
 
@@ -57,7 +57,9 @@ export class EventService {
 
   /**
    * Creates a new event with an auto-created organizer participant.
-   * The organizer participant has no location and is excluded from MEC calculation.
+   * The organizer participant initially has no location; MEC calculations
+   * include any participant who has valid coordinates (including the organizer
+   * once they add a location).
    * Uses repository with ID collision retry logic.
    * @param input - Event creation data
    * @returns Created event entity, organizerToken, and organizerParticipantId
@@ -150,11 +152,46 @@ export class EventService {
   }
 
   /**
+   * Gets the Minimum Enclosing Circle (MEC) for an event's participants.
+   * Includes all participants with valid coordinates. The organizer is included
+   * if they have a location; when organizer lat/lng are null they are naturally
+   * excluded.
+   * @param eventId - Event ID
+   * @returns MEC result with center and radius, or null values if no participants have locations
+   * @throws EventNotFoundError if event doesn't exist
+   */
+  async getMEC(eventId: string): Promise<MECResult | null> {
+    const event = await this.repository.findById(eventId);
+
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    // Filter participants with valid coordinates. Organizer is included only if
+    // they have non-null lat/lng (initially organizer has no location).
+    const participantsWithLocation = event.participants.filter(
+      (p): p is typeof p & { lat: NonNullable<typeof p.lat>; lng: NonNullable<typeof p.lng> } =>
+        p.lat !== null && p.lng !== null
+    );
+
+    if (participantsWithLocation.length === 0) {
+      return null;
+    }
+
+    // Convert to GeoPoint array
+    const points: GeoPoint[] = participantsWithLocation.map((p) => ({
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+    }));
+
+    return calculateMEC(points);
+  }
+
+  /**
    * Publishes an event with the selected venue.
    *
    * Validates the venue via Google Places API before publishing.
    * If venue is valid, upserts it to the database for caching.
-   *
    * @param eventId - Event ID
    * @param venueId - Google Place ID of the selected venue
    * @returns Updated event with publishedVenueId and publishedAt
@@ -191,7 +228,7 @@ export class EventService {
           rating: details.rating,
           priceLevel: details.priceLevel,
           photoUrl: details.photoReference
-            ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photoReference}&key=${config.GOOGLE_MAPS_API_KEY}`
+            ? buildPhotoUrl(details.photoReference)
             : null,
         })
         .catch((error: unknown) => {
@@ -214,7 +251,6 @@ export class EventService {
 
   /**
    * Unpublishes an event, clearing the published venue.
-   *
    * @param eventId - Event ID
    * @returns Updated event with publishedVenueId and publishedAt set to null
    * @throws EventNotFoundError if event doesn't exist

@@ -34,7 +34,6 @@ function normalizeCoord(coord: number): string {
 /**
  * Generates cache key for a single route.
  * Format: directions:{originLat},{originLng}:{destLat},{destLng}:{mode}
- *
  * @param originLat - Origin latitude
  * @param originLng - Origin longitude
  * @param destLat - Destination latitude
@@ -57,7 +56,6 @@ export function getRouteCacheKey(
 /**
  * Retrieves cached route from Redis.
  * Cache errors are logged but never thrown - cache misses are graceful.
- *
  * @param cacheKey - The cache key to look up
  * @returns Cached route data or null if not found
  */
@@ -77,7 +75,6 @@ export async function getCachedRoute(cacheKey: string): Promise<CachedRouteData 
  * Stores route result in Redis cache.
  * Cache errors are logged but never thrown - cache write failures
  * don't break the request.
- *
  * @param cacheKey - The cache key to store under
  * @param data - Route data to cache
  */

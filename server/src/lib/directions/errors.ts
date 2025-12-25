@@ -28,7 +28,6 @@ export class DirectionsApiError extends Error {
 
 /**
  * Handles Google Directions API status codes and throws appropriate errors.
- *
  * @param status - The status string from Google Directions API response
  * @param errorMessage - Optional error message from the API
  * @throws DirectionsApiError for non-OK statuses

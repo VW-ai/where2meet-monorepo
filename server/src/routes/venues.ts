@@ -30,7 +30,7 @@ type GetVenueDetailsRequest = FastifyRequest<{ Params: VenueIdParam }>;
  * Registers venue routes on the Fastify instance.
  *
  * Endpoints:
- * - POST /api/venues/search - Search for venues near event MEC
+ * - POST /api/venues/search - Search for venues near user-specified center
  * - GET /api/venues/:id - Get venue details
  */
 export function venueRoutes(fastify: FastifyInstance): void {
@@ -38,7 +38,7 @@ export function venueRoutes(fastify: FastifyInstance): void {
 
   /**
    * POST /api/venues/search
-   * Searches for venues near the event's MEC center.
+   * Searches for venues near the user-specified center.
    * No authentication required.
    */
   fastify.post(
@@ -50,10 +50,10 @@ export function venueRoutes(fastify: FastifyInstance): void {
         throw parseResult.error;
       }
 
-      const { eventId, searchRadius, query, categories } = parseResult.data;
+      const { center, searchRadius, query, categories } = parseResult.data;
 
       const { places, searchCenter } = await venueService.searchVenues(
-        eventId,
+        center,
         searchRadius,
         { query, categories }
       );

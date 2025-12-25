@@ -20,7 +20,6 @@ const GOOGLE_DIRECTIONS_API_URL =
 
 /**
  * Calculates a route between two points.
- *
  * @param origin - Starting point coordinates
  * @param destination - Ending point coordinates
  * @param mode - Travel mode (driving, walking, transit, bicycling)
@@ -122,7 +121,6 @@ export interface ParticipantLocation {
 /**
  * Calculates routes for multiple participants to a single venue.
  * Runs all calculations in parallel for performance.
- *
  * @param participants - Array of participant locations
  * @param venue - Venue coordinates (destination)
  * @param mode - Travel mode

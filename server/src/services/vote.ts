@@ -50,7 +50,6 @@ export class VoteService {
    * 2. Verify participant belongs to the event
    * 3. Upsert venue to global table (with 5-day refresh logic)
    * 4. Insert vote record (handles P2002 for idempotency)
-   *
    * @param eventId - Event ID
    * @param participantId - Participant ID
    * @param venueId - Venue ID (Google Place ID)
@@ -172,7 +171,6 @@ export class VoteService {
   /**
    * Removes a vote for a venue in an event.
    * Uses deleteMany for idempotency (no error if vote doesn't exist).
-   *
    * @param eventId - Event ID
    * @param participantId - Participant ID
    * @param venueId - Venue ID (Google Place ID)
@@ -207,7 +205,6 @@ export class VoteService {
   /**
    * Gets vote statistics for an event.
    * Returns aggregated vote counts and voter lists per venue.
-   *
    * @param eventId - Event ID
    * @returns Vote statistics with venue details
    * @throws EventNotFoundError if event doesn't exist

@@ -19,6 +19,7 @@ import {
   EventAlreadyPublishedError,
   AddressNotFoundError as BusinessAddressNotFoundError,
   ExternalServiceError,
+  ForbiddenError,
 } from "../types/errors.js";
 import { geocode, AddressNotFoundError, GeocodingApiError } from "../lib/maps.js";
 import { assignColor } from "../utils/colors.js";
@@ -314,15 +315,21 @@ export class ParticipantService {
    * @throws EventNotFoundError if event doesn't exist
    * @throws ParticipantNotFoundError if participant doesn't exist
    * @throws EventAlreadyPublishedError if event is published
+   * @throws ForbiddenError if participant is the organizer
    */
   async deleteParticipant(eventId: string, participantId: string): Promise<void> {
     // Check event exists and is not published
     await this.ensureEventModifiable(eventId);
 
-    // Check participant exists and belongs to event
-    const exists = await this.participantRepo.belongsToEvent(participantId, eventId);
-    if (!exists) {
+    // Fetch participant to check isOrganizer
+    const participant = await this.participantRepo.findById(participantId);
+    if (participant?.eventId !== eventId) {
       throw new ParticipantNotFoundError(participantId);
+    }
+
+    // Prevent organizer deletion
+    if (participant.isOrganizer) {
+      throw new ForbiddenError("Cannot delete the organizer participant");
     }
 
     await this.participantRepo.delete(participantId);

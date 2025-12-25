@@ -98,7 +98,7 @@ export class EventRepository {
       "Failed to generate unique event ID after max retries"
     );
     throw new Error(
-      `Failed to generate unique event ID after ${MAX_ID_GENERATION_RETRIES} attempts`
+      `Failed to generate unique event ID after ${String(MAX_ID_GENERATION_RETRIES)} attempts`
     );
   }
 
@@ -272,7 +272,9 @@ export class EventRepository {
             },
           });
 
-          // Create organizer participant (no location, excluded from MEC)
+          // Create organizer participant (initially no location). MEC calculations
+          // include any participant with valid coordinates, so the organizer will be
+          // included once they add a location.
           const organizerParticipant = await tx.participant.create({
             data: {
               eventId: event.id,
@@ -326,7 +328,7 @@ export class EventRepository {
       "Failed to generate unique event ID after max retries"
     );
     throw new Error(
-      `Failed to generate unique event ID after ${MAX_ID_GENERATION_RETRIES} attempts`
+      `Failed to generate unique event ID after ${String(MAX_ID_GENERATION_RETRIES)} attempts`
     );
   }
 }
