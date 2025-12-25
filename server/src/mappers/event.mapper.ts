@@ -13,13 +13,16 @@ import {
   CreateEventResponseSchema,
   ParticipantResponseSchema,
   CreateParticipantResponseSchema,
+  GetMECResponseSchema,
   type EventResponse,
   type CreateEventResponse,
   type ParticipantResponse,
   type CreateParticipantResponse,
   type MECResponse,
+  type GetMECResponse,
   type EventSettingsResponse,
 } from "../dto/index.js";
+import type { MECResult } from "../utils/mec.js";
 
 /**
  * Transforms a Participant entity to ParticipantResponse DTO.
@@ -76,6 +79,28 @@ export function toMECResponse(_entity: EventWithParticipants): MECResponse | nul
   // MEC fields will be added in Milestone 3
   // For now, return null since Event doesn't have MEC fields yet
   return null;
+}
+
+/**
+ * Transforms MEC calculation result to GetMECResponse DTO.
+ * Returns null center and radiusMeters if no MEC result.
+ * @param mecResult - MEC calculation result from EventService.getMEC()
+ */
+export function toGetMECResponse(mecResult: MECResult | null): GetMECResponse {
+  if (!mecResult) {
+    return GetMECResponseSchema.parse({
+      center: null,
+      radiusMeters: null,
+    });
+  }
+
+  return GetMECResponseSchema.parse({
+    center: {
+      lat: mecResult.center.lat,
+      lng: mecResult.center.lng,
+    },
+    radiusMeters: mecResult.radiusMeters,
+  });
 }
 
 /**

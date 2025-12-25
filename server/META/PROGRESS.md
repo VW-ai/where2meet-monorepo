@@ -389,124 +389,93 @@ async createWithOrganizerParticipant(
 
 ---
 
-### Milestone 6: Routes + Publish (COMPLETED)
+## 2025-12-25
 
-#### 6.1 Directions Library
-- Created `src/lib/directions/` folder with atomic modules:
-  - `types.ts` - Google Directions API types, RouteResult, TravelMode
-  - `errors.ts` - DirectionsApiError, RouteNotFoundError, status code handling
-  - `format.ts` - formatDistanceImperial(), formatDuration() for imperial units
-  - `cache.ts` - Redis caching with coordinate-based keys (4 decimal precision)
-  - `client.ts` - HTTP client with retry logic (100ms → 400ms → 1600ms)
-  - `routes.ts` - calculateRoute(), calculateBatchRoutes()
-  - `index.ts` - Public exports
-- Created `tests/unit/directions-format.test.ts` - 22 unit tests
-  - Distance formatting (feet for < 0.1 mi, miles otherwise)
-  - Duration formatting (hours + minutes with proper pluralization)
+### Issue #18: Separate MEC from Venue Search (COMPLETED)
 
-#### 6.2 Directions API Layer
-- Created `src/dto/directions.dto.ts` - RouteResponseSchema, DirectionsResponseSchema
-- Created `src/mappers/directions.mapper.ts` - toDirectionsResponse()
-- Created `src/services/directions.ts` - DirectionsService
-  - `getDirections(eventId, venueId, travelMode, participantId?)` - batch routes
-  - Validates venue exists in database
-  - Filters to participants with valid coordinates (excludes organizer)
-- Created `src/routes/directions.ts` - Directions endpoint
-  - GET /api/events/:id/venues/:venueId/directions
-  - Query params: travelMode (driving|walking|transit|bicycling), participantId
-  - Uses `createVerifyEventAccess()` hook for dual-token auth
-- Created `tests/directions.test.ts` - 14 integration tests
+#### Problem Statement
+The `POST /api/venues/search` endpoint coupled two concerns:
+1. MEC calculation (geometric center from participants)
+2. Venue search (Places API query)
 
-#### 6.3 Auth Hook Refactoring
-- Refactored `src/hooks/auth.ts`:
-  - Extracted `verifyEventToken()` helper for shared token validation logic
-  - Created `createVerifyEventAccess()` for event-level auth (directions endpoint)
-  - Refactored `createVerifyParticipantAccess()` to use shared helper
-  - Consistent `ParticipantAuthContext` interface across all hooks
+This failed when only the organizer existed (no addresses) and didn't support the frontend's draggable search circle feature.
 
-#### 6.4 Publish Feature
-- Updated `src/repositories/event.ts`:
-  - Added `publish(id, venueId)` - sets publishedVenueId + publishedAt
-  - Added `unpublish(id)` - clears publishedVenueId + publishedAt to null
-- Updated `src/services/event.ts`:
-  - Added `publishEvent(eventId, venueId)` - validates venue via Google Places API
-  - Added `unpublishEvent(eventId)` - clears publish state
-  - Upserts venue to global table on successful validation
-- Updated `src/types/errors.ts`:
-  - Added `EventNotPublishedError` (409 EVENT_NOT_PUBLISHED)
-- Created `src/schemas/event.ts`:
-  - Added `PublishEventSchema` for venueId validation
-- Updated `src/routes/events.ts`:
-  - POST /api/events/:id/publish - organizer-only, validates venueId
-  - DELETE /api/events/:id/publish - organizer-only, unpublish
-- Created `tests/publish.test.ts` - 20 integration tests
-  - Publish: auth, validation, success, 409 already published
-  - Unpublish: auth, success, 409 not published
-  - Post-publish restrictions: 409 on add/update/delete participant, 409 on voting
-  - Post-unpublish: allows modifications again
+#### Solution: Separate Endpoints with Clear Responsibilities
 
-#### 6.5 Configuration
-- Updated `src/lib/config.ts`:
-  - Added `DIRECTIONS_CACHE_TTL_SECONDS` (3600, 1 hour)
-  - Added `DIRECTIONS_TIMEOUT_MS` (10000, 10 seconds)
+**New Endpoint: GET /api/events/:id/mec**
+- Returns MEC (Minimum Enclosing Circle) for frontend to display as suggested search area
+- Returns `{ center: null, radiusMeters: null }` when no participants have locations
+- Supports 0, 1, 2, 3+ participants (Welzl algorithm for 3+)
 
-#### 6.6 Caching Strategy
-- Per-route caching with coordinate-based keys:
-  - Key format: `directions:{originLat},{originLng}:{destLat},{destLng}:{mode}`
-  - Coordinate normalization: 4 decimal places (~11m precision)
-  - TTL: 1 hour
-  - Benefits: Automatic invalidation on coordinate change, no explicit cache clear needed
+**Modified Endpoint: POST /api/venues/search**
+- Now accepts user-provided `center` coordinates directly (instead of eventId)
+- Removed MEC calculation from search flow
+- Search works immediately without requiring participants with addresses
 
-#### Test Summary
-- Total tests: 355 passing
-  - Directions format unit tests: 22 tests
-  - Directions integration tests: 14 tests
-  - Publish integration tests: 20 tests
-  - Previous tests: 299 tests
-
-#### Files Created
-| Path | Description |
-|------|-------------|
-| `src/lib/directions/types.ts` | Type definitions |
-| `src/lib/directions/errors.ts` | Error classes |
-| `src/lib/directions/format.ts` | Formatting utils |
-| `src/lib/directions/cache.ts` | Redis caching |
-| `src/lib/directions/client.ts` | HTTP client |
-| `src/lib/directions/routes.ts` | Route calculation |
-| `src/lib/directions/index.ts` | Public exports |
-| `src/dto/directions.dto.ts` | Response DTOs |
-| `src/mappers/directions.mapper.ts` | Response mapper |
-| `src/services/directions.ts` | Directions service |
-| `src/routes/directions.ts` | Directions route |
-| `tests/unit/directions-format.test.ts` | Format tests |
-| `tests/directions.test.ts` | Integration tests |
-| `tests/publish.test.ts` | Publish tests |
+#### Frontend Flow
+```
+1. GET /api/events/:id/mec → display MEC circle on map as suggestion
+2. User accepts MEC position OR drags circle elsewhere
+3. POST /api/venues/search with chosen center coordinates
+```
 
 #### Files Modified
-| Path | Changes |
-|------|---------|
-| `src/lib/config.ts` | Added DIRECTIONS_* config |
-| `src/dto/index.ts` | Export directions DTOs |
-| `src/hooks/auth.ts` | Refactored with verifyEventToken helper, added createVerifyEventAccess |
-| `src/repositories/event.ts` | Added publish(), unpublish() methods |
-| `src/services/event.ts` | Added publishEvent(), unpublishEvent() methods |
-| `src/routes/events.ts` | Added POST/DELETE /publish routes |
-| `src/server.ts` | Registered directions routes |
-| `src/types/errors.ts` | Added EventNotPublishedError |
-| `src/schemas/event.ts` | Added PublishEventSchema |
 
-#### 6.7 Bug Fix: Directions API Venue Lookup
+| File | Change |
+|------|--------|
+| `src/services/event.ts` | Added `getMEC()` method |
+| `src/dto/event.dto.ts` | Added `GetMECResponseSchema` |
+| `src/dto/index.ts` | Export new schema |
+| `src/mappers/event.mapper.ts` | Added `toGetMECResponse()` mapper |
+| `src/routes/events.ts` | Added `GET /api/events/:id/mec` endpoint |
+| `src/schemas/venue.ts` | Changed `eventId` to `center: { lat, lng }` with validation |
+| `src/services/venue.ts` | Simplified `searchVenues()` to accept center directly |
+| `src/routes/venues.ts` | Updated to use new schema |
+| `tests/events.test.ts` | Added 5 MEC endpoint tests with geocoding mock |
+| `tests/venues.test.ts` | Updated to use `center` instead of `eventId` |
+| `tests/services/venue.test.ts` | Removed event lookup tests, updated to use center |
+| `META/ARCHITECTURE/API_SPECIFICATION.md` | Documented new MEC endpoint and updated venue search |
 
-**Issue**: DirectionsService required venues to exist in the database before calculating routes. Newly searched venues (pre-vote/publish) weren't stored, so directions failed for the exact scenario it was meant to cover.
+#### Test Summary
+- All tests passing (302 tests)
+- New tests added: 5 MEC endpoint tests, 1 invalid coordinates test
+- Tests removed: 2 event-not-found tests (no longer applicable)
 
-**Solution**: Added fallback to Google Places API when venue not in database:
-1. First check database for venue coordinates
-2. If not found, fetch from `getPlaceDetails(venueId)`
-3. Use coordinates from whichever source succeeded
-4. Return 400 only if Places API returns NOT_FOUND
+### Issue #19: Organizer Deletion Protection (COMPLETED)
 
-**Files Modified**:
-- `src/services/directions.ts` - Added Places API fallback with PlacesApiError handling
-- `tests/directions.test.ts` - Added Places API mock and new test case for fallback
+#### Problem Statement
+The auto-created organizer participant (`isOrganizer: true`) could be deleted like any other participant, which would break event integrity.
 
-**Tests**: 356 passing (+1 new test for Places API fallback)
+#### Solution
+Added validation in `ParticipantService.deleteParticipant()` to reject deletion of organizer participants with a 403 Forbidden error.
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/services/participant.ts` | Added `isOrganizer` check in `deleteParticipant()`, throws `ForbiddenError` |
+| `tests/services/participant.test.ts` | Added unit test for organizer deletion rejection, updated mocks |
+| `tests/participants.test.ts` | Added integration test for 403 response when deleting organizer |
+
+#### Code Change
+```typescript
+async deleteParticipant(eventId: string, participantId: string): Promise<void> {
+  await this.ensureEventModifiable(eventId);
+
+  const participant = await this.participantRepo.findById(participantId);
+  if (!participant || participant.eventId !== eventId) {
+    throw new ParticipantNotFoundError(participantId);
+  }
+
+  // Prevent organizer deletion
+  if (participant.isOrganizer) {
+    throw new ForbiddenError("Cannot delete the organizer participant");
+  }
+
+  await this.participantRepo.delete(participantId);
+}
+```
+
+#### Test Summary
+- All tests passing (304 tests)
+- New tests added: 1 unit test, 1 integration test

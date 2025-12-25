@@ -18,7 +18,7 @@ import {
   type EventIdParam,
   type PublishEventInput,
 } from "../schemas/event.js";
-import { toEventResponse, toCreateEventResponse } from "../mappers/event.mapper.js";
+import { toEventResponse, toCreateEventResponse, toGetMECResponse } from "../mappers/event.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { verifyOrganizerToken } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
@@ -35,6 +35,7 @@ type GetEventRequest = FastifyRequest<{ Params: EventIdParam }>;
  * Endpoints:
  * - POST /api/events - Create a new event
  * - GET /api/events/:id - Get event details
+ * - GET /api/events/:id/mec - Get MEC (Minimum Enclosing Circle) for event
  * - PATCH /api/events/:id - Update event (requires auth)
  * - DELETE /api/events/:id - Delete event (requires auth)
  * - POST /api/events/:id/publish - Publish event with venue (requires auth)
@@ -78,6 +79,27 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
       const event = await eventService.getEvent(parseResult.data.id);
       const response = toEventResponse(event);
+
+      return reply.send(response);
+    }
+  );
+
+  /**
+   * GET /api/events/:id/mec
+   * Returns the Minimum Enclosing Circle for the event's participants.
+   * Returns null center/radius if no participants have valid locations.
+   */
+  fastify.get(
+    "/api/events/:id/mec",
+    async (request: GetEventRequest, reply: FastifyReply) => {
+      // Validate params
+      const parseResult = EventIdSchema.safeParse(request.params);
+      if (!parseResult.success) {
+        throw new ValidationError("Invalid event ID format");
+      }
+
+      const mecResult = await eventService.getMEC(parseResult.data.id);
+      const response = toGetMECResponse(mecResult);
 
       return reply.send(response);
     }
