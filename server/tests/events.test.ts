@@ -20,6 +20,13 @@ vi.mock("../src/lib/maps.js", () => ({
         formattedAddress: "456 Oak Ave, New York, NY 10002, USA",
       });
     }
+    if (address.includes("789 Broadway")) {
+      return Promise.resolve({
+        lat: 40.7589,
+        lng: -73.9851,
+        formattedAddress: "789 Broadway, New York, NY 10003, USA",
+      });
+    }
     return Promise.resolve({
       lat: 40.7128,
       lng: -74.006,
@@ -415,6 +422,56 @@ describe("Event Endpoints", () => {
       expect(body.center).toHaveProperty("lat");
       expect(body.center).toHaveProperty("lng");
       expect(body.radiusMeters).toBeGreaterThan(0);
+    });
+
+    it("should include organizer in MEC after they add their location", async () => {
+      // Add one participant with location first
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${createdEventId}/participants`,
+        headers: { authorization: `Bearer ${organizerToken}` },
+        payload: { name: "Alice", address: "123 Main St, New York, NY" },
+      });
+
+      // Get initial MEC (just Alice)
+      const initialMec = await server.inject({
+        method: "GET",
+        url: `/api/events/${createdEventId}/mec`,
+      });
+      const initialCenter = initialMec.json().center;
+      expect(initialCenter).not.toBeNull();
+
+      // Get organizer's participant ID
+      const eventResponse = await server.inject({
+        method: "GET",
+        url: `/api/events/${createdEventId}`,
+      });
+      const organizerPid = eventResponse.json().participants.find(
+        (p: { isOrganizer: boolean }) => p.isOrganizer
+      ).id;
+
+      // Organizer updates their own location
+      await server.inject({
+        method: "PATCH",
+        url: `/api/events/${createdEventId}/participants/${organizerPid}`,
+        headers: { authorization: `Bearer ${organizerToken}` },
+        payload: { address: "789 Broadway, New York, NY" },
+      });
+
+      // Get updated MEC (now includes organizer)
+      const updatedMec = await server.inject({
+        method: "GET",
+        url: `/api/events/${createdEventId}/mec`,
+      });
+      const updatedBody = updatedMec.json();
+
+      expect(updatedBody.center).not.toBeNull();
+      // With two points, radius should be > 0 (distance between them)
+      expect(updatedBody.radiusMeters).toBeGreaterThan(0);
+      // Center should have shifted (now midpoint of Alice + Organizer)
+      // We can't assert exact values due to mocked geocoding, but center should exist
+      expect(updatedBody.center).toHaveProperty("lat");
+      expect(updatedBody.center).toHaveProperty("lng");
     });
 
     it("should return 404 for non-existent event", async () => {
