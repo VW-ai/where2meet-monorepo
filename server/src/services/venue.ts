@@ -7,11 +7,7 @@
  * @module services/venue
  */
 
-import type { PrismaClient, Venue } from "../generated/prisma/index.js";
-import {
-  createEventRepository,
-  type EventRepository,
-} from "../repositories/event.js";
+import type { PrismaClient } from "../generated/prisma/index.js";
 import {
   createVenueRepository,
   type VenueRepository,
@@ -27,8 +23,7 @@ import {
   type GeoPoint,
   CATEGORY_TO_PLACE_TYPE,
 } from "../lib/places/index.js";
-import { calculateMEC } from "../utils/mec.js";
-import { EventNotFoundError, ValidationError, ExternalServiceError } from "../types/errors.js";
+import { ExternalServiceError } from "../types/errors.js";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("VenueService");
@@ -56,63 +51,31 @@ export interface SearchVenuesOptions {
  * Response DTOs should be done in route handlers using mappers.
  */
 export class VenueService {
-  private readonly eventRepository: EventRepository;
   private readonly venueRepository: VenueRepository;
 
   constructor(db: PrismaClient) {
-    this.eventRepository = createEventRepository(db);
     this.venueRepository = createVenueRepository(db);
   }
 
   /**
-   * Searches for venues near an event's MEC center.
-   * @param eventId - Event ID to get participants from
+   * Searches for venues near a specified center point.
+   * @param center - Search center coordinates (user-provided)
    * @param searchRadius - Search radius in meters
    * @param options - Search filters (query and/or categories)
    * @returns Array of place results and search center
-   * @throws EventNotFoundError if event doesn't exist
-   * @throws ValidationError if event has no participants
    * @throws ExternalServiceError if Places API fails
    */
   async searchVenues(
-    eventId: string,
+    center: GeoPoint,
     searchRadius: number,
     options: SearchVenuesOptions
   ): Promise<VenueSearchResult> {
-    // Get event with participants
-    const event = await this.eventRepository.findById(eventId);
-    if (!event) {
-      throw new EventNotFoundError(eventId);
-    }
-
-    // Calculate MEC center from participants with valid locations
-    // Filter out organizer participants (isOrganizer=true) and any with null coordinates
-    const participantsWithLocation = event.participants.filter(
-      (p) => p.lat !== null && p.lng !== null
-    );
-
-    if (participantsWithLocation.length === 0) {
-      throw new ValidationError("Cannot search venues: no participants with valid locations");
-    }
-
-    const participantLocations: GeoPoint[] = participantsWithLocation.map((p) => ({
-      lat: Number(p.lat),
-      lng: Number(p.lng),
-    }));
-
-    const mec = calculateMEC(participantLocations);
-    if (!mec) {
-      throw new ValidationError("Cannot calculate search center");
-    }
-
-    const searchCenter = mec.center;
-
     try {
       let places: PlaceResult[] = [];
 
       // Search by query (text search)
       if (options.query) {
-        const textResults = await textSearchPlaces(options.query, searchCenter, searchRadius);
+        const textResults = await textSearchPlaces(options.query, center, searchRadius);
         places = [...places, ...textResults];
       }
 
@@ -121,7 +84,7 @@ export class VenueService {
         for (const category of options.categories) {
           const placeType = CATEGORY_TO_PLACE_TYPE[category];
           if (placeType) {
-            const categoryResults = await searchNearbyPlaces(searchCenter, searchRadius, {
+            const categoryResults = await searchNearbyPlaces(center, searchRadius, {
               type: placeType,
             });
             places = [...places, ...categoryResults];
@@ -137,7 +100,7 @@ export class VenueService {
 
       logger.info(
         {
-          eventId,
+          center,
           searchRadius,
           query: options.query,
           categories: options.categories,
@@ -146,10 +109,10 @@ export class VenueService {
         "Venue search completed"
       );
 
-      return { places: sortedPlaces, searchCenter };
+      return { places: sortedPlaces, searchCenter: center };
     } catch (error) {
       if (error instanceof PlacesApiError) {
-        logger.error({ err: error, eventId }, "Places API error during search");
+        logger.error({ err: error, center }, "Places API error during search");
         throw new ExternalServiceError("Google Places", error.message);
       }
       throw error;
@@ -191,31 +154,6 @@ export class VenueService {
       }
       throw error;
     }
-  }
-
-  /**
-   * Converts a Venue database entity to PlaceDetails API type.
-   * Fields not stored in DB (types, openingHours, etc.) are set to null.
-   */
-  private venueToPlaceDetails(venue: Venue): PlaceDetails {
-    return {
-      placeId: venue.id,
-      name: venue.name,
-      address: venue.address ?? "",
-      location: {
-        lat: Number(venue.lat),
-        lng: Number(venue.lng),
-      },
-      types: venue.category ? [venue.category] : [],
-      rating: venue.rating ? Number(venue.rating) : null,
-      userRatingsTotal: null, // Not stored in DB
-      priceLevel: venue.priceLevel,
-      openNow: null, // Not stored in DB
-      photoReference: null, // We store photoUrl, not photoReference
-      formattedPhoneNumber: null, // Not stored in DB
-      website: null, // Not stored in DB
-      openingHours: null, // Not stored in DB
-    };
   }
 
   /**

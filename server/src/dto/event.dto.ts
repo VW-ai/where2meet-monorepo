@@ -20,6 +20,16 @@ export const MECResponseSchema = z.object({
 export type MECResponse = z.infer<typeof MECResponseSchema>;
 
 /**
+ * MEC endpoint response (allows null when no participants have locations).
+ */
+export const GetMECResponseSchema = z.object({
+  center: LocationResponseSchema.nullable(),
+  radiusMeters: z.number().nullable(),
+});
+
+export type GetMECResponse = z.infer<typeof GetMECResponseSchema>;
+
+/**
  * Event settings.
  */
 export const EventSettingsResponseSchema = z.object({

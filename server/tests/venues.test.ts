@@ -77,45 +77,12 @@ function createMockPlace(overrides: Partial<{
 
 describe("Venue Endpoints", () => {
   let server: FastifyInstance;
-  let testEventId: string;
+
+  // Test center coordinates (NYC midtown)
+  const testCenter = { lat: 40.7484, lng: -73.9857 };
 
   beforeAll(async () => {
     server = await buildServer();
-
-    // Create a test event with participants for venue search
-    const eventResponse = await server.inject({
-      method: "POST",
-      url: "/api/events",
-      payload: { title: "Venue Test Event" },
-    });
-    const eventBody = eventResponse.json();
-    testEventId = eventBody.id;
-    const organizerToken = eventBody.organizerToken;
-
-    // Add participants (needed for MEC calculation)
-    await server.inject({
-      method: "POST",
-      url: `/api/events/${testEventId}/participants`,
-      headers: { Authorization: `Bearer ${organizerToken}` },
-      payload: {
-        name: "Alice",
-        address: "350 5th Ave, New York, NY",
-        lat: 40.7484,
-        lng: -73.9857,
-      },
-    });
-
-    await server.inject({
-      method: "POST",
-      url: `/api/events/${testEventId}/participants`,
-      headers: { Authorization: `Bearer ${organizerToken}` },
-      payload: {
-        name: "Bob",
-        address: "1 World Trade Center, New York, NY",
-        lat: 40.7127,
-        lng: -74.0134,
-      },
-    });
   });
 
   afterAll(async () => {
@@ -133,7 +100,7 @@ describe("Venue Endpoints", () => {
         method: "POST",
         url: "/api/venues/search",
         payload: {
-          eventId: testEventId,
+          center: testCenter,
           searchRadius: 5000,
           query: "coffee",
         },
@@ -159,7 +126,7 @@ describe("Venue Endpoints", () => {
         method: "POST",
         url: "/api/venues/search",
         payload: {
-          eventId: testEventId,
+          center: testCenter,
           searchRadius: 3000,
           categories: ["cafe"],
         },
@@ -171,11 +138,27 @@ describe("Venue Endpoints", () => {
       expect(body.venues[0].name).toBe("Local Cafe");
     });
 
-    it("should return 400 for missing eventId", async () => {
+    it("should return 400 for missing center", async () => {
       const response = await server.inject({
         method: "POST",
         url: "/api/venues/search",
         payload: {
+          searchRadius: 5000,
+          query: "coffee",
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return 400 for invalid center coordinates", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/api/venues/search",
+        payload: {
+          center: { lat: 91, lng: -74.006 }, // lat out of range
           searchRadius: 5000,
           query: "coffee",
         },
@@ -191,7 +174,7 @@ describe("Venue Endpoints", () => {
         method: "POST",
         url: "/api/venues/search",
         payload: {
-          eventId: testEventId,
+          center: testCenter,
           searchRadius: 5000,
         },
       });
@@ -207,29 +190,13 @@ describe("Venue Endpoints", () => {
         method: "POST",
         url: "/api/venues/search",
         payload: {
-          eventId: testEventId,
+          center: testCenter,
           searchRadius: 50, // Too small (min 100)
           query: "coffee",
         },
       });
 
       expect(response.statusCode).toBe(400);
-    });
-
-    it("should return 404 for non-existent event", async () => {
-      const response = await server.inject({
-        method: "POST",
-        url: "/api/venues/search",
-        payload: {
-          eventId: "evt_9999999999999_nonexistent12345",
-          searchRadius: 5000,
-          query: "coffee",
-        },
-      });
-
-      expect(response.statusCode).toBe(404);
-      const body = response.json();
-      expect(body.error.code).toBe("EVENT_NOT_FOUND");
     });
 
     it("should return venues sorted by rating", async () => {
@@ -243,7 +210,7 @@ describe("Venue Endpoints", () => {
         method: "POST",
         url: "/api/venues/search",
         payload: {
-          eventId: testEventId,
+          center: testCenter,
           searchRadius: 5000,
           query: "restaurant",
         },

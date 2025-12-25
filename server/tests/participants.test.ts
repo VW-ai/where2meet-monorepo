@@ -396,6 +396,29 @@ describe("Participant Endpoints", () => {
       const body = response.json();
       expect(body.error.code).toBe("PARTICIPANT_NOT_FOUND");
     });
+
+    it("should return 403 when trying to delete organizer participant", async () => {
+      // Get the organizer participant ID from the event
+      const eventResponse = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}`,
+      });
+      const participants = eventResponse.json().participants;
+      const organizerParticipant = participants.find((p: { isOrganizer: boolean }) => p.isOrganizer);
+      expect(organizerParticipant).toBeDefined();
+
+      // Try to delete the organizer participant
+      const response = await server.inject({
+        method: "DELETE",
+        url: `/api/events/${testEventId}/participants/${organizerParticipant.id}`,
+        headers: { authorization: `Bearer ${testOrganizerToken}` },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = response.json();
+      expect(body.error.code).toBe("FORBIDDEN");
+      expect(body.error.message).toContain("organizer");
+    });
   });
 
   describe("Self-management with participantToken", () => {
