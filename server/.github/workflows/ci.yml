@@ -101,6 +101,8 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5434/where2meet?schema=public
 
       - name: Push database schema
         run: npx prisma db push
