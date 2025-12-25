@@ -22,6 +22,8 @@ import { toEventResponse, toCreateEventResponse, toGetMECResponse } from "../map
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { verifyOrganizerToken } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
+import type { EventUpdatedPayload, EventPublishedPayload } from "../types/sse.js";
+import { createVenueService } from "../services/venue.js";
 
 /**
  * Request types for route handlers.
@@ -133,6 +135,22 @@ export function eventRoutes(fastify: FastifyInstance): void {
       );
       const response = toEventResponse(event);
 
+      // Broadcast SSE event (non-blocking)
+      const ssePayload: EventUpdatedPayload = {
+        event: {
+          id: event.id,
+          title: event.title,
+          meetingTime: event.meetingTime?.toISOString() ?? null,
+          publishedAt: event.publishedAt?.toISOString() ?? null,
+          publishedVenueId: event.publishedVenueId,
+        },
+      };
+      fastify.sse.broadcast({
+        eventId: event.id,
+        type: "event:updated",
+        payload: ssePayload,
+      }).catch(() => { /* SSE broadcast failure is non-critical */ });
+
       return reply.send(response);
     }
   );
@@ -187,6 +205,33 @@ export function eventRoutes(fastify: FastifyInstance): void {
       );
       const response = toEventResponse(event);
 
+      // Broadcast SSE event:published (non-blocking)
+      // Fetch venue details for the published venue
+      const venueService = createVenueService(fastify.db);
+      venueService.getVenueDetails(bodyResult.data.venueId).then((venue) => {
+        const ssePayload: EventPublishedPayload = {
+          event: {
+            id: event.id,
+            title: event.title,
+            meetingTime: event.meetingTime?.toISOString() ?? null,
+            publishedAt: event.publishedAt!.toISOString(),
+            publishedVenueId: event.publishedVenueId!,
+          },
+          venue: {
+            id: venue.placeId,
+            name: venue.name,
+            address: venue.address ?? null,
+            lat: venue.location.lat,
+            lng: venue.location.lng,
+          },
+        };
+        fastify.sse.broadcast({
+          eventId: event.id,
+          type: "event:published",
+          payload: ssePayload,
+        }).catch(() => { /* SSE broadcast failure is non-critical */ });
+      }).catch(() => { /* Venue fetch failure is non-critical for SSE */ });
+
       return reply.send(response);
     }
   );
@@ -209,6 +254,22 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
       const event = await eventService.unpublishEvent(parseResult.data.id);
       const response = toEventResponse(event);
+
+      // Broadcast SSE event:updated (non-blocking)
+      const ssePayload: EventUpdatedPayload = {
+        event: {
+          id: event.id,
+          title: event.title,
+          meetingTime: event.meetingTime?.toISOString() ?? null,
+          publishedAt: null,
+          publishedVenueId: null,
+        },
+      };
+      fastify.sse.broadcast({
+        eventId: event.id,
+        type: "event:updated",
+        payload: ssePayload,
+      }).catch(() => { /* SSE broadcast failure is non-critical */ });
 
       return reply.send(response);
     }

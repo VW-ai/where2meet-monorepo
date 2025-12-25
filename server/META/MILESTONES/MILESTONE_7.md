@@ -49,6 +49,19 @@ Security, reliability, and observability improvements.
 - [ ] Edge case tests (empty data, max limits)
 - [ ] External service mock tests
 
+### 7.8 Real-Time Updates (SSE)
+- [ ] SSE plugin with connection registry (`src/plugins/sse.ts`)
+- [ ] Stream endpoint: `GET /api/events/:eventId/stream?token={token}`
+- [ ] Token auth from query params (organizer or participant)
+- [ ] Event types:
+  - `participant:added` / `participant:updated` / `participant:removed`
+  - `vote:statistics` (after vote cast/remove)
+  - `event:updated` / `event:published`
+  - `heartbeat` (every 30s)
+- [ ] Redis Pub/Sub for horizontal scaling
+- [ ] Emit events from route handlers after mutations
+- [ ] Graceful connection cleanup on disconnect
+
 ---
 
 ## Error Response Format
@@ -91,6 +104,12 @@ Security, reliability, and observability improvements.
 | DB down | Kill DB, make request | 500 with proper error |
 | Redis down | Kill Redis, make request | Graceful degradation |
 | Health check | GET /health | DB + Redis status |
+| SSE connect valid token | GET /stream?token=valid | 200, SSE headers |
+| SSE connect invalid token | GET /stream?token=invalid | 401 Unauthorized |
+| SSE heartbeat | Wait 30s after connect | heartbeat event |
+| SSE participant event | Add participant | participant:added event |
+| SSE vote event | Cast vote | vote:statistics event |
+| SSE cleanup | Close connection | No memory leak |
 
 ---
 
@@ -109,4 +128,7 @@ Security, reliability, and observability improvements.
 - [ ] External service failures handled gracefully
 - [ ] >80% test coverage
 - [ ] Security headers configured
+- [ ] SSE endpoint functional with token auth
+- [ ] Real-time events broadcast on mutations
+- [ ] Redis pub/sub enabling horizontal scaling
 - [ ] Ready for deployment

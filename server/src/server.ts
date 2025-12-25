@@ -18,12 +18,14 @@ import rateLimit from "@fastify/rate-limit";
 import { config, isTest, isProduction } from "./lib/config.js";
 import { errorHandler } from "./utils/errorHandler.js";
 import dbPlugin from "./plugins/db.js";
+import ssePlugin from "./plugins/sse.js";
 import { healthRoutes } from "./routes/health.js";
 import { eventRoutes } from "./routes/events.js";
 import { participantRoutes } from "./routes/participants.js";
 import { venueRoutes } from "./routes/venues.js";
 import { voteRoutes } from "./routes/votes.js";
 import { directionsRoutes } from "./routes/directions.js";
+import { sseRoutes } from "./routes/sse.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -99,6 +101,9 @@ export async function buildServer() {
   // Register database plugin
   await server.register(dbPlugin);
 
+  // Register SSE plugin (depends on db)
+  await server.register(ssePlugin);
+
   // Register routes
   await server.register(healthRoutes);
   await server.register(eventRoutes);
@@ -106,6 +111,7 @@ export async function buildServer() {
   await server.register(venueRoutes);
   await server.register(voteRoutes);
   await server.register(directionsRoutes);
+  await server.register(sseRoutes);
 
   return server;
 }

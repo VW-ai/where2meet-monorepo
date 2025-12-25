@@ -18,6 +18,7 @@ import {
 } from "../mappers/vote.mapper.js";
 import { createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
+import type { VoteStatisticsPayload } from "../types/sse.js";
 
 /**
  * Route parameter types.
@@ -135,6 +136,23 @@ export function voteRoutes(fastify: FastifyInstance): void {
 
       const response = toVoteResponse(vote);
 
+      // Broadcast updated vote statistics (non-blocking)
+      voteService.getVoteStatistics(eventId).then((stats) => {
+        const ssePayload: VoteStatisticsPayload = {
+          venues: stats.map((stat) => ({
+            venueId: stat.venue.id,
+            voteCount: stat.voteCount,
+            voterNames: stat.voterIds,
+          })),
+          totalVotes: stats.reduce((sum, stat) => sum + stat.voteCount, 0),
+        };
+        fastify.sse.broadcast({
+          eventId,
+          type: "vote:statistics",
+          payload: ssePayload,
+        }).catch(() => { /* SSE broadcast failure is non-critical */ });
+      }).catch(() => { /* Stats fetch failure is non-critical for SSE */ });
+
       return reply.code(201).send(response);
     }
   );
@@ -170,6 +188,23 @@ export function voteRoutes(fastify: FastifyInstance): void {
       const deleted = await voteService.removeVote(eventId, participantId, venueId);
 
       const response = toVoteRemovalResponse(deleted);
+
+      // Broadcast updated vote statistics (non-blocking)
+      voteService.getVoteStatistics(eventId).then((stats) => {
+        const ssePayload: VoteStatisticsPayload = {
+          venues: stats.map((stat) => ({
+            venueId: stat.venue.id,
+            voteCount: stat.voteCount,
+            voterNames: stat.voterIds,
+          })),
+          totalVotes: stats.reduce((sum, stat) => sum + stat.voteCount, 0),
+        };
+        fastify.sse.broadcast({
+          eventId,
+          type: "vote:statistics",
+          payload: ssePayload,
+        }).catch(() => { /* SSE broadcast failure is non-critical */ });
+      }).catch(() => { /* Stats fetch failure is non-critical for SSE */ });
 
       return reply.code(200).send(response);
     }
