@@ -17,6 +17,7 @@ import {
   searchNearbyPlaces,
   textSearchPlaces,
   getPlaceDetails,
+  buildPhotoUrl,
   PlacesApiError,
   type PlaceResult,
   type PlaceDetails,
@@ -171,7 +172,7 @@ export class VenueService {
       rating: details.rating,
       priceLevel: details.priceLevel,
       photoUrl: details.photoReference
-        ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photoReference}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+        ? buildPhotoUrl(details.photoReference)
         : null,
     };
   }

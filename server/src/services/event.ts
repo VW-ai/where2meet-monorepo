@@ -21,10 +21,9 @@ import {
   ValidationError,
   ExternalServiceError,
 } from "../types/errors.js";
-import { getPlaceDetails, PlacesApiError } from "../lib/places/index.js";
+import { getPlaceDetails, buildPhotoUrl, PlacesApiError } from "../lib/places/index.js";
 import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
 import { createLogger } from "../lib/logger.js";
-import { config } from "../lib/config.js";
 import { generateOrganizerToken, verifyToken } from "../utils/token.js";
 import { PARTICIPANT_COLORS } from "../utils/colors.js";
 import { calculateMEC, type GeoPoint, type MECResult } from "../utils/mec.js";
@@ -225,7 +224,7 @@ export class EventService {
           rating: details.rating,
           priceLevel: details.priceLevel,
           photoUrl: details.photoReference
-            ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${details.photoReference}&key=${config.GOOGLE_MAPS_API_KEY}`
+            ? buildPhotoUrl(details.photoReference)
             : null,
         })
         .catch((error: unknown) => {

@@ -15,6 +15,7 @@ vi.mock("../../src/lib/places/index.js", () => ({
   searchNearbyPlaces: vi.fn(),
   textSearchPlaces: vi.fn(),
   getPlaceDetails: vi.fn(),
+  buildPhotoUrl: vi.fn((photoRef: string) => `https://mocked-photo-url/${photoRef}`),
   PlacesApiError: class PlacesApiError extends Error {
     constructor(
       message: string,
