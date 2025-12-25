@@ -326,7 +326,7 @@ This tracker serves as a log of what we have accomplished. sections are separate
 **Schema Changes**:
 - Added `isOrganizer` boolean to Participant model (default: false)
 - Made `address`, `lat`, `lng` nullable for organizer participants
-- Organizer participant auto-created on event creation (no location, excluded from MEC)
+- Organizer participant auto-created on event creation (initially no location; included in MEC once they add a location)
 
 **API Changes**:
 - POST `/api/events/:id/votes` → POST `/api/events/:id/participants/:participantId/votes`

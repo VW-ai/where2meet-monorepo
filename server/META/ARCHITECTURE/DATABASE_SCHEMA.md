@@ -85,8 +85,8 @@
 | `name` | VARCHAR(50) | 参与者姓名 |
 | `address` | VARCHAR(255) | 用户输入的原始地址（组织者可为空） |
 | `formatted_address` | VARCHAR(255) | Google 返回的标准化地址 |
-| `lat` | DECIMAL(10,7) | 纬度（组织者可为空，不计入 MEC） |
-| `lng` | DECIMAL(10,7) | 经度（组织者可为空，不计入 MEC） |
+| `lat` | DECIMAL(10,7) | 纬度（组织者可为空；MEC 计算包含所有有位置的参与者） |
+| `lng` | DECIMAL(10,7) | 经度（组织者可为空；MEC 计算包含所有有位置的参与者） |
 | `fuzzy_location` | BOOLEAN | 是否模糊位置 |
 | `color` | VARCHAR(20) | 显示颜色（如 "coral"） |
 | `is_organizer` | BOOLEAN | 是否为组织者参与者 |
@@ -99,7 +99,7 @@
 - lat/lng 由后端 geocode 填入，不接受前端传入
 - 如果 fuzzy_location=true，存储的是偏移后的坐标
 - `is_organizer=true` 的参与者在创建活动时自动创建，无需提供位置信息
-- 组织者参与者（lat/lng 为 NULL）不计入 MEC 计算
+- 组织者参与者若 lat/lng 为 NULL 则不会计入 MEC；当组织者添加了位置后，将计入 MEC 计算
 
 ---
 

@@ -82,7 +82,7 @@ Allow organizer to be a participant without providing a location.
 **Changes required**:
 1. Add `isOrganizer` flag to Participant model
 2. Make `address`, `lat`, `lng` optional when `isOrganizer=true`
-3. Organizer participant excluded from MEC calculation
+3. Organizer participant initially has no location; MEC includes organizer once they add a location
 
 **Pros**:
 - Organizer can vote without revealing location
@@ -124,7 +124,7 @@ This aligns with the product expectation that the organizer is a participant in 
 ## Test Cases Needed
 
 1. Organizer creates event and can vote without additional steps
-2. Organizer without location is excluded from MEC calculation
+2. Organizer without location is not included in MEC until they add a location
 3. Organizer vote appears in vote statistics
 4. Organizer can remove their own vote
 

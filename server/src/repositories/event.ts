@@ -272,7 +272,9 @@ export class EventRepository {
             },
           });
 
-          // Create organizer participant (no location, excluded from MEC)
+          // Create organizer participant (initially no location). MEC calculations
+          // include any participant with valid coordinates, so the organizer will be
+          // included once they add a location.
           const organizerParticipant = await tx.participant.create({
             data: {
               eventId: event.id,

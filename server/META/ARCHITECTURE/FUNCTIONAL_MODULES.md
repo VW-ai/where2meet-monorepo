@@ -95,7 +95,7 @@ Created ──► Active ──► Published
 #### 业务规则
 
 - 活动创建时自动生成 organizerToken（不可更改）
-- **活动创建时自动创建 organizer 参与者**（无位置，排除在 MEC 计算外）
+- **活动创建时自动创建 organizer 参与者**（初始无位置；MEC 计算包含所有拥有有效坐标的参与者，组织者在添加位置后将计入）
 - 创建响应包含 `organizerParticipantId`，用于 organizer 投票
 - Published 后不能添加/删除参与者（可配置）
 - 删除活动需要 organizer 权限

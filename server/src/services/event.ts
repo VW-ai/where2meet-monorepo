@@ -57,7 +57,9 @@ export class EventService {
 
   /**
    * Creates a new event with an auto-created organizer participant.
-   * The organizer participant has no location and is excluded from MEC calculation.
+   * The organizer participant initially has no location; MEC calculations
+   * include any participant who has valid coordinates (including the organizer
+   * once they add a location).
    * Uses repository with ID collision retry logic.
    * @param input - Event creation data
    * @returns Created event entity, organizerToken, and organizerParticipantId
@@ -151,7 +153,9 @@ export class EventService {
 
   /**
    * Gets the Minimum Enclosing Circle (MEC) for an event's participants.
-   * Only includes participants with valid coordinates (excludes organizer participants).
+   * Includes all participants with valid coordinates. The organizer is included
+   * if they have a location; when organizer lat/lng are null they are naturally
+   * excluded.
    * @param eventId - Event ID
    * @returns MEC result with center and radius, or null values if no participants have locations
    * @throws EventNotFoundError if event doesn't exist
@@ -163,7 +167,8 @@ export class EventService {
       throw new EventNotFoundError(eventId);
     }
 
-    // Filter participants with valid coordinates (excludes organizer with null lat/lng)
+    // Filter participants with valid coordinates. Organizer is included only if
+    // they have non-null lat/lng (initially organizer has no location).
     const participantsWithLocation = event.participants.filter(
       (p): p is typeof p & { lat: NonNullable<typeof p.lat>; lng: NonNullable<typeof p.lng> } =>
         p.lat !== null && p.lng !== null

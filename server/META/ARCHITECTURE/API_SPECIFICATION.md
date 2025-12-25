@@ -13,17 +13,18 @@
 | Event | /api/events/:id | PATCH | 更新活动 |
 | Event | /api/events/:id | DELETE | 删除活动 |
 | Event | /api/events/:id/publish | POST | 发布场所 |
+| Event | /api/events/:id/publish | DELETE | 取消发布 |
 | Event | /api/events/:id/mec | GET | 获取最小外接圆 (MEC) |
 | Participant | /api/events/:id/participants | POST | 添加参与者（可选认证） |
-| Participant | /api/events/:id/participants/:pid | PATCH | 更新参与者（双令牌） |
-| Participant | /api/events/:id/participants/:pid | DELETE | 移除参与者（双令牌） |
+| Participant | /api/events/:id/participants/:participantId | PATCH | 更新参与者（双令牌） |
+| Participant | /api/events/:id/participants/:participantId | DELETE | 移除参与者（双令牌） |
 | Venue | /api/venues/search | POST | 搜索场所（用户指定中心点） |
 | Venue | /api/venues/:id | GET | 获取场所详情 |
-| Vote | /api/events/:id/participants/:pid/votes | POST | 投票（仅自己） |
-| Vote | /api/events/:id/participants/:pid/votes/:venueId | DELETE | 取消投票（仅自己） |
+| Vote | /api/events/:id/participants/:participantId/votes | POST | 投票（仅自己） |
+| Vote | /api/events/:id/participants/:participantId/votes/:venueId | DELETE | 取消投票（仅自己） |
 | Vote | /api/events/:id/votes | GET | 获取投票统计 |
-| Maps | /api/geocode | POST | 地址转坐标 |
-| Maps | /api/directions | POST | 获取路线 |
+| Directions | /api/events/:id/venues/:venueId/directions | GET | 获取路线（事件上下文） |
+| SSE | /api/events/:id/stream | GET | 订阅事件实时更新（需认证） |
 
 ---
 
@@ -31,13 +32,13 @@
 
 > 本章节把架构规范进一步落到 Fastify 的运行时机制，确保团队写新路由时自动继承依赖注入、错误处理和横切关注点，而不是靠「大家自觉」。
 
-### 1. 基础设施插件（decorate 注入依赖）
+### 1. 基础设施插件（依赖注入与共享客户端）
 
-- **`plugins/db.ts`**：创建 PrismaClient，`app.decorate("db", prisma)`，在 `onClose` 中 `await prisma.$disconnect()`。
-- **`plugins/cache.ts`**：创建 Redis client，`app.decorate("cache", redis)`，在 `onClose` 中 `await redis.quit()`。
-- **使用方式**：业务层/路由通过 `request.server.db`、`request.server.cache` 访问依赖，禁止直接 `import` 全局单例，测试可以用 `app.withTypeProvider().decorate(...)` 注入 mock。
+- **`plugins/db.ts`**：创建 PrismaClient，`app.decorate("db", prisma)`，在 `onClose` 中断开连接。
+- **Redis**：当前实现使用模块级单例 `src/lib/redis.ts`（非 Fastify decorate）。SSE 插件内部使用 ioredis 做 pub/sub。
+- **使用方式**：业务层/路由通过 `request.server.db` 访问数据库；Redis 通过 `import { redis } from "src/lib/redis"` 使用。
 
-### 2. 统一错误出口（`setErrorHandler` + `NotFound` Handler）
+### 2. 统一错误出口（`setErrorHandler`）
 
 - 所有业务异常继承 `AppError`：包含 `statusCode` + `code` + `message`，业务层只需 `throw`。
 - `app.setErrorHandler` 负责：
@@ -45,7 +46,7 @@
   - **Prisma 唯一键冲突** → `409 CONFLICT`
   - **外部服务 429/5xx** → `502/503 EXTERNAL_SERVICE_ERROR`（并写入 requestId + 原始错误）
   - **业务错误**（`EventNotFoundError` 等）→ 对应状态码/错误码
-- `app.setNotFoundHandler` 返回 `{ error: { code: "NOT_FOUND", message: "Route not found" } }`，避免 Fastify 默认 HTML。
+- NotFound Handler：当前未自定义（仍为 Fastify 默认），建议后续补充统一 JSON。
 - 所有响应都经由统一 handler，保证脱敏 message、结构化日志（使用 requestId、eventId 等上下文）。
 
 ### 3. Lifecycle Hooks & Cross-cutting Concerns
@@ -66,7 +67,7 @@
 - **日志脱敏**：Pino `redact` 针对 `organizerToken`、地址、Google API Key 等敏感字段。
 - **Schema 单一来源**：Zod → JSON Schema（`fastify-type-provider-zod`）以便既做校验又生成类型/文档。
 - **测试首选 `app.inject`**：无需监听端口，直接注入请求，搭配自定义插件便于替换依赖。
-- **外部调用并发阀门**：对 Maps/Places/Directions 调用增加信号量/队列，防止瞬时压爆配额。
+- **外部调用并发阀门**：对 Places/Directions 调用增加信号量/队列，防止瞬时压爆配额。
 
 ---
 
@@ -82,7 +83,7 @@ POST /api/events
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | title | string | ✓ | 活动标题，max 100 |
-| meetingTime | string | ✓ | 预计见面时间，ISO 8601 格式 |
+| meetingTime | string | - | 预计见面时间（ISO 8601），可选 |
 
 **后端输出（成功 201）：**
 | 字段 | 类型 | 说明 |
@@ -93,14 +94,14 @@ POST /api/events
 | organizerToken | string | 组织者令牌（仅创建时返回） |
 | organizerParticipantId | string | 组织者参与者 ID（用于投票） |
 | participants | array | 参与者列表（包含组织者，isOrganizer=true） |
-| mec | object \| null | 最小外接圆（MEC），不包含组织者 |
+| mec | object \| null | 最小外接圆（MEC），包含所有有位置的参与者 |
 | publishedVenueId | string \| null | 已发布场所 ID |
 | publishedAt | string \| null | 发布时间 |
 | createdAt | string | 创建时间 |
 | updatedAt | string | 更新时间 |
 | settings | object | 活动设置 |
 
-**说明**：创建活动时自动创建组织者参与者（isOrganizer=true，无位置信息），用于投票。组织者不计入 MEC 计算。
+**说明**：创建活动时自动创建组织者参与者（isOrganizer=true，初始无位置信息），用于投票。MEC 计算包含所有具备有效坐标的参与者；当组织者添加了位置后，也会计入 MEC。
 
 **错误响应：**
 | 状态码 | code | 说明 |
@@ -119,12 +120,12 @@ GET /api/events/:id
 **前端输入：**
 | 参数 | 位置 | 说明 |
 |------|------|------|
-| id | URL Path | 活动 UUID |
+| id | URL Path | 活动 ID |
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | string | 活动 UUID |
+| id | string | 活动 ID |
 | title | string | 活动标题 |
 | meetingTime | string \| null | 预计见面时间 |
 | participants | Participant[] | 参与者列表 |
@@ -153,10 +154,10 @@ PATCH /api/events/:id
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
-| id | URL Path | string | ✓ | 活动 UUID |
+| id | URL Path | string | ✓ | 活动 ID |
 | Authorization | Header | string | ✓ | Bearer {organizerToken} |
 | title | Body | string | - | 新标题 |
-| meetingTime | Body | string | - | 新时间 |
+| meetingTime | Body | string | - | 新时间（可置为 null） |
 
 **后端输出（成功 200）：**
 
@@ -180,7 +181,7 @@ DELETE /api/events/:id
 **前端输入：**
 | 参数 | 位置 | 说明 |
 |------|------|------|
-| id | URL Path | 活动 UUID |
+| id | URL Path | 活动 ID |
 | Authorization | Header | Bearer {organizerToken} |
 
 **后端输出（成功 200）：**
@@ -207,7 +208,7 @@ POST /api/events/:id/publish
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
-| id | URL Path | string | ✓ | 活动 UUID |
+| id | URL Path | string | ✓ | 活动 ID |
 | Authorization | Header | string | ✓ | Bearer {organizerToken} |
 | venueId | Body | string | ✓ | 要发布的场所 ID (Google Place ID) |
 
@@ -260,6 +261,30 @@ GET /api/events/:id/mec
 |--------|------|------|
 | 404 | EVENT_NOT_FOUND | 活动不存在 |
 
+### 2.7 取消发布
+
+```
+DELETE /api/events/:id/publish
+```
+
+**前端输入：**
+| 参数 | 位置 | 类型 | 必填 | 说明 |
+|------|------|------|------|------|
+| id | URL Path | string | ✓ | 活动 ID |
+| Authorization | Header | string | ✓ | Bearer {organizerToken} |
+
+**后端输出（成功 200）：**
+
+返回更新后的 Event 对象（publishedVenueId 和 publishedAt 置为 null）
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 401 | UNAUTHORIZED | 缺少或无效的 token |
+| 403 | FORBIDDEN | 无权限操作 |
+| 404 | NOT_FOUND | 活动不存在 |
+| 409 | NOT_PUBLISHED | 活动未发布，无法取消 |
+
 ---
 
 ## 三、Participant 模块
@@ -285,14 +310,12 @@ POST /api/events/:id/participants
 
 **后端处理**：
 1. 验证活动存在且未发布
-2. 检查参与者数量上限（50人）
-3. 如有 Authorization header：
-   - 验证 organizerToken → 失败则 403
-4. 调用 Google Geocode 获取坐标
-5. 如果 fuzzyLocation=true，对坐标添加随机偏移
-6. 分配颜色
-7. 如**无认证**：生成 participantToken，存储 hash
-8. 保存到数据库
+2. 如有 Authorization header：验证 organizerToken（失败则 403）
+3. 调用 Google Geocoding 获取坐标（内部服务）
+4. 如果 fuzzyLocation=true，对坐标添加随机偏移
+5. 分配颜色
+6. 如**无认证**：生成 participantToken，存储 hash
+7. 保存到数据库
 
 **后端输出（成功 201）：**
 
@@ -314,12 +337,6 @@ POST /api/events/:id/participants
 | 403 | FORBIDDEN | 无效的 organizerToken |
 | 404 | EVENT_NOT_FOUND | 活动不存在 |
 | 409 | EVENT_ALREADY_PUBLISHED | 活动已发布，不能添加 |
-| 409 | PARTICIPANT_LIMIT_EXCEEDED | 参与者数量已达上限 |
-| 429 | RATE_LIMIT_EXCEEDED | 请求过于频繁（仅无认证时） |
-
-**限流规则（仅无认证时）：**
-- 10 次/IP/小时
-- 50 次/活动/小时
 
 ---
 
@@ -387,6 +404,8 @@ DELETE /api/events/:id/participants/:participantId
 | success | boolean | true |
 | message | string | "Participant deleted successfully" |
 
+**补充**：不能删除组织者（Organizer）。
+
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
@@ -437,10 +456,12 @@ POST /api/venues/search
 | name | string | 场所名称 |
 | address | string | 地址 |
 | location | Location | { lat, lng } |
-| category | string | 类别 |
-| rating | number | 评分（0-5） |
-| priceLevel | number | 价格等级（1-4） |
-| photoUrl | string | 照片 URL |
+| types | string[] | Google Place Types |
+| rating | number \| null | 评分（0-5） |
+| userRatingsTotal | number \| null | 评分总数 |
+| priceLevel | number \| null | 价格等级（0-4） |
+| openNow | boolean \| null | 是否营业中 |
+| photoUrl | string \| null | 照片 URL |
 
 **错误响应：**
 | 状态码 | code | 说明 |
@@ -508,7 +529,7 @@ POST /api/events/:id/participants/:participantId/votes
 3. 验证 event 存在
 4. 验证 participant 属于该 event
 5. 持久化 venue 快照到数据库（如果不存在则插入）
-6. 创建投票记录（重复投票通过 UNIQUE 约束自动忽略）
+6. 创建投票记录（幂等：重复投票通过 UNIQUE 约束返回已有记录，不报错）
 
 **缓存说明**：Milestone 4 的 `/api/venues/search` 与 `/api/venues/:id` 依旧负责 Redis 缓存；Vote 路由不直接调用 Google API，而是使用前端附带的 `venueData`，在 Redis 命中失败时由前端先调用详情 API 再来投票。
 
@@ -526,7 +547,6 @@ POST /api/events/:id/participants/:participantId/votes
 | 403 | FORBIDDEN | 无权为他人投票 |
 | 404 | EVENT_NOT_FOUND | 活动不存在 |
 | 404 | PARTICIPANT_NOT_FOUND | 参与者不存在 |
-| 409 | ALREADY_VOTED | 已投过该场所（可选，或静默忽略） |
 
 ---
 
@@ -551,12 +571,13 @@ DELETE /api/events/:id/participants/:participantId/votes/:venueId
 | success | boolean | true |
 | deleted | boolean | 是否实际删除了投票 |
 
+**说明**：幂等，若记录不存在也返回 200（deleted=false）。
+
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
 | 401 | UNAUTHORIZED | 缺少认证令牌 |
 | 403 | FORBIDDEN | 无权取消他人投票 |
-| 404 | NOT_FOUND | 投票记录不存在 |
 
 ---
 
@@ -569,7 +590,7 @@ GET /api/events/:id/votes
 **前端输入：**
 | 参数 | 位置 | 说明 |
 |------|------|------|
-| id | URL Path | 活动 UUID |
+| id | URL Path | 活动 ID |
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
@@ -580,7 +601,14 @@ GET /api/events/:id/votes
 **VenueWithVotes 结构：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| ...Venue | - | 所有 Venue 字段 |
+| id | string | 场所 ID |
+| name | string | 场所名称 |
+| address | string \| null | 地址 |
+| location | Location | { lat, lng } |
+| category | string \| null | 类别（数据库快照） |
+| rating | number \| null | 评分 |
+| priceLevel | number \| null | 价格等级 |
+| photoUrl | string \| null | 照片 |
 | voteCount | number | 该场所获得的票数 |
 | voters | string[] | 投票者 ID 列表 |
 
@@ -588,82 +616,72 @@ GET /api/events/:id/votes
 
 ---
 
-## 六、Maps 模块
+## 六、Directions 模块
 
-### 6.1 地址转坐标
+
+### 6.1 获取路线（事件上下文）
 
 ```
-POST /api/geocode
+GET /api/events/:id/venues/:venueId/directions
 ```
 
-**前端输入：**
+**Query 参数：**
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| address | string | ✓ | 用户输入的地址 |
+| travelMode | string | - | driving/walking/transit/bicycling（默认 driving） |
+| participantId | string | - | 可选，仅计算某一参与者（UUID） |
 
-**后端处理**：
-1. 调用 Google Geocoding API
-2. 缓存结果（Redis）
-3. 返回标准化结果
+**认证**：需要 Authorization: Bearer {organizerToken 或 participantToken}（需属于该活动）。
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| address | string | 用户输入的原始地址 |
-| formattedAddress | string | Google 返回的标准化地址 |
-| location | Location | { lat, lng } |
-| placeId | string | Google Place ID（可选） |
-
-**错误响应：**
-| 状态码 | code | 说明 |
-|--------|------|------|
-| 400 | VALIDATION_ERROR | 缺少 address |
-| 400 | ADDRESS_NOT_FOUND | 无法解析地址 |
-| 500 | EXTERNAL_SERVICE_ERROR | Google API 调用失败 |
-
----
-
-### 6.2 获取路线
-
-```
-POST /api/directions
-```
-
-**前端输入：**
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| origins | Location[] | ✓ | 起点列表 |
-| destination | Location | ✓ | 终点 |
-| travelMode | string | - | 出行方式：driving/walking/transit/bicycling |
-
-**后端处理**：
-1. 调用 Google Directions API
-2. 计算每个起点到终点的路线
-3. 缓存结果
-
-**后端输出（成功 200）：**
-| 字段 | 类型 | 说明 |
-|------|------|------|
+| venueId | string | 目的地场所 ID |
+| travelMode | string | 出行方式 |
 | routes | Route[] | 路线列表 |
 
 **Route 结构：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| participantId | string | 关联的参与者 ID |
-| distance | Distance | { text: "3.2 mi", value: 5200 } |
-| duration | Duration | { text: "12 mins", value: 720 } |
+| participantId | string | 参与者 ID（UUID） |
+| distance | Distance | { value: 米, text: 文本 } |
+| duration | Duration | { value: 秒, text: 文本 } |
 | polyline | string | 路线编码（用于地图显示） |
 
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
-| 400 | VALIDATION_ERROR | 缺少必填字段 |
-| 400 | ROUTE_NOT_FOUND | 无法计算路线 |
+| 400 | VALIDATION_ERROR | 参数格式错误 |
+| 400 | INVALID_VENUE | 场所 ID 无效 |
+| 404 | EVENT_NOT_FOUND | 活动不存在 |
+| 404 | PARTICIPANT_NOT_FOUND | 指定参与者不存在/无可用位置 |
 | 500 | EXTERNAL_SERVICE_ERROR | Google API 调用失败 |
+
+**说明**：起点数据来自活动内参与者（过滤掉 organizer 与无坐标者）。
 
 ---
 
-## 七、通用结构定义
+## 七、SSE 模块
+
+### 7.1 订阅事件实时更新
+
+```
+GET /api/events/:id/stream
+```
+
+**认证**：需要 Authorization: Bearer {organizerToken 或 participantToken}。
+
+**响应头**：`Content-Type: text/event-stream`
+
+**事件类型（示例）**：
+- `event:updated`：活动字段变更（title/meetingTime/publish 状态）
+- `event:published`：活动发布并携带发布场所的基本信息
+- `participant:added|updated|removed`：参与者变更
+- `vote:statistics`：投票统计刷新
+
+---
+
+## 八、通用结构定义
 
 ### Location
 ```
@@ -708,16 +726,16 @@ POST /api/directions
 
 ---
 
-## 八、认证方式
+## 九、认证方式
 
-### 8.1 令牌类型
+### 9.1 令牌类型
 
 | 令牌类型 | 生成时机 | 存储 | 用途 |
 |----------|----------|------|------|
 | organizerToken | 创建活动时 | Event.organizerToken (SHA-256 hash) | 活动完全控制权 |
 | participantToken | 加入活动时 | Participant.tokenHash (SHA-256 hash) | 自我管理（只能操作自己） |
 
-### 8.2 端点认证矩阵
+### 9.2 端点认证矩阵
 
 | 场景 | 无认证 | participantToken | organizerToken |
 |------|--------|------------------|----------------|
@@ -732,12 +750,14 @@ POST /api/directions
 | 投票 | - | ✓（仅自己） | ✓（仅自己，需使用 organizerParticipantId） |
 | 取消投票 | - | ✓（仅自己） | ✓（仅自己，需使用 organizerParticipantId） |
 | 查看投票统计 | ✓ | - | - |
+| 订阅 SSE | - | ✓ | ✓ |
+| 获取路线 | - | ✓（属于该活动） | ✓ |
 
 **投票说明**：组织者创建活动时自动获得 `organizerParticipantId`，投票时使用此 ID。组织者不能代替其他参与者投票。
 
-### 8.3 双令牌认证流程
+### 9.3 双令牌认证流程
 
-参与者管理端点（PATCH/DELETE /participants/:pid）支持双令牌认证：
+参与者管理端点（PATCH/DELETE /participants/:participantId）支持双令牌认证：
 
 ```
 1. 提取 Authorization: Bearer {token}
@@ -750,18 +770,18 @@ POST /api/directions
 4. 都失败 → 403 Forbidden
 ```
 
-### 8.4 安全措施
+### 9.4 安全措施
 
 | 措施 | 值 | 说明 |
 |------|-----|------|
 | 令牌长度 | 64 hex (256 bits) | 防止枚举攻击 |
 | 存储方式 | SHA-256 hash | 数据库泄露不暴露原始令牌 |
-| 加入限流 | 10 次/IP/小时 | 防止垃圾注册 |
-| 参与者上限 | 50 人/活动 | 防止活动过载 |
+| 加入限流 | - | 暂未实现（可按需添加） |
+| 参与者上限 | - | 暂未实现（可按需添加） |
 
 ---
 
-## 九、待实现 vs 已有 Mock
+## 十、待实现 vs 已有实现
 
 | API | Mock 状态 | 说明 |
 |-----|----------|------|
@@ -770,14 +790,15 @@ POST /api/directions
 | PATCH /api/events/:id | ✅ 已实现 | |
 | DELETE /api/events/:id | ✅ 已实现 | |
 | POST /api/events/:id/publish | ✅ 已实现 | |
+| DELETE /api/events/:id/publish | ✅ 已实现 | |
 | GET /api/events/:id/mec | ✅ 已实现 | 返回 MEC（可为 null） |
 | POST /api/events/:id/participants | ✅ 已实现 | 可选认证 + participantToken |
-| PATCH /api/events/:id/participants/:pid | ✅ 已实现 | 双令牌认证 |
-| DELETE /api/events/:id/participants/:pid | ✅ 已实现 | 双令牌认证 |
+| PATCH /api/events/:id/participants/:participantId | ✅ 已实现 | 双令牌认证 |
+| DELETE /api/events/:id/participants/:participantId | ✅ 已实现 | 双令牌认证 |
 | POST /api/venues/search | ✅ 已实现 | 用户提供 center 坐标 |
 | GET /api/venues/:id | ✅ 已实现 | |
-| POST /api/events/:id/participants/:pid/votes | ✅ 已实现 | 仅自己投票 |
-| DELETE /api/events/:id/participants/:pid/votes/:venueId | ✅ 已实现 | 仅自己取消 |
+| POST /api/events/:id/participants/:participantId/votes | ✅ 已实现 | 仅自己投票 |
+| DELETE /api/events/:id/participants/:participantId/votes/:venueId | ✅ 已实现 | 仅自己取消 |
 | GET /api/events/:id/votes | ✅ 已实现 | 公开统计 |
-| POST /api/geocode | ✅ 已实现 | |
-| POST /api/directions | ✅ 已实现 | |
+| GET /api/events/:id/venues/:venueId/directions | ✅ 已实现 | 需认证 |
+| GET /api/events/:id/stream | ✅ 已实现 | 需认证（SSE） |
