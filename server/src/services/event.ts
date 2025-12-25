@@ -187,7 +187,6 @@ export class EventService {
    *
    * Validates the venue via Google Places API before publishing.
    * If venue is valid, upserts it to the database for caching.
-   *
    * @param eventId - Event ID
    * @param venueId - Google Place ID of the selected venue
    * @returns Updated event with publishedVenueId and publishedAt
@@ -247,7 +246,6 @@ export class EventService {
 
   /**
    * Unpublishes an event, clearing the published venue.
-   *
    * @param eventId - Event ID
    * @returns Updated event with publishedVenueId and publishedAt set to null
    * @throws EventNotFoundError if event doesn't exist

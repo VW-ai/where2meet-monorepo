@@ -12,7 +12,7 @@
  * - At 1M IDs/second, would take ~3,000 years to reach 50% collision chance
  *
  * Additional safety:
- * - Database has @unique constraint on id field
+ * - Database has `@unique` constraint on id field
  * - Repository layer implements collision retry logic
  * @module utils/id
  */
@@ -39,8 +39,11 @@ function generateBase62(length: number): string {
   const bytes = crypto.randomBytes(length);
   let result = "";
   for (let i = 0; i < length; i++) {
-    const byte = bytes[i]!;
-    result += BASE62_CHARS[byte % BASE62_CHARS.length];
+    const byte = bytes[i];
+    if (byte !== undefined) {
+      const charIndex = byte % BASE62_CHARS.length;
+      result += BASE62_CHARS[charIndex] ?? "";
+    }
   }
   return result;
 }
@@ -55,7 +58,7 @@ function generateBase62(length: number): string {
  * generateEventId() // "evt_1702000000000_a8K3mX2pQrS7nBvW"
  */
 export function generateEventId(): string {
-  const timestamp = Date.now();
+  const timestamp = String(Date.now());
   const random = generateBase62(RANDOM_SUFFIX_LENGTH);
   return `evt_${timestamp}_${random}`;
 }

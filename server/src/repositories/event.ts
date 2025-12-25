@@ -98,7 +98,7 @@ export class EventRepository {
       "Failed to generate unique event ID after max retries"
     );
     throw new Error(
-      `Failed to generate unique event ID after ${MAX_ID_GENERATION_RETRIES} attempts`
+      `Failed to generate unique event ID after ${String(MAX_ID_GENERATION_RETRIES)} attempts`
     );
   }
 
@@ -326,7 +326,7 @@ export class EventRepository {
       "Failed to generate unique event ID after max retries"
     );
     throw new Error(
-      `Failed to generate unique event ID after ${MAX_ID_GENERATION_RETRIES} attempts`
+      `Failed to generate unique event ID after ${String(MAX_ID_GENERATION_RETRIES)} attempts`
     );
   }
 }

@@ -128,7 +128,6 @@ export class VenueService {
    * so we bypass it here to return full PlaceDetails (phone, website, hours, etc.).
    *
    * Still upserts to PostgreSQL in background for voting cache efficiency.
-   *
    * @param placeId - Google Place ID
    * @returns Detailed place information with all fields
    * @throws ExternalServiceError if Places API fails
@@ -142,7 +141,7 @@ export class VenueService {
       // Background upsert to PostgreSQL for voting cache (non-blocking)
       this.venueRepository
         .upsert(this.placeDetailsToVenueData(details))
-        .catch((error) => {
+        .catch((error: unknown) => {
           logger.error({ err: error, placeId }, "Failed to upsert venue to database");
         });
 
@@ -168,7 +167,7 @@ export class VenueService {
       address: details.address ? details.address : null,
       lat: details.location.lat,
       lng: details.location.lng,
-      category: details.types && details.types.length > 0 ? (details.types[0] ?? null) : null,
+      category: details.types[0] ?? null,
       rating: details.rating,
       priceLevel: details.priceLevel,
       photoUrl: details.photoReference

@@ -10,10 +10,8 @@ const FEET_THRESHOLD_MILES = 0.1; // Show feet if less than 0.1 miles
 
 /**
  * Formats distance in imperial units (miles/feet).
- *
  * @param meters - Distance in meters
  * @returns Formatted string ("3.2 mi" or "262 ft")
- *
  * @example
  * formatDistanceImperial(80)   // "262 ft"
  * formatDistanceImperial(5149) // "3.2 mi"
@@ -33,10 +31,8 @@ export function formatDistanceImperial(meters: number): string {
 
 /**
  * Formats duration in human-readable format.
- *
  * @param seconds - Duration in seconds
  * @returns Formatted string ("12 mins", "1 hour", "1 hour 30 mins")
- *
  * @example
  * formatDuration(90)   // "2 mins"
  * formatDuration(3600) // "1 hour"

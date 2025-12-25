@@ -323,7 +323,7 @@ export class ParticipantService {
 
     // Fetch participant to check isOrganizer
     const participant = await this.participantRepo.findById(participantId);
-    if (!participant || participant.eventId !== eventId) {
+    if (participant?.eventId !== eventId) {
       throw new ParticipantNotFoundError(participantId);
     }
 

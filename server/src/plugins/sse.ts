@@ -26,7 +26,7 @@ const logger = createLogger("SSEPlugin");
  */
 export class SSEService {
   /** Map of eventId -> Set of connections */
-  private connections: Map<string, Set<SSEConnection>> = new Map();
+  private connections = new Map<string, Set<SSEConnection>>();
 
   /** Redis client for pub/sub (subscriber) */
   private subscriber: Redis | null = null;
@@ -38,7 +38,7 @@ export class SSEService {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   /** Set of subscribed Redis channels */
-  private subscribedChannels: Set<string> = new Set();
+  private subscribedChannels = new Set<string>();
 
   /**
    * Initializes the SSE service with Redis pub/sub.
@@ -135,7 +135,10 @@ export class SSEService {
       // Subscribe to Redis channel for this event
       await this.subscribeToEvent(eventId);
     }
-    this.connections.get(eventId)!.add(connection);
+    const connectionSet = this.connections.get(eventId);
+    if (connectionSet) {
+      connectionSet.add(connection);
+    }
 
     // Set up connection cleanup on close
     reply.raw.on("close", () => {
@@ -256,8 +259,8 @@ export class SSEService {
    */
   private handleRedisMessage(channel: string, message: string): void {
     // Extract eventId from channel name (sse:event:{eventId})
-    const match = channel.match(/^sse:event:(.+)$/);
-    if (!match || !match[1]) return;
+    const match = /^sse:event:(.+)$/.exec(channel);
+    if (!match?.[1]) return;
 
     const eventId = match[1];
     try {
@@ -328,9 +331,7 @@ let sseService: SSEService | null = null;
  * Gets or creates the SSE service instance.
  */
 export function getSSEService(): SSEService {
-  if (!sseService) {
-    sseService = new SSEService();
-  }
+  sseService ??= new SSEService();
   return sseService;
 }
 

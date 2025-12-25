@@ -60,11 +60,11 @@ export interface ParticipantRemovedPayload {
  * Payload for vote:statistics event.
  */
 export interface VoteStatisticsPayload {
-  venues: Array<{
+  venues: {
     venueId: string;
     voteCount: number;
     voterNames: string[];
-  }>;
+  }[];
   totalVotes: number;
 }
 

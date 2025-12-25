@@ -35,7 +35,6 @@ function isRetryableError(error: unknown): boolean {
 
 /**
  * Fetches from Google Directions API with timeout.
- *
  * @param url - The full URL to fetch
  * @returns Parsed JSON response
  * @throws DirectionsApiError on HTTP errors
@@ -65,7 +64,6 @@ export async function fetchDirectionsApi(url: string): Promise<GoogleDirectionsR
 /**
  * Executes API call with exponential backoff retry.
  * Retry delays: 100ms → 400ms → 1600ms
- *
  * @param operation - The async operation to retry
  * @returns The result of the operation
  * @throws The last error if all retries fail

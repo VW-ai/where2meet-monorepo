@@ -50,7 +50,7 @@ type CastVoteBody = z.infer<typeof CastVoteBodySchema>;
  */
 const VoteParamsSchema = z.object({
   id: z.string().regex(/^evt_/, "Invalid event ID format"),
-  participantId: z.string().uuid("Invalid participant ID format"),
+  participantId: z.uuid("Invalid participant ID format"),
 });
 
 /**

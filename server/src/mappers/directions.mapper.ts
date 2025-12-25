@@ -14,7 +14,6 @@ import {
 /**
  * Transforms route results to DirectionsResponse DTO.
  * Validates output at runtime to ensure contract compliance.
- *
  * @param venueId - Google Place ID of the destination venue
  * @param travelMode - Travel mode used for calculation
  * @param routes - Array of route results from directions library
