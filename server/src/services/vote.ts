@@ -7,15 +7,8 @@
  */
 
 import type { PrismaClient, Vote } from "../generated/prisma/index.js";
-import {
-  createEventRepository,
-  type EventRepository,
-} from "../repositories/event.js";
-import {
-  createVoteRepository,
-  type VoteRepository,
-  type VoteStats,
-} from "../repositories/vote.js";
+import { createEventRepository, type EventRepository } from "../repositories/event.js";
+import { createVoteRepository, type VoteRepository, type VoteStats } from "../repositories/vote.js";
 import type { VenueData } from "../repositories/venue.js";
 import {
   EventNotFoundError,
@@ -65,10 +58,7 @@ export class VoteService {
     venueId: string,
     venueData: VenueData
   ): Promise<Vote> {
-    logger.info(
-      { eventId, participantId, venueId },
-      "Casting vote (transaction start)"
-    );
+    logger.info({ eventId, participantId, venueId }, "Casting vote (transaction start)");
 
     return await this.db.$transaction(async (tx) => {
       // Step 1: Verify event exists and is not published (lightweight query)
@@ -94,10 +84,7 @@ export class VoteService {
       });
 
       if (!participant) {
-        logger.warn(
-          { eventId, participantId },
-          "Participant not found in event"
-        );
+        logger.warn({ eventId, participantId }, "Participant not found in event");
         throw new ParticipantNotFoundError(participantId);
       }
 
@@ -176,15 +163,8 @@ export class VoteService {
    * @param venueId - Venue ID (Google Place ID)
    * @returns true if vote was deleted, false if it didn't exist
    */
-  async removeVote(
-    eventId: string,
-    participantId: string,
-    venueId: string
-  ): Promise<boolean> {
-    logger.info(
-      { eventId, participantId, venueId },
-      "Removing vote"
-    );
+  async removeVote(eventId: string, participantId: string, venueId: string): Promise<boolean> {
+    logger.info({ eventId, participantId, venueId }, "Removing vote");
 
     const count = await this.voteRepository.deleteByEventParticipantVenue(
       eventId,
@@ -194,10 +174,7 @@ export class VoteService {
 
     const deleted = count > 0;
 
-    logger.info(
-      { eventId, participantId, venueId, deleted },
-      "Vote removal completed"
-    );
+    logger.info({ eventId, participantId, venueId, deleted }, "Vote removal completed");
 
     return deleted;
   }
@@ -222,7 +199,11 @@ export class VoteService {
     const stats = await this.voteRepository.getVoteStatistics(eventId);
 
     logger.info(
-      { eventId, venueCount: stats.length, totalVotes: stats.reduce((sum, s) => sum + s.voteCount, 0) },
+      {
+        eventId,
+        venueCount: stats.length,
+        totalVotes: stats.reduce((sum, s) => sum + s.voteCount, 0),
+      },
       "Vote statistics retrieved"
     );
 

@@ -139,11 +139,9 @@ export class VenueService {
       const details = await getPlaceDetails(placeId);
 
       // Background upsert to PostgreSQL for voting cache (non-blocking)
-      this.venueRepository
-        .upsert(this.placeDetailsToVenueData(details))
-        .catch((error: unknown) => {
-          logger.error({ err: error, placeId }, "Failed to upsert venue to database");
-        });
+      this.venueRepository.upsert(this.placeDetailsToVenueData(details)).catch((error: unknown) => {
+        logger.error({ err: error, placeId }, "Failed to upsert venue to database");
+      });
 
       logger.info({ placeId, source: "api", name: details.name }, "Venue details fetched");
       return details;
@@ -170,9 +168,7 @@ export class VenueService {
       category: details.types[0] ?? null,
       rating: details.rating,
       priceLevel: details.priceLevel,
-      photoUrl: details.photoReference
-        ? buildPhotoUrl(details.photoReference)
-        : null,
+      photoUrl: details.photoReference ? buildPhotoUrl(details.photoReference) : null,
     };
   }
 

@@ -62,10 +62,7 @@ export function healthRoutes(fastify: FastifyInstance) {
    * - 503: All services unhealthy
    */
   fastify.get("/health/ready", async (_request, reply) => {
-    const [dbHealth, redisHealth] = await Promise.all([
-      checkDatabaseHealth(),
-      checkRedisHealth(),
-    ]);
+    const [dbHealth, redisHealth] = await Promise.all([checkDatabaseHealth(), checkRedisHealth()]);
 
     const response: HealthResponse = {
       status: dbHealth && redisHealth ? "ok" : dbHealth || redisHealth ? "degraded" : "unhealthy",
@@ -76,8 +73,7 @@ export function healthRoutes(fastify: FastifyInstance) {
       },
     };
 
-    const statusCode =
-      response.status === "ok" ? 200 : response.status === "degraded" ? 200 : 503;
+    const statusCode = response.status === "ok" ? 200 : response.status === "degraded" ? 200 : 503;
 
     return reply.status(statusCode).send(response);
   });

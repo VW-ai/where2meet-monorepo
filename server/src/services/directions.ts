@@ -8,14 +8,8 @@
  */
 
 import type { PrismaClient } from "../generated/prisma/index.js";
-import {
-  createEventRepository,
-  type EventRepository,
-} from "../repositories/event.js";
-import {
-  createVenueRepository,
-  type VenueRepository,
-} from "../repositories/venue.js";
+import { createEventRepository, type EventRepository } from "../repositories/event.js";
+import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
 import {
   calculateBatchRoutes,
   DirectionsApiError,

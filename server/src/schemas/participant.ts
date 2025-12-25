@@ -12,10 +12,7 @@ import { z } from "zod";
  * Schema for creating a new participant.
  */
 export const CreateParticipantSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name is required")
-    .max(50, "Name must be 50 characters or less"),
+  name: z.string().min(1, "Name is required").max(50, "Name must be 50 characters or less"),
   address: z
     .string()
     .min(1, "Address is required")
@@ -44,9 +41,7 @@ export const UpdateParticipantSchema = z
   })
   .refine(
     (data) =>
-      data.name !== undefined ||
-      data.address !== undefined ||
-      data.fuzzyLocation !== undefined,
+      data.name !== undefined || data.address !== undefined || data.fuzzyLocation !== undefined,
     {
       message: "At least one field must be provided",
     }

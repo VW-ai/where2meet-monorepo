@@ -18,7 +18,11 @@ import {
   type EventIdParam,
   type PublishEventInput,
 } from "../schemas/event.js";
-import { toEventResponse, toCreateEventResponse, toGetMECResponse } from "../mappers/event.mapper.js";
+import {
+  toEventResponse,
+  toCreateEventResponse,
+  toGetMECResponse,
+} from "../mappers/event.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { verifyOrganizerToken } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
@@ -50,62 +54,55 @@ export function eventRoutes(fastify: FastifyInstance): void {
    * POST /api/events
    * Creates a new event and returns it with the organizerToken.
    */
-  fastify.post(
-    "/api/events",
-    async (request: CreateEventRequest, reply: FastifyReply) => {
-      // Validate request body
-      const parseResult = CreateEventSchema.safeParse(request.body);
-      if (!parseResult.success) {
-        throw parseResult.error;
-      }
-
-      const { event, organizerToken, organizerParticipantId } = await eventService.createEvent(parseResult.data);
-      const response = toCreateEventResponse(event, organizerToken, organizerParticipantId);
-
-      return reply.status(201).send(response);
+  fastify.post("/api/events", async (request: CreateEventRequest, reply: FastifyReply) => {
+    // Validate request body
+    const parseResult = CreateEventSchema.safeParse(request.body);
+    if (!parseResult.success) {
+      throw parseResult.error;
     }
-  );
+
+    const { event, organizerToken, organizerParticipantId } = await eventService.createEvent(
+      parseResult.data
+    );
+    const response = toCreateEventResponse(event, organizerToken, organizerParticipantId);
+
+    return reply.status(201).send(response);
+  });
 
   /**
    * GET /api/events/:id
    * Returns event details without organizerToken.
    */
-  fastify.get(
-    "/api/events/:id",
-    async (request: GetEventRequest, reply: FastifyReply) => {
-      // Validate params
-      const parseResult = EventIdSchema.safeParse(request.params);
-      if (!parseResult.success) {
-        throw new ValidationError("Invalid event ID format");
-      }
-
-      const event = await eventService.getEvent(parseResult.data.id);
-      const response = toEventResponse(event);
-
-      return reply.send(response);
+  fastify.get("/api/events/:id", async (request: GetEventRequest, reply: FastifyReply) => {
+    // Validate params
+    const parseResult = EventIdSchema.safeParse(request.params);
+    if (!parseResult.success) {
+      throw new ValidationError("Invalid event ID format");
     }
-  );
+
+    const event = await eventService.getEvent(parseResult.data.id);
+    const response = toEventResponse(event);
+
+    return reply.send(response);
+  });
 
   /**
    * GET /api/events/:id/mec
    * Returns the Minimum Enclosing Circle for the event's participants.
    * Returns null center/radius if no participants have valid locations.
    */
-  fastify.get(
-    "/api/events/:id/mec",
-    async (request: GetEventRequest, reply: FastifyReply) => {
-      // Validate params
-      const parseResult = EventIdSchema.safeParse(request.params);
-      if (!parseResult.success) {
-        throw new ValidationError("Invalid event ID format");
-      }
-
-      const mecResult = await eventService.getMEC(parseResult.data.id);
-      const response = toGetMECResponse(mecResult);
-
-      return reply.send(response);
+  fastify.get("/api/events/:id/mec", async (request: GetEventRequest, reply: FastifyReply) => {
+    // Validate params
+    const parseResult = EventIdSchema.safeParse(request.params);
+    if (!parseResult.success) {
+      throw new ValidationError("Invalid event ID format");
     }
-  );
+
+    const mecResult = await eventService.getMEC(parseResult.data.id);
+    const response = toGetMECResponse(mecResult);
+
+    return reply.send(response);
+  });
 
   /**
    * PATCH /api/events/:id
@@ -129,10 +126,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
         throw bodyResult.error;
       }
 
-      const event = await eventService.updateEvent(
-        paramsResult.data.id,
-        bodyResult.data
-      );
+      const event = await eventService.updateEvent(paramsResult.data.id, bodyResult.data);
       const response = toEventResponse(event);
 
       // Broadcast SSE event (non-blocking)
@@ -145,11 +139,15 @@ export function eventRoutes(fastify: FastifyInstance): void {
           publishedVenueId: event.publishedVenueId,
         },
       };
-      fastify.sse.broadcast({
-        eventId: event.id,
-        type: "event:updated",
-        payload: ssePayload,
-      }).catch(() => { /* SSE broadcast failure is non-critical */ });
+      fastify.sse
+        .broadcast({
+          eventId: event.id,
+          type: "event:updated",
+          payload: ssePayload,
+        })
+        .catch(() => {
+          /* SSE broadcast failure is non-critical */
+        });
 
       return reply.send(response);
     }
@@ -199,38 +197,44 @@ export function eventRoutes(fastify: FastifyInstance): void {
         throw bodyResult.error;
       }
 
-      const event = await eventService.publishEvent(
-        paramsResult.data.id,
-        bodyResult.data.venueId
-      );
+      const event = await eventService.publishEvent(paramsResult.data.id, bodyResult.data.venueId);
       const response = toEventResponse(event);
 
       // Broadcast SSE event:published (non-blocking)
       // Fetch venue details for the published venue
       const venueService = createVenueService(fastify.db);
-      venueService.getVenueDetails(bodyResult.data.venueId).then((venue) => {
-        const ssePayload: EventPublishedPayload = {
-          event: {
-            id: event.id,
-            title: event.title,
-            meetingTime: event.meetingTime?.toISOString() ?? null,
-            publishedAt: event.publishedAt?.toISOString() ?? new Date().toISOString(),
-            publishedVenueId: event.publishedVenueId ?? bodyResult.data.venueId,
-          },
-          venue: {
-            id: venue.placeId,
-            name: venue.name,
-            address: venue.address,
-            lat: venue.location.lat,
-            lng: venue.location.lng,
-          },
-        };
-        fastify.sse.broadcast({
-          eventId: event.id,
-          type: "event:published",
-          payload: ssePayload,
-        }).catch(() => { /* SSE broadcast failure is non-critical */ });
-      }).catch(() => { /* Venue fetch failure is non-critical for SSE */ });
+      venueService
+        .getVenueDetails(bodyResult.data.venueId)
+        .then((venue) => {
+          const ssePayload: EventPublishedPayload = {
+            event: {
+              id: event.id,
+              title: event.title,
+              meetingTime: event.meetingTime?.toISOString() ?? null,
+              publishedAt: event.publishedAt?.toISOString() ?? new Date().toISOString(),
+              publishedVenueId: event.publishedVenueId ?? bodyResult.data.venueId,
+            },
+            venue: {
+              id: venue.placeId,
+              name: venue.name,
+              address: venue.address,
+              lat: venue.location.lat,
+              lng: venue.location.lng,
+            },
+          };
+          fastify.sse
+            .broadcast({
+              eventId: event.id,
+              type: "event:published",
+              payload: ssePayload,
+            })
+            .catch(() => {
+              /* SSE broadcast failure is non-critical */
+            });
+        })
+        .catch(() => {
+          /* Venue fetch failure is non-critical for SSE */
+        });
 
       return reply.send(response);
     }
@@ -265,11 +269,15 @@ export function eventRoutes(fastify: FastifyInstance): void {
           publishedVenueId: null,
         },
       };
-      fastify.sse.broadcast({
-        eventId: event.id,
-        type: "event:updated",
-        payload: ssePayload,
-      }).catch(() => { /* SSE broadcast failure is non-critical */ });
+      fastify.sse
+        .broadcast({
+          eventId: event.id,
+          type: "event:updated",
+          payload: ssePayload,
+        })
+        .catch(() => {
+          /* SSE broadcast failure is non-critical */
+        });
 
       return reply.send(response);
     }

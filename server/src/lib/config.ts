@@ -14,11 +14,7 @@ import { z } from "zod";
  * @returns Zod schema that transforms string to number
  */
 const stringToNumber = (defaultValue: number) =>
-  z
-    .string()
-    .default(String(defaultValue))
-    .transform(Number)
-    .pipe(z.number());
+  z.string().default(String(defaultValue)).transform(Number).pipe(z.number());
 
 /**
  * Environment configuration schema.

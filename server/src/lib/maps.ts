@@ -141,15 +141,9 @@ function parseGeocodeResponse(response: GoogleGeocodeResponse, address: string):
     case "OVER_QUERY_LIMIT":
       throw new GeocodingApiError("API quota exceeded", response.status);
     case "REQUEST_DENIED":
-      throw new GeocodingApiError(
-        response.error_message ?? "Request denied",
-        response.status
-      );
+      throw new GeocodingApiError(response.error_message ?? "Request denied", response.status);
     case "INVALID_REQUEST":
-      throw new GeocodingApiError(
-        response.error_message ?? "Invalid request",
-        response.status
-      );
+      throw new GeocodingApiError(response.error_message ?? "Invalid request", response.status);
     default:
       throw new GeocodingApiError(
         response.error_message ?? `Unknown error: ${response.status}`,

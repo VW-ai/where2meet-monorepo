@@ -6,10 +6,7 @@
  */
 
 import type { RouteResult, TravelMode } from "../lib/directions/index.js";
-import {
-  DirectionsResponseSchema,
-  type DirectionsResponse,
-} from "../dto/directions.dto.js";
+import { DirectionsResponseSchema, type DirectionsResponse } from "../dto/directions.dto.js";
 
 /**
  * Transforms route results to DirectionsResponse DTO.

@@ -12,12 +12,7 @@ import { randomUUID } from "crypto";
 import { Redis } from "ioredis";
 import { config } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
-import type {
-  SSEConnection,
-  SSEEventType,
-  SSEPayload,
-  BroadcastOptions,
-} from "../types/sse.js";
+import type { SSEConnection, SSEEventType, SSEPayload, BroadcastOptions } from "../types/sse.js";
 
 const logger = createLogger("SSEPlugin");
 

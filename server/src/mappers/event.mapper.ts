@@ -34,9 +34,10 @@ export function toParticipantResponse(entity: Participant): ParticipantResponse 
     id: entity.id,
     name: entity.name,
     address: entity.address,
-    location: entity.lat !== null && entity.lng !== null
-      ? { lat: Number(entity.lat), lng: Number(entity.lng) }
-      : null,
+    location:
+      entity.lat !== null && entity.lng !== null
+        ? { lat: Number(entity.lat), lng: Number(entity.lng) }
+        : null,
     color: entity.color,
     fuzzyLocation: entity.fuzzyLocation,
     isOrganizer: entity.isOrganizer,
@@ -59,9 +60,10 @@ export function toCreateParticipantResponse(
     id: entity.id,
     name: entity.name,
     address: entity.address,
-    location: entity.lat !== null && entity.lng !== null
-      ? { lat: Number(entity.lat), lng: Number(entity.lng) }
-      : null,
+    location:
+      entity.lat !== null && entity.lng !== null
+        ? { lat: Number(entity.lat), lng: Number(entity.lng) }
+        : null,
     color: entity.color,
     fuzzyLocation: entity.fuzzyLocation,
     isOrganizer: entity.isOrganizer,

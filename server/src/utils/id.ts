@@ -20,8 +20,7 @@
 import crypto from "crypto";
 
 /** Base62 character set for URL-safe random string generation */
-const BASE62_CHARS =
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const BASE62_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 /** Length of random suffix in generated IDs (16 chars = ~95 bits entropy) */
 const RANDOM_SUFFIX_LENGTH = 16;

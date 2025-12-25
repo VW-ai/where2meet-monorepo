@@ -8,7 +8,12 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createEventService } from "../services/event.js";
 import { createParticipantService } from "../services/participant.js";
-import { EventNotFoundError, UnauthorizedError, ForbiddenError, ValidationError } from "../types/errors.js";
+import {
+  EventNotFoundError,
+  UnauthorizedError,
+  ForbiddenError,
+  ValidationError,
+} from "../types/errors.js";
 import { createLogger } from "../lib/logger.js";
 import { EventIdSchema } from "../schemas/event.js";
 import { extractBearerToken } from "../utils/auth.js";
@@ -79,7 +84,7 @@ export function sseRoutes(fastify: FastifyInstance): void {
           isOrganizer = true;
           // Get organizer's participant ID for tracking
           const event = await eventService.getEvent(eventId);
-          const organizerParticipant = event.participants.find(p => p.isOrganizer);
+          const organizerParticipant = event.participants.find((p) => p.isOrganizer);
           participantId = organizerParticipant?.id;
         }
       } catch (error) {
@@ -102,7 +107,7 @@ export function sseRoutes(fastify: FastifyInstance): void {
       reply.raw.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
         "X-Accel-Buffering": "no",
       });
 
@@ -112,10 +117,7 @@ export function sseRoutes(fastify: FastifyInstance): void {
         isOrganizer,
       });
 
-      logger.info(
-        { eventId, connectionId, isOrganizer, participantId },
-        "SSE stream connected"
-      );
+      logger.info({ eventId, connectionId, isOrganizer, participantId }, "SSE stream connected");
 
       // Send initial connection event
       reply.raw.write(`event: connected\n`);

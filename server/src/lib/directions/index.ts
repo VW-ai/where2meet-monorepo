@@ -44,8 +44,4 @@ export { RouteNotFoundError, DirectionsApiError } from "./errors.js";
 export { formatDistanceImperial, formatDuration } from "./format.js";
 
 // Route calculation operations
-export {
-  calculateRoute,
-  calculateBatchRoutes,
-  type ParticipantLocation,
-} from "./routes.js";
+export { calculateRoute, calculateBatchRoutes, type ParticipantLocation } from "./routes.js";

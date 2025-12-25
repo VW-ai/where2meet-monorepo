@@ -92,9 +92,5 @@ export function verifyToken(token: string, storedHash: string): boolean {
   }
 
   // Timing-safe comparison to prevent timing attacks
-  return crypto.timingSafeEqual(
-    Buffer.from(inputHash, "hex"),
-    Buffer.from(storedHash, "hex")
-  );
+  return crypto.timingSafeEqual(Buffer.from(inputHash, "hex"), Buffer.from(storedHash, "hex"));
 }
-

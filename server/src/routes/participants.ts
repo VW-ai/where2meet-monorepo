@@ -21,7 +21,11 @@ import { toParticipantResponse, toCreateParticipantResponse } from "../mappers/e
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { verifyOrganizerToken, createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
-import type { ParticipantAddedPayload, ParticipantUpdatedPayload, ParticipantRemovedPayload } from "../types/sse.js";
+import type {
+  ParticipantAddedPayload,
+  ParticipantUpdatedPayload,
+  ParticipantRemovedPayload,
+} from "../types/sse.js";
 
 /**
  * Route parameter types.
@@ -64,7 +68,10 @@ export function participantRoutes(fastify: FastifyInstance): void {
     {
       preHandler: [verifyOrganizerToken({ optional: true })],
     },
-    async (request: FastifyRequest<{ Params: EventParams; Body: CreateParticipantInput }>, reply: FastifyReply) => {
+    async (
+      request: FastifyRequest<{ Params: EventParams; Body: CreateParticipantInput }>,
+      reply: FastifyReply
+    ) => {
       // Validate event ID
       const paramsResult = EventIdSchema.safeParse(request.params);
       if (!paramsResult.success) {
@@ -86,10 +93,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
         { generateToken: isSelfRegistration }
       );
 
-      const response = toCreateParticipantResponse(
-        result.participant,
-        result.participantToken
-      );
+      const response = toCreateParticipantResponse(result.participant, result.participantToken);
 
       // Broadcast SSE event (non-blocking)
       const ssePayload: ParticipantAddedPayload = {
@@ -103,11 +107,15 @@ export function participantRoutes(fastify: FastifyInstance): void {
           isOrganizer: result.participant.isOrganizer,
         },
       };
-      fastify.sse.broadcast({
-        eventId: paramsResult.data.id,
-        type: "participant:added",
-        payload: ssePayload,
-      }).catch(() => { /* SSE broadcast failure is non-critical */ });
+      fastify.sse
+        .broadcast({
+          eventId: paramsResult.data.id,
+          type: "participant:added",
+          payload: ssePayload,
+        })
+        .catch(() => {
+          /* SSE broadcast failure is non-critical */
+        });
 
       return reply.status(201).send(response);
     }
@@ -128,7 +136,10 @@ export function participantRoutes(fastify: FastifyInstance): void {
     {
       preHandler: [createVerifyParticipantAccess()],
     },
-    async (request: FastifyRequest<{ Params: ParticipantParams; Body: UpdateParticipantInput }>, reply: FastifyReply) => {
+    async (
+      request: FastifyRequest<{ Params: ParticipantParams; Body: UpdateParticipantInput }>,
+      reply: FastifyReply
+    ) => {
       // Validate body (params already validated by auth hook)
       const bodyResult = UpdateParticipantSchema.safeParse(request.body);
       if (!bodyResult.success) {
@@ -154,11 +165,15 @@ export function participantRoutes(fastify: FastifyInstance): void {
           isOrganizer: participant.isOrganizer,
         },
       };
-      fastify.sse.broadcast({
-        eventId: request.params.id,
-        type: "participant:updated",
-        payload: ssePayload,
-      }).catch(() => { /* SSE broadcast failure is non-critical */ });
+      fastify.sse
+        .broadcast({
+          eventId: request.params.id,
+          type: "participant:updated",
+          payload: ssePayload,
+        })
+        .catch(() => {
+          /* SSE broadcast failure is non-critical */
+        });
 
       return reply.send(response);
     }
@@ -181,20 +196,21 @@ export function participantRoutes(fastify: FastifyInstance): void {
     },
     async (request: FastifyRequest<{ Params: ParticipantParams }>, reply: FastifyReply) => {
       // Params already validated by auth hook
-      await participantService.deleteParticipant(
-        request.params.id,
-        request.params.participantId
-      );
+      await participantService.deleteParticipant(request.params.id, request.params.participantId);
 
       // Broadcast SSE event (non-blocking)
       const ssePayload: ParticipantRemovedPayload = {
         participantId: request.params.participantId,
       };
-      fastify.sse.broadcast({
-        eventId: request.params.id,
-        type: "participant:removed",
-        payload: ssePayload,
-      }).catch(() => { /* SSE broadcast failure is non-critical */ });
+      fastify.sse
+        .broadcast({
+          eventId: request.params.id,
+          type: "participant:removed",
+          payload: ssePayload,
+        })
+        .catch(() => {
+          /* SSE broadcast failure is non-critical */
+        });
 
       return reply.send(createDeleteSuccessResponse("Participant deleted successfully"));
     }

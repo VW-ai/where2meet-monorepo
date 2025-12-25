@@ -96,10 +96,7 @@ export class VoteRepository {
     participantId: string,
     venueId: string
   ): Promise<number> {
-    logger.debug(
-      { eventId, participantId, venueId },
-      "Deleting vote"
-    );
+    logger.debug({ eventId, participantId, venueId }, "Deleting vote");
 
     const result = await this.db.vote.deleteMany({
       where: {
@@ -119,11 +116,7 @@ export class VoteRepository {
    * @param venueId - Venue ID (Google Place ID)
    * @returns true if vote exists, false otherwise
    */
-  async hasVoted(
-    eventId: string,
-    participantId: string,
-    venueId: string
-  ): Promise<boolean> {
+  async hasVoted(eventId: string, participantId: string, venueId: string): Promise<boolean> {
     const vote = await this.db.vote.findUnique({
       where: {
         eventId_participantId_venueId: {
@@ -171,9 +164,7 @@ export class VoteRepository {
     }
 
     // Convert map to array and sort by vote count (descending)
-    return Array.from(venueMap.values()).sort(
-      (a, b) => b.voteCount - a.voteCount
-    );
+    return Array.from(venueMap.values()).sort((a, b) => b.voteCount - a.voteCount);
   }
 
   /**

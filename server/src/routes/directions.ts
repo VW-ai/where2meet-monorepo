@@ -42,9 +42,7 @@ const DirectionsParamsSchema = z.object({
  * Validation schema for query parameters.
  */
 const DirectionsQuerySchema = z.object({
-  travelMode: z
-    .enum(["driving", "walking", "transit", "bicycling"])
-    .default("driving"),
+  travelMode: z.enum(["driving", "walking", "transit", "bicycling"]).default("driving"),
   participantId: z.uuid().optional(),
 });
 

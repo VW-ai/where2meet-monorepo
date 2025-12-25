@@ -6,12 +6,7 @@
  */
 
 // Types
-export type {
-  GeoPoint,
-  PlaceResult,
-  PlaceDetails,
-  VenueCategory,
-} from "./types.js";
+export type { GeoPoint, PlaceResult, PlaceDetails, VenueCategory } from "./types.js";
 export { CATEGORY_TO_PLACE_TYPE } from "./types.js";
 
 // Errors

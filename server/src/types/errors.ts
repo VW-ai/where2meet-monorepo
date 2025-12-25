@@ -23,12 +23,7 @@ export class AppError extends Error {
    * @param code - Machine-readable error code (e.g., "NOT_FOUND")
    * @param isOperational - True for expected errors, false for bugs (default: true)
    */
-  constructor(
-    message: string,
-    statusCode: number,
-    code: string,
-    isOperational = true
-  ) {
+  constructor(message: string, statusCode: number, code: string, isOperational = true) {
     super(message);
     this.statusCode = statusCode;
     this.code = code;
@@ -122,11 +117,7 @@ export class InternalError extends AppError {
  */
 export class EventNotFoundError extends AppError {
   constructor(eventId?: string) {
-    super(
-      eventId ? `Event ${eventId} not found` : "Event not found",
-      404,
-      "EVENT_NOT_FOUND"
-    );
+    super(eventId ? `Event ${eventId} not found` : "Event not found", 404, "EVENT_NOT_FOUND");
   }
 }
 
@@ -136,9 +127,7 @@ export class EventNotFoundError extends AppError {
 export class ParticipantNotFoundError extends AppError {
   constructor(participantId?: string) {
     super(
-      participantId
-        ? `Participant ${participantId} not found`
-        : "Participant not found",
+      participantId ? `Participant ${participantId} not found` : "Participant not found",
       404,
       "PARTICIPANT_NOT_FOUND"
     );
@@ -151,9 +140,7 @@ export class ParticipantNotFoundError extends AppError {
 export class AddressNotFoundError extends AppError {
   constructor(address?: string) {
     super(
-      address
-        ? `Could not geocode address: ${address}`
-        : "Address not found",
+      address ? `Could not geocode address: ${address}` : "Address not found",
       400,
       "ADDRESS_NOT_FOUND"
     );
@@ -187,11 +174,7 @@ export class EventNotPublishedError extends AppError {
  */
 export class ExternalServiceError extends AppError {
   constructor(service: string, message?: string) {
-    super(
-      message ?? `External service error: ${service}`,
-      502,
-      "EXTERNAL_SERVICE_ERROR"
-    );
+    super(message ?? `External service error: ${service}`, 502, "EXTERNAL_SERVICE_ERROR");
   }
 }
 

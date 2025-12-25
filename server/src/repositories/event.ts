@@ -79,10 +79,7 @@ export class EventRepository {
         });
       } catch (error) {
         // Check for unique constraint violation (ID collision)
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === "P2002"
-        ) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
           logger.warn(
             { eventId, attempt, maxAttempts: MAX_ID_GENERATION_RETRIES },
             "Event ID collision detected, retrying"
@@ -309,10 +306,7 @@ export class EventRepository {
         return result;
       } catch (error) {
         // Check for unique constraint violation (ID collision)
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === "P2002"
-        ) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
           logger.warn(
             { eventId, attempt, maxAttempts: MAX_ID_GENERATION_RETRIES },
             "Event ID collision detected, retrying"

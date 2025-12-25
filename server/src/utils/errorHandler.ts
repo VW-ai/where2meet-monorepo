@@ -38,11 +38,7 @@ const logger = createLogger("errorHandler");
  * // Client receives: { error: { code: "NOT_FOUND", message: "User not found" } }
  * ```
  */
-export function errorHandler(
-  error: FastifyError,
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
   // Log error with request context
   // Use 'err' key for Pino's built-in error serializer
   const logContext = {

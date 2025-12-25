@@ -5,18 +5,12 @@
 
 import { config } from "../config.js";
 import { handleApiStatus, RouteNotFoundError } from "./errors.js";
-import {
-  getRouteCacheKey,
-  getCachedRoute,
-  cacheRoute,
-  type CachedRouteData,
-} from "./cache.js";
+import { getRouteCacheKey, getCachedRoute, cacheRoute, type CachedRouteData } from "./cache.js";
 import { fetchDirectionsApi, withRetry } from "./client.js";
 import { formatDistanceImperial, formatDuration } from "./format.js";
 import type { GeoPoint, TravelMode, RouteResult } from "./types.js";
 
-const GOOGLE_DIRECTIONS_API_URL =
-  "https://maps.googleapis.com/maps/api/directions/json";
+const GOOGLE_DIRECTIONS_API_URL = "https://maps.googleapis.com/maps/api/directions/json";
 
 /**
  * Calculates a route between two points.
@@ -34,13 +28,7 @@ export async function calculateRoute(
   mode: TravelMode,
   participantId: string
 ): Promise<RouteResult> {
-  const cacheKey = getRouteCacheKey(
-    origin.lat,
-    origin.lng,
-    destination.lat,
-    destination.lng,
-    mode
-  );
+  const cacheKey = getRouteCacheKey(origin.lat, origin.lng, destination.lat, destination.lng, mode);
 
   // Check cache first
   const cached = await getCachedRoute(cacheKey);
@@ -133,9 +121,7 @@ export async function calculateBatchRoutes(
 ): Promise<RouteResult[]> {
   // Run all route calculations in parallel
   const results = await Promise.allSettled(
-    participants.map((p) =>
-      calculateRoute({ lat: p.lat, lng: p.lng }, venue, mode, p.id)
-    )
+    participants.map((p) => calculateRoute({ lat: p.lat, lng: p.lng }, venue, mode, p.id))
   );
 
   // Filter successful results, log failures

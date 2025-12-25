@@ -227,9 +227,7 @@ export class EventService {
           category: details.types.length > 0 ? (details.types[0] ?? null) : null,
           rating: details.rating,
           priceLevel: details.priceLevel,
-          photoUrl: details.photoReference
-            ? buildPhotoUrl(details.photoReference)
-            : null,
+          photoUrl: details.photoReference ? buildPhotoUrl(details.photoReference) : null,
         })
         .catch((error: unknown) => {
           logger.error({ err: error, venueId }, "Failed to upsert venue to database");

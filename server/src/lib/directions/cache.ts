@@ -80,12 +80,7 @@ export async function getCachedRoute(cacheKey: string): Promise<CachedRouteData 
  */
 export async function cacheRoute(cacheKey: string, data: CachedRouteData): Promise<void> {
   try {
-    await redis.set(
-      cacheKey,
-      JSON.stringify(data),
-      "EX",
-      config.DIRECTIONS_CACHE_TTL_SECONDS
-    );
+    await redis.set(cacheKey, JSON.stringify(data), "EX", config.DIRECTIONS_CACHE_TTL_SECONDS);
   } catch (error) {
     console.warn("[Directions] Cache write error:", error);
   }

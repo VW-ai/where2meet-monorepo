@@ -66,10 +66,7 @@ export class VenueRepository {
     const age = Date.now() - venue.updatedAt.getTime();
     const isStale = age >= FIVE_DAYS_MS;
 
-    logger.debug(
-      { placeId, ageMs: age, isStale },
-      "Checked venue staleness"
-    );
+    logger.debug({ placeId, ageMs: age, isStale }, "Checked venue staleness");
 
     return isStale;
   }

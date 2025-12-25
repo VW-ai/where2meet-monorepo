@@ -14,10 +14,7 @@ import { EVENT_ID_PATTERN } from "../utils/id.js";
  * Schema for creating a new event.
  */
 export const CreateEventSchema = z.object({
-  title: z
-    .string()
-    .min(1, "Title is required")
-    .max(100, "Title must be 100 characters or less"),
+  title: z.string().min(1, "Title is required").max(100, "Title must be 100 characters or less"),
   meetingTime: z.iso
     .datetime({ message: "Meeting time must be a valid ISO 8601 datetime" })
     .optional(),
@@ -60,9 +57,7 @@ export type EventIdParam = z.infer<typeof EventIdSchema>;
  * Schema for publishing an event with a venue.
  */
 export const PublishEventSchema = z.object({
-  venueId: z
-    .string()
-    .min(1, "Venue ID is required"),
+  venueId: z.string().min(1, "Venue ID is required"),
 });
 
 export type PublishEventInput = z.infer<typeof PublishEventSchema>;

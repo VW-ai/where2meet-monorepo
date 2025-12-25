@@ -67,9 +67,7 @@ export function toVenueWithVotesResponse(
  * Aggregates all votes for an event grouped by venue.
  * Validates output at runtime to ensure contract compliance.
  */
-export function toVoteStatisticsResponse(
-  stats: VoteStats[]
-): VoteStatisticsResponse {
+export function toVoteStatisticsResponse(stats: VoteStats[]): VoteStatisticsResponse {
   const venues = stats.map((stat) =>
     toVenueWithVotesResponse(stat.venue, stat.voteCount, stat.voterIds)
   );

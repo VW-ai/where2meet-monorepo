@@ -149,7 +149,9 @@ export function createVerifyParticipantAccess(options: VerifyParticipantAccessOp
           token
         );
         if (!isAlsoParticipant) {
-          throw new ForbiddenError("Organizer can only access their own participant record for this operation");
+          throw new ForbiddenError(
+            "Organizer can only access their own participant record for this operation"
+          );
         }
       }
       request.participantAuth = {

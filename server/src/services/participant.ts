@@ -51,11 +51,7 @@ const METERS_PER_LAT_DEGREE = 111_320;
  * @param seed - Seed string for deterministic randomness (e.g., participant name)
  * @returns Offset coordinates
  */
-function applyFuzzyOffset(
-  lat: number,
-  lng: number,
-  seed: string
-): { lat: number; lng: number } {
+function applyFuzzyOffset(lat: number, lng: number, seed: string): { lat: number; lng: number } {
   // Simple hash function for deterministic "randomness"
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
@@ -71,8 +67,7 @@ function applyFuzzyOffset(
   // Calculate offset in degrees
   const latOffset = (distance * Math.cos(angle)) / METERS_PER_LAT_DEGREE;
   const lngOffset =
-    (distance * Math.sin(angle)) /
-    (METERS_PER_LAT_DEGREE * Math.cos(lat * (Math.PI / 180)));
+    (distance * Math.sin(angle)) / (METERS_PER_LAT_DEGREE * Math.cos(lat * (Math.PI / 180)));
 
   return {
     lat: lat + latOffset,
@@ -268,18 +263,18 @@ export class ParticipantService {
       const shouldFuzzy = input.fuzzyLocation ?? current.fuzzyLocation;
 
       if (shouldFuzzy) {
-        const offset = applyFuzzyOffset(
-          geocodeResult.lat,
-          geocodeResult.lng,
-          nameForOffset
-        );
+        const offset = applyFuzzyOffset(geocodeResult.lat, geocodeResult.lng, nameForOffset);
         updateData.lat = offset.lat;
         updateData.lng = offset.lng;
       } else {
         updateData.lat = geocodeResult.lat;
         updateData.lng = geocodeResult.lng;
       }
-    } else if (input.fuzzyLocation !== undefined && input.fuzzyLocation !== current.fuzzyLocation && current.address !== null) {
+    } else if (
+      input.fuzzyLocation !== undefined &&
+      input.fuzzyLocation !== current.fuzzyLocation &&
+      current.address !== null
+    ) {
       // Fuzzy setting changed but address didn't - need to re-apply or remove offset
       // For simplicity, we re-geocode to get clean coordinates
       // Note: Skip this for organizer participants (null address)
@@ -287,11 +282,7 @@ export class ParticipantService {
       const nameForOffset = input.name ?? current.name;
 
       if (input.fuzzyLocation) {
-        const offset = applyFuzzyOffset(
-          geocodeResult.lat,
-          geocodeResult.lng,
-          nameForOffset
-        );
+        const offset = applyFuzzyOffset(geocodeResult.lat, geocodeResult.lng, nameForOffset);
         updateData.lat = offset.lat;
         updateData.lng = offset.lng;
       } else {

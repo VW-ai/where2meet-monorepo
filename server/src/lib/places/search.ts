@@ -12,12 +12,7 @@ import {
   getCachedDetails,
   cacheDetails,
 } from "./cache.js";
-import {
-  fetchPlacesApi,
-  withRetry,
-  parseGooglePlace,
-  parseGooglePlaceDetails,
-} from "./client.js";
+import { fetchPlacesApi, withRetry, parseGooglePlace, parseGooglePlaceDetails } from "./client.js";
 import type {
   GeoPoint,
   PlaceResult,
@@ -43,7 +38,12 @@ export async function searchNearbyPlaces(
   radiusMeters: number,
   options: { type?: string; keyword?: string } = {}
 ): Promise<PlaceResult[]> {
-  const cacheKey = getSearchCacheKey(center, radiusMeters, options.type ?? null, options.keyword ?? null);
+  const cacheKey = getSearchCacheKey(
+    center,
+    radiusMeters,
+    options.type ?? null,
+    options.keyword ?? null
+  );
 
   // Check cache first
   const cached = await getCachedSearch(cacheKey);
