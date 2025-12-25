@@ -389,6 +389,128 @@ async createWithOrganizerParticipant(
 
 ---
 
+### Milestone 6: Routes + Publish (COMPLETED)
+
+#### 6.1 Directions Library
+- Created `src/lib/directions/` folder with atomic modules:
+  - `types.ts` - Google Directions API types, RouteResult, TravelMode
+  - `errors.ts` - DirectionsApiError, RouteNotFoundError, status code handling
+  - `format.ts` - formatDistanceImperial(), formatDuration() for imperial units
+  - `cache.ts` - Redis caching with coordinate-based keys (4 decimal precision)
+  - `client.ts` - HTTP client with retry logic (100ms → 400ms → 1600ms)
+  - `routes.ts` - calculateRoute(), calculateBatchRoutes()
+  - `index.ts` - Public exports
+- Created `tests/unit/directions-format.test.ts` - 22 unit tests
+  - Distance formatting (feet for < 0.1 mi, miles otherwise)
+  - Duration formatting (hours + minutes with proper pluralization)
+
+#### 6.2 Directions API Layer
+- Created `src/dto/directions.dto.ts` - RouteResponseSchema, DirectionsResponseSchema
+- Created `src/mappers/directions.mapper.ts` - toDirectionsResponse()
+- Created `src/services/directions.ts` - DirectionsService
+  - `getDirections(eventId, venueId, travelMode, participantId?)` - batch routes
+  - Validates venue exists in database
+  - Filters to participants with valid coordinates (excludes organizer)
+- Created `src/routes/directions.ts` - Directions endpoint
+  - GET /api/events/:id/venues/:venueId/directions
+  - Query params: travelMode (driving|walking|transit|bicycling), participantId
+  - Uses `createVerifyEventAccess()` hook for dual-token auth
+- Created `tests/directions.test.ts` - 14 integration tests
+
+#### 6.3 Auth Hook Refactoring
+- Refactored `src/hooks/auth.ts`:
+  - Extracted `verifyEventToken()` helper for shared token validation logic
+  - Created `createVerifyEventAccess()` for event-level auth (directions endpoint)
+  - Refactored `createVerifyParticipantAccess()` to use shared helper
+  - Consistent `ParticipantAuthContext` interface across all hooks
+
+#### 6.4 Publish Feature
+- Updated `src/repositories/event.ts`:
+  - Added `publish(id, venueId)` - sets publishedVenueId + publishedAt
+  - Added `unpublish(id)` - clears publishedVenueId + publishedAt to null
+- Updated `src/services/event.ts`:
+  - Added `publishEvent(eventId, venueId)` - validates venue via Google Places API
+  - Added `unpublishEvent(eventId)` - clears publish state
+  - Upserts venue to global table on successful validation
+- Updated `src/types/errors.ts`:
+  - Added `EventNotPublishedError` (409 EVENT_NOT_PUBLISHED)
+- Created `src/schemas/event.ts`:
+  - Added `PublishEventSchema` for venueId validation
+- Updated `src/routes/events.ts`:
+  - POST /api/events/:id/publish - organizer-only, validates venueId
+  - DELETE /api/events/:id/publish - organizer-only, unpublish
+- Created `tests/publish.test.ts` - 20 integration tests
+  - Publish: auth, validation, success, 409 already published
+  - Unpublish: auth, success, 409 not published
+  - Post-publish restrictions: 409 on add/update/delete participant, 409 on voting
+  - Post-unpublish: allows modifications again
+
+#### 6.5 Configuration
+- Updated `src/lib/config.ts`:
+  - Added `DIRECTIONS_CACHE_TTL_SECONDS` (3600, 1 hour)
+  - Added `DIRECTIONS_TIMEOUT_MS` (10000, 10 seconds)
+
+#### 6.6 Caching Strategy
+- Per-route caching with coordinate-based keys:
+  - Key format: `directions:{originLat},{originLng}:{destLat},{destLng}:{mode}`
+  - Coordinate normalization: 4 decimal places (~11m precision)
+  - TTL: 1 hour
+  - Benefits: Automatic invalidation on coordinate change, no explicit cache clear needed
+
+#### Test Summary
+- Total tests: 355 passing
+  - Directions format unit tests: 22 tests
+  - Directions integration tests: 14 tests
+  - Publish integration tests: 20 tests
+  - Previous tests: 299 tests
+
+#### Files Created
+| Path | Description |
+|------|-------------|
+| `src/lib/directions/types.ts` | Type definitions |
+| `src/lib/directions/errors.ts` | Error classes |
+| `src/lib/directions/format.ts` | Formatting utils |
+| `src/lib/directions/cache.ts` | Redis caching |
+| `src/lib/directions/client.ts` | HTTP client |
+| `src/lib/directions/routes.ts` | Route calculation |
+| `src/lib/directions/index.ts` | Public exports |
+| `src/dto/directions.dto.ts` | Response DTOs |
+| `src/mappers/directions.mapper.ts` | Response mapper |
+| `src/services/directions.ts` | Directions service |
+| `src/routes/directions.ts` | Directions route |
+| `tests/unit/directions-format.test.ts` | Format tests |
+| `tests/directions.test.ts` | Integration tests |
+| `tests/publish.test.ts` | Publish tests |
+
+#### Files Modified
+| Path | Changes |
+|------|---------|
+| `src/lib/config.ts` | Added DIRECTIONS_* config |
+| `src/dto/index.ts` | Export directions DTOs |
+| `src/hooks/auth.ts` | Refactored with verifyEventToken helper, added createVerifyEventAccess |
+| `src/repositories/event.ts` | Added publish(), unpublish() methods |
+| `src/services/event.ts` | Added publishEvent(), unpublishEvent() methods |
+| `src/routes/events.ts` | Added POST/DELETE /publish routes |
+| `src/server.ts` | Registered directions routes |
+| `src/types/errors.ts` | Added EventNotPublishedError |
+| `src/schemas/event.ts` | Added PublishEventSchema |
+
+#### 6.7 Bug Fix: Directions API Venue Lookup
+
+**Issue**: DirectionsService required venues to exist in the database before calculating routes. Newly searched venues (pre-vote/publish) weren't stored, so directions failed for the exact scenario it was meant to cover.
+
+**Solution**: Added fallback to Google Places API when venue not in database:
+1. First check database for venue coordinates
+2. If not found, fetch from `getPlaceDetails(venueId)`
+3. Use coordinates from whichever source succeeded
+4. Return 400 only if Places API returns NOT_FOUND
+
+**Files Modified**:
+- `src/services/directions.ts` - Added Places API fallback with PlacesApiError handling
+- `tests/directions.test.ts` - Added Places API mock and new test case for fallback
+
+---
+
 ## 2025-12-25
 
 ### Issue #18: Separate MEC from Venue Search (COMPLETED)
