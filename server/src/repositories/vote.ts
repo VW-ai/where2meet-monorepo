@@ -6,7 +6,7 @@
  * @module repositories/vote
  */
 
-import type { PrismaClient, Vote, Venue } from "../generated/prisma/index.js";
+import type { PrismaClient, Vote, Venue } from "@prisma/client";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("VoteRepository");

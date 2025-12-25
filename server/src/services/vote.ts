@@ -6,7 +6,7 @@
  * @module services/vote
  */
 
-import type { PrismaClient, Vote } from "../generated/prisma/index.js";
+import type { PrismaClient, Vote } from "@prisma/client";
 import { createEventRepository, type EventRepository } from "../repositories/event.js";
 import { createVoteRepository, type VoteRepository, type VoteStats } from "../repositories/vote.js";
 import type { VenueData } from "../repositories/venue.js";

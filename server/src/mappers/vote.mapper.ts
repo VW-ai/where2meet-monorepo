@@ -6,7 +6,7 @@
  * @module mappers/vote
  */
 
-import type { Vote, Venue } from "../generated/prisma/index.js";
+import type { Vote, Venue } from "@prisma/client";
 import type { VoteStats } from "../repositories/vote.js";
 import {
   VoteResponseSchema,

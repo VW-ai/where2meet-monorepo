@@ -7,7 +7,7 @@
  * @module services/directions
  */
 
-import type { PrismaClient } from "../generated/prisma/index.js";
+import type { PrismaClient } from "@prisma/client";
 import { createEventRepository, type EventRepository } from "../repositories/event.js";
 import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
 import {

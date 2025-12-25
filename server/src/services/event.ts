@@ -7,7 +7,7 @@
  * @module services/event
  */
 
-import type { PrismaClient } from "../generated/prisma/index.js";
+import type { PrismaClient } from "@prisma/client";
 import {
   createEventRepository,
   type EventRepository,

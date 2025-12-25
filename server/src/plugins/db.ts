@@ -9,7 +9,7 @@
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { prisma, disconnectPrisma } from "../lib/prisma.js";
-import type { PrismaClient } from "../generated/prisma/index.js";
+import type { PrismaClient } from "@prisma/client";
 
 /**
  * Extends Fastify instance type to include db property.

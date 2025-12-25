@@ -6,7 +6,7 @@
  * @module services/participant
  */
 
-import type { PrismaClient, Participant } from "../generated/prisma/index.js";
+import type { PrismaClient, Participant } from "@prisma/client";
 import {
   createParticipantRepository,
   type ParticipantRepository,

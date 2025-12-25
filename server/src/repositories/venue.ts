@@ -6,7 +6,7 @@
  * @module repositories/venue
  */
 
-import type { PrismaClient, Venue } from "../generated/prisma/index.js";
+import type { PrismaClient, Venue } from "@prisma/client";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("VenueRepository");

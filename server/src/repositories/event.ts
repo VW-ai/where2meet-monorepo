@@ -5,8 +5,8 @@
  * @module repositories/event
  */
 
-import type { PrismaClient, Event, Participant } from "../generated/prisma/index.js";
-import { Prisma } from "../generated/prisma/index.js";
+import type { PrismaClient, Event, Participant } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { CreateEventInput, UpdateEventInput } from "../schemas/event.js";
 import { generateEventId } from "../utils/id.js";
 import { createLogger } from "../lib/logger.js";

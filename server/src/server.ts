@@ -74,9 +74,9 @@ export async function buildServer() {
     disableRequestLogging: isTest,
   });
 
-  // Register CORS (allow all origins in dev, configure for prod)
+  // Register CORS
   await server.register(cors, {
-    origin: config.NODE_ENV === "production" ? false : true,
+    origin: config.CORS_ORIGIN === "*" ? true : config.CORS_ORIGIN.split(",").map(o => o.trim()),
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });

@@ -6,7 +6,7 @@
  * @module mappers/event
  */
 
-import type { Participant } from "../generated/prisma/index.js";
+import type { Participant } from "@prisma/client";
 import type { EventWithParticipants } from "../repositories/event.js";
 import {
   EventResponseSchema,

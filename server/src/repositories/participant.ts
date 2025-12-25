@@ -5,7 +5,7 @@
  * @module repositories/participant
  */
 
-import type { PrismaClient, Participant } from "../generated/prisma/index.js";
+import type { PrismaClient, Participant } from "@prisma/client";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("ParticipantRepository");

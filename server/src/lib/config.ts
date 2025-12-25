@@ -26,6 +26,7 @@ const envSchema = z.object({
   PORT: stringToNumber(3000).pipe(z.number().min(1).max(65535)),
   HOST: z.string().default("0.0.0.0"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  CORS_ORIGIN: z.string().default("*"), // Comma-separated list of allowed origins or "*" for all
 
   // Database
   DATABASE_URL: z.string().min(1),
