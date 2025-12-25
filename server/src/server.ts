@@ -23,6 +23,7 @@ import { eventRoutes } from "./routes/events.js";
 import { participantRoutes } from "./routes/participants.js";
 import { venueRoutes } from "./routes/venues.js";
 import { voteRoutes } from "./routes/votes.js";
+import { directionsRoutes } from "./routes/directions.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -104,6 +105,7 @@ export async function buildServer() {
   await server.register(participantRoutes);
   await server.register(venueRoutes);
   await server.register(voteRoutes);
+  await server.register(directionsRoutes);
 
   return server;
 }

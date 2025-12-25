@@ -12,9 +12,11 @@ import {
   CreateEventSchema,
   UpdateEventSchema,
   EventIdSchema,
+  PublishEventSchema,
   type CreateEventInput,
   type UpdateEventInput,
   type EventIdParam,
+  type PublishEventInput,
 } from "../schemas/event.js";
 import { toEventResponse, toCreateEventResponse } from "../mappers/event.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
@@ -35,6 +37,8 @@ type GetEventRequest = FastifyRequest<{ Params: EventIdParam }>;
  * - GET /api/events/:id - Get event details
  * - PATCH /api/events/:id - Update event (requires auth)
  * - DELETE /api/events/:id - Delete event (requires auth)
+ * - POST /api/events/:id/publish - Publish event with venue (requires auth)
+ * - DELETE /api/events/:id/publish - Unpublish event (requires auth)
  */
 export function eventRoutes(fastify: FastifyInstance): void {
   const eventService = createEventService(fastify.db);
@@ -130,6 +134,61 @@ export function eventRoutes(fastify: FastifyInstance): void {
       await eventService.deleteEvent(parseResult.data.id);
 
       return reply.send(createDeleteSuccessResponse("Event deleted successfully"));
+    }
+  );
+
+  /**
+   * POST /api/events/:id/publish
+   * Publishes an event with the selected venue. Requires organizerToken.
+   */
+  fastify.post<{ Params: { id: string }; Body: PublishEventInput }>(
+    "/api/events/:id/publish",
+    {
+      preHandler: [verifyOrganizerToken()],
+    },
+    async (request, reply) => {
+      // Validate params
+      const paramsResult = EventIdSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        throw new ValidationError("Invalid event ID format");
+      }
+
+      // Validate body
+      const bodyResult = PublishEventSchema.safeParse(request.body);
+      if (!bodyResult.success) {
+        throw bodyResult.error;
+      }
+
+      const event = await eventService.publishEvent(
+        paramsResult.data.id,
+        bodyResult.data.venueId
+      );
+      const response = toEventResponse(event);
+
+      return reply.send(response);
+    }
+  );
+
+  /**
+   * DELETE /api/events/:id/publish
+   * Unpublishes an event. Requires organizerToken.
+   */
+  fastify.delete<{ Params: { id: string } }>(
+    "/api/events/:id/publish",
+    {
+      preHandler: [verifyOrganizerToken()],
+    },
+    async (request, reply) => {
+      // Validate params
+      const parseResult = EventIdSchema.safeParse(request.params);
+      if (!parseResult.success) {
+        throw new ValidationError("Invalid event ID format");
+      }
+
+      const event = await eventService.unpublishEvent(parseResult.data.id);
+      const response = toEventResponse(event);
+
+      return reply.send(response);
     }
   );
 }
