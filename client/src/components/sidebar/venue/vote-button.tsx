@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ThumbsUp } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import type { Venue } from '@/types';
@@ -69,7 +69,7 @@ export function VoteButton({ venueId, voteCount = 0, venue }: VoteButtonProps) {
       aria-busy={isLoading}
       title={isPublished ? 'Voting is disabled after event is published' : undefined}
     >
-      <ThumbsUp
+      <Heart
         className={cn(
           'w-4 h-4 transition-all duration-200',
           hasVoted && 'fill-white',

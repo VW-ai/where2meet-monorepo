@@ -89,9 +89,19 @@ const config: Config = {
           '66.67%': { transform: 'scale(1)', opacity: '1' },
           '83.33%': { transform: 'scale(1.15)', opacity: '0.85' },
         },
+        'fade-scale-in': {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'fade-slide-up': {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'flash-pulse': 'flash-pulse 600ms ease-in-out',
+        'fade-scale-in': 'fade-scale-in 400ms ease-out forwards',
+        'fade-slide-up': 'fade-slide-up 400ms ease-out forwards',
       },
     },
   },

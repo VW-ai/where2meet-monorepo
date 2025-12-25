@@ -10,6 +10,7 @@ import { VenueCard } from './venue-card';
 import { TravelTypeFilter } from './venue/travel-type-filter';
 import { SearchPillBar } from './venue/search-pill-bar';
 import { LikedFilterButton } from './venue/liked-filter-button';
+import { cn } from '@/lib/utils/cn';
 
 export function VenueSection() {
   const {
@@ -130,145 +131,176 @@ export function VenueSection() {
   ]);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">
-          Venues
-          {executedSearchQuery && (
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              • &quot;{executedSearchQuery}&quot;
-            </span>
-          )}
-        </h2>
-        {venues.length > 0 && (
-          <span className="text-sm text-muted-foreground">{venues.length} found</span>
+    <div
+      className={cn(
+        'relative h-full flex flex-col transition-colors duration-300',
+        showLikedOnly ? 'bg-coral-50/30' : 'bg-transparent'
+      )}
+    >
+      {/* Sticky Header Section */}
+      <div
+        className={cn(
+          'sticky top-0 z-10 pb-4 space-y-4 -mx-6 px-6 -mt-6 pt-6',
+          'transition-colors duration-300',
+          showLikedOnly
+            ? 'bg-coral-50/60 backdrop-blur-md border-b border-coral-200/50'
+            : 'bg-white/95 backdrop-blur-md'
         )}
-      </div>
-
-      {/* Travel Type Filter */}
-      <TravelTypeFilter />
-
-      {/* Quick Search and Liked Filter */}
-      <div className="flex items-center gap-2">
-        {/* Two-phase search: Phase 1 shows autocomplete, Phase 2 populates venue list */}
-        <div
-          className="transition-all duration-300 ease-in-out"
-          style={{ width: isLikedExpanded ? '60%' : '80%' }}
-        >
-          <SearchPillBar
-            onSelectVenue={(venue) => {
-              // Select venue on map when chosen from autocomplete
-              setSelectedVenue(venue);
-            }}
-            onSearchExecute={(query) => {
-              // Phase 2: Execute search and populate venue list
-              setExecutedSearchQuery(query);
-            }}
-          />
+      >
+        {/* Header - Title + Count + Search Query */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">
+            {showLikedOnly ? 'Liked Venues' : 'Venues'}
+            {executedSearchQuery && !showLikedOnly && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                • &quot;{executedSearchQuery}&quot;
+              </span>
+            )}
+          </h2>
+          {(() => {
+            const count = showLikedOnly ? Object.values(likedVenueData).length : venues.length;
+            return (
+              count > 0 && (
+                <span
+                  className={cn(
+                    'text-sm font-medium',
+                    showLikedOnly ? 'text-coral-700' : 'text-muted-foreground'
+                  )}
+                >
+                  {count} {showLikedOnly ? 'liked' : 'found'}
+                </span>
+              )
+            );
+          })()}
         </div>
-        {/* Liked Filter - Toggles venue list filtering */}
-        <div
-          className="transition-all duration-300 ease-in-out"
-          style={{ width: isLikedExpanded ? '40%' : '20%' }}
-        >
-          <LikedFilterButton
-            isExpanded={isLikedExpanded}
-            onToggle={() => {
-              const newExpanded = !isLikedExpanded;
-              setIsLikedExpanded(newExpanded);
-              setShowLikedOnly(newExpanded);
-            }}
-          />
-        </div>
-      </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="py-8 text-center" role="status" aria-live="polite">
+        {/* Travel Type Filter */}
+        <TravelTypeFilter />
+
+        {/* Search + Liked Filter */}
+        <div className="flex items-center gap-2">
+          {/* Two-phase search: Phase 1 shows autocomplete, Phase 2 populates venue list */}
           <div
-            className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500"
-            aria-hidden="true"
-          ></div>
-          <p className="mt-2 text-sm text-muted-foreground">Searching venues...</p>
+            className="transition-all duration-300 ease-in-out"
+            style={{ width: isLikedExpanded ? '60%' : '80%' }}
+          >
+            <SearchPillBar
+              onSelectVenue={(venue) => {
+                // Select venue on map when chosen from autocomplete
+                setSelectedVenue(venue);
+              }}
+              onSearchExecute={(query) => {
+                // Phase 2: Execute search and populate venue list
+                setExecutedSearchQuery(query);
+              }}
+            />
+          </div>
+          {/* Liked Filter - Toggles venue list filtering */}
+          <div
+            className="transition-all duration-300 ease-in-out"
+            style={{ width: isLikedExpanded ? '40%' : '20%' }}
+          >
+            <LikedFilterButton
+              isExpanded={isLikedExpanded}
+              onToggle={() => {
+                const newExpanded = !isLikedExpanded;
+                setIsLikedExpanded(newExpanded);
+                setShowLikedOnly(newExpanded);
+              }}
+            />
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Error State */}
-      {error && (
-        <div className="p-4 rounded-lg bg-red-50 shadow-lg">
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
+      {/* Scrollable Content Section */}
+      <div className="flex-1 overflow-y-auto space-y-4 pt-4">
+        {/* Loading State */}
+        {loading && (
+          <div className="py-8 text-center" role="status" aria-live="polite">
+            <div
+              className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500"
+              aria-hidden="true"
+            ></div>
+            <p className="mt-2 text-sm text-muted-foreground">Searching venues...</p>
+          </div>
+        )}
 
-      {/* Empty state - no search executed yet */}
-      {!loading && !error && !executedSearchQuery && (
-        <div className="py-8 text-center">
-          <p className="text-sm text-muted-foreground">Search for venues to get started</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Try &quot;restaurants near Central Park&quot;
-          </p>
-        </div>
-      )}
+        {/* Error State */}
+        {error && (
+          <div className="p-4 rounded-lg bg-red-50 shadow-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
 
-      {/* Venue List - No results from search */}
-      {!loading && !error && executedSearchQuery && venues.length === 0 && !showLikedOnly && (
-        <div className="py-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            No venues found for &quot;{executedSearchQuery}&quot;
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Try a different search term</p>
-        </div>
-      )}
+        {/* Empty state - no search executed yet */}
+        {!loading && !error && !executedSearchQuery && (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">Search for venues to get started</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Try &quot;restaurants near Central Park&quot;
+            </p>
+          </div>
+        )}
 
-      {/* No liked venues */}
-      {!loading && !error && showLikedOnly && savedVenues.length === 0 && (
-        <div className="py-8 text-center">
-          <p className="text-sm text-muted-foreground">No liked venues yet</p>
-          <p className="text-xs text-muted-foreground mt-1">Like venues to see them here</p>
-        </div>
-      )}
+        {/* Venue List - No results from search */}
+        {!loading && !error && executedSearchQuery && venues.length === 0 && !showLikedOnly && (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              No venues found for &quot;{executedSearchQuery}&quot;
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Try a different search term</p>
+          </div>
+        )}
 
-      {/* Venue List */}
-      {!loading &&
-        !error &&
-        (() => {
-          // When showing liked only, use likedVenueData (persistent across searches)
-          // Otherwise, filter from current search results
-          let displayVenues: Venue[];
+        {/* No liked venues */}
+        {!loading && !error && showLikedOnly && savedVenues.length === 0 && (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">No liked venues yet</p>
+            <p className="text-xs text-muted-foreground mt-1">Like venues to see them here</p>
+          </div>
+        )}
 
-          if (showLikedOnly) {
-            // Get all liked venues from persistent storage
-            displayVenues = Object.values(likedVenueData).sort((a, b) => {
-              // Sort by vote count (highest first)
-              const aVotes = a.voteCount || 0;
-              const bVotes = b.voteCount || 0;
-              return bVotes - aVotes;
-            });
-          } else {
-            // Show current search results
-            displayVenues = venues;
-          }
+        {/* Venue List */}
+        {!loading &&
+          !error &&
+          (() => {
+            // When showing liked only, use likedVenueData (persistent across searches)
+            // Otherwise, filter from current search results
+            let displayVenues: Venue[];
 
-          // No venues to display
-          if (displayVenues.length === 0) {
             if (showLikedOnly) {
-              return null; // Empty state handled above
+              // Get all liked venues from persistent storage
+              displayVenues = Object.values(likedVenueData).sort((a, b) => {
+                // Sort by vote count (highest first)
+                const aVotes = a.voteCount || 0;
+                const bVotes = b.voteCount || 0;
+                return bVotes - aVotes;
+              });
+            } else {
+              // Show current search results
+              displayVenues = venues;
             }
-            if (!executedSearchQuery) {
-              return null; // Empty state handled above
-            }
-            return null; // No results state handled above
-          }
 
-          return (
-            <div className="space-y-3">
-              {displayVenues.map((venue) => (
-                <VenueCard key={venue.id} venue={venue} />
-              ))}
-            </div>
-          );
-        })()}
+            // No venues to display
+            if (displayVenues.length === 0) {
+              if (showLikedOnly) {
+                return null; // Empty state handled above
+              }
+              if (!executedSearchQuery) {
+                return null; // Empty state handled above
+              }
+              return null; // No results state handled above
+            }
+
+            return (
+              <div className="space-y-3">
+                {displayVenues.map((venue) => (
+                  <VenueCard key={venue.id} venue={venue} />
+                ))}
+              </div>
+            );
+          })()}
+      </div>
     </div>
   );
 }

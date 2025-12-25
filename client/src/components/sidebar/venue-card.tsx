@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useUIStore } from '@/store/ui-store';
 import { useMapStore } from '@/store/map-store';
@@ -17,6 +18,24 @@ export function VenueCard({ venue }: VenueCardProps) {
   const { setHoveredVenueId } = useMapStore();
   const isSelected = selectedVenue?.id === venue.id;
 
+  // Ref for scroll-to-view behavior
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Scroll card into view when selected from map
+  useEffect(() => {
+    if (isSelected && cardRef.current) {
+      const timeoutId = setTimeout(() => {
+        cardRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest',
+        });
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isSelected]);
+
   const handleClick = () => {
     // Select venue on map and open details slide-out
     setSelectedVenue(venue);
@@ -32,6 +51,7 @@ export function VenueCard({ venue }: VenueCardProps) {
 
   return (
     <div
+      ref={cardRef}
       className={`
         p-4 rounded-xl
         ${isSelected ? 'bg-coral-50/90 backdrop-blur-sm shadow-xl ring-2 ring-coral-500/30' : 'bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-xl'}

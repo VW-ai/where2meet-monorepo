@@ -98,13 +98,13 @@ export function ShareModal() {
 
           {/* Share Link */}
           <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-xl border border-border">
+            <div className="flex-1 min-w-0 flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-xl border border-border overflow-hidden">
               <Link className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <span className="text-sm text-foreground truncate font-mono">{shareUrl}</span>
+              <span className="text-sm text-foreground truncate font-mono min-w-0">{shareUrl}</span>
             </div>
             <button
               onClick={handleCopy}
-              className={`p-3 rounded-xl transition-all duration-200 ${
+              className={`p-3 rounded-xl transition-all duration-200 flex-shrink-0 ${
                 copied ? 'bg-mint-500 text-white' : 'bg-coral-500 text-white hover:bg-coral-600'
               }`}
               aria-label={copied ? 'Copied!' : 'Copy link'}
