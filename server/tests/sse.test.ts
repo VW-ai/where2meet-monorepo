@@ -62,7 +62,7 @@ describe("SSE Stream Endpoint", () => {
   });
 
   describe("GET /api/events/:id/stream", () => {
-    it("should reject connection without token", async () => {
+    it("should reject connection without Authorization header", async () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/stream`,
@@ -73,10 +73,27 @@ describe("SSE Stream Endpoint", () => {
       expect(body.error.code).toBe("UNAUTHORIZED");
     });
 
-    it("should reject connection with empty token", async () => {
+    it("should reject connection with empty Bearer token", async () => {
       const response = await server.inject({
         method: "GET",
-        url: `/api/events/${testEventId}/stream?token=`,
+        url: `/api/events/${testEventId}/stream`,
+        headers: {
+          authorization: "Bearer ",
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      const body = response.json();
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+
+    it("should reject connection with invalid Authorization format", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/stream`,
+        headers: {
+          authorization: "InvalidFormat token123",
+        },
       });
 
       expect(response.statusCode).toBe(401);
@@ -87,7 +104,10 @@ describe("SSE Stream Endpoint", () => {
     it("should reject connection with invalid token", async () => {
       const response = await server.inject({
         method: "GET",
-        url: `/api/events/${testEventId}/stream?token=invalid_token_12345`,
+        url: `/api/events/${testEventId}/stream`,
+        headers: {
+          authorization: "Bearer invalid_token_12345",
+        },
       });
 
       expect(response.statusCode).toBe(403);
@@ -100,7 +120,10 @@ describe("SSE Stream Endpoint", () => {
       const nonExistentEventId = "evt_1702000000000_abcdefghijklmnop";
       const response = await server.inject({
         method: "GET",
-        url: `/api/events/${nonExistentEventId}/stream?token=${testOrganizerToken}`,
+        url: `/api/events/${nonExistentEventId}/stream`,
+        headers: {
+          authorization: `Bearer ${testOrganizerToken}`,
+        },
       });
 
       // Token is for different event, so we get 403 before 404
@@ -113,7 +136,10 @@ describe("SSE Stream Endpoint", () => {
     it("should reject connection with invalid event ID format", async () => {
       const response = await server.inject({
         method: "GET",
-        url: `/api/events/invalid-id/stream?token=${testOrganizerToken}`,
+        url: `/api/events/invalid-id/stream`,
+        headers: {
+          authorization: `Bearer ${testOrganizerToken}`,
+        },
       });
 
       expect(response.statusCode).toBe(400);
@@ -127,7 +153,8 @@ describe("SSE Stream Endpoint", () => {
     // endpoint handles authentication correctly.
     //
     // For streaming behavior verification:
-    // 1. Manual test: curl "http://localhost:3000/api/events/{id}/stream?token={token}"
-    // 2. Integration test with EventSource in browser or node-eventsource
+    // 1. Manual test: curl -H "Authorization: Bearer {token}" "http://localhost:3000/api/events/{id}/stream"
+    // 2. Integration test with EventSource in browser (note: EventSource doesn't support custom headers,
+    //    so browser testing requires a polyfill like event-source-polyfill or eventsource package)
   });
 });

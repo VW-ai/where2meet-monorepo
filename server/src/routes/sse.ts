@@ -6,21 +6,14 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { z } from "zod";
 import { createEventService } from "../services/event.js";
 import { createParticipantService } from "../services/participant.js";
 import { EventNotFoundError, UnauthorizedError, ForbiddenError, ValidationError } from "../types/errors.js";
 import { createLogger } from "../lib/logger.js";
 import { EventIdSchema } from "../schemas/event.js";
+import { extractBearerToken } from "../utils/auth.js";
 
 const logger = createLogger("SSERoutes");
-
-/**
- * Schema for stream endpoint query parameters.
- */
-const StreamQuerySchema = z.object({
-  token: z.string().min(1, "Token is required"),
-});
 
 /**
  * Use the standard event ID schema for params validation.
@@ -34,15 +27,11 @@ interface StreamParams {
   id: string;
 }
 
-interface StreamQuery {
-  token: string;
-}
-
 /**
  * Registers SSE routes on the Fastify instance.
  *
  * Endpoints:
- * - GET /api/events/:id/stream?token={token} - Subscribe to real-time updates
+ * - GET /api/events/:id/stream - Subscribe to real-time updates (requires Authorization header)
  */
 export function sseRoutes(fastify: FastifyInstance): void {
   /**
@@ -50,7 +39,8 @@ export function sseRoutes(fastify: FastifyInstance): void {
    * Subscribes to real-time updates for an event.
    *
    * Authentication:
-   * - Token provided as query parameter (organizerToken or participantToken)
+   * - Token provided via Authorization header (Bearer token)
+   * - Accepts organizerToken or participantToken
    * - Validates token belongs to the event
    *
    * Headers:
@@ -59,9 +49,9 @@ export function sseRoutes(fastify: FastifyInstance): void {
    * - Connection: keep-alive
    * - X-Accel-Buffering: no (for nginx proxy)
    */
-  fastify.get<{ Params: StreamParams; Querystring: StreamQuery }>(
+  fastify.get<{ Params: StreamParams }>(
     "/api/events/:id/stream",
-    async (request: FastifyRequest<{ Params: StreamParams; Querystring: StreamQuery }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: StreamParams }>, reply: FastifyReply) => {
       // Validate params
       const paramsResult = StreamParamsSchema.safeParse(request.params);
       if (!paramsResult.success) {
@@ -69,12 +59,11 @@ export function sseRoutes(fastify: FastifyInstance): void {
       }
       const eventId = paramsResult.data.id;
 
-      // Validate query
-      const queryResult = StreamQuerySchema.safeParse(request.query);
-      if (!queryResult.success) {
-        throw new UnauthorizedError("Token is required");
+      // Extract token from Authorization header
+      const token = extractBearerToken(request.headers.authorization);
+      if (!token) {
+        throw new UnauthorizedError("Authorization header with Bearer token is required");
       }
-      const token = queryResult.data.token;
 
       // Verify event exists
       const eventService = createEventService(fastify.db);
