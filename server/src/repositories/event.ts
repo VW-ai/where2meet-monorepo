@@ -197,6 +197,53 @@ export class EventRepository {
   }
 
   /**
+   * Publishes an event with the selected venue.
+   * Sets publishedVenueId and publishedAt timestamp.
+   * @param id - Event ID (semantic format: evt_timestamp_random)
+   * @param venueId - Google Place ID of the selected venue
+   * @returns Updated event with participants
+   */
+  async publish(id: string, venueId: string): Promise<EventWithParticipants> {
+    logger.debug({ eventId: id, venueId }, "Publishing event");
+
+    return this.db.event.update({
+      where: { id },
+      data: {
+        publishedVenueId: venueId,
+        publishedAt: new Date(),
+      },
+      include: {
+        participants: {
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+  }
+
+  /**
+   * Unpublishes an event, clearing the published venue.
+   * Sets publishedVenueId and publishedAt to null.
+   * @param id - Event ID (semantic format: evt_timestamp_random)
+   * @returns Updated event with participants
+   */
+  async unpublish(id: string): Promise<EventWithParticipants> {
+    logger.debug({ eventId: id }, "Unpublishing event");
+
+    return this.db.event.update({
+      where: { id },
+      data: {
+        publishedVenueId: null,
+        publishedAt: null,
+      },
+      include: {
+        participants: {
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+  }
+
+  /**
    * Creates a new event with an organizer participant atomically.
    *
    * Generates a semantic event ID and handles collision retry.

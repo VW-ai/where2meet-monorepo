@@ -7,7 +7,7 @@
  * @module services/venue
  */
 
-import type { PrismaClient, Venue } from "../generated/prisma/index.js";
+import type { PrismaClient } from "../generated/prisma/index.js";
 import {
   createEventRepository,
   type EventRepository,
@@ -191,31 +191,6 @@ export class VenueService {
       }
       throw error;
     }
-  }
-
-  /**
-   * Converts a Venue database entity to PlaceDetails API type.
-   * Fields not stored in DB (types, openingHours, etc.) are set to null.
-   */
-  private venueToPlaceDetails(venue: Venue): PlaceDetails {
-    return {
-      placeId: venue.id,
-      name: venue.name,
-      address: venue.address ?? "",
-      location: {
-        lat: Number(venue.lat),
-        lng: Number(venue.lng),
-      },
-      types: venue.category ? [venue.category] : [],
-      rating: venue.rating ? Number(venue.rating) : null,
-      userRatingsTotal: null, // Not stored in DB
-      priceLevel: venue.priceLevel,
-      openNow: null, // Not stored in DB
-      photoReference: null, // We store photoUrl, not photoReference
-      formattedPhoneNumber: null, // Not stored in DB
-      website: null, // Not stored in DB
-      openingHours: null, // Not stored in DB
-    };
   }
 
   /**

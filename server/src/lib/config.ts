@@ -50,6 +50,10 @@ const envSchema = z.object({
   PLACES_SEARCH_CACHE_TTL_SECONDS: stringToNumber(3600).pipe(z.number().min(0)), // 1 hour
   PLACES_DETAILS_CACHE_TTL_SECONDS: stringToNumber(86400).pipe(z.number().min(0)), // 24 hours
   PLACES_TIMEOUT_MS: stringToNumber(5000).pipe(z.number().min(100).max(30000)),
+
+  // Google Directions
+  DIRECTIONS_CACHE_TTL_SECONDS: stringToNumber(3600).pipe(z.number().min(0)), // 1 hour
+  DIRECTIONS_TIMEOUT_MS: stringToNumber(10000).pipe(z.number().min(100).max(30000)), // 10 seconds
 });
 
 /**

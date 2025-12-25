@@ -210,6 +210,24 @@ export class ParticipantRepository {
     });
     return participant?.tokenHash ?? null;
   }
+
+  /**
+   * Finds a participant by token hash within an event.
+   * Used for event-level authentication where any participant token is valid.
+   * @param eventId - Event ID to search within
+   * @param tokenHash - Hashed token to match
+   * @returns Participant ID if found, null otherwise
+   */
+  async findByTokenHash(eventId: string, tokenHash: string): Promise<string | null> {
+    const participant = await this.db.participant.findFirst({
+      where: {
+        eventId,
+        tokenHash,
+      },
+      select: { id: true },
+    });
+    return participant?.id ?? null;
+  }
 }
 
 /**

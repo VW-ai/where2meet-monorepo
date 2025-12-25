@@ -81,12 +81,25 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [x] Update all vote tests for new URL pattern
 - [x] Update documentation (API_SPECIFICATION.md, DATABASE_SCHEMA.md)
 
-### Next: Milestone 6 - Results & Publishing
-- [ ] Add event publishing logic
-- [ ] POST /api/events/:id/publish - Finalize venue selection
-- [ ] Calculate winning venue based on vote count
-- [ ] Prevent voting after event is published
-- [ ] Write publishing tests
+### Milestone 6: Routes + Publish (COMPLETED)
+- [x] Create directions library (`src/lib/directions/`)
+- [x] Add DIRECTIONS_* config to config.ts
+- [x] Create directions DTOs and mapper
+- [x] Create directions service
+- [x] Refactor auth hooks (extract verifyEventToken helper)
+- [x] Create directions route: GET /api/events/:id/venues/:venueId/directions
+- [x] Add publish/unpublish to event repository
+- [x] Add publishEvent/unpublishEvent to event service
+- [x] Add POST/DELETE /publish routes
+- [x] Write unit tests for formatting (22 tests)
+- [x] Write integration tests for directions (14 tests)
+- [x] Write integration tests for publish (20 tests)
+- [x] Update documentation (API_SPECIFICATION, PROGRESS, TODO)
+
+### Future: Milestone 7 - Notifications (Not Started)
+- [ ] WebSocket or polling for real-time updates
+- [ ] Publish event notifications to participants
+- [ ] Vote update notifications
 
 ### Future: OpenAPI Documentation (see issue M2_FastifySchemaVsMapperValidation)
 - [ ] Evaluate need for auto-generated API docs

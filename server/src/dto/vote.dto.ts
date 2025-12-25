@@ -11,7 +11,7 @@ import { LocationResponseSchema } from "./common.dto.js";
  */
 export const VoteResponseSchema = z.object({
   success: z.boolean(),
-  voteId: z.string().uuid(),
+  voteId: z.uuid(),
 });
 
 export type VoteResponse = z.infer<typeof VoteResponseSchema>;
@@ -37,7 +37,7 @@ export const VenueWithVotesSchema = z.object({
 
   // Vote aggregation fields
   voteCount: z.number(),
-  voters: z.array(z.string().uuid()),
+  voters: z.array(z.uuid()),
 });
 
 export type VenueWithVotes = z.infer<typeof VenueWithVotesSchema>;

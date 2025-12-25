@@ -23,7 +23,7 @@ import {
 import { geocode, AddressNotFoundError, GeocodingApiError } from "../lib/maps.js";
 import { assignColor } from "../utils/colors.js";
 import { createLogger } from "../lib/logger.js";
-import { generateParticipantToken, verifyToken } from "../utils/token.js";
+import { generateParticipantToken, verifyToken, hashToken } from "../utils/token.js";
 
 /**
  * Result of adding a participant, optionally includes token for self-registration.
@@ -366,6 +366,18 @@ export class ParticipantService {
       return false;
     }
     return verifyToken(token, storedHash);
+  }
+
+  /**
+   * Finds a participant within an event by their token.
+   * Used for event-level authentication where any participant token is valid.
+   * @param eventId - Event ID to search within
+   * @param token - Plaintext participant token
+   * @returns Participant ID if found, null otherwise
+   */
+  async findParticipantByToken(eventId: string, token: string): Promise<string | null> {
+    const tokenHash = hashToken(token);
+    return this.participantRepo.findByTokenHash(eventId, tokenHash);
   }
 }
 

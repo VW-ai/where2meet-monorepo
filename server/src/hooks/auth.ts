@@ -190,3 +190,61 @@ export function createVerifyParticipantAccess(options: VerifyParticipantAccessOp
  * @deprecated Use createVerifyParticipantAccess() for new code
  */
 export const verifyParticipantAccess = createVerifyParticipantAccess();
+
+/**
+ * Creates a preHandler hook that verifies event-level access.
+ *
+ * Unlike createVerifyParticipantAccess, this hook does NOT require a
+ * participantId in the URL. It simply verifies the token belongs to
+ * the event (either as organizer or any participant).
+ *
+ * Used for endpoints like:
+ * - GET /api/events/:id/venues/:venueId/directions
+ *
+ * Sets request.participantAuth with auth context for use in handlers.
+ *
+ * @returns Fastify preHandler hook
+ *
+ * @throws UnauthorizedError (401) if no token provided
+ * @throws ForbiddenError (403) if token invalid
+ *
+ * @example
+ * fastify.get("/api/events/:id/venues/:venueId/directions", {
+ *   preHandler: [createVerifyEventAccess()],
+ *   handler: directionsHandler,
+ * });
+ */
+export function createVerifyEventAccess() {
+  return async function verifyEventAccessHook(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    _reply: FastifyReply
+  ): Promise<void> {
+    const token = requireBearerToken(request.headers.authorization);
+    const eventId = request.params.id;
+
+    validateEventId(eventId);
+
+    const eventService = createEventService(request.server.db);
+    const participantService = createParticipantService(request.server.db);
+
+    // Try as organizer token first
+    const isOrganizerValid = await eventService.verifyOrganizerToken(eventId, token);
+    if (isOrganizerValid) {
+      request.participantAuth = { authType: "organizer" };
+      return;
+    }
+
+    // Try as participant token (any participant in the event)
+    const participantId = await participantService.findParticipantByToken(eventId, token);
+    if (participantId) {
+      request.participantAuth = {
+        authType: "participant",
+        authenticatedParticipantId: participantId,
+      };
+      return;
+    }
+
+    // Neither token is valid
+    throw new ForbiddenError("Invalid token or insufficient permissions");
+  };
+}
