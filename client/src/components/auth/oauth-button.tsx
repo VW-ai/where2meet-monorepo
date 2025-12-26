@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { OAUTH_PROVIDERS, OAuthProvider } from '@/lib/oauth-providers';
 
 interface OAuthButtonProps {
@@ -17,7 +16,6 @@ export function OAuthButton({
   onError,
   className = '',
 }: OAuthButtonProps) {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const config = OAUTH_PROVIDERS[provider];

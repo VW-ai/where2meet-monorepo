@@ -13,14 +13,8 @@ import { LikedFilterButton } from './venue/liked-filter-button';
 import { cn } from '@/lib/utils/cn';
 
 export function VenueSection() {
-  const {
-    currentEvent,
-    savedVenues,
-    searchedVenues,
-    setSelectedVenue,
-    setSearchedVenues,
-    likedVenueData,
-  } = useMeetingStore();
+  const { currentEvent, savedVenues, searchedVenues, setSearchedVenues, likedVenueData } =
+    useMeetingStore();
   const { searchQuery, searchExecutionTrigger, executedSearchQuery, setExecutedSearchQuery } =
     useUIStore();
   const { searchRadius, searchCircle } = useMapStore();

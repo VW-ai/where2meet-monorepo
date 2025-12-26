@@ -11,7 +11,6 @@ import {
   UsersData,
   EmailIdentity,
   SessionsData,
-  Session,
 } from '@/types/user';
 
 export async function POST(request: NextRequest) {
@@ -88,12 +87,11 @@ export async function POST(request: NextRequest) {
 
     // Update user's password in identity
     const usersData = (await authPersistence.getUsers()) as UsersData;
-    const identity = Object.entries(usersData.identities).find(
-      ([_, ident]): ident is [string, EmailIdentity] =>
-        ident.provider === 'email' && ident.userId === userId
+    const identityEntry = Object.entries(usersData.identities).find(
+      ([_, ident]) => ident.provider === 'email' && ident.userId === userId
     );
 
-    if (!identity) {
+    if (!identityEntry) {
       return NextResponse.json(
         {
           error: {
@@ -105,14 +103,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [identityId, emailIdent] = identity as [string, EmailIdentity];
+    const [identityId] = identityEntry;
     (usersData.identities[identityId] as EmailIdentity).passwordHash = newPasswordHash;
     await authPersistence.saveUsers(usersData);
 
     // Invalidate all sessions for this user
     const sessionsData = (await authPersistence.getSessions()) as SessionsData;
     const sessionIdsToDelete = Object.entries(sessionsData.sessions)
-      .filter(([_, session]): session is [string, Session] => session.userId === userId)
+      .filter(([_, session]) => session.userId === userId)
       .map(([sessionId]) => sessionId);
 
     sessionIdsToDelete.forEach((sessionId) => {

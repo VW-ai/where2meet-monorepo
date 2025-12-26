@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Create identity
     const identityId = authPersistence.generateId('ident');
-    const identity = {
+    const identity: EmailIdentity = {
       id: identityId,
       userId,
       provider: 'email',

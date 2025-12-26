@@ -1,5 +1,4 @@
 import type { Participant } from './participant';
-import type { VoteStatisticsResponse } from './api';
 
 // Base SSE event structure
 export interface SSEEvent<T = unknown> {

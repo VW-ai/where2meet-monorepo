@@ -41,7 +41,7 @@ export default function MeetPage() {
 
   // Connect to SSE stream for real-time updates
   // Trigger snapshot reconciliation on (re)connect to prevent drift
-  const { connectionState } = useEventStream(eventId, token, {
+  useEventStream(eventId, token, {
     onConnect: () => {
       console.log(
         '[SSE] Connection established - loading vote statistics snapshot for reconciliation'

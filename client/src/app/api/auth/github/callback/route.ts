@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         // Create new GitHub identity linked to existing user
         const now = new Date().toISOString();
         const identityId = authPersistence.generateId('ident');
-        const newIdentity = {
+        const newIdentity: UserIdentity = {
           id: identityId,
           userId,
           provider: 'github',
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         };
 
         const identityId = authPersistence.generateId('ident');
-        const identity = {
+        const identity: UserIdentity = {
           id: identityId,
           userId,
           provider: 'github',

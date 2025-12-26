@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const PROVIDER_CONFIG = {
@@ -18,7 +18,7 @@ const PROVIDER_CONFIG = {
   },
 };
 
-export default function OAuthMockPage() {
+function OAuthMockContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const provider = searchParams.get('provider') as 'google' | 'github' | null;
@@ -155,5 +155,19 @@ export default function OAuthMockPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function OAuthMockPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500"></div>
+        </div>
+      }
+    >
+      <OAuthMockContent />
+    </Suspense>
   );
 }

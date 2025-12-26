@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, RegisterDTO, LoginDTO, UpdateUserDTO } from '@/types/user';
+import { User, RegisterDTO, UpdateUserDTO } from '@/types/user';
 import { api } from '@/lib/api';
 import { scanLocalStorageForTokens, claimAllTokens } from '@/lib/utils/token-claimer';
 
@@ -23,7 +23,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Initial state
       user: null,
       isAuthenticated: false,
