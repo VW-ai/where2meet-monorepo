@@ -35,7 +35,7 @@ describe("Vote Endpoints", () => {
   let server: FastifyInstance;
   let db: PrismaClient;
   let testEventId: string;
-  let testOrganizerToken: string;
+  let testOrganizerParticipantToken: string;
   let organizerParticipantId: string;
   let testParticipantId: string;
   let testParticipantToken: string;
@@ -72,7 +72,7 @@ describe("Vote Endpoints", () => {
 
     const event = eventResponse.json();
     testEventId = event.id;
-    testOrganizerToken = event.organizerToken;
+    testOrganizerParticipantToken = event.participantToken;
     organizerParticipantId = event.organizerParticipantId;
 
     // Add a participant (self-registration to get participantToken)
@@ -100,7 +100,7 @@ describe("Vote Endpoints", () => {
     const participant2Response = await server.inject({
       method: "POST",
       url: `/api/events/${testEventId}/participants`,
-      headers: { authorization: `Bearer ${testOrganizerToken}` },
+      headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
       payload: {
         name: "Bob",
         address: "456 Oak Ave",
@@ -146,11 +146,11 @@ describe("Vote Endpoints", () => {
       expect(body).toHaveProperty("voteId");
     });
 
-    it("should cast a vote successfully with organizerToken", async () => {
+    it("should cast a vote successfully with organizer participantToken", async () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants/${organizerParticipantId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
@@ -314,7 +314,7 @@ describe("Vote Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants/${secondParticipantId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
@@ -330,7 +330,7 @@ describe("Vote Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/evt_1702000000000_nonexistent12345/participants/${testParticipantId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           venueId: "ChIJN1t_tDeuEmsRUsoyG83frY4",
           venueData: mockVenueData,
@@ -465,12 +465,12 @@ describe("Vote Endpoints", () => {
       expect(vote).toBeNull();
     });
 
-    it("should remove a vote successfully with organizerToken", async () => {
+    it("should remove a vote successfully with organizer participantToken", async () => {
       // First, organizer needs to vote for themselves
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants/${organizerParticipantId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           venueId,
           venueData: mockVenueData,
@@ -481,7 +481,7 @@ describe("Vote Endpoints", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/${organizerParticipantId}/votes/${venueId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -536,7 +536,7 @@ describe("Vote Endpoints", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${venueId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(403);
@@ -894,7 +894,7 @@ describe("Vote Endpoints", () => {
       await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       // Verify votes are deleted
@@ -932,7 +932,7 @@ describe("Vote Endpoints", () => {
       await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/${testParticipantId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       // Verify votes are deleted

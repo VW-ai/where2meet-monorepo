@@ -601,3 +601,74 @@ async deleteParticipant(eventId: string, participantId: string): Promise<void> {
 #### Test Summary
 - All tests passing (304 tests)
 - New tests added: 1 unit test, 1 integration test
+
+---
+
+## 2025-12-26
+
+### SSE Broadcasting Tests (COMPLETED)
+
+#### Problem Statement
+The participant routes (`src/routes/participants.ts`) broadcast SSE events when participants are added, updated, or removed, but these broadcasts were not covered by tests. We needed to verify that:
+1. Broadcasts are triggered correctly for each operation
+2. Payload structures match the SSE type definitions
+3. Broadcasts are non-blocking (failures don't break the operation)
+4. Organizer participant updates broadcast with `isOrganizer: true`
+
+#### Solution: Comprehensive SSE Broadcast Testing
+
+Created a dedicated test file `tests/participants-sse.test.ts` with 16 comprehensive test cases covering all SSE broadcast scenarios.
+
+**Test Coverage**:
+- `POST /api/events/:id/participants` (participant:added)
+  - 4 tests: organizer-added, self-registration, payload structure, non-blocking broadcast
+- `PATCH /api/events/:id/participants/:participantId` (participant:updated)
+  - 4 tests: name update, address update, payload structure, non-blocking broadcast
+- `DELETE /api/events/:id/participants/:participantId` (participant:removed)
+  - 3 tests: deletion broadcast, payload structure, non-blocking broadcast
+- Organizer participant special cases
+  - 3 tests: organizer update with isOrganizer=true, address update, deletion forbidden check
+- Multiple operations
+  - 2 tests: multiple additions sequence, add-update-delete sequence
+
+**Test Pattern**:
+- Mock `fastify.sse.broadcast` before each test
+- Verify broadcast called with correct event type and payload
+- Validate payload structure matches TypeScript interfaces
+- Verify type safety (string, number, boolean fields)
+- Test non-blocking behavior (broadcast failures don't fail operations)
+
+**Key Test Features**:
+1. **Payload Type Safety**: Tests verify exact payload structure against SSE type definitions
+2. **AAA Pattern**: All tests follow Arrange-Act-Assert structure
+3. **Isolation**: Each test has fresh event and mocked broadcast
+4. **Edge Cases**: Covers organizer participants, self-registration, broadcast failures
+5. **Integration Testing**: Uses real server instance with mocked SSE plugin
+
+#### Files Created
+
+| File | Description |
+|------|-------------|
+| `tests/participants-sse.test.ts` | 16 comprehensive SSE broadcast tests (220 lines) |
+
+#### Test Verification
+```
+✓ POST /api/events/:id/participants - participant:added broadcast (4 tests)
+✓ PATCH /api/events/:id/participants/:participantId - participant:updated broadcast (4 tests)
+✓ DELETE /api/events/:id/participants/:participantId - participant:removed broadcast (3 tests)
+✓ Organizer participant updates (isOrganizer: true) (3 tests)
+✓ Multiple participant operations (2 tests)
+```
+
+#### Test Summary
+- All tests passing (320 tests)
+- New tests added: 16 SSE broadcast tests
+- Previous tests: 304 tests
+- Test execution time: ~183ms for SSE broadcast suite
+
+#### Code Quality Notes
+- Follows REGULATION.md principles (atomic tests, single responsibility)
+- Comprehensive documentation with JSDoc comments
+- Uses Vitest mocking best practices
+- Type-safe payload assertions with TypeScript interfaces
+- Non-blocking broadcast behavior verified

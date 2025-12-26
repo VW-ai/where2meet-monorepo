@@ -23,7 +23,7 @@ vi.mock("../src/lib/maps.js", () => ({
 describe("SSE Stream Endpoint", () => {
   let server: FastifyInstance;
   let testEventId: string;
-  let testOrganizerToken: string;
+  let testOrganizerParticipantToken: string;
   let testParticipantToken: string;
 
   beforeAll(async () => {
@@ -46,7 +46,7 @@ describe("SSE Stream Endpoint", () => {
     });
     const eventBody = eventResponse.json();
     testEventId = eventBody.id;
-    testOrganizerToken = eventBody.organizerToken;
+    testOrganizerParticipantToken = eventBody.participantToken;
 
     // Create a participant with token (self-registration)
     const participantResponse = await server.inject({
@@ -122,7 +122,7 @@ describe("SSE Stream Endpoint", () => {
         method: "GET",
         url: `/api/events/${nonExistentEventId}/stream`,
         headers: {
-          authorization: `Bearer ${testOrganizerToken}`,
+          authorization: `Bearer ${testOrganizerParticipantToken}`,
         },
       });
 
@@ -138,7 +138,7 @@ describe("SSE Stream Endpoint", () => {
         method: "GET",
         url: `/api/events/invalid-id/stream`,
         headers: {
-          authorization: `Bearer ${testOrganizerToken}`,
+          authorization: `Bearer ${testOrganizerParticipantToken}`,
         },
       });
 

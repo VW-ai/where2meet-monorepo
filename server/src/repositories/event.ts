@@ -26,9 +26,7 @@ export interface EventWithParticipants extends Event {
 /**
  * Data for creating a new event in the database.
  */
-export interface CreateEventData extends CreateEventInput {
-  organizerTokenHash: string;
-}
+export type CreateEventData = CreateEventInput;
 
 /**
  * Data for creating organizer participant alongside event.
@@ -71,7 +69,6 @@ export class EventRepository {
             id: eventId,
             title: data.title,
             meetingTime: data.meetingTime ? new Date(data.meetingTime) : null,
-            organizerTokenHash: data.organizerTokenHash,
           },
           include: {
             participants: true,
@@ -113,20 +110,6 @@ export class EventRepository {
         },
       },
     });
-  }
-
-  /**
-   * Gets the organizerTokenHash for an event.
-   * Used for authentication verification.
-   * @param id - Event ID (semantic format: evt_timestamp_random)
-   * @returns Token hash or null if event doesn't exist
-   */
-  async getTokenHash(id: string): Promise<string | null> {
-    const event = await this.db.event.findUnique({
-      where: { id },
-      select: { organizerTokenHash: true },
-    });
-    return event?.organizerTokenHash ?? null;
   }
 
   /**
@@ -265,7 +248,6 @@ export class EventRepository {
               id: eventId,
               title: eventData.title,
               meetingTime: eventData.meetingTime ? new Date(eventData.meetingTime) : null,
-              organizerTokenHash: eventData.organizerTokenHash,
             },
           });
 

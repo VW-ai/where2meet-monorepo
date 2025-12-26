@@ -84,7 +84,7 @@ function createMockDirectionsResponse(overrides: Partial<{
 describe("Directions Endpoint", () => {
   let server: FastifyInstance;
   let testEventId: string;
-  let testOrganizerToken: string;
+  let testOrganizerParticipantToken: string;
   let testParticipantId: string;
   let testParticipantToken: string;
   let testVenueId: string;
@@ -118,7 +118,7 @@ describe("Directions Endpoint", () => {
 
     const event = eventResponse.json();
     testEventId = event.id;
-    testOrganizerToken = event.organizerToken;
+    testOrganizerParticipantToken = event.participantToken;
 
     // Add a participant with location (self-registration to get participantToken)
     const participantResponse = await server.inject({
@@ -187,7 +187,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${nonExistentEventId}/venues/${testVenueId}/directions`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(404);
@@ -198,7 +198,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/invalid-id/venues/${testVenueId}/directions`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(400);
@@ -208,7 +208,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/venues/${testVenueId}/directions?travelMode=flying`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(400);
@@ -223,7 +223,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/venues/ChIJ_nonexistent_venue/directions`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(400);
@@ -252,7 +252,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/venues/ChIJ_new_venue_from_search/directions`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -267,7 +267,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/venues/${testVenueId}/directions`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -304,7 +304,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/venues/${testVenueId}/directions?travelMode=walking`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -317,7 +317,7 @@ describe("Directions Endpoint", () => {
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           name: "Bob",
           address: "World Trade Center, NYC",
@@ -329,7 +329,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/venues/${testVenueId}/directions?participantId=${testParticipantId}`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -346,7 +346,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/venues/${testVenueId}/directions`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -363,7 +363,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${testEventId}/venues/${testVenueId}/directions`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -386,7 +386,7 @@ describe("Directions Endpoint", () => {
       const response = await server.inject({
         method: "GET",
         url: `/api/events/${event.id}/venues/${testVenueId}/directions`,
-        headers: { Authorization: `Bearer ${event.organizerToken}` },
+        headers: { Authorization: `Bearer ${event.participantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -401,7 +401,7 @@ describe("Directions Endpoint", () => {
         const response = await server.inject({
           method: "GET",
           url: `/api/events/${testEventId}/venues/${testVenueId}/directions?travelMode=${mode}`,
-          headers: { Authorization: `Bearer ${testOrganizerToken}` },
+          headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         });
 
         expect(response.statusCode).toBe(200);

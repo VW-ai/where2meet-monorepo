@@ -37,7 +37,7 @@ const mockGeocode = vi.mocked(geocode);
 describe("Participant Endpoints", () => {
   let server: FastifyInstance;
   let testEventId: string;
-  let testOrganizerToken: string;
+  let testParticipantToken: string;
 
   beforeAll(async () => {
     server = await buildServer();
@@ -68,7 +68,7 @@ describe("Participant Endpoints", () => {
 
     const body = response.json();
     testEventId = body.id;
-    testOrganizerToken = body.organizerToken;
+    testParticipantToken = body.participantToken;
   });
 
   describe("POST /api/events/:id/participants", () => {
@@ -77,7 +77,7 @@ describe("Participant Endpoints", () => {
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
         headers: {
-          authorization: `Bearer ${testOrganizerToken}`,
+          authorization: `Bearer ${testParticipantToken}`,
         },
         payload: {
           name: "Alice",
@@ -103,7 +103,7 @@ describe("Participant Endpoints", () => {
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
         headers: {
-          authorization: `Bearer ${testOrganizerToken}`,
+          authorization: `Bearer ${testParticipantToken}`,
         },
         payload: {
           name: "Bob",
@@ -124,7 +124,7 @@ describe("Participant Endpoints", () => {
       const response1 = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: { name: "Alice", address: "123 Main St" },
       });
 
@@ -132,7 +132,7 @@ describe("Participant Endpoints", () => {
       const response2 = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: { name: "Bob", address: "456 Oak Ave" },
       });
 
@@ -165,7 +165,7 @@ describe("Participant Endpoints", () => {
       expect(body.participantToken).toMatch(/^pt_[a-f0-9]{64}$/);
     });
 
-    it("should return 403 with invalid organizer token", async () => {
+    it("should return 403 with invalid token", async () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
@@ -187,7 +187,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           address: "123 Main St",
         },
@@ -202,7 +202,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           name: "Alice",
         },
@@ -217,7 +217,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           name: "Alice",
           address: "invalid address xyz",
@@ -233,7 +233,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: "/api/events/evt_1702000000000_nonexistent12345/participants",
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           name: "Alice",
           address: "123 Main St",
@@ -254,7 +254,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           name: "Alice",
           address: "123 Main St",
@@ -267,7 +267,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "PATCH",
         url: `/api/events/${testEventId}/participants/${participantId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           name: "Alicia",
         },
@@ -289,7 +289,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "PATCH",
         url: `/api/events/${testEventId}/participants/${participantId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           address: "456 Oak Ave, Los Angeles",
         },
@@ -302,7 +302,7 @@ describe("Participant Endpoints", () => {
       expect(body.location.lng).toBe(-118.2437);
     });
 
-    it("should return 401 without organizer token", async () => {
+    it("should return 401 without token", async () => {
       const response = await server.inject({
         method: "PATCH",
         url: `/api/events/${testEventId}/participants/${participantId}`,
@@ -316,7 +316,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "PATCH",
         url: `/api/events/${testEventId}/participants/550e8400-e29b-41d4-a716-446655440000`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: { name: "Bob" },
       });
 
@@ -329,7 +329,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "PATCH",
         url: `/api/events/${testEventId}/participants/${participantId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {},
       });
 
@@ -345,7 +345,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           name: "Alice",
           address: "123 Main St",
@@ -358,7 +358,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/${participantId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -376,7 +376,7 @@ describe("Participant Endpoints", () => {
       expect(participants[0].isOrganizer).toBe(true);
     });
 
-    it("should return 401 without organizer token", async () => {
+    it("should return 401 without token", async () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/${participantId}`,
@@ -389,7 +389,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/550e8400-e29b-41d4-a716-446655440000`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(404);
@@ -411,7 +411,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/${organizerParticipant.id}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(403);
@@ -440,11 +440,11 @@ describe("Participant Endpoints", () => {
       participantId = body.id;
       participantToken = body.participantToken;
 
-      // Create another participant via organizer
+      // Create another participant via organizer token
       const response2 = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           name: "OtherParticipant",
           address: "456 Oak Ave",
@@ -506,7 +506,7 @@ describe("Participant Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testParticipantToken}` },
         payload: {
           name: "OrganizerAdded",
           address: "789 Pine Rd",

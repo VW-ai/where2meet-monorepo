@@ -6,14 +6,8 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { createEventService } from "../services/event.js";
 import { createParticipantService } from "../services/participant.js";
-import {
-  EventNotFoundError,
-  UnauthorizedError,
-  ForbiddenError,
-  ValidationError,
-} from "../types/errors.js";
+import { UnauthorizedError, ForbiddenError, ValidationError } from "../types/errors.js";
 import { createLogger } from "../lib/logger.js";
 import { EventIdSchema } from "../schemas/event.js";
 import { extractBearerToken } from "../utils/auth.js";
@@ -45,8 +39,7 @@ export function sseRoutes(fastify: FastifyInstance): void {
    *
    * Authentication:
    * - Token provided via Authorization header (Bearer token)
-   * - Accepts organizerToken or participantToken
-   * - Validates token belongs to the event
+   * - Validates token belongs to a participant in the event
    *
    * Headers:
    * - Content-Type: text/event-stream
@@ -70,38 +63,15 @@ export function sseRoutes(fastify: FastifyInstance): void {
         throw new UnauthorizedError("Authorization header with Bearer token is required");
       }
 
-      // Verify event exists
-      const eventService = createEventService(fastify.db);
+      // Verify token belongs to a participant in this event
       const participantService = createParticipantService(fastify.db);
+      const authResult = await participantService.findParticipantByTokenWithDetails(eventId, token);
 
-      let isOrganizer = false;
-      let participantId: string | undefined;
-
-      // Try as organizer token first
-      try {
-        const isOrganizerValid = await eventService.verifyOrganizerToken(eventId, token);
-        if (isOrganizerValid) {
-          isOrganizer = true;
-          // Get organizer's participant ID for tracking
-          const event = await eventService.getEvent(eventId);
-          const organizerParticipant = event.participants.find((p) => p.isOrganizer);
-          participantId = organizerParticipant?.id;
-        }
-      } catch (error) {
-        if (error instanceof EventNotFoundError) {
-          throw error;
-        }
-        // Continue to try participant token
+      if (!authResult) {
+        throw new ForbiddenError("Invalid token");
       }
 
-      // If not organizer, try as participant token
-      if (!isOrganizer) {
-        const foundParticipantId = await participantService.findParticipantByToken(eventId, token);
-        if (!foundParticipantId) {
-          throw new ForbiddenError("Invalid token");
-        }
-        participantId = foundParticipantId;
-      }
+      const { participantId, isOrganizer } = authResult;
 
       // Set SSE headers with CORS support
       // When using reply.raw.writeHead(), we bypass Fastify's CORS plugin,

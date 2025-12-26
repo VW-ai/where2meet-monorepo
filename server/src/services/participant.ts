@@ -377,6 +377,25 @@ export class ParticipantService {
     const tokenHash = hashToken(token);
     return this.participantRepo.findByTokenHash(eventId, tokenHash);
   }
+
+  /**
+   * Finds a participant within an event by their token, including isOrganizer flag.
+   * Used for unified authentication where authorization is based on isOrganizer.
+   * @param eventId - Event ID to search within
+   * @param token - Plaintext participant token
+   * @returns Participant ID and isOrganizer flag if found, null otherwise
+   */
+  async findParticipantByTokenWithDetails(
+    eventId: string,
+    token: string
+  ): Promise<{ participantId: string; isOrganizer: boolean } | null> {
+    const tokenHash = hashToken(token);
+    const result = await this.participantRepo.findByTokenHashWithDetails(eventId, tokenHash);
+    if (!result) {
+      return null;
+    }
+    return { participantId: result.id, isOrganizer: result.isOrganizer };
+  }
 }
 
 /**

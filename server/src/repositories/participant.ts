@@ -228,6 +228,27 @@ export class ParticipantRepository {
     });
     return participant?.id ?? null;
   }
+
+  /**
+   * Finds a participant by token hash within an event, including isOrganizer flag.
+   * Used for unified authentication where authorization is based on isOrganizer.
+   * @param eventId - Event ID to search within
+   * @param tokenHash - Hashed token to match
+   * @returns Participant ID and isOrganizer flag if found, null otherwise
+   */
+  async findByTokenHashWithDetails(
+    eventId: string,
+    tokenHash: string
+  ): Promise<{ id: string; isOrganizer: boolean } | null> {
+    const participant = await this.db.participant.findFirst({
+      where: {
+        eventId,
+        tokenHash,
+      },
+      select: { id: true, isOrganizer: true },
+    });
+    return participant;
+  }
 }
 
 /**

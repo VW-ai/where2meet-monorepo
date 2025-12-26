@@ -63,7 +63,6 @@ function createMockEvent(overrides: Partial<{ publishedAt: Date | null }> = {}) 
     id: TEST_EVENT_ID,
     title: "Test Event",
     meetingTime: null,
-    organizerToken: "token",
     publishedVenueId: null,
     publishedAt: null,
     createdAt: new Date(),
