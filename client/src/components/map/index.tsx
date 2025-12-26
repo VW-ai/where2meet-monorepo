@@ -51,6 +51,7 @@ export function MapArea() {
     setSelectedVenue,
     savedVenues,
     likedVenueData,
+    voteStatsByVenueId,
   } = useMeetingStore();
   const { isVenueInfoOpen, selectedTravelMode, openVenueInfo, organizerToken, participantToken } =
     useUIStore();
@@ -501,6 +502,7 @@ export function MapArea() {
     hoveredVenueId,
     savedVenues,
     likedVenueData,
+    voteStatsByVenueId,
     STAR_PATH,
     setSelectedVenue,
     openVenueInfo,
