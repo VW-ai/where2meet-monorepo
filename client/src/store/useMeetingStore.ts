@@ -79,6 +79,7 @@ interface MeetingState {
   voteForVenue: (venueId: string, venue?: Venue) => Promise<void>;
   unvoteForVenue: (venueId: string) => Promise<void>;
   loadVoteStatistics: () => Promise<void>;
+  setVoteStatistics: (statistics: VoteStatisticsResponse) => void;
   saveVenue: (venueId: string, venue?: Venue) => void;
   unsaveVenue: (venueId: string) => void;
 
@@ -420,6 +421,104 @@ export const useMeetingStore = create<MeetingState>()(
         } finally {
           set({ isLoadingVotes: false });
         }
+      },
+
+      setVoteStatistics: (statistics) => {
+        console.log('[Store] setVoteStatistics called with:', {
+          venuesCount: statistics.venues.length,
+          totalVotes: statistics.totalVotes,
+        });
+
+        // Hydrate userVotes from backend voters data
+        const { currentParticipantId, organizerParticipantId } = useUIStore.getState();
+        const participantId = organizerParticipantId || currentParticipantId;
+
+        console.log('[Store] Participant IDs:', {
+          currentParticipantId,
+          organizerParticipantId,
+          effectiveParticipantId: participantId,
+        });
+
+        const hydratedUserVotes: Record<string, boolean> = {};
+
+        if (participantId) {
+          statistics.venues.forEach((venue) => {
+            console.log('[Store] Checking venue voters:', {
+              venueId: venue.id,
+              venueName: venue.name,
+              voters: venue.voters,
+              participantId,
+              isMatch: venue.voters.includes(participantId),
+            });
+            if (venue.voters.includes(participantId)) {
+              hydratedUserVotes[venue.id] = true;
+            }
+          });
+        }
+
+        // Hydrate savedVenues and likedVenueData from vote statistics
+        const hydratedSavedVenues: string[] = [];
+        const hydratedLikedVenueData: Record<string, Venue> = {};
+
+        if (participantId) {
+          statistics.venues.forEach((venueStats) => {
+            if (venueStats.voters.includes(participantId)) {
+              console.log('[Store] Adding venue to likedVenueData:', {
+                venueId: venueStats.id,
+                venueName: venueStats.name,
+                voteCount: venueStats.voteCount,
+              });
+              hydratedSavedVenues.push(venueStats.id);
+              hydratedLikedVenueData[venueStats.id] = {
+                id: venueStats.id,
+                name: venueStats.name,
+                address: venueStats.address || '',
+                location: venueStats.location,
+                types: venueStats.category ? [venueStats.category] : [],
+                rating: venueStats.rating,
+                userRatingsTotal: null,
+                priceLevel: venueStats.priceLevel,
+                openNow: null,
+                photoUrl: venueStats.photoUrl,
+                voteCount: venueStats.voteCount,
+              };
+            }
+          });
+        }
+
+        console.log('[Store] Hydrated liked venues:', {
+          count: Object.keys(hydratedLikedVenueData).length,
+          venueIds: Object.keys(hydratedLikedVenueData),
+        });
+
+        // Merge vote counts into searchedVenues
+        const { searchedVenues } = get();
+        const updatedSearchedVenues = searchedVenues.map((venue) => {
+          const stats = statistics.venues.find((v) => v.id === venue.id);
+          if (stats) {
+            return { ...venue, voteCount: stats.voteCount, votes: undefined };
+          }
+          return venue;
+        });
+
+        // Update likedVenueData with fresh vote counts
+        Object.keys(hydratedLikedVenueData).forEach((venueId) => {
+          const stats = statistics.venues.find((v) => v.id === venueId);
+          if (stats) {
+            hydratedLikedVenueData[venueId] = {
+              ...hydratedLikedVenueData[venueId],
+              voteCount: stats.voteCount,
+            };
+          }
+        });
+
+        set({
+          voteStatistics: statistics,
+          userVotes: hydratedUserVotes,
+          savedVenues: hydratedSavedVenues,
+          likedVenueData: hydratedLikedVenueData,
+          searchedVenues: updatedSearchedVenues,
+        });
       },
 
       saveVenue: (venueId, venue) =>

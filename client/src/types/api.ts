@@ -13,7 +13,7 @@ import { Venue, VenueCategory } from './venue';
  * Venue search request for backend API
  */
 export interface VenueSearchRequest {
-  eventId: string;
+  center: Location; // search center point (usually from MEC endpoint)
   searchRadius: number; // meters (100-50000)
   query?: string; // text search
   categories?: VenueCategory[]; // category filter

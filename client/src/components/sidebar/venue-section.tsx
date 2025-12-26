@@ -23,7 +23,7 @@ export function VenueSection() {
   } = useMeetingStore();
   const { searchQuery, searchExecutionTrigger, executedSearchQuery, setExecutedSearchQuery } =
     useUIStore();
-  const { searchRadius } = useMapStore();
+  const { searchRadius, searchCircle } = useMapStore();
 
   // Initialize venues from store (persists across view switches)
   const [venues, setVenues] = useState<Venue[]>(searchedVenues);
@@ -38,6 +38,7 @@ export function VenueSection() {
     query: string;
     eventId: string | null;
     radius: number;
+    center: { lat: number; lng: number } | null;
   } | null>(null);
 
   // Sync local venues with store when returning to venue section
@@ -67,6 +68,7 @@ export function VenueSection() {
             query: executedSearchQuery,
             eventId: currentEvent?.id ?? null,
             radius: searchRadius,
+            center: searchCircle?.center ?? null,
           };
           return;
         }
@@ -86,6 +88,7 @@ export function VenueSection() {
         query: executedSearchQuery,
         eventId: currentEvent.id,
         radius: searchRadius,
+        center: searchCircle?.center ?? null,
       };
 
       const lastParams = lastSearchParamsRef.current;
@@ -93,7 +96,9 @@ export function VenueSection() {
         lastParams &&
         lastParams.query === currentParams.query &&
         lastParams.eventId === currentParams.eventId &&
-        lastParams.radius === currentParams.radius
+        lastParams.radius === currentParams.radius &&
+        lastParams.center?.lat === currentParams.center?.lat &&
+        lastParams.center?.lng === currentParams.center?.lng
       ) {
         return; // Skip - params haven't changed
       }
@@ -102,10 +107,15 @@ export function VenueSection() {
         setLoading(true);
         setError(null);
 
-        // Phase 2: Execute search via backend API
-        // Backend calculates MEC center from event participants
+        // Phase 2: Execute search via backend API using the search circle center
+        if (!searchCircle?.center) {
+          setError('No search center available. Add participants with locations first.');
+          setLoading(false);
+          return;
+        }
+
         const response = await api.venues.search({
-          eventId: currentEvent.id,
+          center: searchCircle.center,
           searchRadius,
           query: executedSearchQuery,
         });
@@ -126,6 +136,7 @@ export function VenueSection() {
     executedSearchQuery,
     currentEvent?.id,
     searchRadius,
+    searchCircle,
     setSearchedVenues,
     searchedVenues.length,
   ]);
@@ -185,10 +196,6 @@ export function VenueSection() {
             style={{ width: isLikedExpanded ? '60%' : '80%' }}
           >
             <SearchPillBar
-              onSelectVenue={(venue) => {
-                // Select venue on map when chosen from autocomplete
-                setSelectedVenue(venue);
-              }}
               onSearchExecute={(query) => {
                 // Phase 2: Execute search and populate venue list
                 setExecutedSearchQuery(query);

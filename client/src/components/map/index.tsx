@@ -56,6 +56,7 @@ export function MapArea() {
     useUIStore();
   const {
     setMecCircle,
+    setSearchCircle,
     setSearchRadius,
     setRoutes,
     clearRoutes,
@@ -156,8 +157,8 @@ export function MapArea() {
     // Set initial search radius in store
     setSearchRadius(DEFAULT_SEARCH_RADIUS);
 
-    // Set initial MEC circle to default center
-    setMecCircle({
+    // Set initial search circle to default center
+    setSearchCircle({
       center: defaultCenter,
       radius: DEFAULT_SEARCH_RADIUS,
     });
@@ -174,13 +175,13 @@ export function MapArea() {
     google.maps.event.addListener(searchCircleRef.current, 'center_changed', () => {
       const newCenter = searchCircleRef.current?.getCenter();
       if (newCenter) {
-        setMecCircle({
+        setSearchCircle({
           center: { lat: newCenter.lat(), lng: newCenter.lng() },
           radius: searchCircleRef.current?.getRadius() || DEFAULT_SEARCH_RADIUS,
         });
       }
     });
-  }, [map, setSearchRadius, setMecCircle]);
+  }, [map, setSearchRadius, setMecCircle, setSearchCircle]);
 
   // Calculate MEC and update circles when participants change
   useEffect(() => {
@@ -188,7 +189,7 @@ export function MapArea() {
 
     const validParticipants =
       currentEvent?.participants?.filter(
-        (p) => p.location !== null && p.location.lat !== null && p.location.lng !== null
+        (p) => p.location && p.location.lat != null && p.location.lng != null
       ) || [];
 
     // If no valid participants, keep the default search circle
@@ -245,6 +246,12 @@ export function MapArea() {
       searchCircleRef.current.setRadius(newSearchRadius);
       // Disable dragging when we have participants (circle follows MEC)
       searchCircleRef.current.setDraggable(false);
+
+      // Also update search circle store state
+      setSearchCircle({
+        center: newCenter,
+        radius: newSearchRadius,
+      });
     }
 
     // Smoothly pan to MEC center with offset for sidebar
@@ -287,10 +294,11 @@ export function MapArea() {
         }, 100);
       }
     }
-  }, [currentEvent?.participants, map, setMecCircle, setSearchRadius]);
+  }, [currentEvent?.participants, map, setMecCircle, setSearchCircle, setSearchRadius]);
 
   // Update participant markers
   useEffect(() => {
+    console.log('[Map] Participant markers useEffect triggered. Participant count:', currentEvent?.participants?.length);
     if (!map || !window.google) return;
 
     // Clear existing participant markers
@@ -299,7 +307,11 @@ export function MapArea() {
 
     // Add participant markers with matching colors
     currentEvent?.participants.forEach((participant) => {
-      if (!participant.location || !participant.location.lat || !participant.location.lng) return;
+      console.log('[Map] Processing participant:', participant.name, 'Location:', participant.location);
+      if (!participant.location || !participant.location.lat || !participant.location.lng) {
+        console.log('[Map] Skipping participant - invalid location:', participant.name);
+        return;
+      }
 
       const markerColor = getHexColor(participant.color);
       const isSelected = selectedParticipantId === participant.id;

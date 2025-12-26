@@ -12,9 +12,13 @@ export interface RouteInfo {
 }
 
 interface MapState {
-  // MEC (Minimum Enclosing Circle)
+  // MEC (Minimum Enclosing Circle) - calculated from participants, read-only
   mecCircle: Circle | null;
   setMecCircle: (circle: Circle | null) => void;
+
+  // Search Circle - user-draggable, used for venue searches
+  searchCircle: Circle | null;
+  setSearchCircle: (circle: Circle | null) => void;
 
   // Search radius
   searchRadius: number; // in meters
@@ -46,6 +50,10 @@ export const useMapStore = create<MapState>((set) => ({
   // MEC
   mecCircle: null,
   setMecCircle: (circle) => set({ mecCircle: circle }),
+
+  // Search Circle
+  searchCircle: null,
+  setSearchCircle: (circle) => set({ searchCircle: circle }),
 
   // Search radius (default 5km)
   searchRadius: 5000,

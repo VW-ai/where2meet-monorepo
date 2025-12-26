@@ -1,28 +1,23 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, X, Star, Loader2 } from 'lucide-react';
+import { Search, X, Loader2, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { api } from '@/lib/api';
 import { useUIStore } from '@/store/ui-store';
-import { useMeetingStore } from '@/store/useMeetingStore';
 import { useMapStore } from '@/store/map-store';
-import { getVenueCategoryDisplay } from '@/types/venue';
-import type { Venue } from '@/types';
+import { searchPlacesAutocomplete, type PlacePrediction } from '@/lib/google-maps/places-autocomplete';
 
 interface SearchPillBarProps {
-  onSelectVenue?: (venue: Venue) => void;
   onSearchExecute?: (query: string) => void; // Callback for search execution (Phase 2)
   onFocus?: () => void;
 }
 
-export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: SearchPillBarProps) {
+export function SearchPillBar({ onSearchExecute, onFocus }: SearchPillBarProps) {
   const { searchQuery, setSearchQuery } = useUIStore();
-  const { currentEvent } = useMeetingStore();
-  const { searchRadius } = useMapStore();
+  const { searchCircle } = useMapStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Venue[]>([]);
+  const [results, setResults] = useState<PlacePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
@@ -30,8 +25,8 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Debounced search function - searches venues via backend API
-  const performSearch = useCallback(
+  // Debounced autocomplete function - uses Google Places Autocomplete API
+  const performAutocomplete = useCallback(
     async (searchQueryText: string) => {
       if (!searchQueryText.trim()) {
         setResults([]);
@@ -39,29 +34,23 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
         return;
       }
 
-      if (!currentEvent?.id) {
-        setResults([]);
-        setIsLoading(false);
-        return;
-      }
-
       setIsLoading(true);
       try {
-        // Search venues via backend API (constrained to event's MEC area)
-        const response = await api.venues.search({
-          eventId: currentEvent.id,
-          searchRadius,
-          query: searchQueryText,
+        // Use Google Places Autocomplete with search circle center as bias
+        const predictions = await searchPlacesAutocomplete(searchQueryText, {
+          types: ['establishment'], // Only show businesses/venues
+          location: searchCircle?.center,
+          radius: 50000, // 50km radius for autocomplete suggestions
         });
-        setResults(response.venues);
+        setResults(predictions);
       } catch (error) {
-        console.error('Search error:', error);
+        console.error('Autocomplete error:', error);
         setResults([]);
       } finally {
         setIsLoading(false);
       }
     },
-    [currentEvent?.id, searchRadius]
+    [searchCircle]
   );
 
   // Sync store search query to local state when it changes
@@ -70,30 +59,29 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
       setQuery(searchQuery);
       setIsExpanded(true);
       onFocus?.();
-      // Trigger search immediately
-      performSearch(searchQuery);
+      // Trigger autocomplete immediately
+      performAutocomplete(searchQuery);
       // Focus input after expansion
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
-  }, [searchQuery, query, onFocus, performSearch]);
+  }, [searchQuery, query, onFocus, performAutocomplete]);
 
   // Handle input change with debounce
   const handleInputChange = (value: string) => {
     setQuery(value);
     setHighlightedIndex(-1);
-    // Sync to store
-    setSearchQuery(value);
+    // Don't sync to store - only local state for autocomplete
 
     // Clear previous timeout
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
-    // Set new timeout for debounced search
+    // Set new timeout for debounced autocomplete
     debounceRef.current = setTimeout(() => {
-      performSearch(value);
+      performAutocomplete(value);
     }, 300);
   };
 
@@ -118,12 +106,10 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
     setSearchQuery('');
   }, [setSearchQuery]);
 
-  // Handle venue selection (Phase 2: Execute search)
-  const handleSelectVenue = (venue: Venue) => {
-    // Select the venue on the map
-    onSelectVenue?.(venue);
-    // Execute search to populate venue list with search results
-    onSearchExecute?.(query);
+  // Handle prediction selection (Phase 2: Execute search with selected term)
+  const handleSelectPrediction = (prediction: PlacePrediction) => {
+    // Execute search to populate venue list with the selected term
+    onSearchExecute?.(prediction.main_text);
     handleCollapse();
   };
 
@@ -132,7 +118,7 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
     setQuery('');
     setResults([]);
     setHighlightedIndex(-1);
-    setSearchQuery('');
+    // Don't clear store - only local state
     inputRef.current?.focus();
   };
 
@@ -148,7 +134,7 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
       e.preventDefault();
       // If an item is highlighted, select it
       if (highlightedIndex >= 0 && results.length > 0) {
-        handleSelectVenue(results[highlightedIndex]);
+        handleSelectPrediction(results[highlightedIndex]);
       } else if (query.trim()) {
         // Otherwise, execute search with the current query (Phase 2)
         onSearchExecute?.(query);
@@ -249,10 +235,10 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
       {/* Autocomplete Dropdown */}
       {isExpanded && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border-2 border-border max-h-80 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-          {results.map((venue, index) => (
+          {results.map((prediction, index) => (
             <button
-              key={venue.id}
-              onClick={() => handleSelectVenue(venue)}
+              key={prediction.place_id}
+              onClick={() => handleSelectPrediction(prediction)}
               onMouseEnter={() => setHighlightedIndex(index)}
               className={cn(
                 'w-full px-4 py-3 text-left transition-colors',
@@ -261,25 +247,15 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
                 highlightedIndex === index ? 'bg-coral-50 text-coral-700' : 'hover:bg-coral-50/50'
               )}
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-4 h-4 text-coral-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm text-foreground truncate">{venue.name}</h4>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{venue.address}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Category Badge */}
-                  <span className="px-2 py-0.5 text-xs rounded-full bg-coral-50 text-coral-700 capitalize">
-                    {getVenueCategoryDisplay(venue)}
-                  </span>
-                  {/* Rating */}
-                  {venue.rating && (
-                    <div className="flex items-center gap-0.5">
-                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                      <span className="text-xs font-medium text-foreground">
-                        {venue.rating.toFixed(1)}
-                      </span>
-                    </div>
-                  )}
+                  <h4 className="font-medium text-sm text-foreground truncate">
+                    {prediction.main_text}
+                  </h4>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {prediction.secondary_text}
+                  </p>
                 </div>
               </div>
             </button>
@@ -291,7 +267,10 @@ export function SearchPillBar({ onSelectVenue, onSearchExecute, onFocus }: Searc
       {isExpanded && query && !isLoading && results.length === 0 && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border-2 border-border p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <p className="text-sm text-muted-foreground text-center">
-            No venues found for &quot;{query}&quot;
+            No suggestions found for &quot;{query}&quot;
+          </p>
+          <p className="text-xs text-muted-foreground text-center mt-1">
+            Press Enter to search anyway
           </p>
         </div>
       )}
