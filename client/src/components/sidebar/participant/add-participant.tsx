@@ -7,6 +7,7 @@ import { generateRandomName } from '@/lib/utils/name-generator';
 import { AddressAutocomplete } from '@/components/shared/address-autocomplete';
 import { Tooltip } from '@/components/shared/tooltip';
 import { reverseGeocode } from '@/lib/google-maps/geocoding';
+import { useAuthStore } from '@/store/auth-store';
 import type { PlacePrediction } from '@/lib/api/mock/places-autocomplete';
 
 interface AddParticipantProps {
@@ -31,6 +32,9 @@ export function AddParticipant({
   mode = 'add',
   initialData,
 }: AddParticipantProps) {
+  const { user } = useAuthStore();
+  const hasDefaultAddress = !!(user?.defaultAddress && user?.defaultPlaceId);
+
   const [name, setName] = useState(initialData?.name || '');
   const [address, setAddress] = useState(initialData?.address || '');
   const [placeId, setPlaceId] = useState(initialData?.placeId || '');
@@ -109,6 +113,19 @@ export function AddParticipant({
       }
     } finally {
       setIsLocating(false);
+    }
+  };
+
+  // Handle use default address
+  const handleUseDefaultAddress = () => {
+    if (!user?.defaultAddress || !user?.defaultPlaceId) return;
+
+    setAddress(user.defaultAddress);
+    setPlaceId(user.defaultPlaceId);
+
+    // Clear any previous errors
+    if (errors.address) {
+      setErrors((prev) => ({ ...prev, address: undefined }));
     }
   };
 
@@ -221,9 +238,29 @@ export function AddParticipant({
 
       {/* Address Autocomplete */}
       <div className="space-y-1.5">
-        <label htmlFor="participant-address" className="block text-sm font-medium text-foreground">
-          Address
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label
+            htmlFor="participant-address"
+            className="block text-sm font-medium text-foreground"
+          >
+            Address
+          </label>
+          {hasDefaultAddress && (
+            <button
+              type="button"
+              onClick={handleUseDefaultAddress}
+              disabled={isSubmitting}
+              className={cn(
+                'text-xs font-medium text-coral-600 hover:text-coral-700',
+                'transition-colors duration-200',
+                'focus:outline-none focus:underline',
+                isSubmitting && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              Use Default Address
+            </button>
+          )}
+        </div>
         <AddressAutocomplete
           value={address}
           onChange={(value) => {

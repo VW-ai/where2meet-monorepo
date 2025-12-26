@@ -8,9 +8,13 @@ import { HeroInput } from '@/components/landing/hero-input';
 import { ActionButtons } from '@/components/landing/action-buttons';
 import { api } from '@/lib/api';
 import { useUIStore } from '@/store/ui-store';
+import { useAuthStore } from '@/store/auth-store';
+import { SignInButton } from '@/components/header/sign-in-button';
+import { UserMenu } from '@/components/header/user-menu';
 
 export default function LandingPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const [title, setTitle] = useState('');
   const [meetingTime, setMeetingTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -68,6 +72,9 @@ export default function LandingPage() {
             </div>
             <h1 className="sr-only">Where2Meet</h1>
           </div>
+
+          {/* Auth components */}
+          {isAuthenticated ? <UserMenu /> : <SignInButton />}
         </div>
       </header>
 
