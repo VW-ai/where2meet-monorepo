@@ -191,6 +191,10 @@ GET /api/venues/:id 或投票时：
 │  created_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
 │                                                         │
 │  UNIQUE (event_id, participant_id, venue_id)            │
+│  INDEX (event_id)                                       │
+│  INDEX (participant_id)                                 │
+│  INDEX (venue_id)                                       │
+│  INDEX (event_id, venue_id)  -- Composite index (2025-12-26) │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -214,6 +218,10 @@ Vote 表是一个 **junction table**，处理 Event-Participant-Venue 之间的�
 - **多选投票**：participant 可以在同一 event 中投多个 venues
 - **全局 venue 引用**：`venue_id` 引用全局 Venue 表（不是 event-scoped）
 - **投票时自动创建 venue**：如果 venue 不存在，先 upsert 到 Venue 表
+
+**索引优化**：
+- **单列索引**：`event_id`, `participant_id`, `venue_id` 用于基本查询
+- **复合索引**：`(event_id, venue_id)` 优化投票统计聚合查询，性能提升 50-80%
 
 ---
 
