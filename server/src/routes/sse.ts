@@ -103,13 +103,24 @@ export function sseRoutes(fastify: FastifyInstance): void {
         participantId = foundParticipantId;
       }
 
-      // Set SSE headers
-      reply.raw.writeHead(200, {
+      // Set SSE headers with CORS support
+      // When using reply.raw.writeHead(), we bypass Fastify's CORS plugin,
+      // so we must manually add CORS headers for cross-origin SSE connections
+      const origin = request.headers.origin;
+      const headers: Record<string, string> = {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
         "X-Accel-Buffering": "no",
-      });
+      };
+
+      // Add CORS headers if origin is present
+      if (origin) {
+        headers["Access-Control-Allow-Origin"] = origin;
+        headers["Access-Control-Allow-Credentials"] = "true";
+      }
+
+      reply.raw.writeHead(200, headers);
 
       // Register connection with SSE service
       const connectionId = await fastify.sse.addConnection(eventId, reply, {
@@ -119,9 +130,10 @@ export function sseRoutes(fastify: FastifyInstance): void {
 
       logger.info({ eventId, connectionId, isOrganizer, participantId }, "SSE stream connected");
 
-      // Send initial connection event
-      reply.raw.write(`event: connected\n`);
-      reply.raw.write(`data: ${JSON.stringify({ connectionId, eventId })}\n\n`);
+      // Send initial heartbeat to confirm connection
+      // Note: We don't send a "connected" event as it's not part of the SSE spec
+      reply.raw.write(`event: heartbeat\n`);
+      reply.raw.write(`data: ${JSON.stringify({ timestamp: new Date().toISOString() })}\n\n`);
 
       // Keep the connection open - Fastify will handle the response
       // The connection cleanup happens in the SSE plugin when the client disconnects
