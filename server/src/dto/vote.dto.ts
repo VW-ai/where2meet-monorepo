@@ -61,3 +61,23 @@ export const VoteRemovalResponseSchema = z.object({
 });
 
 export type VoteRemovalResponse = z.infer<typeof VoteRemovalResponseSchema>;
+
+/**
+ * Response for vote statistics snapshot with sequence number.
+ * Used by GET /api/events/:id/votes/statistics endpoint.
+ */
+export const VoteStatisticsSnapshotResponseSchema = z.object({
+  eventId: z.string(),
+  seq: z.number(),
+  venues: z.array(
+    z.object({
+      venueId: z.string(),
+      voteCount: z.number(),
+      voterIds: z.array(z.string().uuid()),
+    })
+  ),
+  totalVotes: z.number(),
+  updatedAt: z.string(),
+});
+
+export type VoteStatisticsSnapshotResponse = z.infer<typeof VoteStatisticsSnapshotResponseSchema>;

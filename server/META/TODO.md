@@ -108,3 +108,30 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 ### Future: Auth Strategy Review (see issue M4_VenueEndpointAuthStrategy)
 - [ ] Decide on venue search endpoint authentication
 - [ ] Implement auth if needed based on frontend requirements
+
+---
+
+## 2025-12-26
+
+### SSE Vote System Upgrade (COMPLETED)
+- [x] Add composite index `@@index([eventId, venueId])` to Vote model
+- [x] Create and apply database migration
+- [x] Implement Redis sequence tracking functions
+- [x] Add unit tests for sequence tracking (9 tests)
+- [x] Add `VoteChangedPayload` TypeScript interface
+- [x] Enhance `VoteStatisticsPayload` with seq, eventId, updatedAt, voterIds
+- [x] Create snapshot endpoint `GET /api/events/:id/votes/statistics`
+- [x] Add integration tests for snapshot endpoint (6 tests)
+- [x] Modify SSE broadcast to auto-enrich vote events
+- [x] Update POST/DELETE votes to broadcast dual events (vote:changed + vote:statistics)
+- [x] Add integration tests for vote:changed events (4 tests)
+- [x] Verify TypeScript compilation
+- [ ] Phase 7: Remove deprecated `voterNames` field (requires frontend migration coordination)
+
+### Future: Milestone 7 - Real-time Notifications (Partially Complete)
+- [x] Server-Sent Events (SSE) implementation
+- [x] SSE vote event broadcasting
+- [x] Sequence-based event ordering
+- [x] Reconnection recovery via snapshot endpoint
+- [ ] Participant add/update/remove events (if needed)
+- [ ] Event update/publish events (if needed)

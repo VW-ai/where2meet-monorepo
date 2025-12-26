@@ -18,7 +18,8 @@ import {
 } from "../mappers/vote.mapper.js";
 import { createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
-import type { VoteStatisticsPayload } from "../types/sse.js";
+import type { VoteStatisticsPayload, VoteChangedPayload } from "../types/sse.js";
+import { getCurrentSSESequence } from "../lib/redis.js";
 
 /**
  * Route parameter types.
@@ -131,23 +132,57 @@ export function voteRoutes(fastify: FastifyInstance): void {
 
       const response = toVoteResponse(vote);
 
-      // Broadcast updated vote statistics (non-blocking)
+      // Broadcast vote updates (non-blocking)
       voteService
         .getVoteStatistics(eventId)
-        .then((stats) => {
-          const ssePayload: VoteStatisticsPayload = {
+        .then(async (stats) => {
+          const totalVotes = stats.reduce((sum, stat) => sum + stat.voteCount, 0);
+
+          // Find the venue stats for the voted venue
+          const venueStats = stats.find((s) => s.venue.id === venueId);
+          const voteCount = venueStats?.voteCount ?? 1;
+
+          // Broadcast incremental update (vote:changed)
+          const voteChangedPayload: VoteChangedPayload = {
+            eventId, // Will be added by SSE service
+            seq: 0, // Will be set by SSE service
+            venueId,
+            voterId: participantId,
+            delta: 1,
+            voteCount,
+            totalVotes,
+            updatedAt: "", // Will be set by SSE service
+          };
+
+          await fastify.sse
+            .broadcast({
+              eventId,
+              type: "vote:changed",
+              payload: voteChangedPayload,
+            })
+            .catch(() => {
+              /* SSE broadcast failure is non-critical */
+            });
+
+          // Also broadcast full snapshot (for backward compatibility)
+          const statsPayload: VoteStatisticsPayload = {
+            eventId, // Will be added by SSE service
+            seq: 0, // Will be set by SSE service
             venues: stats.map((stat) => ({
               venueId: stat.venue.id,
               voteCount: stat.voteCount,
-              voterNames: stat.voterIds,
+              voterIds: stat.voterIds,
+              voterNames: stat.voterIds, // DEPRECATED: kept for backward compatibility
             })),
-            totalVotes: stats.reduce((sum, stat) => sum + stat.voteCount, 0),
+            totalVotes,
+            updatedAt: "", // Will be set by SSE service
           };
-          fastify.sse
+
+          await fastify.sse
             .broadcast({
               eventId,
               type: "vote:statistics",
-              payload: ssePayload,
+              payload: statsPayload,
             })
             .catch(() => {
               /* SSE broadcast failure is non-critical */
@@ -190,31 +225,115 @@ export function voteRoutes(fastify: FastifyInstance): void {
 
       const response = toVoteRemovalResponse(deleted);
 
-      // Broadcast updated vote statistics (non-blocking)
-      voteService
-        .getVoteStatistics(eventId)
-        .then((stats) => {
-          const ssePayload: VoteStatisticsPayload = {
-            venues: stats.map((stat) => ({
-              venueId: stat.venue.id,
-              voteCount: stat.voteCount,
-              voterNames: stat.voterIds,
-            })),
-            totalVotes: stats.reduce((sum, stat) => sum + stat.voteCount, 0),
-          };
-          fastify.sse
-            .broadcast({
-              eventId,
-              type: "vote:statistics",
-              payload: ssePayload,
-            })
-            .catch(() => {
-              /* SSE broadcast failure is non-critical */
-            });
-        })
-        .catch(() => {
-          /* Stats fetch failure is non-critical for SSE */
-        });
+      // Broadcast vote updates (non-blocking) - only if vote was actually deleted
+      if (deleted) {
+        voteService
+          .getVoteStatistics(eventId)
+          .then(async (stats) => {
+            const totalVotes = stats.reduce((sum, stat) => sum + stat.voteCount, 0);
+
+            // Find the venue stats for the removed vote
+            const venueStats = stats.find((s) => s.venue.id === venueId);
+            const voteCount = venueStats?.voteCount ?? 0;
+
+            // Broadcast incremental update (vote:changed)
+            const voteChangedPayload: VoteChangedPayload = {
+              eventId, // Will be added by SSE service
+              seq: 0, // Will be set by SSE service
+              venueId,
+              voterId: participantId,
+              delta: -1,
+              voteCount,
+              totalVotes,
+              updatedAt: "", // Will be set by SSE service
+            };
+
+            await fastify.sse
+              .broadcast({
+                eventId,
+                type: "vote:changed",
+                payload: voteChangedPayload,
+              })
+              .catch(() => {
+                /* SSE broadcast failure is non-critical */
+              });
+
+            // Also broadcast full snapshot (for backward compatibility)
+            const statsPayload: VoteStatisticsPayload = {
+              eventId, // Will be added by SSE service
+              seq: 0, // Will be set by SSE service
+              venues: stats.map((stat) => ({
+                venueId: stat.venue.id,
+                voteCount: stat.voteCount,
+                voterIds: stat.voterIds,
+                voterNames: stat.voterIds, // DEPRECATED: kept for backward compatibility
+              })),
+              totalVotes,
+              updatedAt: "", // Will be set by SSE service
+            };
+
+            await fastify.sse
+              .broadcast({
+                eventId,
+                type: "vote:statistics",
+                payload: statsPayload,
+              })
+              .catch(() => {
+                /* SSE broadcast failure is non-critical */
+              });
+          })
+          .catch(() => {
+            /* Stats fetch failure is non-critical for SSE */
+          });
+      }
+
+      return reply.code(200).send(response);
+    }
+  );
+
+  /**
+   * GET /api/events/:id/votes/statistics
+   * Gets vote statistics snapshot for an event with sequence number.
+   *
+   * This endpoint serves as the source of truth for clients to:
+   * - Initial page load
+   * - Reconnect after disconnection
+   * - Validate local state against server
+   *
+   * Authentication:
+   * - Optional (public statistics)
+   *
+   * Response includes sequence number for synchronization with SSE.
+   */
+  fastify.get<{ Params: EventParams }>(
+    "/api/events/:id/votes/statistics",
+    async (request: FastifyRequest<{ Params: EventParams }>, reply: FastifyReply) => {
+      // Validate event ID
+      const paramsResult = EventIdSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        throw new ValidationError("Invalid event ID format");
+      }
+
+      const eventId = paramsResult.data.id;
+
+      // Get vote statistics
+      const stats = await voteService.getVoteStatistics(eventId);
+
+      // Get current sequence number
+      const seq = await getCurrentSSESequence(eventId);
+
+      // Build response with sequence tracking
+      const response = {
+        eventId,
+        seq,
+        venues: stats.map((stat) => ({
+          venueId: stat.venue.id,
+          voteCount: stat.voteCount,
+          voterIds: stat.voterIds,
+        })),
+        totalVotes: stats.reduce((sum, stat) => sum + stat.voteCount, 0),
+        updatedAt: new Date().toISOString(),
+      };
 
       return reply.code(200).send(response);
     }
