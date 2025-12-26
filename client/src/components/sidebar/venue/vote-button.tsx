@@ -13,12 +13,12 @@ interface VoteButtonProps {
 }
 
 export function VoteButton({ venueId, voteCount = 0, venue }: VoteButtonProps) {
-  const { currentEvent, userVotes, voteForVenue, unvoteForVenue, voteStatistics } =
+  const { currentEvent, savedVenues, voteForVenue, unvoteForVenue, voteStatistics } =
     useMeetingStore();
   const [isAnimating, setIsAnimating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const hasVoted = userVotes[venueId] || false;
+  const hasVoted = savedVenues.includes(venueId);
   const isPublished = !!currentEvent?.publishedAt;
 
   // Get vote count from backend statistics (preferred) or use prop as fallback

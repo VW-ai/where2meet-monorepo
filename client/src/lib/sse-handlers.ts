@@ -14,20 +14,23 @@ import type { Participant } from '@/types/participant';
  * Transform participant data from backend format to frontend format
  * Backend sends lat/lng at top level, frontend expects nested location object
  */
-function transformParticipant(backendParticipant: any): Participant {
+function transformParticipant(
+  backendParticipant: Participant & { lat?: number; lng?: number }
+): Participant {
   const { lat, lng, ...rest } = backendParticipant;
 
   return {
     ...rest,
     location: lat != null && lng != null ? { lat, lng } : null,
-  };
+  } as Participant;
 }
 
 /**
  * Main SSE event router - dispatches events to appropriate handlers
  */
 export function handleSSEEvent(event: SSEEventData): void {
-  console.log('SSE Event received:', event.type, event.data);
+  // Debug logging disabled in production
+  // console.log('SSE Event received:', event.type, event.data);
 
   switch (event.type) {
     case 'event:updated':
@@ -97,13 +100,6 @@ function handleEventPublished(data: EventPublishedPayload): void {
 function handleParticipantAdded(data: ParticipantAddedPayload): void {
   const { currentEvent, addParticipant } = useMeetingStore.getState();
 
-  console.log('[SSE Handler] participant:added received:', {
-    dataEventId: data.eventId,
-    currentEventId: currentEvent?.id,
-    participantId: data.participant?.id,
-    participantName: data.participant?.name,
-  });
-
   // Only update if we're viewing the same event
   if (!currentEvent) {
     console.warn('[SSE Handler] No current event, skipping');
@@ -125,11 +121,8 @@ function handleParticipantAdded(data: ParticipantAddedPayload): void {
     return;
   }
 
-  console.log('[SSE Handler] Adding participant to event:', data.participant.name);
   const transformedParticipant = transformParticipant(data.participant);
-  console.log('[SSE Handler] Transformed participant location:', transformedParticipant.location);
   addParticipant(transformedParticipant);
-  console.log('[SSE Handler] Participant added successfully');
 }
 
 /**
@@ -140,12 +133,6 @@ function handleParticipantUpdated(data: ParticipantUpdatedPayload): void {
 
   // Backend sends participant.id, not a separate participantId field
   const participantId = data.participantId || data.participant.id;
-
-  console.log('[SSE Handler] participant:updated received:', {
-    dataEventId: data.eventId,
-    currentEventId: currentEvent?.id,
-    participantId,
-  });
 
   // Only update if we're viewing the same event
   if (!currentEvent) {
@@ -158,15 +145,8 @@ function handleParticipantUpdated(data: ParticipantUpdatedPayload): void {
     return;
   }
 
-  console.log('[SSE Handler] Updating participant:', data.participant.name);
   const transformedParticipant = transformParticipant(data.participant);
-  console.log('[SSE Handler] Transformed participant location:', transformedParticipant.location);
   updateParticipant(participantId, transformedParticipant);
-
-  // Verify the update worked
-  const { currentEvent: updatedEvent } = useMeetingStore.getState();
-  const updated = updatedEvent?.participants.find(p => p.id === participantId);
-  console.log('[SSE Handler] Participant updated successfully:', updated?.name);
 }
 
 /**
@@ -176,13 +156,8 @@ function handleParticipantRemoved(data: ParticipantRemovedPayload): void {
   const { currentEvent, removeParticipant } = useMeetingStore.getState();
 
   // Extract participantId - backend may send it directly or in nested structure
-  const participantId = data.participantId || (data as any).participant?.id;
-
-  console.log('[SSE Handler] participant:removed received:', {
-    dataEventId: data.eventId,
-    currentEventId: currentEvent?.id,
-    participantId,
-  });
+  const participantId =
+    data.participantId || (data as { participant?: { id: string } }).participant?.id;
 
   // Only update if we're viewing the same event
   if (!currentEvent) {
@@ -200,22 +175,15 @@ function handleParticipantRemoved(data: ParticipantRemovedPayload): void {
     return;
   }
 
-  console.log('[SSE Handler] Removing participant:', participantId);
   removeParticipant(participantId);
-  console.log('[SSE Handler] Participant removed successfully');
 }
 
 /**
  * Handle vote statistics update
+ * CRITICAL: This handler MUST NOT overwrite venue details, only update vote stats
  */
 function handleVoteStatistics(data: VoteStatisticsPayload & { eventId?: string }): void {
-  const { currentEvent, setVoteStatistics, searchedVenues, likedVenueData } = useMeetingStore.getState();
-
-  console.log('[SSE Handler] vote:statistics received:', {
-    eventId: data.eventId,
-    venuesCount: data.venues.length,
-    totalVotes: data.totalVotes,
-  });
+  const { currentEvent, setVoteStatistics, searchedVenues, venueById } = useMeetingStore.getState();
 
   // Only update if we're viewing the same event
   if (!currentEvent || (data.eventId && currentEvent.id !== data.eventId)) {
@@ -227,30 +195,49 @@ function handleVoteStatistics(data: VoteStatisticsPayload & { eventId?: string }
   // Backend sends: { venueId, voteCount, voterNames }
   // Frontend expects: { id, name, address, location, category, rating, priceLevel, photoUrl, voteCount, voters }
   const transformedVenues = data.venues.map((backendVenue) => {
-    // Find full venue details from searchedVenues or likedVenueData
+    // CRITICAL: Prioritize venueById (full details), fallback to searchedVenues
+    // This ensures SSE doesn't overwrite complete venue data with incomplete data
     const fullVenue =
-      searchedVenues.find(v => v.id === backendVenue.venueId) ||
-      likedVenueData[backendVenue.venueId];
+      venueById[backendVenue.venueId] || searchedVenues.find((v) => v.id === backendVenue.venueId);
 
-    console.log('[SSE Handler] Transforming venue:', {
-      venueId: backendVenue.venueId,
-      foundInSearch: !!searchedVenues.find(v => v.id === backendVenue.venueId),
-      foundInLiked: !!likedVenueData[backendVenue.venueId],
-      voteCount: backendVenue.voteCount,
-      voterNames: backendVenue.voterNames,
-    });
+    // Defensive guard: Handle missing voterNames field
+    // Note: Backend field is "voterNames" (legacy naming) but contains participant UUIDs (voterIds)
+    // Standardized naming: Always use "voterIds" in frontend code
+    const voterIds = backendVenue.voterNames ?? [];
+
+    if (!fullVenue) {
+      console.warn('[SSE Handler] Missing venue details for:', backendVenue.venueId);
+
+      // Trigger background hydration to fetch full venue details from backend
+      console.log('[SSE Handler] Triggering venue hydration...');
+      useMeetingStore.getState().hydrateVenue(backendVenue.venueId);
+
+      // Return minimal venue structure temporarily (will be replaced after hydration completes)
+      return {
+        id: backendVenue.venueId,
+        name: 'Unknown Venue',
+        address: null,
+        location: { lat: 0, lng: 0 },
+        category: null,
+        rating: null,
+        priceLevel: null,
+        photoUrl: null,
+        voteCount: backendVenue.voteCount,
+        voters: voterIds,
+      };
+    }
 
     return {
       id: backendVenue.venueId,
-      name: fullVenue?.name || 'Unknown Venue',
-      address: fullVenue?.address || null,
-      location: fullVenue?.location || { lat: 0, lng: 0 },
-      category: fullVenue?.types?.[0] || null, // Use first type as category
-      rating: fullVenue?.rating || null,
-      priceLevel: fullVenue?.priceLevel || null,
-      photoUrl: fullVenue?.photoUrl || null,
+      name: fullVenue.name,
+      address: fullVenue.address || null,
+      location: fullVenue.location,
+      category: fullVenue.types?.[0] || null, // Use first type as category
+      rating: fullVenue.rating,
+      priceLevel: fullVenue.priceLevel,
+      photoUrl: fullVenue.photoUrl,
       voteCount: backendVenue.voteCount,
-      voters: backendVenue.voterNames, // Backend sends "voterNames" but it contains participant IDs
+      voters: voterIds, // Standardized: "voters" field contains voterIds (participant UUIDs)
     };
   });
 
@@ -259,11 +246,5 @@ function handleVoteStatistics(data: VoteStatisticsPayload & { eventId?: string }
     totalVotes: data.totalVotes,
   };
 
-  console.log('[SSE Handler] Calling setVoteStatistics with:', {
-    venuesCount: transformedVenues.length,
-    totalVotes: data.totalVotes,
-  });
-
   setVoteStatistics(statistics);
-  console.log('[SSE Handler] vote:statistics processed successfully');
 }

@@ -11,6 +11,7 @@ import { ModalProvider } from '@/components/modals';
 import { useMeetingStore } from '@/store/useMeetingStore';
 import { useUIStore } from '@/store/ui-store';
 import { api } from '@/lib/api';
+import { useEventStream } from '@/hooks/useEventStream';
 
 export default function MeetPage() {
   const params = useParams();
@@ -24,7 +25,11 @@ export default function MeetPage() {
     eventError,
     loadVoteStatistics,
   } = useMeetingStore();
-  const { initializeOrganizerMode, initializeParticipantMode } = useUIStore();
+  const { initializeOrganizerMode, initializeParticipantMode, organizerToken, participantToken } =
+    useUIStore();
+
+  // Get authentication token (prefer organizer token, fallback to participant token)
+  const token = organizerToken || participantToken || null;
 
   // Initialize organizer and participant modes based on localStorage tokens
   useEffect(() => {
@@ -34,8 +39,19 @@ export default function MeetPage() {
     }
   }, [eventId, initializeOrganizerMode, initializeParticipantMode]);
 
-  // Initialize vote statistics and set up polling for real-time updates
-  // Only starts after event is successfully loaded to avoid console spam
+  // Connect to SSE stream for real-time updates
+  // Trigger snapshot reconciliation on (re)connect to prevent drift
+  const { connectionState } = useEventStream(eventId, token, {
+    onConnect: () => {
+      console.log(
+        '[SSE] Connection established - loading vote statistics snapshot for reconciliation'
+      );
+      loadVoteStatistics();
+    },
+  });
+
+  // Load initial vote statistics once event is loaded
+  // Real-time updates are handled via SSE connection
   useEffect(() => {
     if (!eventId || !currentEvent) {
       return;
@@ -43,14 +59,6 @@ export default function MeetPage() {
 
     // Load initial vote statistics
     loadVoteStatistics();
-
-    // Set up polling interval to refresh vote statistics every 5 seconds
-    const pollInterval = setInterval(() => {
-      loadVoteStatistics();
-    }, 5000);
-
-    // Clean up polling on unmount or when eventId/currentEvent changes
-    return () => clearInterval(pollInterval);
   }, [eventId, currentEvent, loadVoteStatistics]);
 
   useEffect(() => {

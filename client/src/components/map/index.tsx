@@ -298,7 +298,10 @@ export function MapArea() {
 
   // Update participant markers
   useEffect(() => {
-    console.log('[Map] Participant markers useEffect triggered. Participant count:', currentEvent?.participants?.length);
+    console.log(
+      '[Map] Participant markers useEffect triggered. Participant count:',
+      currentEvent?.participants?.length
+    );
     if (!map || !window.google) return;
 
     // Clear existing participant markers
@@ -307,7 +310,12 @@ export function MapArea() {
 
     // Add participant markers with matching colors
     currentEvent?.participants.forEach((participant) => {
-      console.log('[Map] Processing participant:', participant.name, 'Location:', participant.location);
+      console.log(
+        '[Map] Processing participant:',
+        participant.name,
+        'Location:',
+        participant.location
+      );
       if (!participant.location || !participant.location.lat || !participant.location.lng) {
         console.log('[Map] Skipping participant - invalid location:', participant.name);
         return;
@@ -359,6 +367,12 @@ export function MapArea() {
     searchedVenues.forEach((venue) => {
       // Skip if this venue is liked (it will be rendered as a star)
       if (savedVenues.includes(venue.id)) return;
+
+      // Skip if venue has invalid location (e.g., "Unknown Venue" from incomplete SSE)
+      if (!venue.location || venue.location.lat == null || venue.location.lng == null) {
+        console.warn('[Map] Skipping venue with invalid location:', venue.name);
+        return;
+      }
 
       const isSelected = selectedVenue?.id === venue.id;
       const isHovered = hoveredVenueId === venue.id;
@@ -426,6 +440,12 @@ export function MapArea() {
 
     // Add or update markers for liked venues
     allLikedVenues.forEach((venue) => {
+      // Skip if venue has invalid location (e.g., "Unknown Venue" from incomplete SSE)
+      if (!venue.location || venue.location.lat == null || venue.location.lng == null) {
+        console.warn('[Map] Skipping liked venue with invalid location:', venue.name);
+        return;
+      }
+
       const isSelected = selectedVenue?.id === venue.id;
       const isHovered = hoveredVenueId === venue.id;
       const isHighlighted = isSelected || isHovered;
