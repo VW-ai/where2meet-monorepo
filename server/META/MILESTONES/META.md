@@ -15,13 +15,15 @@ Backend implementation milestones. Complete in order.
 | 5 | [MILESTONE_5.md](MILESTONE_5.md) | Voting | Vote CRUD, aggregation, venue caching |
 | 6 | [MILESTONE_6.md](MILESTONE_6.md) | Routes + Publish | Google Directions, publish feature |
 | 7 | [MILESTONE_7.md](MILESTONE_7.md) | Production | Rate limiting, error handling, logging |
+| 8 | [MILESTONE_8.md](MILESTONE_8.md) | User System (P1) | Accounts, cookie sessions, claim/list events |
+| 8.1 | [MILESTONE_8_1.md](MILESTONE_8_1.md) | User System (P2) | OAuth, account linking, optional auto-link |
 
 ---
 
 ## Dependency Chain
 
 ```
-M1 → M2 → M3 → M4 → M5 → M6 → M7
+M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8
 ```
 
 Each milestone builds on the previous. Do not skip ahead.
