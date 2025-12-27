@@ -244,6 +244,40 @@ describe("Participant Endpoints", () => {
       const body = response.json();
       expect(body.error.code).toBe("EVENT_NOT_FOUND");
     });
+
+    it("should return 403 when non-organizer tries to add participant", async () => {
+      // First, self-register a participant (gets their own token)
+      const selfRegResponse = await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        payload: {
+          name: "SelfJoiner",
+          address: "123 Main St",
+        },
+      });
+      expect(selfRegResponse.statusCode).toBe(201);
+      const nonOrganizerToken = selfRegResponse.json().participantToken;
+      expect(nonOrganizerToken).toBeDefined();
+
+      // Now try to add another participant using the non-organizer's token
+      const response = await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        headers: {
+          authorization: `Bearer ${nonOrganizerToken}`,
+        },
+        payload: {
+          name: "AnotherPerson",
+          address: "456 Oak Ave",
+        },
+      });
+
+      // Should be 403 because only organizers can add participants with a token
+      expect(response.statusCode).toBe(403);
+      const body = response.json();
+      expect(body.error.code).toBe("FORBIDDEN");
+      expect(body.error.message).toContain("Organizer access required");
+    });
   });
 
   describe("PATCH /api/events/:id/participants/:participantId", () => {

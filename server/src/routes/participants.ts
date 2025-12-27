@@ -66,7 +66,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
   fastify.post<{ Params: EventParams; Body: CreateParticipantInput }>(
     "/api/events/:id/participants",
     {
-      preHandler: [createVerifyToken({ optional: true })],
+      preHandler: [createVerifyToken({ optional: true, requireOrganizer: true })],
     },
     async (
       request: FastifyRequest<{ Params: EventParams; Body: CreateParticipantInput }>,

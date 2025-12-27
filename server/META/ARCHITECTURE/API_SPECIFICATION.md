@@ -618,6 +618,41 @@ GET /api/events/:id/votes
 
 ---
 
+### 5.4 获取投票统计快照（SSE 同步）
+
+```
+GET /api/events/:id/votes/statistics
+```
+
+**前端输入：**
+| 参数 | 位置 | 说明 |
+|------|------|------|
+| id | URL Path | 活动 ID |
+
+**后端输出（成功 200）：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| eventId | string | 活动 ID |
+| seq | number | 当前序列号（用于 SSE 事件排序） |
+| venues | VenueStatistics[] | 场所投票统计列表 |
+| totalVotes | number | 总投票数 |
+| updatedAt | string | ISO 时间戳 |
+
+**VenueStatistics 结构：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| venueId | string | 场所 ID |
+| voteCount | number | 该场所获得的票数 |
+| voterIds | string[] | 投票者 ID 列表（UUID数组） |
+
+**实现说明**：
+- 该端点为 SSE 客户端提供完整快照，用于重连后同步状态
+- `seq` 字段为 Redis 维护的单调递增序列号，用于检测事件丢失
+- 公开端点，无需认证
+- 如果事件无投票，`seq` 返回 0，`venues` 返回空数组
+
+---
+
 ## 六、Directions 模块
 
 
@@ -679,7 +714,45 @@ GET /api/events/:id/stream
 - `event:updated`：活动字段变更（title/meetingTime/publish 状态）
 - `event:published`：活动发布并携带发布场所的基本信息
 - `participant:added|updated|removed`：参与者变更
-- `vote:statistics`：投票统计刷新
+- `vote:changed`：增量投票变更（新增，推荐客户端使用）
+- `vote:statistics`：完整投票统计快照（向后兼容）
+
+**vote:changed 事件（增量更新）**：
+```json
+{
+  "eventId": "evt_...",
+  "seq": 42,
+  "venueId": "ChIJ...",
+  "voterId": "uuid-...",
+  "delta": 1,           // +1 投票，-1 取消
+  "voteCount": 5,       // 该场所新的票数
+  "totalVotes": 12,     // 活动总票数
+  "updatedAt": "2025-12-26T15:30:00Z"
+}
+```
+
+**vote:statistics 事件（完整快照）**：
+```json
+{
+  "eventId": "evt_...",
+  "seq": 43,
+  "venues": [
+    {
+      "venueId": "ChIJ...",
+      "voteCount": 5,
+      "voterIds": ["uuid1", "uuid2"],
+      "voterNames": ["uuid1", "uuid2"]  // DEPRECATED: 向后兼容
+    }
+  ],
+  "totalVotes": 12,
+  "updatedAt": "2025-12-26T15:30:00Z"
+}
+```
+
+**序列号（seq）机制**：
+- 每个活动维护独立的单调递增序列号（Redis INCR）
+- 客户端通过 seq 检测事件丢失（如预期 42，收到 45 → 缺失 43-44）
+- 检测到丢失时，调用 `GET /api/events/:id/votes/statistics` 重新同步
 
 ---
 
@@ -808,5 +881,6 @@ GET /api/events/:id/stream
 | POST /api/events/:id/participants/:participantId/votes | ✅ 已实现 | 仅自己投票 |
 | DELETE /api/events/:id/participants/:participantId/votes/:venueId | ✅ 已实现 | 仅自己取消 |
 | GET /api/events/:id/votes | ✅ 已实现 | 公开统计 |
+| GET /api/events/:id/votes/statistics | ✅ 已实现 | SSE 同步快照 |
 | GET /api/events/:id/venues/:venueId/directions | ✅ 已实现 | 需认证 |
 | GET /api/events/:id/stream | ✅ 已实现 | 需认证（SSE） |

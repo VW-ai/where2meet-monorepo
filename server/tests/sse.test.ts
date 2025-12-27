@@ -157,4 +157,202 @@ describe("SSE Stream Endpoint", () => {
     // 2. Integration test with EventSource in browser (note: EventSource doesn't support custom headers,
     //    so browser testing requires a polyfill like event-source-polyfill or eventsource package)
   });
+
+  describe("SSE vote:changed event integration", () => {
+    let testParticipantId: string;
+    const mockVenueData = {
+      name: "Test Cafe",
+      address: "123 Test St",
+      lat: 40.7128,
+      lng: -74.006,
+      rating: 4.5,
+      priceLevel: 2,
+      category: "cafe",
+      photoUrl: "https://example.com/photo.jpg",
+    };
+
+    beforeEach(async () => {
+      // Get the organizer participant ID
+      const eventData = await server.db.event.findUnique({
+        where: { id: testEventId },
+        include: { participants: true },
+      });
+      testParticipantId = eventData!.participants[0].id;
+    });
+
+    it("should trigger vote:changed broadcast when casting a vote", async () => {
+      const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+
+      // Spy on SSE broadcast
+      const broadcastSpy = vi.spyOn(server.sse, "broadcast");
+
+      // Cast a vote
+      const response = await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
+        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        payload: {
+          venueId,
+          venueData: mockVenueData,
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      // Allow async broadcast to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Verify vote:changed event was broadcast
+      expect(broadcastSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventId: testEventId,
+          type: "vote:changed",
+          payload: expect.objectContaining({
+            eventId: testEventId,
+            venueId,
+            voterId: testParticipantId,
+            delta: 1,
+            voteCount: 1,
+            totalVotes: 1,
+          }),
+        })
+      );
+
+      // Verify vote:statistics event was also broadcast (backward compatibility)
+      expect(broadcastSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventId: testEventId,
+          type: "vote:statistics",
+          payload: expect.objectContaining({
+            eventId: testEventId,
+            venues: expect.arrayContaining([
+              expect.objectContaining({
+                venueId,
+                voteCount: 1,
+                voterIds: [testParticipantId],
+              }),
+            ]),
+            totalVotes: 1,
+          }),
+        })
+      );
+
+      broadcastSpy.mockRestore();
+    });
+
+    it("should trigger vote:changed with delta=-1 when removing a vote", async () => {
+      const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+
+      // First cast a vote
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
+        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        payload: {
+          venueId,
+          venueData: mockVenueData,
+        },
+      });
+
+      // Wait for broadcasts to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Spy on SSE broadcast
+      const broadcastSpy = vi.spyOn(server.sse, "broadcast");
+
+      // Remove the vote
+      const response = await server.inject({
+        method: "DELETE",
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${venueId}`,
+        headers: { authorization: `Bearer ${testOrganizerToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      // Allow async broadcast to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Verify vote:changed event with delta=-1
+      expect(broadcastSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventId: testEventId,
+          type: "vote:changed",
+          payload: expect.objectContaining({
+            eventId: testEventId,
+            venueId,
+            voterId: testParticipantId,
+            delta: -1,
+            voteCount: 0,
+            totalVotes: 0,
+          }),
+        })
+      );
+
+      broadcastSpy.mockRestore();
+    });
+
+    it("should include seq number and updatedAt in vote:changed payload", async () => {
+      const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+
+      // Spy on SSE broadcast
+      const broadcastSpy = vi.spyOn(server.sse, "broadcast");
+
+      // Cast a vote
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
+        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        payload: {
+          venueId,
+          venueData: mockVenueData,
+        },
+      });
+
+      // Allow async broadcast to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Get the vote:changed broadcast call
+      const voteChangedCall = broadcastSpy.mock.calls.find(
+        (call) => call[0].type === "vote:changed"
+      );
+
+      expect(voteChangedCall).toBeDefined();
+      const payload = voteChangedCall![0].payload;
+
+      // Note: seq is set by broadcast() so it will be 0 in the input
+      // but enriched during broadcast. We verify the structure exists.
+      expect(payload).toHaveProperty("seq");
+      expect(payload).toHaveProperty("updatedAt");
+
+      broadcastSpy.mockRestore();
+    });
+
+    it("should broadcast both vote:changed and vote:statistics events", async () => {
+      const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+
+      // Spy on SSE broadcast
+      const broadcastSpy = vi.spyOn(server.sse, "broadcast");
+
+      // Cast a vote
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
+        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        payload: {
+          venueId,
+          venueData: mockVenueData,
+        },
+      });
+
+      // Allow async broadcast to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Verify both event types were broadcast
+      const eventTypes = broadcastSpy.mock.calls.map((call) => call[0].type);
+      expect(eventTypes).toContain("vote:changed");
+      expect(eventTypes).toContain("vote:statistics");
+
+      broadcastSpy.mockRestore();
+    });
+  });
 });

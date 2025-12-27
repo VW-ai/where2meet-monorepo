@@ -568,6 +568,166 @@ describe("Vote Endpoints", () => {
     });
   });
 
+  describe("GET /api/events/:id/votes/statistics (snapshot endpoint)", () => {
+    const venue1Id = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+
+    const mockVenue1Data = {
+      name: "Cozy Cafe",
+      address: "789 Pine Rd",
+      lat: 40.7484,
+      lng: -73.9857,
+      rating: 4.5,
+      priceLevel: 2,
+      category: "cafe",
+      photoUrl: "https://example.com/cafe.jpg",
+    };
+
+    it("should return snapshot with eventId and seq number", async () => {
+      // Cast a vote to trigger sequence increment
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
+        headers: { authorization: `Bearer ${testParticipantToken}` },
+        payload: {
+          venueId: venue1Id,
+          venueData: mockVenue1Data,
+        },
+      });
+
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/votes/statistics`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+
+      // Verify snapshot structure
+      expect(body.eventId).toBe(testEventId);
+      expect(body.seq).toBeGreaterThanOrEqual(0);
+      expect(body.venues).toHaveLength(1);
+      expect(body.totalVotes).toBe(1);
+      expect(body.updatedAt).toBeDefined();
+      expect(new Date(body.updatedAt).toISOString()).toBe(body.updatedAt);
+
+      // Verify venue data structure
+      const venue = body.venues[0];
+      expect(venue.venueId).toBe(venue1Id);
+      expect(venue.voteCount).toBe(1);
+      expect(venue.voterIds).toEqual([testParticipantId]);
+    });
+
+    it("should return empty snapshot with seq=0 for event with no votes", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/votes/statistics`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.eventId).toBe(testEventId);
+      expect(body.seq).toBe(0);
+      expect(body.venues).toEqual([]);
+      expect(body.totalVotes).toBe(0);
+      expect(body.updatedAt).toBeDefined();
+    });
+
+    it("should include voterIds array for each venue", async () => {
+      // Multiple participants vote for same venue
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
+        headers: { authorization: `Bearer ${testParticipantToken}` },
+        payload: {
+          venueId: venue1Id,
+          venueData: mockVenue1Data,
+        },
+      });
+
+      // Create another participant
+      const participant3Response = await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        payload: {
+          name: "Charlie",
+          address: "321 Elm St",
+        },
+      });
+      const participant3 = participant3Response.json();
+      const participant3Id = participant3.id;
+      const participant3Token = participant3.participantToken;
+
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${participant3Id}/votes`,
+        headers: { authorization: `Bearer ${participant3Token}` },
+        payload: {
+          venueId: venue1Id,
+          venueData: mockVenue1Data,
+        },
+      });
+
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/votes/statistics`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.venues).toHaveLength(1);
+
+      const venue = body.venues[0];
+      expect(venue.voterIds).toHaveLength(2);
+      expect(venue.voterIds).toContain(testParticipantId);
+      expect(venue.voterIds).toContain(participant3Id);
+    });
+
+    it("should not require authentication (public endpoint)", async () => {
+      // Cast a vote first
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
+        headers: { authorization: `Bearer ${testParticipantToken}` },
+        payload: {
+          venueId: venue1Id,
+          venueData: mockVenue1Data,
+        },
+      });
+
+      // Get snapshot without auth
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/votes/statistics`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.venues).toHaveLength(1);
+    });
+
+    it("should return 404 for non-existent event", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/api/events/evt_1702000000000_nonexistent12345/votes/statistics",
+      });
+
+      expect(response.statusCode).toBe(404);
+      const body = response.json();
+      expect(body.error.code).toBe("EVENT_NOT_FOUND");
+    });
+
+    it("should return 400 for invalid event ID format", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/api/events/invalid-id/votes/statistics",
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+  });
+
   describe("GET /api/events/:id/votes", () => {
     const venue1Id = "ChIJN1t_tDeuEmsRUsoyG83frY4";
     const venue2Id = "ChIJOwg_06VPwokRYv534QaPC8g";
