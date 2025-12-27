@@ -15,6 +15,7 @@ export type SSEEventType =
   | "participant:updated"
   | "participant:removed"
   | "vote:statistics"
+  | "vote:changed"
   | "event:updated"
   | "event:published"
   | "heartbeat";
@@ -57,15 +58,35 @@ export interface ParticipantRemovedPayload {
 }
 
 /**
- * Payload for vote:statistics event.
+ * Payload for vote:statistics event (full snapshot).
+ * Enhanced with sequence tracking and properly named voterIds field.
  */
 export interface VoteStatisticsPayload {
+  eventId: string; // Event ID for synchronization
+  seq: number; // Sequence number for ordering
   venues: {
     venueId: string;
     voteCount: number;
-    voterNames: string[];
+    voterIds: string[]; // Participant UUIDs who voted (correct naming)
+    voterNames?: string[]; // DEPRECATED: Use voterIds instead (kept for backward compatibility)
   }[];
   totalVotes: number;
+  updatedAt: string; // ISO timestamp when snapshot was generated
+}
+
+/**
+ * Payload for vote:changed event (incremental update).
+ * Sent when a single vote is cast or removed for efficiency.
+ */
+export interface VoteChangedPayload {
+  eventId: string; // Event ID for synchronization
+  seq: number; // Sequence number for ordering
+  venueId: string; // Venue that was voted for/unvoted
+  voterId: string; // Participant UUID who cast/removed the vote
+  delta: 1 | -1; // +1 for vote cast, -1 for vote removed
+  voteCount: number; // New total vote count for this venue
+  totalVotes: number; // New total votes across all venues
+  updatedAt: string; // ISO timestamp when change occurred
 }
 
 /**
@@ -116,6 +137,7 @@ export type SSEPayload =
   | ParticipantUpdatedPayload
   | ParticipantRemovedPayload
   | VoteStatisticsPayload
+  | VoteChangedPayload
   | EventUpdatedPayload
   | EventPublishedPayload
   | HeartbeatPayload;

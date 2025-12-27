@@ -13,6 +13,7 @@ import { Redis } from "ioredis";
 import { config } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
 import type { SSEConnection, SSEEventType, SSEPayload, BroadcastOptions } from "../types/sse.js";
+import { getNextSSESequence } from "../lib/redis.js";
 
 const logger = createLogger("SSEPlugin");
 
@@ -174,27 +175,45 @@ export class SSEService {
 
   /**
    * Broadcasts an event to all connections for an event.
+   * Automatically increments sequence number for vote-related events.
    * Publishes to Redis for cross-instance delivery.
    * @param options - Broadcast options
    */
   async broadcast(options: BroadcastOptions): Promise<void> {
     const { eventId, type, payload } = options;
 
+    // Enrich vote-related events with sequence tracking
+    let enrichedPayload = payload;
+    let seq: number | undefined;
+
+    if (type === "vote:statistics" || type === "vote:changed") {
+      seq = await getNextSSESequence(eventId);
+      enrichedPayload = {
+        ...payload,
+        eventId,
+        seq,
+        updatedAt: new Date().toISOString(),
+      } as SSEPayload;
+    }
+
     // Publish to Redis for cross-instance delivery
     if (this.publisher) {
       const channel = `sse:event:${eventId}`;
-      const message = JSON.stringify({ type, payload });
+      const message = JSON.stringify({ type, payload: enrichedPayload });
       try {
         await this.publisher.publish(channel, message);
-        logger.debug({ eventId, type }, "Published SSE event to Redis");
+        logger.debug(
+          { eventId, type, seq },
+          "Published SSE event to Redis"
+        );
       } catch (error) {
         logger.error({ err: error, eventId, type }, "Failed to publish to Redis");
         // Fall back to local-only broadcast
-        this.broadcastLocal(eventId, type, payload);
+        this.broadcastLocal(eventId, type, enrichedPayload);
       }
     } else {
       // No Redis, broadcast locally only
-      this.broadcastLocal(eventId, type, payload);
+      this.broadcastLocal(eventId, type, enrichedPayload);
     }
   }
 

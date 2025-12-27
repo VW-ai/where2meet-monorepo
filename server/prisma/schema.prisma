@@ -90,5 +90,6 @@ model Vote {
   @@index([eventId])
   @@index([participantId])
   @@index([venueId])
+  @@index([eventId, venueId]) // Composite index for vote aggregation queries
   @@map("vote")
 }
