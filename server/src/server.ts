@@ -18,6 +18,7 @@ import rateLimit from "@fastify/rate-limit";
 import { config, isTest, isProduction } from "./lib/config.js";
 import { errorHandler } from "./utils/errorHandler.js";
 import dbPlugin from "./plugins/db.js";
+import cookiePlugin from "./plugins/cookie.js";
 import ssePlugin from "./plugins/sse.js";
 import { healthRoutes } from "./routes/health.js";
 import { eventRoutes } from "./routes/events.js";
@@ -26,6 +27,8 @@ import { venueRoutes } from "./routes/venues.js";
 import { voteRoutes } from "./routes/votes.js";
 import { directionsRoutes } from "./routes/directions.js";
 import { sseRoutes } from "./routes/sse.js";
+import { authRoutes } from "./routes/auth.js";
+import { userRoutes } from "./routes/users.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -54,7 +57,15 @@ export async function buildServer() {
       : {
           level: config.NODE_ENV === "production" ? "info" : "debug",
           redact: {
-            paths: ["req.headers.authorization", "res.headers.authorization"],
+            paths: [
+              "req.headers.authorization",
+              "res.headers.authorization",
+              "req.headers.cookie",
+              "res.headers['set-cookie']",
+              "req.body.password",
+              "req.body.passwordHash",
+              "req.body.participantToken",
+            ],
             censor: "[REDACTED]",
           },
           transport:
@@ -101,6 +112,9 @@ export async function buildServer() {
   // Register database plugin
   await server.register(dbPlugin);
 
+  // Register cookie plugin (needed for session auth)
+  await server.register(cookiePlugin);
+
   // Register SSE plugin (depends on db)
   await server.register(ssePlugin);
 
@@ -112,6 +126,8 @@ export async function buildServer() {
   await server.register(voteRoutes);
   await server.register(directionsRoutes);
   await server.register(sseRoutes);
+  await server.register(authRoutes);
+  await server.register(userRoutes);
 
   return server;
 }
