@@ -38,3 +38,19 @@ export const CreateParticipantResponseSchema = z.object({
 });
 
 export type CreateParticipantResponse = z.infer<typeof CreateParticipantResponseSchema>;
+
+/**
+ * Response for GET /api/events/:id/me endpoint.
+ * Returns authenticated user's participant info and role.
+ */
+export const ParticipantMeResponseSchema = z.object({
+  participantId: z.uuid(),
+  name: z.string(),
+  isOrganizer: z.boolean(),
+  color: z.string(),
+  address: z.string().nullable(),
+  lat: z.number().nullable(),
+  lng: z.number().nullable(),
+});
+
+export type ParticipantMeResponse = z.infer<typeof ParticipantMeResponseSchema>;

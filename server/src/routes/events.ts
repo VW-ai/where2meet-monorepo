@@ -8,6 +8,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createEventService } from "../services/event.js";
+import { createParticipantService } from "../services/participant.js";
 import {
   CreateEventSchema,
   UpdateEventSchema,
@@ -27,6 +28,7 @@ import { createDeleteSuccessResponse } from "../dto/index.js";
 import { createVerifyToken } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
 import type { EventUpdatedPayload, EventPublishedPayload } from "../types/sse.js";
+import type { ParticipantMeResponse } from "../dto/participant.dto.js";
 import { createVenueService } from "../services/venue.js";
 
 /**
@@ -85,6 +87,44 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
     return reply.send(response);
   });
+
+  /**
+   * GET /api/events/:id/me
+   * Returns the authenticated user's participant info.
+   * Used by frontend to determine user's role after page refresh.
+   */
+  fastify.get<{ Params: EventIdParam }>(
+    "/api/events/:id/me",
+    {
+      preHandler: [createVerifyToken()],
+    },
+    async (request, reply) => {
+      // Validate params
+      const parseResult = EventIdSchema.safeParse(request.params);
+      if (!parseResult.success) {
+        throw new ValidationError("Invalid event ID format");
+      }
+
+      const eventId = parseResult.data.id;
+      const { participantId, isOrganizer } = request.participantAuth!;
+
+      // Get full participant details
+      const participantService = createParticipantService(fastify.db);
+      const participant = await participantService.getParticipant(eventId, participantId);
+
+      const response: ParticipantMeResponse = {
+        participantId: participant.id,
+        name: participant.name,
+        isOrganizer,
+        color: participant.color,
+        address: participant.address,
+        lat: participant.lat ? Number(participant.lat) : null,
+        lng: participant.lng ? Number(participant.lng) : null,
+      };
+
+      return reply.send(response);
+    }
+  );
 
   /**
    * GET /api/events/:id/mec

@@ -497,6 +497,117 @@ describe("Event Endpoints", () => {
     });
   });
 
+  describe("GET /api/events/:id/me", () => {
+    let testEventId: string;
+    let organizerToken: string;
+    let organizerParticipantId: string;
+
+    beforeEach(async () => {
+      const createResponse = await server.inject({
+        method: "POST",
+        url: "/api/events",
+        payload: {
+          title: "Test Event for /me",
+        },
+      });
+      const created = createResponse.json();
+      testEventId = created.id;
+      organizerToken = created.participantToken;
+      organizerParticipantId = created.organizerParticipantId;
+    });
+
+    it("should return organizer info with isOrganizer=true", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/me`,
+        headers: {
+          authorization: `Bearer ${organizerToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.participantId).toBe(organizerParticipantId);
+      expect(body.name).toBe("Organizer");
+      expect(body.isOrganizer).toBe(true);
+      expect(body.color).toBeDefined();
+      expect(body.address).toBeNull();
+      expect(body.lat).toBeNull();
+      expect(body.lng).toBeNull();
+    });
+
+    it("should return participant info with isOrganizer=false", async () => {
+      // Self-register a participant
+      const registerResponse = await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        payload: {
+          name: "RegularUser",
+          address: "123 Main St",
+        },
+      });
+      expect(registerResponse.statusCode).toBe(201);
+      const participant = registerResponse.json();
+
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/me`,
+        headers: {
+          authorization: `Bearer ${participant.participantToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.participantId).toBe(participant.id);
+      expect(body.name).toBe("RegularUser");
+      expect(body.isOrganizer).toBe(false);
+      expect(body.color).toBeDefined();
+      expect(body.address).toBeDefined();
+      expect(body.lat).toBeDefined();
+      expect(body.lng).toBeDefined();
+    });
+
+    it("should return 401 without authorization header", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/me`,
+      });
+
+      expect(response.statusCode).toBe(401);
+      const body = response.json();
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+
+    it("should return 403 with invalid token", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/me`,
+        headers: {
+          authorization: "Bearer invalid-token",
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = response.json();
+      expect(body.error.code).toBe("FORBIDDEN");
+    });
+
+    it("should return 400 for invalid event ID format", async () => {
+      const response = await server.inject({
+        method: "GET",
+        url: "/api/events/invalid-id/me",
+        headers: {
+          authorization: `Bearer ${organizerToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+  });
+
   describe("DELETE /api/events/:id", () => {
     let createdEventId: string;
     let participantToken: string;

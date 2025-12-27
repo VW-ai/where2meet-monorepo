@@ -181,7 +181,7 @@ describe("SSE Stream Endpoint", () => {
     });
 
     it("should trigger vote:changed broadcast when casting a vote", async () => {
-      const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+      const venueId = "ChIJSSE_testVenue_unique123";
 
       // Spy on SSE broadcast
       const broadcastSpy = vi.spyOn(server.sse, "broadcast");
@@ -190,7 +190,7 @@ describe("SSE Stream Endpoint", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           venueId,
           venueData: mockVenueData,
@@ -241,13 +241,13 @@ describe("SSE Stream Endpoint", () => {
     });
 
     it("should trigger vote:changed with delta=-1 when removing a vote", async () => {
-      const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+      const venueId = "ChIJSSE_testVenue_unique123";
 
       // First cast a vote
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           venueId,
           venueData: mockVenueData,
@@ -264,7 +264,7 @@ describe("SSE Stream Endpoint", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/${testParticipantId}/votes/${venueId}`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -292,7 +292,7 @@ describe("SSE Stream Endpoint", () => {
     });
 
     it("should include seq number and updatedAt in vote:changed payload", async () => {
-      const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+      const venueId = "ChIJSSE_testVenue_unique123";
 
       // Spy on SSE broadcast
       const broadcastSpy = vi.spyOn(server.sse, "broadcast");
@@ -301,7 +301,7 @@ describe("SSE Stream Endpoint", () => {
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           venueId,
           venueData: mockVenueData,
@@ -328,7 +328,7 @@ describe("SSE Stream Endpoint", () => {
     });
 
     it("should broadcast both vote:changed and vote:statistics events", async () => {
-      const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+      const venueId = "ChIJSSE_testVenue_unique123";
 
       // Spy on SSE broadcast
       const broadcastSpy = vi.spyOn(server.sse, "broadcast");
@@ -337,7 +337,7 @@ describe("SSE Stream Endpoint", () => {
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants/${testParticipantId}/votes`,
-        headers: { authorization: `Bearer ${testOrganizerToken}` },
+        headers: { authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           venueId,
           venueData: mockVenueData,
