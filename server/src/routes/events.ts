@@ -146,7 +146,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * PATCH /api/events/:id
-   * Updates event fields. Requires organizerToken.
+   * Updates event fields. Requires organizer access.
    */
   fastify.patch<{ Params: { id: string }; Body: UpdateEventInput }>(
     "/api/events/:id",
@@ -195,7 +195,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * DELETE /api/events/:id
-   * Deletes an event. Requires organizerToken.
+   * Deletes an event. Requires organizer access.
    */
   fastify.delete<{ Params: { id: string } }>(
     "/api/events/:id",
@@ -217,7 +217,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * POST /api/events/:id/publish
-   * Publishes an event with the selected venue. Requires organizerToken.
+   * Publishes an event with the selected venue. Requires organizer access.
    */
   fastify.post<{ Params: { id: string }; Body: PublishEventInput }>(
     "/api/events/:id/publish",
@@ -282,7 +282,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * DELETE /api/events/:id/publish
-   * Unpublishes an event. Requires organizerToken.
+   * Unpublishes an event. Requires organizer access.
    */
   fastify.delete<{ Params: { id: string } }>(
     "/api/events/:id/publish",

@@ -4,8 +4,8 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ParticipantService } from "../../src/services/participant.js";
-import type { PrismaClient } from "../../src/generated/prisma/index.js";
-import { Decimal } from "../../src/generated/prisma/runtime/library.js";
+import type { PrismaClient } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 // Mock the maps module
 vi.mock("../../src/lib/maps.js", () => ({

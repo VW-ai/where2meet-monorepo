@@ -84,7 +84,7 @@ export function voteRoutes(fastify: FastifyInstance): void {
    * Casts a vote for a venue in an event.
    *
    * Authentication:
-   * - REQUIRED - organizerToken OR participantToken
+   * - REQUIRED - valid participant token
    * - selfOnly: Token must match the participantId in URL
    *
    * Transaction: Atomically verifies event/participant and upserts venue+vote.
@@ -201,7 +201,7 @@ export function voteRoutes(fastify: FastifyInstance): void {
    * Removes a vote for a venue in an event.
    *
    * Authentication:
-   * - REQUIRED - organizerToken OR participantToken
+   * - REQUIRED - valid participant token
    * - selfOnly: Token must match the participantId in URL
    *
    * Idempotent: No error if vote doesn't exist.

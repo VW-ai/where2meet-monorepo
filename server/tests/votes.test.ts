@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { buildServer } from "../src/server.js";
 import type { FastifyInstance } from "fastify";
-import type { PrismaClient } from "../src/generated/prisma/index.js";
+import type { PrismaClient } from "@prisma/client";
 
 // Mock the geocode function
 vi.mock("../src/lib/maps.js", () => ({

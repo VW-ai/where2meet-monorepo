@@ -499,7 +499,7 @@ describe("Event Endpoints", () => {
 
   describe("GET /api/events/:id/me", () => {
     let testEventId: string;
-    let organizerToken: string;
+    let testOrganizerToken: string;
     let organizerParticipantId: string;
 
     beforeEach(async () => {
@@ -512,7 +512,7 @@ describe("Event Endpoints", () => {
       });
       const created = createResponse.json();
       testEventId = created.id;
-      organizerToken = created.participantToken;
+      testOrganizerToken = created.participantToken;
       organizerParticipantId = created.organizerParticipantId;
     });
 
@@ -521,7 +521,7 @@ describe("Event Endpoints", () => {
         method: "GET",
         url: `/api/events/${testEventId}/me`,
         headers: {
-          authorization: `Bearer ${organizerToken}`,
+          authorization: `Bearer ${testOrganizerToken}`,
         },
       });
 
@@ -598,7 +598,7 @@ describe("Event Endpoints", () => {
         method: "GET",
         url: "/api/events/invalid-id/me",
         headers: {
-          authorization: `Bearer ${organizerToken}`,
+          authorization: `Bearer ${testOrganizerToken}`,
         },
       });
 

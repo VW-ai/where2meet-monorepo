@@ -4,8 +4,8 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { VoteRepository } from "../../src/repositories/vote.js";
-import type { PrismaClient, Vote, Venue } from "../../src/generated/prisma/index.js";
-import { Decimal } from "../../src/generated/prisma/runtime/library.js";
+import type { PrismaClient, Vote, Venue } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 /** Test IDs */
 const TEST_EVENT_ID = "evt_1702000000000_abcdefghijklmnop";

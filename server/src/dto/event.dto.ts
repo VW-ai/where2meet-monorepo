@@ -40,7 +40,7 @@ export type EventSettingsResponse = z.infer<typeof EventSettingsResponseSchema>;
 
 /**
  * Event data in API response.
- * Note: organizerToken is NOT included.
+ * Note: participantToken is NOT included in GET responses (only in POST response).
  */
 export const EventResponseSchema = z.object({
   id: z.string().regex(EVENT_ID_PATTERN),

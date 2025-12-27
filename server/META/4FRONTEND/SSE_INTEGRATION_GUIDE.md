@@ -123,16 +123,42 @@ interface ParticipantRemovedEvent {
 
 ### `vote:statistics`
 
-Fired when voting changes (vote cast or removed).
+Full vote snapshot payload.
+
+Notes:
+- The backend broadcasts this after vote changes for backward compatibility.
+- Use `venues[].voterIds` for identity; `voterNames` is deprecated.
+- `seq` is a monotonically increasing sequence number for vote events within an event.
 
 ```typescript
 interface VoteStatisticsEvent {
+  eventId: string;
+  seq: number;
   venues: {
     venueId: string;
     voteCount: number;
-    voterNames: string[];
+    voterIds: string[];
+    voterNames?: string[]; // DEPRECATED
   }[];
   totalVotes: number;
+  updatedAt: string; // ISO 8601
+}
+```
+
+### `vote:changed`
+
+Incremental vote update payload (more efficient than snapshots).
+
+```typescript
+interface VoteChangedEvent {
+  eventId: string;
+  seq: number;
+  venueId: string;
+  voterId: string;
+  delta: 1 | -1; // +1 vote cast, -1 vote removed
+  voteCount: number;
+  totalVotes: number;
+  updatedAt: string; // ISO 8601
 }
 ```
 
@@ -187,6 +213,26 @@ interface HeartbeatEvent {
 
 ---
 
+## Vote Sync (Recommended)
+
+On initial page load (or after reconnect), fetch the current vote snapshot:
+
+**Endpoint**: `GET /api/events/:id/votes/statistics`
+
+```typescript
+async function fetchVoteSnapshot(eventId: string) {
+  const res = await fetch(`/api/events/${eventId}/votes/statistics`);
+  if (!res.ok) throw new Error(`Failed to fetch vote snapshot: ${res.status}`);
+  return (await res.json()) as VoteStatisticsEvent;
+}
+```
+
+Client-side ordering/reconciliation strategy:
+- Sort/process vote events by `seq`.
+- If you detect a gap in `seq`, re-fetch the snapshot and reset local state.
+
+---
+
 ## React Hook Example
 
 ```typescript
@@ -198,6 +244,7 @@ type SSEEventType =
   | 'participant:updated'
   | 'participant:removed'
   | 'vote:statistics'
+  | 'vote:changed'
   | 'event:updated'
   | 'event:published';
 
@@ -208,6 +255,7 @@ interface UseEventStreamOptions {
   onParticipantUpdated?: (data: ParticipantUpdatedEvent) => void;
   onParticipantRemoved?: (data: ParticipantRemovedEvent) => void;
   onVoteStatistics?: (data: VoteStatisticsEvent) => void;
+  onVoteChanged?: (data: VoteChangedEvent) => void;
   onEventUpdated?: (data: EventUpdatedEvent) => void;
   onEventPublished?: (data: EventPublishedEvent) => void;
   onError?: (error: Event) => void;
@@ -220,6 +268,7 @@ export function useEventStream({
   onParticipantUpdated,
   onParticipantRemoved,
   onVoteStatistics,
+  onVoteChanged,
   onEventUpdated,
   onEventPublished,
   onError,
@@ -259,6 +308,12 @@ export function useEventStream({
     if (onVoteStatistics) {
       eventSource.addEventListener('vote:statistics', (e: MessageEvent) => {
         onVoteStatistics(JSON.parse(e.data));
+      });
+    }
+
+    if (onVoteChanged) {
+      eventSource.addEventListener('vote:changed', (e: MessageEvent) => {
+        onVoteChanged(JSON.parse(e.data));
       });
     }
 
@@ -333,7 +388,8 @@ function EventPage({ eventId, token }) {
 | 400 | `VALIDATION_ERROR` | Invalid event ID format |
 | 401 | `UNAUTHORIZED` | Missing Authorization header |
 | 403 | `FORBIDDEN` | Invalid token or token doesn't belong to this event |
-| 404 | `EVENT_NOT_FOUND` | Event doesn't exist |
+
+Note: The SSE stream endpoint intentionally does not return `EVENT_NOT_FOUND` for unknown events to avoid leaking event existence.
 
 ### Reconnection Strategy
 

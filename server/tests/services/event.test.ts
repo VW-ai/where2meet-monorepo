@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventService } from "../../src/services/event.js";
-import type { PrismaClient } from "../../src/generated/prisma/index.js";
+import type { PrismaClient } from "@prisma/client";
 import { generateEventId } from "../../src/utils/id.js";
 import { hashToken } from "../../src/utils/token.js";
 

@@ -55,7 +55,7 @@ export class EventRepository {
    * Creates a new event in the database.
    *
    * Generates a semantic event ID and handles collision retry.
-   * @param data - Event data including generated organizerToken
+   * @param data - Event creation data
    * @returns Created event with participants (empty array)
    * @throws Error if ID generation fails after max retries
    */
@@ -228,7 +228,7 @@ export class EventRepository {
    *
    * Generates a semantic event ID and handles collision retry.
    * Both event and organizer participant are created in a single transaction.
-   * @param eventData - Event data including generated organizerToken
+   * @param eventData - Event creation data
    * @param organizerData - Organizer participant data
    * @returns Created event with participants and organizerParticipantId
    * @throws Error if ID generation fails after max retries
