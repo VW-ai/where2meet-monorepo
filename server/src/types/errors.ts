@@ -179,6 +179,29 @@ export class ExternalServiceError extends AppError {
 }
 
 // ============================================================================
+// Authentication errors (Milestone 8)
+// ============================================================================
+
+/**
+ * Error when attempting to register with an existing email.
+ */
+export class EmailExistsError extends AppError {
+  constructor() {
+    super("Email is already registered", 409, "EMAIL_EXISTS");
+  }
+}
+
+/**
+ * Error when login credentials are invalid.
+ * Uses generic message to prevent email enumeration.
+ */
+export class InvalidCredentialsError extends AppError {
+  constructor() {
+    super("Invalid email or password", 401, "INVALID_CREDENTIALS");
+  }
+}
+
+// ============================================================================
 // Response types
 // ============================================================================
 

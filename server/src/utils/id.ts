@@ -78,3 +78,57 @@ export const EVENT_ID_PATTERN = /^evt_\d{13,15}_[a-zA-Z0-9]{16}$/;
 export function isValidEventId(id: string): boolean {
   return EVENT_ID_PATTERN.test(id);
 }
+
+// ============================================================================
+// User Management ID Generation (Milestone 8)
+// ============================================================================
+
+/** Length of hex string for user-related IDs (32 chars = 128 bits) */
+const HEX_ID_LENGTH = 32;
+
+/**
+ * Generates a cryptographically random hex string.
+ * @param length - Number of hex characters (bytes * 2)
+ * @returns Random hex string
+ */
+function generateHexId(length: number): string {
+  return crypto.randomBytes(length / 2).toString("hex");
+}
+
+/**
+ * Generates a User ID.
+ * Format: usr_<32 hex chars>
+ * @returns Generated user ID
+ * @example
+ * generateUserId() // "usr_a1b2c3d4e5f6789012345678abcdef01"
+ */
+export function generateUserId(): string {
+  return `usr_${generateHexId(HEX_ID_LENGTH)}`;
+}
+
+/**
+ * Generates a UserIdentity ID.
+ * Format: ident_<32 hex chars>
+ * @returns Generated identity ID
+ */
+export function generateIdentityId(): string {
+  return `ident_${generateHexId(HEX_ID_LENGTH)}`;
+}
+
+/**
+ * Generates a UserSession ID.
+ * Format: ses_<32 hex chars>
+ * @returns Generated session ID
+ */
+export function generateSessionId(): string {
+  return `ses_${generateHexId(HEX_ID_LENGTH)}`;
+}
+
+/**
+ * Generates a UserEvent ID.
+ * Format: ue_<32 hex chars>
+ * @returns Generated user event ID
+ */
+export function generateUserEventId(): string {
+  return `ue_${generateHexId(HEX_ID_LENGTH)}`;
+}
