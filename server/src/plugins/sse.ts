@@ -46,11 +46,17 @@ export class SSEService {
         maxRetriesPerRequest: 3,
         lazyConnect: true,
       });
+      this.publisher.on("error", (err: Error) => {
+        logger.warn({ err }, "Redis publisher error");
+      });
       await this.publisher.connect();
 
       this.subscriber = new Redis(redisUrl, {
         maxRetriesPerRequest: 3,
         lazyConnect: true,
+      });
+      this.subscriber.on("error", (err: Error) => {
+        logger.warn({ err }, "Redis subscriber error");
       });
       await this.subscriber.connect();
 

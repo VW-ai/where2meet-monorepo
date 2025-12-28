@@ -61,6 +61,28 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      - name: Sync Railway env vars (optional)
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+          DATABASE_URL: ${{ vars.database_url }}
+          REDIS_URL: ${{ vars.redis_url }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ -n "${DATABASE_URL:-}" ]]; then
+            args+=(--set "DATABASE_URL=${DATABASE_URL}")
+          fi
+          if [[ -n "${REDIS_URL:-}" ]]; then
+            args+=(--set "REDIS_URL=${REDIS_URL}")
+          fi
+          if [[ "${#args[@]}" -gt 0 ]]; then
+            railway variables --service "$RAILWAY_SERVICE_NAME" --environment staging --skip-deploys "${args[@]}"
+          else
+            echo "No GitHub vars provided for DATABASE_URL/REDIS_URL; skipping sync."
+          fi
+
       - name: Deploy to Railway (staging)
         run: railway up --ci --environment staging --service "$RAILWAY_SERVICE_NAME"
         env:
