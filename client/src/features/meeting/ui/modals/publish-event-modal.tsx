@@ -13,7 +13,7 @@ export function PublishEventModal() {
   const { isPublishModalOpen, closePublishModal } = useUIStore();
   const { organizerToken } = useAuthStore();
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
-  const { voteForVenue } = useVotingStore();
+  const { voteForVenue, hasVotedFor } = useVotingStore();
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
@@ -51,7 +51,48 @@ export function PublishEventModal() {
     setError(null);
 
     try {
-      // Call backend API to publish the event
+      // Step 1: Check if organizer has already voted for this venue
+      const alreadyVoted = hasVotedFor(selectedVenue.id);
+
+      // Step 2: If not voted, vote first before publishing
+      if (!alreadyVoted) {
+        try {
+          await voteForVenue(currentEvent.id, selectedVenue.id, {
+            name: selectedVenue.name,
+            address: selectedVenue.address,
+            lat: selectedVenue.location.lat,
+            lng: selectedVenue.location.lng,
+            category: selectedVenue.types?.[0],
+            rating: selectedVenue.rating ?? undefined,
+            priceLevel: selectedVenue.priceLevel ?? undefined,
+            photoUrl: selectedVenue.photoUrl ?? undefined,
+          });
+          console.log(
+            '[PublishEventModal] Organizer voted for venue before publishing:',
+            selectedVenue.id
+          );
+        } catch (voteError) {
+          // 409 Conflict means organizer already voted (race condition with local state)
+          if (voteError instanceof APIError && voteError.status === 409) {
+            console.log(
+              '[PublishEventModal] Organizer already voted (409 - continuing to publish)'
+            );
+          } else {
+            // Other vote errors are logged but don't fail the publish operation
+            console.error(
+              '[PublishEventModal] Failed to vote before publishing (continuing anyway):',
+              voteError
+            );
+          }
+        }
+      } else {
+        console.log(
+          '[PublishEventModal] Organizer already voted, proceeding to publish:',
+          selectedVenue.id
+        );
+      }
+
+      // Step 3: Now publish the event
       const updatedEvent = await eventClient.publish(
         currentEvent.id,
         selectedVenue.id,
@@ -60,39 +101,6 @@ export function PublishEventModal() {
 
       // Update local state with the returned event data
       setCurrentEvent(updatedEvent);
-
-      // Automatically vote for the published venue
-      // Always attempt to vote - if organizer already voted, backend will return 409 which we treat as success
-      try {
-        await voteForVenue(currentEvent.id, selectedVenue.id, {
-          name: selectedVenue.name,
-          address: selectedVenue.address,
-          lat: selectedVenue.location.lat,
-          lng: selectedVenue.location.lng,
-          category: selectedVenue.types?.[0],
-          rating: selectedVenue.rating ?? undefined,
-          priceLevel: selectedVenue.priceLevel ?? undefined,
-          photoUrl: selectedVenue.photoUrl ?? undefined,
-        });
-        console.log(
-          '[PublishEventModal] Automatically voted for published venue:',
-          selectedVenue.id
-        );
-      } catch (voteError) {
-        // 409 Conflict means organizer already voted - this is fine, goal achieved
-        if (voteError instanceof APIError && voteError.status === 409) {
-          console.log(
-            '[PublishEventModal] Organizer already voted for published venue (409 - expected)'
-          );
-        } else {
-          // Other errors are logged but don't fail the publish operation
-          console.error(
-            '[PublishEventModal] Failed to automatically vote for published venue:',
-            voteError
-          );
-        }
-      }
-
       setIsPublished(true);
 
       // Auto close after 2 seconds
