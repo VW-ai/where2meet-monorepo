@@ -61,7 +61,8 @@
   - `builder = "dockerfile"`
   - `dockerfilePath = "Dockerfile"`
 - `[deploy]`
-  - `startCommand = "npx prisma migrate deploy && npm start"`
+  - `preDeployCommand = ["npx prisma migrate deploy"]`
+  - `startCommand = "npm start"`
   - `healthcheckPath = "/health/ready"`
   - `healthcheckTimeout = 300`
 
@@ -77,7 +78,7 @@
 要点：
 
 - 迁移由 `prisma migrate deploy` 执行，基于仓库内 `prisma/migrations/`。
-- 迁移在启动前执行：如果迁移失败，部署会失败（避免“服务起来但 schema 不一致”）。
+- 迁移在启动前执行（Railway `preDeployCommand`）：如果迁移失败，部署会失败（避免“服务起来但 schema 不一致”）。
 
 ---
 
@@ -158,10 +159,11 @@ Railway CLI 有两类 token：
 4. 使用 `RAILWAY_TOKEN` 对 staging 环境执行：
    - `railway up --ci --environment staging --service <service>`
 5. Railway 构建镜像（Dockerfile）并发布部署
-6. Railway 运行 `startCommand`：
+6. Railway 运行 `preDeployCommand`：
    - `npx prisma migrate deploy`
+7. Railway 运行 `startCommand`：
    - `npm start`（启动 `dist/index.js`）
-7. Railway 对 `/health/ready` 做健康检查
+8. Railway 对 `/health/ready` 做健康检查
 
 并发控制：
 

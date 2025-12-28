@@ -33,7 +33,7 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 - (Optional) The workflows sync `database_url`/`redis_url` into Railway variables `DATABASE_URL`/`REDIS_URL` (without triggering an extra deploy)
 - Then they run `railway up --ci --environment <staging|production> --service <name>`
-- The Railway runtime runs DB migrations before start via `railway.toml` (`startCommand`)
+- The Railway runtime runs DB migrations before start via `railway.toml` (`preDeployCommand`)
 
 Note: In Railway UI, `DATABASE_URL`/`REDIS_URL` may appear as `${{<id>.DATABASE_URL}}`-style references; Railway resolves these at runtime.
 
