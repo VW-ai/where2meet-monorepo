@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
+import { useAuthStore } from '@/features/auth/model/auth-store';
 import { cn } from '@/shared/lib/cn';
 
 // Helper to get initials from name
@@ -47,6 +48,10 @@ export function ParticipantStats() {
   const { isParticipantStatsOpen, closeParticipantStats } = useUIStore();
   const { currentEvent, selectedVenue } = useMeetingStore();
   const { routes, travelMode } = useMapStore();
+  const { organizerParticipantId, currentParticipantId } = useAuthStore();
+
+  // Get current user's participant ID (organizer takes precedence)
+  const myParticipantId = organizerParticipantId || currentParticipantId;
 
   const participants = currentEvent?.participants || [];
 
@@ -76,6 +81,15 @@ export function ParticipantStats() {
       travelMinutes: getTravelTime(p.id) ? parseDurationToMinutes(getTravelTime(p.id)!) : 0,
     }))
     .filter((p) => p.travelTime !== null);
+
+  // Sort participants: current user first, then by travel time (shortest to longest)
+  const sortedParticipants = [...participantsWithTimes].sort((a, b) => {
+    // Current user always comes first
+    if (a.id === myParticipantId) return -1;
+    if (b.id === myParticipantId) return 1;
+    // Others sorted by travel time
+    return a.travelMinutes - b.travelMinutes;
+  });
 
   const maxMinutes = Math.max(...participantsWithTimes.map((p) => p.travelMinutes), 1);
 
@@ -167,44 +181,59 @@ export function ParticipantStats() {
 
             {/* Bar chart */}
             <div className="space-y-3">
-              {participantsWithTimes
-                .sort((a, b) => a.travelMinutes - b.travelMinutes)
-                .map((participant) => {
-                  const percentage = (participant.travelMinutes / maxMinutes) * 100;
-                  return (
-                    <div key={participant.id} className="space-y-1.5">
-                      {/* Participant name and time */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div
-                            className={cn(
-                              'w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0',
-                              participant.color || 'bg-gray-400'
-                            )}
-                          >
-                            {getInitials(participant.name)}
-                          </div>
-                          <span className="text-sm font-medium text-foreground truncate">
-                            {participant.name}
-                          </span>
-                        </div>
-                        <span className="text-sm font-semibold text-foreground flex-shrink-0">
-                          {participant.travelTime}
-                        </span>
-                      </div>
-                      {/* Bar */}
-                      <div className="h-3 bg-muted/50 rounded-full overflow-hidden">
+              {sortedParticipants.map((participant) => {
+                const percentage = (participant.travelMinutes / maxMinutes) * 100;
+                const isCurrentUser = participant.id === myParticipantId;
+                return (
+                  <div
+                    key={participant.id}
+                    className={cn(
+                      'space-y-1.5 p-2 rounded-lg transition-colors',
+                      isCurrentUser && 'bg-coral-50/50 ring-2 ring-coral-200/50'
+                    )}
+                  >
+                    {/* Participant name and time */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div
                           className={cn(
-                            'h-full rounded-full transition-all duration-500 ease-out',
-                            participant.color?.replace('bg-', 'bg-') || 'bg-coral-500'
+                            'w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0',
+                            participant.color || 'bg-gray-400'
                           )}
-                          style={{ width: `${Math.max(percentage, 5)}%` }}
-                        />
+                        >
+                          {getInitials(participant.name)}
+                        </div>
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {participant.name}
+                          {isCurrentUser && (
+                            <span className="ml-1.5 text-xs text-coral-600 font-semibold">
+                              (You)
+                            </span>
+                          )}
+                        </span>
                       </div>
+                      <span
+                        className={cn(
+                          'text-sm font-semibold flex-shrink-0',
+                          isCurrentUser ? 'text-coral-600' : 'text-foreground'
+                        )}
+                      >
+                        {participant.travelTime}
+                      </span>
                     </div>
-                  );
-                })}
+                    {/* Bar */}
+                    <div className="h-3 bg-muted/50 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all duration-500 ease-out',
+                          participant.color?.replace('bg-', 'bg-') || 'bg-coral-500'
+                        )}
+                        style={{ width: `${Math.max(percentage, 5)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Summary stats */}

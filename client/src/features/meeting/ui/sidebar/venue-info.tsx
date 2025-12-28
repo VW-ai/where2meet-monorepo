@@ -21,6 +21,7 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
+import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
 import { getVenueCategoryDisplay } from '@/entities';
 import type { Venue } from '@/entities';
@@ -57,11 +58,22 @@ export function VenueInfo() {
   const { selectedVenue, currentEvent, setSelectedVenue } = useMeetingStore();
   const { voteForVenue, unvoteForVenue, hasVotedFor } = useVotingStore();
   const { routes, isCalculatingRoutes, travelMode } = useMapStore();
+  const { organizerParticipantId, currentParticipantId } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [venueDetails, setVenueDetails] = useState<Partial<Venue> | null>(null);
 
-  // Get participants from current event
+  // Get current user's participant ID (organizer takes precedence)
+  const myParticipantId = organizerParticipantId || currentParticipantId;
+
+  // Get participants from current event, sorted with current user first
   const participants = currentEvent?.participants || [];
+  const sortedParticipants = [...participants].sort((a, b) => {
+    // Current user always comes first
+    if (a.id === myParticipantId) return -1;
+    if (b.id === myParticipantId) return 1;
+    // Others maintain their original order
+    return 0;
+  });
 
   // Helper to get travel time for a participant
   const getTravelInfo = (participantId: string) => {
@@ -292,12 +304,18 @@ export function VenueInfo() {
                     </div>
                   ) : (
                     <>
-                      {participants.slice(0, 5).map((participant) => {
+                      {sortedParticipants.slice(0, 5).map((participant) => {
                         const travelInfo = getTravelInfo(participant.id);
+                        const isCurrentUser = participant.id === myParticipantId;
                         return (
                           <div
                             key={participant.id}
-                            className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors"
+                            className={cn(
+                              'flex items-center justify-between p-3 rounded-xl transition-colors',
+                              isCurrentUser
+                                ? 'bg-coral-100/60 ring-2 ring-coral-300/50 hover:bg-coral-100/80'
+                                : 'bg-muted/30 hover:bg-muted/50'
+                            )}
                           >
                             {/* Participant info */}
                             <div className="flex items-center gap-3 min-w-0">
@@ -313,6 +331,11 @@ export function VenueInfo() {
                               {/* Name */}
                               <span className="text-sm font-medium text-foreground truncate">
                                 {participant.name}
+                                {isCurrentUser && (
+                                  <span className="ml-1.5 text-xs text-coral-600 font-semibold">
+                                    (You)
+                                  </span>
+                                )}
                               </span>
                             </div>
 
@@ -320,7 +343,14 @@ export function VenueInfo() {
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {travelInfo ? (
                                 <>
-                                  <div className="flex items-center gap-1.5 bg-coral-500 text-white px-2.5 py-1 rounded-full">
+                                  <div
+                                    className={cn(
+                                      'flex items-center gap-1.5 px-2.5 py-1 rounded-full',
+                                      isCurrentUser
+                                        ? 'bg-coral-600 text-white'
+                                        : 'bg-coral-500 text-white'
+                                    )}
+                                  >
                                     <Clock className="w-3 h-3" />
                                     <span className="text-xs font-medium">
                                       {travelInfo.duration}
@@ -339,10 +369,10 @@ export function VenueInfo() {
                           </div>
                         );
                       })}
-                      {participants.length > 5 && (
+                      {sortedParticipants.length > 5 && (
                         <div className="flex items-center justify-center p-2">
                           <span className="text-xs text-muted-foreground italic">
-                            +{participants.length - 5} more participants...
+                            +{sortedParticipants.length - 5} more participants...
                           </span>
                         </div>
                       )}
