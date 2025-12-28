@@ -681,9 +681,9 @@ GET /api/events/:id/venues/:venueId/directions
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | participantId | string | 参与者 ID（UUID） |
-| distance | Distance | { value: 米, text: 文本 } |
-| duration | Duration | { value: 秒, text: 文本 } |
-| polyline | string | 路线编码（用于地图显示） |
+| distance | Distance \| null | { value: 米, text: 文本 }，无位置时为 null |
+| duration | Duration \| null | { value: 秒, text: 文本 }，无位置时为 null |
+| polyline | string \| null | 路线编码（用于地图显示），无位置时为 null |
 
 **错误响应：**
 | 状态码 | code | 说明 |
@@ -691,10 +691,10 @@ GET /api/events/:id/venues/:venueId/directions
 | 400 | VALIDATION_ERROR | 参数格式错误 |
 | 400 | INVALID_VENUE | 场所 ID 无效 |
 | 404 | EVENT_NOT_FOUND | 活动不存在 |
-| 404 | PARTICIPANT_NOT_FOUND | 指定参与者不存在/无可用位置 |
+| 404 | PARTICIPANT_NOT_FOUND | 指定参与者不存在 |
 | 500 | EXTERNAL_SERVICE_ERROR | Google API 调用失败 |
 
-**说明**：起点数据来自活动内参与者（过滤掉 organizer 与无坐标者）。
+**说明**：返回活动内所有参与者（包括组织者）的路线信息。没有位置信息的参与者，其 distance/duration/polyline 字段为 null。
 
 ---
 
