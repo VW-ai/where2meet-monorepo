@@ -10,7 +10,7 @@ import { eventClient } from '@/features/meeting/api';
 import { APIError } from '@/lib/api/client';
 
 export function PublishEventModal() {
-  const { isPublishModalOpen, closePublishModal } = useUIStore();
+  const { isPublishModalOpen, closePublishModal, setActiveView } = useUIStore();
   const { organizerToken } = useAuthStore();
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
   const { voteForVenue, hasVotedFor } = useVotingStore();
@@ -101,6 +101,10 @@ export function PublishEventModal() {
 
       // Update local state with the returned event data
       setCurrentEvent(updatedEvent);
+
+      // Switch to venue view to show published venue in liked venues section
+      setActiveView('venue');
+
       setIsPublished(true);
 
       // Auto close after 2 seconds

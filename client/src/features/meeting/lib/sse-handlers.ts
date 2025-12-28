@@ -1,6 +1,7 @@
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
+import { useUIStore } from '@/features/meeting/model/ui-store';
 import type {
   SSEEventData,
   EventUpdatedPayload,
@@ -86,6 +87,7 @@ function handleEventUpdated(data: EventUpdatedPayload): void {
  */
 function handleEventPublished(data: EventPublishedPayload): void {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
+  const { setActiveView } = useUIStore.getState();
 
   // Only update if we're viewing the same event
   if (!currentEvent || currentEvent.id !== data.eventId) {
@@ -98,6 +100,9 @@ function handleEventPublished(data: EventPublishedPayload): void {
     publishedAt: data.publishedAt,
     updatedAt: new Date().toISOString(),
   });
+
+  // Switch to venue view to show published venue in liked venues section
+  setActiveView('venue');
 }
 
 /**
