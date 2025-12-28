@@ -5,6 +5,7 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
+import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
 import type { Venue } from '@/entities';
 import { VenueCard } from './venue-card';
@@ -19,6 +20,10 @@ export function VenueSection() {
   const { searchQuery, searchExecutionTrigger, executedSearchQuery, setExecutedSearchQuery } =
     useUIStore();
   const { searchRadius, searchCircle } = useMapStore();
+  const { isOrganizerMode, isParticipantMode } = useAuthStore();
+
+  // Check if user has joined (organizer or participant)
+  const hasJoined = isOrganizerMode || isParticipantMode;
 
   // Derive ALL voted venues (from any participant) from voting-store and venue details from meeting-store
   // Subscribe to voteStatsByVenueId to re-render when votes change
@@ -45,6 +50,14 @@ export function VenueSection() {
   const [error, setError] = useState<string | null>(null);
   const [showLikedOnly, setShowLikedOnly] = useState(false);
   const [isLikedExpanded, setIsLikedExpanded] = useState(false);
+
+  // Check if event is published
+  const isPublished = !!currentEvent?.publishedAt;
+
+  // Preserve user's UI preferences before forcing liked mode
+  const prevShowLikedOnlyRef = useRef(showLikedOnly);
+  const prevIsLikedExpandedRef = useRef(isLikedExpanded);
+  const didForceRef = useRef(false);
 
   // Track if this is the initial mount (to skip redundant searches)
   const isInitialMount = useRef(true);
@@ -155,6 +168,30 @@ export function VenueSection() {
     searchedVenues.length,
   ]);
 
+  // Force liked mode when published, restore on unpublish
+  useEffect(() => {
+    if (isPublished) {
+      if (!didForceRef.current) {
+        // First time entering published: save user preferences
+        prevShowLikedOnlyRef.current = showLikedOnly;
+        prevIsLikedExpandedRef.current = isLikedExpanded;
+        didForceRef.current = true;
+      }
+
+      // Force liked-only + expanded
+      if (!showLikedOnly) setShowLikedOnly(true);
+      if (!isLikedExpanded) setIsLikedExpanded(true);
+      return;
+    }
+
+    // Exiting published: restore if we previously forced
+    if (didForceRef.current) {
+      setShowLikedOnly(prevShowLikedOnlyRef.current);
+      setIsLikedExpanded(prevIsLikedExpandedRef.current);
+      didForceRef.current = false;
+    }
+  }, [isPublished]); // Only depend on isPublished to avoid setState loops
+
   return (
     <div
       className={cn(
@@ -165,7 +202,8 @@ export function VenueSection() {
       {/* Sticky Header Section */}
       <div
         className={cn(
-          'sticky top-0 z-10 pb-4 space-y-4 -mx-6 px-6 -mt-6 pt-6',
+          'sticky top-0 z-10 pb-4 space-y-4',
+          '-mx-4 md:-mx-6 px-4 md:px-6 -mt-4 md:-mt-6 pt-4 md:pt-6',
           'transition-colors duration-300',
           showLikedOnly
             ? 'bg-coral-50/60 backdrop-blur-md border-b border-coral-200/50'
@@ -200,41 +238,55 @@ export function VenueSection() {
         </div>
 
         {/* Travel Type Filter */}
-        <TravelTypeFilter />
+        {!isPublished && <TravelTypeFilter />}
 
         {/* Search + Liked Filter */}
         <div className="flex items-center gap-2">
           {/* Two-phase search: Phase 1 shows autocomplete, Phase 2 populates venue list */}
+          {/* Only show search bar for joined participants/organizers and when not published */}
+          {hasJoined && !isPublished && (
+            <div
+              className="transition-all duration-300 ease-in-out"
+              style={{ width: isLikedExpanded ? '60%' : '80%' }}
+            >
+              <SearchPillBar
+                onSearchExecute={(query) => {
+                  // Phase 2: Execute search and populate venue list
+                  setExecutedSearchQuery(query);
+                }}
+                onFocus={() => {
+                  // Collapse liked section when search bar is focused
+                  if (isLikedExpanded) {
+                    setIsLikedExpanded(false);
+                    setShowLikedOnly(false);
+                  }
+                }}
+              />
+            </div>
+          )}
+          {/* Liked Filter - full width when published, disabled toggle */}
           <div
             className="transition-all duration-300 ease-in-out"
-            style={{ width: isLikedExpanded ? '60%' : '80%' }}
-          >
-            <SearchPillBar
-              onSearchExecute={(query) => {
-                // Phase 2: Execute search and populate venue list
-                setExecutedSearchQuery(query);
-              }}
-            />
-          </div>
-          {/* Liked Filter - Toggles venue list filtering */}
-          <div
-            className="transition-all duration-300 ease-in-out"
-            style={{ width: isLikedExpanded ? '40%' : '20%' }}
+            style={{
+              width: isPublished ? '100%' : hasJoined ? (isLikedExpanded ? '40%' : '20%') : '100%',
+            }}
           >
             <LikedFilterButton
-              isExpanded={isLikedExpanded}
+              isExpanded={isPublished || isLikedExpanded}
               onToggle={() => {
+                if (isPublished) return; // Prevent toggle when published
                 const newExpanded = !isLikedExpanded;
                 setIsLikedExpanded(newExpanded);
                 setShowLikedOnly(newExpanded);
               }}
+              disabled={isPublished}
             />
           </div>
         </div>
       </div>
 
       {/* Scrollable Content Section */}
-      <div className="flex-1 overflow-y-auto space-y-4 pt-4">
+      <div className="flex-1 overflow-y-auto space-y-4 pt-4 pb-2">
         {/* Loading State */}
         {loading && (
           <div className="py-8 text-center" role="status" aria-live="polite">
@@ -254,12 +306,19 @@ export function VenueSection() {
         )}
 
         {/* Empty state - no search executed yet */}
-        {!loading && !error && !executedSearchQuery && (
+        {!loading && !error && !executedSearchQuery && !showLikedOnly && (
           <div className="py-8 text-center">
             <p className="text-sm text-muted-foreground">Search for venues to get started</p>
             <p className="text-xs text-muted-foreground mt-1">
               Try &quot;restaurants near Central Park&quot;
             </p>
+          </div>
+        )}
+
+        {/* Empty state for non-participants */}
+        {!loading && !error && !executedSearchQuery && !hasJoined && (
+          <div className="py-8 text-center">
+            <p className="text-sm text-gray-500">Join the event to search for venues</p>
           </div>
         )}
 
@@ -276,8 +335,14 @@ export function VenueSection() {
         {/* No liked venues */}
         {!loading && !error && showLikedOnly && savedVenues.length === 0 && (
           <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">No liked venues yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Like venues to see them here</p>
+            <p className="text-sm text-muted-foreground">
+              {isPublished ? 'No venues were voted for in this event' : 'No liked venues yet'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isPublished
+                ? 'The event was published without any votes'
+                : 'Like venues to see them here'}
+            </p>
           </div>
         )}
 
@@ -314,9 +379,13 @@ export function VenueSection() {
             }
 
             return (
-              <div className="space-y-3">
+              <div className="space-y-4 px-2">
                 {displayVenues.map((venue) => (
-                  <VenueCard key={venue.id} venue={venue} />
+                  <VenueCard
+                    key={venue.id}
+                    venue={venue}
+                    isPublishedVenue={venue.id === currentEvent?.publishedVenueId}
+                  />
                 ))}
               </div>
             );

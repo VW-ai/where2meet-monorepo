@@ -5,14 +5,15 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import type { Venue } from '@/entities';
-import { MapPin, Star, Clock } from 'lucide-react';
+import { MapPin, Star, Clock, Crown } from 'lucide-react';
 import { VoteButton } from '@/features/voting/ui/vote-button';
 
 interface VenueCardProps {
   venue: Venue;
+  isPublishedVenue?: boolean;
 }
 
-export function VenueCard({ venue }: VenueCardProps) {
+export function VenueCard({ venue, isPublishedVenue = false }: VenueCardProps) {
   const { selectedVenue, setSelectedVenue } = useMeetingStore();
   const { openVenueInfo } = useUIStore();
   const { setHoveredVenueId } = useMapStore();
@@ -53,8 +54,14 @@ export function VenueCard({ venue }: VenueCardProps) {
     <div
       ref={cardRef}
       className={`
-        p-4 rounded-xl
-        ${isSelected ? 'bg-coral-50/90 backdrop-blur-sm shadow-xl ring-2 ring-coral-500/30' : 'bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-xl'}
+        p-4 rounded-xl relative
+        ${
+          isPublishedVenue
+            ? 'bg-gradient-to-br from-yellow-50 to-amber-50/90 backdrop-blur-sm shadow-xl ring-2 ring-yellow-500/50'
+            : isSelected
+              ? 'bg-coral-50/90 backdrop-blur-sm shadow-xl ring-2 ring-coral-500/30'
+              : 'bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-xl'
+        }
         transition-all duration-200 cursor-pointer
         group
         focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2
@@ -67,9 +74,25 @@ export function VenueCard({ venue }: VenueCardProps) {
       onMouseLeave={() => setHoveredVenueId(null)}
       aria-pressed={isSelected}
     >
+      {/* Published Venue Crown Badge */}
+      {isPublishedVenue && (
+        <div className="absolute -top-2 -right-2 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full p-2 shadow-lg ring-2 ring-white">
+          <Crown className="w-4 h-4 text-white fill-white" />
+        </div>
+      )}
+
       {/* Venue Name */}
-      <h3 className="font-semibold text-foreground group-hover:text-coral-500 transition-colors">
+      <h3
+        className={`font-semibold transition-colors ${
+          isPublishedVenue ? 'text-amber-900' : 'text-foreground group-hover:text-coral-500'
+        }`}
+      >
         {venue.name}
+        {isPublishedVenue && (
+          <span className="ml-2 text-xs font-medium text-amber-700 bg-yellow-100 px-2 py-0.5 rounded-full">
+            Published
+          </span>
+        )}
       </h3>
 
       {/* Address */}

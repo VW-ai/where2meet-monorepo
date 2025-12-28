@@ -39,6 +39,7 @@ interface MeetingState {
   // ============================================================================
   venueById: Record<string, Venue>; // Full venue data keyed by venue ID
   searchedVenues: Venue[]; // Venues from current search results
+  hydratingVenueIds: Set<string>; // Track in-flight venue hydrations to prevent duplicates
 
   // ============================================================================
   // Map State
@@ -89,6 +90,7 @@ const initialState = {
   // Venue state
   venueById: {} as Record<string, Venue>,
   searchedVenues: [] as Venue[],
+  hydratingVenueIds: new Set() as Set<string>,
 
   // Map state
   mapCenter: null,
@@ -149,14 +151,26 @@ export const useMeetingStore = create<MeetingState>()(
       },
 
       hydrateVenue: async (venueId: string) => {
-        // Check if venue already has full details
-        const existingVenue = get().venueById[venueId];
+        // Check if already hydrated or currently hydrating
+        const { venueById, hydratingVenueIds } = get();
+        const existingVenue = venueById[venueId];
+
         if (existingVenue && existingVenue.name !== 'Unknown Venue') {
           console.log('[MeetingStore] Venue already hydrated:', venueId);
-          return;
+          return; // Already hydrated
+        }
+
+        if (hydratingVenueIds.has(venueId)) {
+          console.log('[MeetingStore] Already hydrating:', venueId);
+          return; // In-flight, skip
         }
 
         console.log('[MeetingStore] Hydrating venue details for:', venueId);
+
+        // Mark as hydrating
+        set((state) => ({
+          hydratingVenueIds: new Set(state.hydratingVenueIds).add(venueId),
+        }));
 
         try {
           // Fetch full venue details from backend
@@ -174,6 +188,13 @@ export const useMeetingStore = create<MeetingState>()(
         } catch (error) {
           console.error('[MeetingStore] Failed to hydrate venue:', venueId, error);
           // Don't throw - hydration is a best-effort enhancement
+        } finally {
+          // Remove from in-flight tracking
+          set((state) => {
+            const newSet = new Set(state.hydratingVenueIds);
+            newSet.delete(venueId);
+            return { hydratingVenueIds: newSet };
+          });
         }
       },
 

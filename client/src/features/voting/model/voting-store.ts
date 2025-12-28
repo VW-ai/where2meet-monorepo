@@ -251,10 +251,33 @@ export const useVotingStore = create<VotingState>((set, get) => ({
         };
       }
 
+      // Set vote statistics immediately (don't block on hydration)
       set({
         voteStatsByVenueId: newVoteStatsByVenueId,
         voteStatistics: statistics,
       });
+
+      // Hydrate missing venue details asynchronously (non-blocking)
+      const { venueById, hydrateVenue } = useMeetingStore.getState();
+
+      // Deduplicate venue IDs (using Set)
+      const missingVenueIds = Array.from(
+        new Set(statistics.venues.map((v) => v.id).filter((venueId) => !venueById[venueId]))
+      );
+
+      if (missingVenueIds.length > 0) {
+        console.log('[VotingStore] Hydrating missing venues:', missingVenueIds);
+
+        // Run hydration asynchronously (don't await - let it run in background)
+        (async () => {
+          const CONCURRENCY_LIMIT = 3;
+          for (let i = 0; i < missingVenueIds.length; i += CONCURRENCY_LIMIT) {
+            const batch = missingVenueIds.slice(i, i + CONCURRENCY_LIMIT);
+            // Use allSettled for resilience (though hydrateVenue already swallows errors)
+            await Promise.allSettled(batch.map((venueId) => hydrateVenue(venueId)));
+          }
+        })();
+      }
     } catch (error) {
       console.error('Failed to load vote statistics:', error);
     } finally {

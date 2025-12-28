@@ -22,6 +22,9 @@ interface AuthState {
   participantToken: string | null;
   currentParticipantId: string | null;
 
+  // Auth initialization state (prevents hydration flash)
+  isAuthInitialized: boolean;
+
   // User authentication actions
   setUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
@@ -56,6 +59,9 @@ export const useAuthStore = create<AuthState>()(
       isParticipantMode: false,
       participantToken: null,
       currentParticipantId: null,
+
+      // Auth initialization state
+      isAuthInitialized: false,
 
       // Set user (internal helper)
       setUser: (user) =>
@@ -170,10 +176,20 @@ export const useAuthStore = create<AuthState>()(
           tokenPreview: token ? `${token.substring(0, 10)}...` : null,
         });
         if (token && participantId) {
-          set({ isOrganizerMode: true, organizerToken: token, organizerParticipantId: participantId });
+          set({
+            isOrganizerMode: true,
+            organizerToken: token,
+            organizerParticipantId: participantId,
+            isAuthInitialized: true,
+          });
           console.log('[AuthStore] Set isOrganizerMode to TRUE');
         } else {
-          set({ isOrganizerMode: false, organizerToken: null, organizerParticipantId: null });
+          set({
+            isOrganizerMode: false,
+            organizerToken: null,
+            organizerParticipantId: null,
+            isAuthInitialized: true,
+          });
           console.log('[AuthStore] Set isOrganizerMode to FALSE (missing credentials)');
         }
       },
@@ -192,7 +208,11 @@ export const useAuthStore = create<AuthState>()(
             participantIdKey: `organizer_participant_id_${eventId}`,
           });
         }
-        set({ isOrganizerMode: true, organizerToken: token, organizerParticipantId: participantId });
+        set({
+          isOrganizerMode: true,
+          organizerToken: token,
+          organizerParticipantId: participantId,
+        });
         console.log('[AuthStore] State updated - isOrganizerMode: true');
       },
 
@@ -206,9 +226,19 @@ export const useAuthStore = create<AuthState>()(
         const participantId = localStorage.getItem(`participant_id_${eventId}`);
         const token = localStorage.getItem(`participant_token_${eventId}`);
         if (participantId && token) {
-          set({ isParticipantMode: true, participantToken: token, currentParticipantId: participantId });
+          set({
+            isParticipantMode: true,
+            participantToken: token,
+            currentParticipantId: participantId,
+            isAuthInitialized: true,
+          });
         } else {
-          set({ isParticipantMode: false, participantToken: null, currentParticipantId: null });
+          set({
+            isParticipantMode: false,
+            participantToken: null,
+            currentParticipantId: null,
+            isAuthInitialized: true,
+          });
         }
       },
 
@@ -217,7 +247,11 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem(`participant_id_${eventId}`, participantId);
           localStorage.setItem(`participant_token_${eventId}`, token);
         }
-        set({ isParticipantMode: true, participantToken: token, currentParticipantId: participantId });
+        set({
+          isParticipantMode: true,
+          participantToken: token,
+          currentParticipantId: participantId,
+        });
       },
 
       clearParticipantInfo: (eventId: string) => {

@@ -15,6 +15,7 @@ import {
   Train,
   Footprints,
   Bike,
+  BarChart3,
 } from 'lucide-react';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
@@ -265,11 +266,20 @@ export function VenueInfo() {
             {participants.length > 0 && routes.length > 0 && (
               <div className="border-t border-border pt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-foreground">Travel Times</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                    <TravelModeIcon mode={travelMode} />
-                    <span className="capitalize">{travelMode}</span>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">Travel Times</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                      <TravelModeIcon mode={travelMode} />
+                      <span className="capitalize">{travelMode}</span>
+                    </div>
                   </div>
+                  <button
+                    className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500"
+                    aria-label="View travel statistics"
+                    title="Travel Statistics"
+                  >
+                    <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                  </button>
                 </div>
 
                 <div className="space-y-2">
@@ -281,49 +291,62 @@ export function VenueInfo() {
                       </span>
                     </div>
                   ) : (
-                    participants.map((participant) => {
-                      const travelInfo = getTravelInfo(participant.id);
-                      return (
-                        <div
-                          key={participant.id}
-                          className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors"
-                        >
-                          {/* Participant info */}
-                          <div className="flex items-center gap-3 min-w-0">
-                            {/* Avatar */}
-                            <div
-                              className={cn(
-                                'w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0',
-                                participant.color || 'bg-gray-400'
-                              )}
-                            >
-                              {getInitials(participant.name)}
+                    <>
+                      {participants.slice(0, 5).map((participant) => {
+                        const travelInfo = getTravelInfo(participant.id);
+                        return (
+                          <div
+                            key={participant.id}
+                            className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors"
+                          >
+                            {/* Participant info */}
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Avatar */}
+                              <div
+                                className={cn(
+                                  'w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0',
+                                  participant.color || 'bg-gray-400'
+                                )}
+                              >
+                                {getInitials(participant.name)}
+                              </div>
+                              {/* Name */}
+                              <span className="text-sm font-medium text-foreground truncate">
+                                {participant.name}
+                              </span>
                             </div>
-                            {/* Name */}
-                            <span className="text-sm font-medium text-foreground truncate">
-                              {participant.name}
-                            </span>
-                          </div>
 
-                          {/* Travel time */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {travelInfo ? (
-                              <>
-                                <div className="flex items-center gap-1.5 bg-coral-500 text-white px-2.5 py-1 rounded-full">
-                                  <Clock className="w-3 h-3" />
-                                  <span className="text-xs font-medium">{travelInfo.duration}</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground">
-                                  {travelInfo.distance}
+                            {/* Travel time */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {travelInfo ? (
+                                <>
+                                  <div className="flex items-center gap-1.5 bg-coral-500 text-white px-2.5 py-1 rounded-full">
+                                    <Clock className="w-3 h-3" />
+                                    <span className="text-xs font-medium">
+                                      {travelInfo.duration}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {travelInfo.distance}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">
+                                  No route
                                 </span>
-                              </>
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">No route</span>
-                            )}
+                              )}
+                            </div>
                           </div>
+                        );
+                      })}
+                      {participants.length > 5 && (
+                        <div className="flex items-center justify-center p-2">
+                          <span className="text-xs text-muted-foreground italic">
+                            +{participants.length - 5} more participants...
+                          </span>
                         </div>
-                      );
-                    })
+                      )}
+                    </>
                   )}
                 </div>
               </div>

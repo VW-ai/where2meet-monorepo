@@ -24,7 +24,27 @@ export default function DashboardPage() {
 
         // Ensure we always have an array
         if (Array.isArray(userEvents)) {
-          setEvents(userEvents);
+          // Sort: published events first (by publishedAt desc), then unpublished (by createdAt desc)
+          const sortedEvents = [...userEvents].sort((a, b) => {
+            const aIsPublished = !!a.publishedAt;
+            const bIsPublished = !!b.publishedAt;
+
+            // Both published: newest publishedAt first
+            if (aIsPublished && bIsPublished) {
+              return new Date(b.publishedAt!).getTime() - new Date(a.publishedAt!).getTime();
+            }
+
+            // Only a is published: a comes first
+            if (aIsPublished) return -1;
+
+            // Only b is published: b comes first
+            if (bIsPublished) return 1;
+
+            // Both unpublished: newest createdAt first
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+
+          setEvents(sortedEvents);
         } else if (userEvents && typeof userEvents === 'object') {
           // Backend might return { events: [...] } or just an object
           console.warn('[Dashboard] Events response is not an array:', userEvents);

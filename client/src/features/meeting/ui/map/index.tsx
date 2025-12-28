@@ -12,6 +12,7 @@ import { calculateMEC, calculateSearchRadius } from '@/shared/lib/mec';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { directionsClient } from '@/features/meeting/api';
 import type { TravelMode } from '@/shared/types/map';
+import { MapBlurOverlay } from './map-blur-overlay';
 
 // Convert UI travel mode to Google Maps travel mode
 const UI_TO_GOOGLE_TRAVEL_MODE: Record<UITravelMode, TravelMode> = {
@@ -46,16 +47,17 @@ const mapOptions: google.maps.MapOptions = {
 };
 
 export function MapArea() {
-  const {
-    currentEvent,
-    selectedVenue,
-    searchedVenues,
-    setSelectedVenue,
-    venueById,
-  } = useMeetingStore();
+  const { currentEvent, selectedVenue, searchedVenues, setSelectedVenue, venueById } =
+    useMeetingStore();
   const { getAllVotedVenueIds, voteStatsByVenueId } = useVotingStore();
-  const { isVenueInfoOpen, openVenueInfo } = useUIStore();
-  const { organizerToken, participantToken } = useAuthStore();
+  const { isVenueInfoOpen, openVenueInfo, setActiveView } = useUIStore();
+  const {
+    organizerToken,
+    participantToken,
+    isOrganizerMode,
+    isParticipantMode,
+    isAuthInitialized,
+  } = useAuthStore();
   const {
     setMecCircle,
     setSearchCircle,
@@ -72,6 +74,14 @@ export function MapArea() {
 
   // Get ALL voted venue IDs from voting-store (from any participant)
   const savedVenues = getAllVotedVenueIds();
+
+  // Check if user has joined (organizer or participant)
+  const hasJoined = isOrganizerMode || isParticipantMode;
+
+  // Handler for join button click on blur overlay
+  const handleJoinClick = () => {
+    setActiveView('participant');
+  };
 
   // Convert UI travel mode to Google Maps travel mode
   const travelMode = UI_TO_GOOGLE_TRAVEL_MODE[uiTravelMode];
@@ -91,6 +101,10 @@ export function MapArea() {
 
   // Star path for liked venue markers (SVG path)
   const STAR_PATH = 'M 0,-1 0.588,0.809 -0.951,-0.309 0.951,-0.309 -0.588,0.809 Z';
+
+  // Crown path for published venue marker (SVG path)
+  const CROWN_PATH =
+    'M 0,-1 L 0.2,-0.5 L 0.4,-0.8 L 0.6,-0.3 L 0.8,-0.7 L 1,0 L 1,0.3 L -1,0.3 L -1,0 L -0.8,-0.7 L -0.6,-0.3 L -0.4,-0.8 L -0.2,-0.5 Z';
 
   // Initialize map
   useEffect(() => {
@@ -455,23 +469,24 @@ export function MapArea() {
       const isSelected = selectedVenue?.id === venue.id;
       const isHovered = hoveredVenueId === venue.id;
       const isHighlighted = isSelected || isHovered;
+      const isPublished = venue.id === currentEvent?.publishedVenueId;
 
       const existingMarker = likedVenueMarkersRef.current.get(venue.id);
 
       if (existingMarker) {
         // Update existing marker icon for selection/hover state
         existingMarker.setIcon({
-          path: STAR_PATH,
-          scale: isHighlighted ? 16 : 12,
-          fillColor: '#FFD700', // Gold color for liked venues
+          path: isPublished ? CROWN_PATH : STAR_PATH,
+          scale: isPublished ? 18 : isHighlighted ? 16 : 12,
+          fillColor: isPublished ? '#F59E0B' : '#FFD700', // Amber for published, gold for liked
           fillOpacity: 1,
-          strokeColor: isSelected ? '#FF6B6B' : '#ffffff',
-          strokeWeight: isHighlighted ? 3 : 2,
+          strokeColor: isPublished ? '#B45309' : isSelected ? '#FF6B6B' : '#ffffff',
+          strokeWeight: isPublished ? 3 : isHighlighted ? 3 : 2,
           rotation: 0,
         });
-        existingMarker.setZIndex(isSelected ? 60 : isHovered ? 55 : 30);
+        existingMarker.setZIndex(isPublished ? 70 : isSelected ? 60 : isHovered ? 55 : 30);
       } else {
-        // Create new star marker
+        // Create new star/crown marker
         const marker = new google.maps.Marker({
           position: {
             lat: venue.location.lat,
@@ -479,16 +494,16 @@ export function MapArea() {
           },
           map,
           icon: {
-            path: STAR_PATH,
-            scale: isHighlighted ? 16 : 12,
-            fillColor: '#FFD700', // Gold color for liked venues
+            path: isPublished ? CROWN_PATH : STAR_PATH,
+            scale: isPublished ? 18 : isHighlighted ? 16 : 12,
+            fillColor: isPublished ? '#F59E0B' : '#FFD700', // Amber for published, gold for liked
             fillOpacity: 1,
-            strokeColor: isSelected ? '#FF6B6B' : '#ffffff',
-            strokeWeight: isHighlighted ? 3 : 2,
+            strokeColor: isPublished ? '#B45309' : isSelected ? '#FF6B6B' : '#ffffff',
+            strokeWeight: isPublished ? 3 : isHighlighted ? 3 : 2,
             rotation: 0,
           },
-          title: `${venue.name} (Liked)`,
-          zIndex: isSelected ? 60 : isHovered ? 55 : 30,
+          title: isPublished ? `${venue.name} (Published)` : `${venue.name} (Liked)`,
+          zIndex: isPublished ? 70 : isSelected ? 60 : isHovered ? 55 : 30,
         });
 
         // Click handler
@@ -796,7 +811,15 @@ export function MapArea() {
         </div>
       )}
 
-      <div ref={mapRef} className="w-full h-full" />
+      {/* Map container - MUST be relative for absolute overlay positioning */}
+      <div className="relative w-full h-full">
+        <div ref={mapRef} id="map" className="w-full h-full" />
+
+        {/* Blur overlay for non-participants - only show after auth initialization */}
+        {isAuthInitialized && !hasJoined && (
+          <MapBlurOverlay onJoinClick={handleJoinClick} isPublished={!!currentEvent?.publishedAt} />
+        )}
+      </div>
     </main>
   );
 }
