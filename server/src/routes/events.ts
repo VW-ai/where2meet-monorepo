@@ -106,7 +106,11 @@ export function eventRoutes(fastify: FastifyInstance): void {
       }
 
       const eventId = parseResult.data.id;
-      const { participantId, isOrganizer } = request.participantAuth!;
+      const participantAuth = request.participantAuth;
+      if (!participantAuth) {
+        throw new ValidationError("Authentication required");
+      }
+      const { participantId, isOrganizer } = participantAuth;
 
       // Get full participant details
       const participantService = createParticipantService(fastify.db);

@@ -107,6 +107,8 @@ export class SSEService {
    * @param eventId - Event ID to subscribe to
    * @param reply - Fastify reply object
    * @param options - Connection options
+   * @param options.participantId - Optional participant ID
+   * @param options.isOrganizer - Whether the connection is from an organizer
    * @returns Connection ID
    */
   async addConnection(

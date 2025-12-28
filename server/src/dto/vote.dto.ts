@@ -73,7 +73,7 @@ export const VoteStatisticsSnapshotResponseSchema = z.object({
     z.object({
       venueId: z.string(),
       voteCount: z.number(),
-      voterIds: z.array(z.string().uuid()),
+      voterIds: z.array(z.uuid()),
     })
   ),
   totalVotes: z.number(),

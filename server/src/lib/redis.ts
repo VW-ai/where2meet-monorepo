@@ -115,7 +115,6 @@ export async function checkRedisHealth(): Promise<boolean> {
  * Uses Redis INCR for atomic, monotonic increment.
  * Sequence starts at 1 (INCR creates key at 1 if not exists).
  * No TTL - sequence persists for event lifetime.
- *
  * @param eventId - Event ID
  * @returns Next sequence number (starts from 1)
  * @example
@@ -133,7 +132,6 @@ export async function getNextSSESequence(eventId: string): Promise<number> {
  * Gets the current SSE sequence number for an event without incrementing.
  *
  * Used for snapshot endpoints to include current seq in response.
- *
  * @param eventId - Event ID
  * @returns Current sequence number, or 0 if not initialized
  * @example
@@ -153,7 +151,6 @@ export async function getCurrentSSESequence(eventId: string): Promise<number> {
  *
  * Used for testing or event cleanup.
  * After reset, next getNextSSESequence() will return 1.
- *
  * @param eventId - Event ID
  * @example
  * ```typescript

@@ -50,7 +50,7 @@ interface VerifyTokenOptions {
  *
  * All participants (including organizer) use the same token format.
  * Authorization is determined by checking Participant.isOrganizer in database.
- *
+ * @param options - Verification options
  * @param options.optional - If true, allows requests without token
  * @param options.requireOrganizer - If true, requires isOrganizer=true
  * @returns Fastify preHandler hook
@@ -142,6 +142,7 @@ interface VerifyParticipantAccessOptions {
  * - Non-organizers can only access their own participant record
  *
  * Sets request.participantAuth with auth context for use in handlers.
+ * @param options - Access verification options
  * @param options.selfOnly - If true, even organizers can only access their own participant
  * @returns Fastify preHandler hook
  * @throws UnauthorizedError (401) if no token provided
