@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { SITE_CONFIG } from '@/lib/seo/metadata';
 
 /**
  * Generate sitemap for Where2Meet
@@ -13,11 +14,9 @@ import type { MetadataRoute } from 'next';
  * sitemap-events.xml for public events only
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://where2meet.com';
-
   return [
     {
-      url: baseUrl,
+      url: SITE_CONFIG.url,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 1.0,
