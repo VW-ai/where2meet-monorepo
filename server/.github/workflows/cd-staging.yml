@@ -8,7 +8,7 @@ on:
     types: [completed]
 
 concurrency:
-  group: cd-staging
+  group: cd-staging-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
