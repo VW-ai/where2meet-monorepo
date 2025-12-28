@@ -7,6 +7,7 @@
  */
 
 import type { PrismaClient, User } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { createLogger } from "../lib/logger.js";
 import { createUserRepository } from "../repositories/user.js";
 import { createUserIdentityRepository } from "../repositories/userIdentity.js";
@@ -86,39 +87,49 @@ export class AuthService {
     const sessionId = generateSessionId();
 
     // Create user, identity, and session atomically
-    const user = await this.db.$transaction(async (tx) => {
-      // Create user
-      const newUser = await tx.user.create({
-        data: {
-          id: userId,
-          email: normalizedEmail,
-          name: input.name ?? null,
-        },
-      });
+    let user: User;
+    try {
+      user = await this.db.$transaction(async (tx) => {
+        // Create user
+        const newUser = await tx.user.create({
+          data: {
+            id: userId,
+            email: normalizedEmail,
+            name: input.name ?? null,
+          },
+        });
 
-      // Create email identity
-      await tx.userIdentity.create({
-        data: {
-          id: identityId,
-          userId: newUser.id,
-          provider: "email",
-          providerId: normalizedEmail,
-          passwordHash,
-        },
-      });
+        // Create email identity
+        await tx.userIdentity.create({
+          data: {
+            id: identityId,
+            userId: newUser.id,
+            provider: "email",
+            providerId: normalizedEmail,
+            passwordHash,
+          },
+        });
 
-      // Create session
-      await tx.userSession.create({
-        data: {
-          id: sessionId,
-          userId: newUser.id,
-          tokenHash: sessionTokenHash,
-          expiresAt,
-        },
-      });
+        // Create session
+        await tx.userSession.create({
+          data: {
+            id: sessionId,
+            userId: newUser.id,
+            tokenHash: sessionTokenHash,
+            expiresAt,
+          },
+        });
 
-      return newUser;
-    });
+        return newUser;
+      });
+    } catch (error) {
+      // Handle race condition: email was taken between check and insert
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        logger.warn({ email: normalizedEmail }, "Registration failed: email race condition");
+        throw new EmailExistsError();
+      }
+      throw error;
+    }
 
     logger.info({ userId: user.id }, "User registered successfully");
 
