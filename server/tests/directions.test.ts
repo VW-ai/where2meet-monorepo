@@ -258,7 +258,8 @@ describe("Directions Endpoint", () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body).toHaveProperty("venueId", "ChIJ_new_venue_from_search");
-      expect(body.routes.length).toBe(1);
+      // 2 participants: organizer (no location) + Alice (with location)
+      expect(body.routes.length).toBe(2);
     });
 
     it("calculates routes with organizer token", async () => {
@@ -276,11 +277,23 @@ describe("Directions Endpoint", () => {
       expect(body).toHaveProperty("travelMode", "driving");
       expect(body).toHaveProperty("routes");
       expect(body.routes).toBeInstanceOf(Array);
-      expect(body.routes.length).toBe(1);
-      expect(body.routes[0]).toHaveProperty("participantId", testParticipantId);
-      expect(body.routes[0]).toHaveProperty("distance");
-      expect(body.routes[0]).toHaveProperty("duration");
-      expect(body.routes[0]).toHaveProperty("polyline");
+      // 2 participants: organizer (no location) + Alice (with location)
+      expect(body.routes.length).toBe(2);
+
+      // Find routes by participantId
+      const aliceRoute = body.routes.find((r: { participantId: string }) => r.participantId === testParticipantId);
+      const organizerRoute = body.routes.find((r: { participantId: string }) => r.participantId !== testParticipantId);
+
+      // Alice should have route data
+      expect(aliceRoute).toHaveProperty("distance");
+      expect(aliceRoute).toHaveProperty("duration");
+      expect(aliceRoute).toHaveProperty("polyline");
+      expect(aliceRoute.distance).not.toBeNull();
+
+      // Organizer should have null values (no location)
+      expect(organizerRoute.distance).toBeNull();
+      expect(organizerRoute.duration).toBeNull();
+      expect(organizerRoute.polyline).toBeNull();
     });
 
     it("calculates routes with participant token", async () => {
@@ -295,7 +308,8 @@ describe("Directions Endpoint", () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body).toHaveProperty("routes");
-      expect(body.routes.length).toBe(1);
+      // 2 participants: organizer (no location) + Alice (with location)
+      expect(body.routes.length).toBe(2);
     });
 
     it("respects travel mode parameter", async () => {
@@ -372,7 +386,7 @@ describe("Directions Endpoint", () => {
       expect(body.routes[0].duration.text).toMatch(/mins?$/);
     });
 
-    it("returns empty routes if no participants with locations", async () => {
+    it("returns null route data for participants without locations", async () => {
       // Create a new event with only organizer (no location)
       const eventResponse = await server.inject({
         method: "POST",
@@ -391,7 +405,11 @@ describe("Directions Endpoint", () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.routes).toEqual([]);
+      // Organizer is included but with null values (no location)
+      expect(body.routes.length).toBe(1);
+      expect(body.routes[0].distance).toBeNull();
+      expect(body.routes[0].duration).toBeNull();
+      expect(body.routes[0].polyline).toBeNull();
     });
 
     it("supports all travel modes", async () => {
