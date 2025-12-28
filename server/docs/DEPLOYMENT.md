@@ -35,6 +35,8 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 - Then they run `railway up --ci --environment <staging|production> --service <name>`
 - The Railway runtime runs DB migrations before start via `railway.toml` (`startCommand`)
 
+Note: In Railway UI, `DATABASE_URL`/`REDIS_URL` may appear as `${{<id>.DATABASE_URL}}`-style references; Railway resolves these at runtime.
+
 ## Config as Code
 
 Railway uses `railway.toml` as the source of truth for build/deploy settings:

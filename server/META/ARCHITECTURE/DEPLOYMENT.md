@@ -101,6 +101,12 @@
    - 写入 Railway service 的 `DATABASE_URL` / `REDIS_URL`（注意大小写）
    - 使用 `--skip-deploys` 避免“仅改变量就触发一次额外部署”
 
+Railway 变量引用写法说明：
+
+- 在 Railway 中，`DATABASE_URL` / `REDIS_URL` 既可以是“真实 URL 字符串”，也可以是“对资源变量的引用表达式”。
+- 引用表达式常见形态为 `${{<some-id>.DATABASE_URL}}` / `${{<some-id>.REDIS_URL}}`（Dashboard/Deployment details 里通常会显示为这种未展开的形式）。
+- 这类引用会在 **容器运行时** 被 Railway 解析并注入为真实值；最直观的验证方式是看启动日志中 Prisma 输出的 Datasource host（例如 `postgres.railway.internal:5432`）。
+
 注意：
 
 - `CORS_ORIGIN` 默认值为 `"*"`，`src/server.ts` 会将其转换为 `origin: true`（等价“放开所有 origin”）。
