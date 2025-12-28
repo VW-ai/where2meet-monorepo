@@ -97,6 +97,15 @@ export interface UserEventsData {
   userEvents: Record<string, UserEvent>;
 }
 
+// API response type for GET /api/users/me/events
+// Returns UserEvent with populated event object
+export interface UserEventResponse {
+  id: string;
+  role: 'organizer' | 'participant';
+  participantId: string | null;
+  event: import('@/entities').Event;
+}
+
 export interface OAuthStatesData {
   states: Record<string, OAuthState>;
 }

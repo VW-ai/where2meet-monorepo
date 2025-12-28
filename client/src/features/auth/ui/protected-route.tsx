@@ -9,16 +9,18 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isAuthInitialized } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // Only redirect once auth has been initialized (session check complete)
+    if (isAuthInitialized && !isAuthenticated) {
       router.push('/auth/signin');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isAuthInitialized, router]);
 
-  if (isLoading) {
+  // Show loading spinner while checking session
+  if (!isAuthInitialized) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-coral-50 via-mint-50 to-lavender-50 flex items-center justify-center">
         <div className="text-center">
@@ -29,6 +31,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  // After initialization, if not authenticated, don't render (redirect will happen in useEffect)
   if (!isAuthenticated) {
     return null;
   }

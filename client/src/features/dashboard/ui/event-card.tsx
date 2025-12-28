@@ -5,9 +5,10 @@ import { Event } from '@/entities';
 
 interface EventCardProps {
   event: Event;
+  role?: 'organizer' | 'participant';
 }
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, role }: EventCardProps) {
   const participantCount = event.participants?.length || 0;
   const isPublished = event.publishedVenueId !== null;
 
@@ -27,11 +28,24 @@ export function EventCard({ event }: EventCardProps) {
       <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100 cursor-pointer">
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{event.title}</h3>
-          {isPublished && (
-            <span className="flex-shrink-0 ml-2 px-2 py-1 text-xs font-medium bg-mint-100 text-mint-700 rounded-full">
-              Published
-            </span>
-          )}
+          <div className="flex gap-2 flex-shrink-0 ml-2">
+            {role && (
+              <span
+                className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  role === 'organizer'
+                    ? 'bg-coral-100 text-coral-700'
+                    : 'bg-lavender-100 text-lavender-700'
+                }`}
+              >
+                {role === 'organizer' ? 'Organizer' : 'Participant'}
+              </span>
+            )}
+            {isPublished && (
+              <span className="px-2 py-1 text-xs font-medium bg-mint-100 text-mint-700 rounded-full">
+                Published
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2 text-sm text-gray-600">

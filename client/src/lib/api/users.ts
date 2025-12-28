@@ -1,6 +1,5 @@
 import { apiCall } from './client';
-import { User, UpdateUserDTO, ClaimTokenDTO } from '@/features/auth/types';
-import { Event } from '@/entities';
+import { User, UpdateUserDTO, ClaimTokenDTO, UserEventResponse } from '@/features/auth/types';
 
 export const usersApi = {
   getProfile: () => apiCall<User>('/api/users/me'),
@@ -11,7 +10,7 @@ export const usersApi = {
       body: JSON.stringify(data),
     }),
 
-  getEvents: () => apiCall<Event[]>('/api/users/me/events'),
+  getEvents: () => apiCall<UserEventResponse[]>('/api/users/me/events'),
 
   claimEvent: (data: ClaimTokenDTO) =>
     apiCall('/api/users/me/events/claim', {

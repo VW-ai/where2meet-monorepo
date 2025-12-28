@@ -146,10 +146,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           const response = await authClient.getSession();
-          set({ user: response.user, isAuthenticated: true });
+          set({ user: response.user, isAuthenticated: true, isAuthInitialized: true });
         } catch (error) {
           // Session expired or invalid
-          set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, isAuthInitialized: true });
         } finally {
           set({ isLoading: false });
         }
@@ -169,7 +169,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window === 'undefined') return;
         const token = localStorage.getItem(`organizer_token_${eventId}`);
         const participantId = localStorage.getItem(`organizer_participant_id_${eventId}`);
-        console.log('[AuthStore] initializeOrganizerMode:', {
+        console.warn('[AuthStore] initializeOrganizerMode:', {
           eventId,
           hasToken: !!token,
           hasParticipantId: !!participantId,
@@ -182,7 +182,7 @@ export const useAuthStore = create<AuthState>()(
             organizerParticipantId: participantId,
             isAuthInitialized: true,
           });
-          console.log('[AuthStore] Set isOrganizerMode to TRUE');
+          console.warn('[AuthStore] Set isOrganizerMode to TRUE');
         } else {
           set({
             isOrganizerMode: false,
@@ -190,12 +190,12 @@ export const useAuthStore = create<AuthState>()(
             organizerParticipantId: null,
             isAuthInitialized: true,
           });
-          console.log('[AuthStore] Set isOrganizerMode to FALSE (missing credentials)');
+          console.warn('[AuthStore] Set isOrganizerMode to FALSE (missing credentials)');
         }
       },
 
       setOrganizerInfo: (eventId: string, token: string, participantId: string) => {
-        console.log('[AuthStore] setOrganizerInfo called:', {
+        console.warn('[AuthStore] setOrganizerInfo called:', {
           eventId,
           tokenLength: token.length,
           participantId,
@@ -203,7 +203,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.setItem(`organizer_token_${eventId}`, token);
           localStorage.setItem(`organizer_participant_id_${eventId}`, participantId);
-          console.log('[AuthStore] Stored in localStorage:', {
+          console.warn('[AuthStore] Stored in localStorage:', {
             tokenKey: `organizer_token_${eventId}`,
             participantIdKey: `organizer_participant_id_${eventId}`,
           });
@@ -213,7 +213,7 @@ export const useAuthStore = create<AuthState>()(
           organizerToken: token,
           organizerParticipantId: participantId,
         });
-        console.log('[AuthStore] State updated - isOrganizerMode: true');
+        console.warn('[AuthStore] State updated - isOrganizerMode: true');
       },
 
       clearOrganizerToken: () => {

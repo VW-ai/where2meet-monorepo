@@ -38,19 +38,57 @@ export default function LandingPage() {
         meetingTime: new Date(meetingTime).toISOString(),
       });
 
+      console.warn('[LandingPage] Event created:', {
+        eventId: event.id,
+        hasParticipantToken: !!event.participantToken,
+        tokenPrefix: event.participantToken?.substring(0, 3),
+        isAuthenticated,
+      });
+
       // Store organizer token and participant ID for organizer actions
       if (event.participantToken && event.organizerParticipantId) {
-        console.log('[LandingPage] Storing organizer credentials:', {
+        console.warn('[LandingPage] Storing organizer credentials:', {
           eventId: event.id,
           hasToken: !!event.participantToken,
           hasParticipantId: !!event.organizerParticipantId,
         });
         const { setOrganizerInfo } = useAuthStore.getState();
         setOrganizerInfo(event.id, event.participantToken, event.organizerParticipantId);
-        console.log('[LandingPage] Auth store after setOrganizerInfo:', {
+        console.warn('[LandingPage] Auth store after setOrganizerInfo:', {
           isOrganizerMode: useAuthStore.getState().isOrganizerMode,
           hasOrganizerToken: !!useAuthStore.getState().organizerToken,
         });
+
+        // Auto-claim event if user is authenticated
+        if (isAuthenticated) {
+          console.warn('[LandingPage] User is authenticated, attempting auto-claim...');
+          try {
+            const { userClient } = await import('@/features/user/api');
+            console.warn('[LandingPage] Claiming with token:', {
+              eventId: event.id,
+              tokenPrefix: event.participantToken.substring(0, 10),
+              tokenLength: event.participantToken.length,
+            });
+
+            const result = await userClient.claimEvent({
+              eventId: event.id,
+              participantToken: event.participantToken,
+            });
+
+            console.warn('[LandingPage] ✅ Auto-claim successful:', result);
+          } catch (claimError) {
+            // Non-fatal: event was created successfully, claiming is optional
+            console.error('[LandingPage] ❌ Auto-claim failed:', claimError);
+            if (claimError instanceof Error) {
+              console.error('[LandingPage] Error details:', {
+                message: claimError.message,
+                stack: claimError.stack,
+              });
+            }
+          }
+        } else {
+          console.warn('[LandingPage] User NOT authenticated, skipping auto-claim');
+        }
       } else {
         console.error('[LandingPage] Missing credentials in event response:', {
           hasParticipantToken: !!event.participantToken,

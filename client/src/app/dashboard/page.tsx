@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { UserEventResponse } from '@/features/auth/types';
 import { userClient } from '@/features/user/api';
-import { Event } from '@/entities';
 import { EventCard } from '@/features/dashboard/ui/event-card';
 import { ClaimEventsBanner } from '@/features/dashboard/ui/claim-events-banner';
 import { LikedVenuesSection } from '@/features/dashboard/ui/liked-venues-section';
@@ -13,48 +13,68 @@ import catLogo from '@/components/cat/image.png';
 
 export default function DashboardPage() {
   const { user, logout } = useAuthStore();
-  const [events, setEvents] = useState<Event[]>([]);
+  const [userEvents, setUserEvents] = useState<UserEventResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadEvents() {
       try {
-        const userEvents = await userClient.getEvents();
-        console.warn('[Dashboard] Events response:', userEvents);
+        const userEventsResponse = await userClient.getEvents();
+        console.warn('[Dashboard] Events response:', userEventsResponse);
 
-        // Ensure we always have an array
-        if (Array.isArray(userEvents)) {
+        // API returns array of UserEvent objects with nested event property
+        // Response structure: [{ id, role, participantId, event: {...} }, ...]
+        let events = userEventsResponse;
+
+        // Handle different response formats
+        if (
+          userEventsResponse &&
+          typeof userEventsResponse === 'object' &&
+          'events' in userEventsResponse
+        ) {
+          events = (userEventsResponse as { events: UserEventResponse[] }).events;
+        }
+
+        // Ensure we have an array
+        if (Array.isArray(events)) {
+          // Keep the full UserEvent objects to preserve role information
+          const validUserEvents = events.filter((ue: UserEventResponse) => ue.event != null);
+
+          console.warn('[Dashboard] Valid user events:', validUserEvents);
+
           // Sort: published events first (by publishedAt desc), then unpublished (by createdAt desc)
-          const sortedEvents = [...userEvents].sort((a, b) => {
-            const aIsPublished = !!a.publishedAt;
-            const bIsPublished = !!b.publishedAt;
+          const sortedUserEvents = [...validUserEvents].sort(
+            (a: UserEventResponse, b: UserEventResponse) => {
+              const aIsPublished = !!a.event.publishedAt;
+              const bIsPublished = !!b.event.publishedAt;
 
-            // Both published: newest publishedAt first
-            if (aIsPublished && bIsPublished) {
-              return new Date(b.publishedAt!).getTime() - new Date(a.publishedAt!).getTime();
+              // Both published: newest publishedAt first
+              if (aIsPublished && bIsPublished) {
+                return (
+                  new Date(b.event.publishedAt!).getTime() -
+                  new Date(a.event.publishedAt!).getTime()
+                );
+              }
+
+              // Only a is published: a comes first
+              if (aIsPublished) return -1;
+
+              // Only b is published: b comes first
+              if (bIsPublished) return 1;
+
+              // Both unpublished: newest createdAt first
+              return new Date(b.event.createdAt).getTime() - new Date(a.event.createdAt).getTime();
             }
+          );
 
-            // Only a is published: a comes first
-            if (aIsPublished) return -1;
-
-            // Only b is published: b comes first
-            if (bIsPublished) return 1;
-
-            // Both unpublished: newest createdAt first
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          });
-
-          setEvents(sortedEvents);
-        } else if (userEvents && typeof userEvents === 'object') {
-          // Backend might return { events: [...] } or just an object
-          console.warn('[Dashboard] Events response is not an array:', userEvents);
-          setEvents([]);
+          setUserEvents(sortedUserEvents);
         } else {
-          setEvents([]);
+          console.warn('[Dashboard] Events response is not an array:', userEventsResponse);
+          setUserEvents([]);
         }
       } catch (error) {
         console.error('Error loading events:', error);
-        setEvents([]);
+        setUserEvents([]);
       } finally {
         setIsLoading(false);
       }
@@ -129,7 +149,7 @@ export default function DashboardPage() {
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-coral-500 border-t-transparent"></div>
               <p className="mt-4 text-gray-600">Loading your events...</p>
             </div>
-          ) : events.length === 0 ? (
+          ) : userEvents.length === 0 ? (
             <div className="bg-white rounded-3xl shadow-sm p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
@@ -159,8 +179,8 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} />
+              {userEvents.map((userEvent) => (
+                <EventCard key={userEvent.event.id} event={userEvent.event} role={userEvent.role} />
               ))}
             </div>
           )}

@@ -50,7 +50,7 @@ export function MapArea() {
   const { currentEvent, selectedVenue, searchedVenues, setSelectedVenue, venueById } =
     useMeetingStore();
   const { getAllVotedVenueIds, voteStatsByVenueId } = useVotingStore();
-  const { isVenueInfoOpen, openVenueInfo, setActiveView } = useUIStore();
+  const { isVenueInfoOpen, openVenueInfo } = useUIStore();
   const {
     organizerToken,
     participantToken,
@@ -77,11 +77,6 @@ export function MapArea() {
 
   // Check if user has joined (organizer or participant)
   const hasJoined = isOrganizerMode || isParticipantMode;
-
-  // Handler for join button click on blur overlay
-  const handleJoinClick = () => {
-    setActiveView('participant');
-  };
 
   // Convert UI travel mode to Google Maps travel mode
   const travelMode = UI_TO_GOOGLE_TRAVEL_MODE[uiTravelMode];
@@ -318,7 +313,7 @@ export function MapArea() {
 
   // Update participant markers
   useEffect(() => {
-    console.log(
+    console.warn(
       '[Map] Participant markers useEffect triggered. Participant count:',
       currentEvent?.participants?.length
     );
@@ -330,14 +325,14 @@ export function MapArea() {
 
     // Add participant markers with matching colors
     currentEvent?.participants.forEach((participant) => {
-      console.log(
+      console.warn(
         '[Map] Processing participant:',
         participant.name,
         'Location:',
         participant.location
       );
       if (!participant.location || !participant.location.lat || !participant.location.lng) {
-        console.log('[Map] Skipping participant - invalid location:', participant.name);
+        console.warn('[Map] Skipping participant - invalid location:', participant.name);
         return;
       }
 
@@ -817,7 +812,7 @@ export function MapArea() {
 
         {/* Blur overlay for non-participants - only show after auth initialization */}
         {isAuthInitialized && !hasJoined && (
-          <MapBlurOverlay onJoinClick={handleJoinClick} isPublished={!!currentEvent?.publishedAt} />
+          <MapBlurOverlay isPublished={!!currentEvent?.publishedAt} />
         )}
       </div>
     </main>

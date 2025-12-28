@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { userClient } from '@/features/user/api';
-import { scanLocalStorageForTokens, UnclaimedToken } from '@/lib/utils/token-claimer';
+import {
+  scanLocalStorageForTokens,
+  cleanupObsoleteTokens,
+  UnclaimedToken,
+} from '@/lib/utils/token-claimer';
 
 // Keep for backward compatibility
 interface UnclaimedEvent extends UnclaimedToken {}
@@ -17,7 +21,10 @@ export function useTokenClaimer() {
       return;
     }
 
-    // Use shared utility to scan localStorage
+    // Clean up obsolete ot_ tokens from old backend version
+    cleanupObsoleteTokens();
+
+    // Use shared utility to scan localStorage for valid pt_ tokens
     const unclaimed = scanLocalStorageForTokens();
     setUnclaimedEvents(unclaimed);
     setIsScanning(false);
