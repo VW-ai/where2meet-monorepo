@@ -19,6 +19,7 @@ Workflows:
 Configure these in **GitHub → Settings → Secrets and variables → Actions**:
 
 - Variables (repo-level): `RAILWAY_SERVICE_NAME`
+- Optional variables (repo-level): `database_url`, `redis_url` (synced to Railway as `DATABASE_URL`/`REDIS_URL` before deploy)
 - Secret (environment-level):
   - `staging` environment: `RAILWAY_TOKEN` (Project Token scoped to staging)
   - `production` environment: `RAILWAY_TOKEN` (Project Token scoped to production)
@@ -30,7 +31,8 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 ### How deploy works
 
-- The workflows run `railway up --ci --environment <staging|production> --service <name>`
+- (Optional) The workflows sync `database_url`/`redis_url` into Railway variables `DATABASE_URL`/`REDIS_URL` (without triggering an extra deploy)
+- Then they run `railway up --ci --environment <staging|production> --service <name>`
 - The Railway runtime runs DB migrations before start via `railway.toml` (`startCommand`)
 
 ## Config as Code

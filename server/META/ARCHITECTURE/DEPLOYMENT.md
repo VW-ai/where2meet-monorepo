@@ -93,6 +93,14 @@
   - `REDIS_URL`（Redis 连接串）
   - `GOOGLE_MAPS_API_KEY`（如果使用 geocode/places/directions）
 
+配置来源（两种方式二选一即可）：
+
+1) **Railway Dashboard 直接配置**（传统方式）  
+2) **GitHub Actions 在部署前同步写入 Railway**（见 `cd-staging.yml` / `cd-production.yml` 的 `Sync Railway env vars (optional)` 步骤）：
+   - 从 GitHub repo variables 读取 `database_url` / `redis_url`
+   - 写入 Railway service 的 `DATABASE_URL` / `REDIS_URL`（注意大小写）
+   - 使用 `--skip-deploys` 避免“仅改变量就触发一次额外部署”
+
 注意：
 
 - `CORS_ORIGIN` 默认值为 `"*"`，`src/server.ts` 会将其转换为 `origin: true`（等价“放开所有 origin”）。
@@ -115,6 +123,8 @@ Railway CLI 有两类 token：
 
 - Repo Variables（Actions Variables）：
   - `RAILWAY_SERVICE_NAME`：Railway service 名称（例如 `where2meet-server`）
+  - `database_url`（可选）：部署前同步到 Railway 的 `DATABASE_URL`
+  - `redis_url`（可选）：部署前同步到 Railway 的 `REDIS_URL`
 - Environment Secrets（推荐放在对应 GitHub Environment 下）：
   - `staging` 环境：
     - `RAILWAY_TOKEN`（Project Token，Railway 环境选 staging）
@@ -138,13 +148,14 @@ Railway CLI 有两类 token：
 
 1. Checkout 代码（对应 commit）
 2. 安装 Railway CLI
-3. 使用 `RAILWAY_TOKEN` 对 staging 环境执行：
+3. （可选）将 GitHub variables `database_url` / `redis_url` 同步到 Railway 的 `DATABASE_URL` / `REDIS_URL`（不会触发部署）
+4. 使用 `RAILWAY_TOKEN` 对 staging 环境执行：
    - `railway up --ci --environment staging --service <service>`
-4. Railway 构建镜像（Dockerfile）并发布部署
-5. Railway 运行 `startCommand`：
+5. Railway 构建镜像（Dockerfile）并发布部署
+6. Railway 运行 `startCommand`：
    - `npx prisma migrate deploy`
    - `npm start`（启动 `dist/index.js`）
-6. Railway 对 `/health/ready` 做健康检查
+7. Railway 对 `/health/ready` 做健康检查
 
 并发控制：
 
@@ -221,3 +232,10 @@ Railway CLI 有两类 token：
 
 - 将迁移从 `startCommand` 拆为 `preDeployCommand`（如果希望语义更清晰、减少每次重启重复迁移）。
 - 如果未来 Redis 成为强依赖（例如 SSE 必须），再把 readiness 策略改为 DB+Redis 都必须健康。
+
+---
+
+## 安全提示（GitHub Variables vs Secrets）
+
+- GitHub **Variables** 不属于敏感信息存储（可见性/权限边界较宽），不适合长期存放真正的数据库/Redis 连接串。
+- 更推荐将 `DATABASE_URL` / `REDIS_URL` 直接在 Railway 配置，或改为 GitHub Environment **Secrets** 并在 workflow 中引用。
