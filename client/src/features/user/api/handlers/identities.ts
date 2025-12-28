@@ -3,12 +3,16 @@
  * GET /api/users/me/identities - Get all identities for current user
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import { cookies } from 'next/headers';
 import { SessionsData, Session, UsersData, UserIdentity } from '@/features/auth/types';
 
-export async function handleGetIdentities() {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleGetIdentitiesMock() {
   try {
     // Get session token from cookie
     const cookieStore = await cookies();
@@ -63,4 +67,11 @@ export async function handleGetIdentities() {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handler - routes to mock or real backend based on configuration
+ */
+export async function handleGetIdentities(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'users', '/me/identities', handleGetIdentitiesMock);
 }

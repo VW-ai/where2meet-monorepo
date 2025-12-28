@@ -1,4 +1,4 @@
-import { authClient } from '@/features/auth/api';
+import { userClient } from '@/features/user/api';
 
 export interface UnclaimedToken {
   eventId: string;
@@ -64,10 +64,9 @@ export async function claimAllTokens(tokens: UnclaimedToken[]): Promise<ClaimRes
     tokens.map(async (token) => {
       try {
         // Call API to claim token
-        await authClient.claimToken({
+        await userClient.claimEvent({
           eventId: token.eventId,
-          token: token.token,
-          tokenType: token.tokenType,
+          participantToken: token.token,
         });
 
         // Clean up localStorage on success

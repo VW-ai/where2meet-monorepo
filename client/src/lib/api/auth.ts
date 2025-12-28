@@ -1,5 +1,5 @@
 import { apiCall } from './client'; // Use apiCall for Next.js API routes
-import { User, RegisterDTO, LoginDTO, ClaimTokenDTO } from '@/features/auth/types';
+import { User, RegisterDTO, LoginDTO } from '@/features/auth/types';
 
 export const authApi = {
   register: (data: RegisterDTO) =>
@@ -17,12 +17,6 @@ export const authApi = {
   logout: () => apiCall('/api/auth/logout', { method: 'POST' }),
 
   getSession: () => apiCall<{ user: User }>('/api/auth/session'),
-
-  claimToken: (data: ClaimTokenDTO) =>
-    apiCall('/api/auth/claim-token', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
 
   requestPasswordReset: (email: string) =>
     apiCall('/api/auth/recovery/request', {

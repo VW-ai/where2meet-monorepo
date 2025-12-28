@@ -4,10 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import { UsersData, EmailIdentity, PasswordResetTokensData } from '@/features/auth/types';
 
-export async function handleRecoveryRequest(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleRecoveryRequestMock(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
     const { email } = body;
@@ -78,4 +82,11 @@ export async function handleRecoveryRequest(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handler - routes to mock or real backend based on configuration
+ */
+export async function handleRecoveryRequest(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'auth', '/recovery/request', handleRecoveryRequestMock);
 }

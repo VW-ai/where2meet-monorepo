@@ -37,7 +37,11 @@ interface VotingState {
 
   // Actions
   setMyParticipantId: (participantId: string | null) => void;
-  voteForVenue: (eventId: string, venueId: string, venueData: CastVoteRequest['venueData']) => Promise<void>;
+  voteForVenue: (
+    eventId: string,
+    venueId: string,
+    venueData: CastVoteRequest['venueData']
+  ) => Promise<void>;
   unvoteForVenue: (eventId: string, venueId: string) => Promise<void>;
   loadVoteStatistics: (eventId: string) => Promise<void>;
   setVoteStatistics: (statistics: VoteStatisticsResponse) => void;
@@ -113,11 +117,13 @@ export const useVotingStore = create<VotingState>((set, get) => ({
             [venueId]: {
               id: venueId,
               name: venueData.name,
-              address: venueData.address || null,
+              address: venueData.address || '',
               location: { lat: venueData.lat, lng: venueData.lng },
               types: venueData.category ? [venueData.category] : [],
               rating: venueData.rating ?? null,
+              userRatingsTotal: null,
               priceLevel: venueData.priceLevel ?? null,
+              openNow: null,
               photoUrl: venueData.photoUrl ?? null,
             },
           },
@@ -258,7 +264,7 @@ export const useVotingStore = create<VotingState>((set, get) => ({
 
   // Set vote statistics (called from SSE handlers)
   setVoteStatistics: (statistics) => {
-    console.log('[VotingStore] setVoteStatistics called with:', {
+    console.warn('[VotingStore] setVoteStatistics called with:', {
       venuesCount: statistics.venues.length,
       totalVotes: statistics.totalVotes,
     });
@@ -280,7 +286,7 @@ export const useVotingStore = create<VotingState>((set, get) => ({
     }
 
     // Debug logging
-    console.log('[VotingStore] Updated vote data:', {
+    console.warn('[VotingStore] Updated vote data:', {
       voteStatsCount: Object.keys(newVoteStatsByVenueId).length,
     });
 

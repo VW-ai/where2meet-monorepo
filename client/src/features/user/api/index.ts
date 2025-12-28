@@ -13,6 +13,7 @@ export const userClient = {
   getProfile: usersApi.getProfile,
   updateProfile: usersApi.updateProfile,
   getEvents: usersApi.getEvents,
+  claimEvent: usersApi.claimEvent,
   getIdentities: usersApi.getIdentities,
   unlinkIdentity: usersApi.unlinkIdentity,
 };

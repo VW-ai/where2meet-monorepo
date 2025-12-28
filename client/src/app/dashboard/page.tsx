@@ -20,9 +20,21 @@ export default function DashboardPage() {
     async function loadEvents() {
       try {
         const userEvents = await userClient.getEvents();
-        setEvents(userEvents);
+        console.warn('[Dashboard] Events response:', userEvents);
+
+        // Ensure we always have an array
+        if (Array.isArray(userEvents)) {
+          setEvents(userEvents);
+        } else if (userEvents && typeof userEvents === 'object') {
+          // Backend might return { events: [...] } or just an object
+          console.warn('[Dashboard] Events response is not an array:', userEvents);
+          setEvents([]);
+        } else {
+          setEvents([]);
+        }
       } catch (error) {
         console.error('Error loading events:', error);
+        setEvents([]);
       } finally {
         setIsLoading(false);
       }

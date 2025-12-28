@@ -4,10 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import { SessionsData, Session, UsersData } from '@/features/auth/types';
 
-export async function handleGetSession(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleGetSessionMock(request: NextRequest): Promise<NextResponse> {
   try {
     const sessionToken = request.cookies.get('session_token')?.value;
 
@@ -89,4 +93,11 @@ export async function handleGetSession(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handler - routes to mock or real backend based on configuration
+ */
+export async function handleGetSession(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'auth', '/session', handleGetSessionMock);
 }

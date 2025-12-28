@@ -4,10 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import { User, UsersData, EmailIdentity } from '@/features/auth/types';
 
-export async function handleRegister(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleRegisterMock(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
     const { email, password, name } = body;
@@ -149,4 +153,11 @@ export async function handleRegister(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handler - routes to mock or real backend based on configuration
+ */
+export async function handleRegister(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'auth', '/register', handleRegisterMock);
 }

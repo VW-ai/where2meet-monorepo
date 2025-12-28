@@ -4,10 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import { SessionsData } from '@/features/auth/types';
 
-export async function handleLogout(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleLogoutMock(request: NextRequest): Promise<NextResponse> {
   try {
     const sessionToken = request.cookies.get('session_token')?.value;
 
@@ -48,4 +52,11 @@ export async function handleLogout(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handler - routes to mock or real backend based on configuration
+ */
+export async function handleLogout(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'auth', '/logout', handleLogoutMock);
 }

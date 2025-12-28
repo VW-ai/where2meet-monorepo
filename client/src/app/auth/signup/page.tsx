@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { OAuthButton } from '@/features/auth/ui/oauth-button';
+// import { OAuthButton } from '@/features/auth/ui/oauth-button'; // OAuth temporarily disabled
 import catLogo from '@/components/cat/image.png';
 
 export default function SignUpPage() {
@@ -73,6 +73,7 @@ export default function SignUpPage() {
               Join Where2Meet to save and manage your events
             </p>
 
+            {/* OAuth temporarily disabled - backend not implemented yet
             <div className="space-y-3 mb-6">
               <OAuthButton provider="google" mode="signup" />
               <OAuthButton provider="github" mode="signup" />
@@ -86,6 +87,7 @@ export default function SignUpPage() {
                 <span className="px-2 bg-white text-gray-500">OR</span>
               </div>
             </div>
+            */}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

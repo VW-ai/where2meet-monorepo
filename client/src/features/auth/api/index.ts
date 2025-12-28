@@ -14,7 +14,6 @@ export const authClient = {
   login: authApi.login,
   logout: authApi.logout,
   getSession: authApi.getSession,
-  claimToken: authApi.claimToken,
   requestPasswordReset: authApi.requestPasswordReset,
   resetPassword: authApi.resetPassword,
 };

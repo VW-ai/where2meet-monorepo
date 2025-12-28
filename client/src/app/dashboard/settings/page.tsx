@@ -6,17 +6,20 @@ import Image from 'next/image';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { AddressAutocomplete } from '@/shared/ui/address-autocomplete';
 import { reverseGeocode } from '@/shared/lib/google-maps/geocoding';
-import { OAuthButton } from '@/features/auth/ui/oauth-button';
-import { OAUTH_PROVIDERS } from '@/features/auth/lib/oauth-providers';
-import { userClient } from '@/features/user/api';
+// import { OAuthButton } from '@/features/auth/ui/oauth-button'; // OAuth temporarily disabled
+// import { OAUTH_PROVIDERS } from '@/features/auth/lib/oauth-providers'; // OAuth temporarily disabled
+// import { userClient } from '@/features/user/api'; // OAuth temporarily disabled
 import catLogo from '@/components/cat/image.png';
 
+// OAuth temporarily disabled - keeping types for future use
+/*
 interface Identity {
   id: string;
   provider: 'email' | 'google' | 'github';
   providerId: string;
   createdAt: string;
 }
+*/
 
 export default function SettingsPage() {
   const { user, updateProfile, logout } = useAuthStore();
@@ -27,9 +30,11 @@ export default function SettingsPage() {
   const [_isLocating, setIsLocating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
-  const [identities, setIdentities] = useState<Identity[]>([]);
-  const [isLoadingIdentities, setIsLoadingIdentities] = useState(true);
-  const [unlinkingProvider, setUnlinkingProvider] = useState<string | null>(null);
+
+  // OAuth temporarily disabled - uncomment when backend implements OAuth
+  // const [identities, setIdentities] = useState<Identity[]>([]);
+  // const [isLoadingIdentities, setIsLoadingIdentities] = useState(true);
+  // const [unlinkingProvider, setUnlinkingProvider] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -40,6 +45,8 @@ export default function SettingsPage() {
     }
   }, [user]);
 
+  // OAuth temporarily disabled - uncomment when backend implements OAuth
+  /*
   useEffect(() => {
     const fetchIdentities = async () => {
       try {
@@ -84,6 +91,7 @@ export default function SettingsPage() {
       setUnlinkingProvider(null);
     }
   };
+  */
 
   const handleAddressChange = (value: string) => {
     setAddressInput(value);
@@ -285,115 +293,12 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* OAuth Connected Accounts - temporarily disabled until backend implements OAuth
               <div className="pt-6 border-t border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Connected Accounts</h2>
-
-                {isLoadingIdentities ? (
-                  <div className="text-center py-4 text-gray-500">Loading...</div>
-                ) : (
-                  <div className="space-y-3">
-                    {/* Email (always present) */}
-                    {identities.find((i) => i.provider === 'email') && (
-                      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <svg
-                              className="w-5 h-5 text-gray-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">Email</p>
-                            <p className="text-sm text-gray-500">{user?.email}</p>
-                          </div>
-                        </div>
-                        <span className="text-sm text-gray-500 px-3 py-1 bg-gray-100 rounded-full">
-                          Primary
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Google */}
-                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center">
-                          {OAUTH_PROVIDERS.google.icon}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Google</p>
-                          {identities.find((i) => i.provider === 'google') ? (
-                            <p className="text-sm text-gray-500">Connected</p>
-                          ) : (
-                            <p className="text-sm text-gray-500">Not connected</p>
-                          )}
-                        </div>
-                      </div>
-                      {identities.find((i) => i.provider === 'google') ? (
-                        <button
-                          onClick={() => handleUnlinkProvider('google')}
-                          disabled={unlinkingProvider === 'google' || identities.length <= 1}
-                          className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1 border border-red-200 rounded-full hover:bg-red-50 transition-colors"
-                        >
-                          {unlinkingProvider === 'google' ? 'Disconnecting...' : 'Disconnect'}
-                        </button>
-                      ) : (
-                        <OAuthButton
-                          provider="google"
-                          mode="link"
-                          className="!w-auto !px-4 !py-2 !text-sm"
-                        />
-                      )}
-                    </div>
-
-                    {/* GitHub */}
-                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center">
-                          {OAUTH_PROVIDERS.github.icon}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">GitHub</p>
-                          {identities.find((i) => i.provider === 'github') ? (
-                            <p className="text-sm text-gray-500">Connected</p>
-                          ) : (
-                            <p className="text-sm text-gray-500">Not connected</p>
-                          )}
-                        </div>
-                      </div>
-                      {identities.find((i) => i.provider === 'github') ? (
-                        <button
-                          onClick={() => handleUnlinkProvider('github')}
-                          disabled={unlinkingProvider === 'github' || identities.length <= 1}
-                          className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1 border border-red-200 rounded-full hover:bg-red-50 transition-colors"
-                        >
-                          {unlinkingProvider === 'github' ? 'Disconnecting...' : 'Disconnect'}
-                        </button>
-                      ) : (
-                        <OAuthButton
-                          provider="github"
-                          mode="link"
-                          className="!w-auto !px-4 !py-2 !text-sm"
-                        />
-                      )}
-                    </div>
-
-                    {identities.length <= 1 && (
-                      <p className="text-xs text-gray-500 mt-2">
-                        You must have at least one authentication method connected.
-                      </p>
-                    )}
-                  </div>
-                )}
+                ... (OAuth section hidden)
               </div>
+              */}
 
               {saveMessage && (
                 <div

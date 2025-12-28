@@ -4,11 +4,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import { cookies } from 'next/headers';
 import { SessionsData, Session, UsersData, UserIdentity } from '@/features/auth/types';
 
-export async function handleUnlinkIdentity(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleUnlinkIdentityMock(request: NextRequest): Promise<NextResponse> {
   try {
     // Get session token from cookie
     const cookieStore = await cookies();
@@ -99,4 +103,11 @@ export async function handleUnlinkIdentity(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handler - routes to mock or real backend based on configuration
+ */
+export async function handleUnlinkIdentity(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'users', '/me/identities/unlink', handleUnlinkIdentityMock);
 }

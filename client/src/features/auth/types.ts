@@ -32,8 +32,7 @@ export interface UpdateUserDTO {
 
 export interface ClaimTokenDTO {
   eventId: string;
-  token: string;
-  tokenType: 'organizer' | 'participant';
+  participantToken: string;
 }
 
 // For future OAuth support (Phase 2)

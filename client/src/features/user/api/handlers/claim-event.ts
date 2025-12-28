@@ -1,14 +1,18 @@
 /**
- * Claim Token Handler
- * POST /api/auth/claim-token - Link an event to user account via token
+ * Claim Event Handler
+ * POST /api/users/me/events/claim - Link an event to user account via token
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import { loadData } from '@/mock-server/services/persistence';
 import { SessionsData, Session, UserEventsData, UserEvent } from '@/features/auth/types';
 
-export async function handleClaimToken(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleClaimEventMock(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify session
     const sessionToken = request.cookies.get('session_token')?.value;
@@ -62,26 +66,14 @@ export async function handleClaimToken(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { eventId, token, tokenType } = body;
+    const { eventId, participantToken } = body;
 
-    if (!eventId || !token || !tokenType) {
+    if (!eventId || !participantToken) {
       return NextResponse.json(
         {
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'eventId, token, and tokenType are required',
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    if (tokenType !== 'organizer' && tokenType !== 'participant') {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'tokenType must be "organizer" or "participant"',
+            message: 'eventId and participantToken are required',
           },
         },
         { status: 400 }
@@ -104,21 +96,42 @@ export async function handleClaimToken(request: NextRequest) {
       );
     }
 
+    // Determine role based on token
+    let role: 'organizer' | 'participant' = 'participant';
+    let participantId: string | null = null;
+
+    if (event.participantToken === participantToken) {
+      role = 'organizer';
+      participantId = event.organizerParticipantId || null;
+    } else {
+      // Find participant by their token
+      // Note: In mock data, participants have tokens stored internally
+      const participant = event.participants.find(
+        (p) => (p as { participantToken?: string }).participantToken === participantToken
+      );
+      if (!participant) {
+        return NextResponse.json(
+          {
+            error: {
+              code: 'FORBIDDEN',
+              message: 'Invalid participant token',
+            },
+          },
+          { status: 403 }
+        );
+      }
+      participantId = participant.id;
+    }
+
     // Check if user event already exists
     const userEventsData = (await authPersistence.getUserEvents()) as UserEventsData;
     const existingUserEvent = Object.values(userEventsData.userEvents).find(
-      (ue: UserEvent) => ue.userId === userId && ue.eventId === eventId && ue.role === tokenType
+      (ue: UserEvent) => ue.userId === userId && ue.eventId === eventId
     );
 
     if (existingUserEvent) {
       return NextResponse.json({ success: true, userEvent: existingUserEvent });
     }
-
-    // Find participant ID from event
-    const participantId =
-      tokenType === 'organizer'
-        ? event.participants.find((p) => p.isOrganizer)?.id
-        : event.participants.find((p) => !p.isOrganizer && p.id)?.id;
 
     // Create UserEvent record
     const userEventId = authPersistence.generateId('ue');
@@ -128,25 +141,32 @@ export async function handleClaimToken(request: NextRequest) {
       id: userEventId,
       userId,
       eventId,
-      participantId: participantId || null,
-      role: tokenType,
+      participantId,
+      role,
       createdAt: now,
     };
 
     userEventsData.userEvents[userEventId] = userEvent;
     await authPersistence.saveUserEvents(userEventsData);
 
-    return NextResponse.json({ success: true, userEvent });
+    return NextResponse.json({ success: true, userEvent }, { status: 201 });
   } catch (error) {
-    console.error('[API] Error claiming token:', error);
+    console.error('[API] Error claiming event:', error);
     return NextResponse.json(
       {
         error: {
           code: 'INTERNAL_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to claim token',
+          message: error instanceof Error ? error.message : 'Failed to claim event',
         },
       },
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handler - routes to mock or real backend based on configuration
+ */
+export async function handleClaimEvent(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'users', '/me/events/claim', handleClaimEventMock);
 }

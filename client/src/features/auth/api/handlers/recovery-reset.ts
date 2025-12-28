@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import {
   PasswordResetTokensData,
@@ -13,7 +14,10 @@ import {
   SessionsData,
 } from '@/features/auth/types';
 
-export async function handleRecoveryReset(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleRecoveryResetMock(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
     const { token, newPassword } = body;
@@ -137,4 +141,11 @@ export async function handleRecoveryReset(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handler - routes to mock or real backend based on configuration
+ */
+export async function handleRecoveryReset(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'auth', '/recovery/reset', handleRecoveryResetMock);
 }

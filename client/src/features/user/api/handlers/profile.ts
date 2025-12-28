@@ -5,11 +5,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { routeAuthUserRequest } from '@/lib/api/auth-user-router';
 import { authPersistence } from '@/mock-server/auth-persistence';
 import { UsersData, User } from '@/features/auth/types';
 import { getUserFromSession } from './auth-helpers';
 
-export async function handleGetProfile(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleGetProfileMock(request: NextRequest): Promise<NextResponse> {
   try {
     const result = await getUserFromSession(request);
 
@@ -32,7 +36,10 @@ export async function handleGetProfile(request: NextRequest) {
   }
 }
 
-export async function handleUpdateProfile(request: NextRequest) {
+/**
+ * Mock implementation - uses local file storage
+ */
+async function handleUpdateProfileMock(request: NextRequest): Promise<NextResponse> {
   try {
     const result = await getUserFromSession(request);
 
@@ -75,4 +82,15 @@ export async function handleUpdateProfile(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Main handlers - route to mock or real backend based on configuration
+ */
+export async function handleGetProfile(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'users', '/me', handleGetProfileMock);
+}
+
+export async function handleUpdateProfile(request: NextRequest): Promise<NextResponse> {
+  return routeAuthUserRequest(request, 'users', '/me', handleUpdateProfileMock);
 }

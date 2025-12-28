@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { authClient } from '@/features/auth/api';
+import { userClient } from '@/features/user/api';
 import { scanLocalStorageForTokens, UnclaimedToken } from '@/lib/utils/token-claimer';
 
 // Keep for backward compatibility
@@ -33,10 +33,9 @@ export function useTokenClaimer() {
     }
 
     try {
-      await authClient.claimToken({
+      await userClient.claimEvent({
         eventId,
-        token: eventToClaim.token,
-        tokenType,
+        participantToken: eventToClaim.token,
       });
 
       // Remove from localStorage

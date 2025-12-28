@@ -1,5 +1,5 @@
 import { apiCall } from './client';
-import { User, UpdateUserDTO } from '@/features/auth/types';
+import { User, UpdateUserDTO, ClaimTokenDTO } from '@/features/auth/types';
 import { Event } from '@/entities';
 
 export const usersApi = {
@@ -13,7 +13,21 @@ export const usersApi = {
 
   getEvents: () => apiCall<Event[]>('/api/users/me/events'),
 
-  getIdentities: () => apiCall<{ identities: Array<{ id: string; provider: 'email' | 'google' | 'github'; providerId: string; createdAt: string }> }>('/api/users/me/identities'),
+  claimEvent: (data: ClaimTokenDTO) =>
+    apiCall('/api/users/me/events/claim', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getIdentities: () =>
+    apiCall<{
+      identities: Array<{
+        id: string;
+        provider: 'email' | 'google' | 'github';
+        providerId: string;
+        createdAt: string;
+      }>;
+    }>('/api/users/me/identities'),
 
   unlinkIdentity: (provider: string) =>
     apiCall<{ success: boolean }>('/api/users/me/identities/unlink', {
