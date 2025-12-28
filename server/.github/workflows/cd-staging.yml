@@ -1,0 +1,50 @@
+name: CD Staging
+
+on:
+  workflow_dispatch:  # Manual trigger for testing
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    # For workflow_run: check CI success + push to main + vars configured
+    # For workflow_dispatch: skip workflow_run checks (manual trigger)
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       vars.RAILWAY_PROJECT_ID != '' &&
+       vars.RAILWAY_SERVICE_NAME != '')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Use workflow_run's commit for auto-deploy, default branch for manual trigger
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Link Railway project (staging)
+        run: railway link --project "$RAILWAY_PROJECT_ID" --environment staging --service "$RAILWAY_SERVICE_NAME"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+
+      - name: Deploy to Railway (staging)
+        run: railway up --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

@@ -23,10 +23,12 @@ export interface FormattedValue {
 /** Normalized route result for a single participant */
 export interface RouteResult {
   participantId: string;
-  distance: FormattedValue;
-  duration: FormattedValue;
-  /** Encoded polyline for Google Maps rendering */
-  polyline: string;
+  /** Distance in meters with formatted text. Null if participant has no location. */
+  distance: FormattedValue | null;
+  /** Duration in seconds with formatted text. Null if participant has no location. */
+  duration: FormattedValue | null;
+  /** Encoded polyline for Google Maps rendering. Null if participant has no location. */
+  polyline: string | null;
 }
 
 /** Batch directions result for all participants to a venue */

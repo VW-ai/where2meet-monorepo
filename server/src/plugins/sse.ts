@@ -107,6 +107,8 @@ export class SSEService {
    * @param eventId - Event ID to subscribe to
    * @param reply - Fastify reply object
    * @param options - Connection options
+   * @param options.participantId - Optional participant ID
+   * @param options.isOrganizer - Whether the connection is from an organizer
    * @returns Connection ID
    */
   async addConnection(
@@ -202,10 +204,7 @@ export class SSEService {
       const message = JSON.stringify({ type, payload: enrichedPayload });
       try {
         await this.publisher.publish(channel, message);
-        logger.debug(
-          { eventId, type, seq },
-          "Published SSE event to Redis"
-        );
+        logger.debug({ eventId, type, seq }, "Published SSE event to Redis");
       } catch (error) {
         logger.error({ err: error, eventId, type }, "Failed to publish to Redis");
         // Fall back to local-only broadcast

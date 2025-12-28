@@ -92,55 +92,67 @@ export class DirectionsService {
       }
     }
 
-    // Get participants with valid coordinates (exclude organizer and null locations)
-    let participants = event.participants.filter(
-      (p) => p.lat !== null && p.lng !== null && !p.isOrganizer
-    );
+    // Get all participants (optionally filter to single participant)
+    let allParticipants = event.participants;
 
-    // Filter to single participant if specified
     if (participantId) {
-      const participant = participants.find((p) => p.id === participantId);
+      const participant = allParticipants.find((p) => p.id === participantId);
       if (!participant) {
-        // Check if participant exists at all (might be organizer or have no location)
-        const anyParticipant = event.participants.find((p) => p.id === participantId);
-        if (!anyParticipant) {
-          throw new ParticipantNotFoundError(participantId);
-        }
-        // Participant exists but has no valid location
-        throw new ValidationError(
-          `Participant ${participantId} does not have a valid location for directions`
-        );
+        throw new ParticipantNotFoundError(participantId);
       }
-      participants = [participant];
+      allParticipants = [participant];
     }
 
-    if (participants.length === 0) {
-      logger.info({ eventId, venueId }, "No participants with valid locations");
+    if (allParticipants.length === 0) {
       return [];
     }
 
+    // Separate participants with and without valid locations
+    const participantsWithLocation = allParticipants.filter(
+      (p) => p.lat !== null && p.lng !== null
+    );
+    const participantsWithoutLocation = allParticipants.filter(
+      (p) => p.lat === null || p.lng === null
+    );
+
+    // Build results for participants without location (null values)
+    const nullRoutes: RouteResult[] = participantsWithoutLocation.map((p) => ({
+      participantId: p.id,
+      distance: null,
+      duration: null,
+      polyline: null,
+    }));
+
+    // If no participants have locations, return all null routes
+    if (participantsWithLocation.length === 0) {
+      logger.info({ eventId, venueId }, "No participants with valid locations");
+      return nullRoutes;
+    }
+
     try {
-      // Calculate routes for all participants in parallel
-      const participantData = participants.map((p) => ({
+      // Calculate routes for participants with valid locations
+      const participantData = participantsWithLocation.map((p) => ({
         id: p.id,
         lat: Number(p.lat),
         lng: Number(p.lng),
       }));
 
-      const routes = await calculateBatchRoutes(participantData, venueCoords, travelMode);
+      const calculatedRoutes = await calculateBatchRoutes(participantData, venueCoords, travelMode);
 
       logger.info(
         {
           eventId,
           venueId,
           travelMode,
-          participantCount: participants.length,
-          routeCount: routes.length,
+          participantCount: allParticipants.length,
+          withLocation: participantsWithLocation.length,
+          withoutLocation: participantsWithoutLocation.length,
         },
         "Directions calculated"
       );
 
-      return routes;
+      // Combine calculated routes with null routes
+      return [...calculatedRoutes, ...nullRoutes];
     } catch (error) {
       if (error instanceof DirectionsApiError) {
         logger.error({ err: error, eventId, venueId }, "Directions API error");
