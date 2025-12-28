@@ -204,10 +204,7 @@ export class SSEService {
       const message = JSON.stringify({ type, payload: enrichedPayload });
       try {
         await this.publisher.publish(channel, message);
-        logger.debug(
-          { eventId, type, seq },
-          "Published SSE event to Redis"
-        );
+        logger.debug({ eventId, type, seq }, "Published SSE event to Redis");
       } catch (error) {
         logger.error({ err: error, eventId, type }, "Failed to publish to Redis");
         // Fall back to local-only broadcast
