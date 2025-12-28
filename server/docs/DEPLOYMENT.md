@@ -27,7 +27,7 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 ### Railway settings
 
 - Disable Railway GitHub integration auto-deploy for this service (so only Actions deploys).
-- Ensure the Railway service has the required runtime env vars configured (e.g. `DATABASE_URL`, `REDIS_URL`, `CORS_ORIGIN`).
+- Ensure the Railway service has the required runtime env vars configured (e.g. `DATABASE_URL`, `REDIS_URL`, `CORS_ORIGINS`).
 
 ### How deploy works
 

@@ -85,9 +85,29 @@ export async function buildServer() {
     disableRequestLogging: isTest,
   });
 
+  const corsOriginsRaw = config.CORS_ORIGINS ?? config.CORS_ORIGIN;
+  const corsAllowAllOrigins = corsOriginsRaw.trim() === "*";
+  const corsAllowedOrigins = corsAllowAllOrigins
+    ? []
+    : corsOriginsRaw
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
+  if (isProduction && corsAllowAllOrigins) {
+    throw new Error(
+      'Invalid CORS configuration: set `CORS_ORIGINS` (or `CORS_ORIGIN`) to an explicit comma-separated allowlist in production (do not use "*").'
+    );
+  }
+
   // Register CORS
   await server.register(cors, {
-    origin: config.CORS_ORIGIN === "*" ? true : config.CORS_ORIGIN.split(",").map((o) => o.trim()),
+    origin: (origin, cb) => {
+      // Non-browser requests (e.g. health checks, curl) often omit Origin.
+      if (!origin) { cb(null, true); return; }
+      if (corsAllowAllOrigins) { cb(null, true); return; }
+      cb(null, corsAllowedOrigins.includes(origin));
+    },
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });

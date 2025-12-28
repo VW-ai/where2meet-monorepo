@@ -90,7 +90,7 @@
   - `DATABASE_URL`（Postgres 连接串）
 - 建议：
   - `NODE_ENV=production`（线上环境）
-  - `CORS_ORIGIN`（生产必须显式配置允许的前端域名；不配会默认放开）
+  - `CORS_ORIGINS`（生产必须显式配置允许的前端域名；逗号分隔）
   - `REDIS_URL`（Redis 连接串）
   - `GOOGLE_MAPS_API_KEY`（如果使用 geocode/places/directions）
 
@@ -110,7 +110,8 @@ Railway 变量引用写法说明：
 
 注意：
 
-- `CORS_ORIGIN` 默认值为 `"*"`，`src/server.ts` 会将其转换为 `origin: true`（等价“放开所有 origin”）。
+- CORS 允许列表优先读 `CORS_ORIGINS`，兼容旧变量名 `CORS_ORIGIN`。
+- 生产环境（`NODE_ENV=production`）下不允许用 `"*"` 放开所有 origin：未配置/误配会直接启动失败（fail-fast，避免带 cookie 的跨域请求被任意站点调用）。
 - readiness：`/health/ready` 以 **DB 为 hard requirement**，Redis 为 optional（见 `src/routes/health.ts`）。
 
 ---
