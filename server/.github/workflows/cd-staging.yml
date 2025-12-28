@@ -42,7 +42,7 @@ jobs:
         env:
           # Use a Project Token scoped to the staging environment.
           # Configure this as a GitHub Environment secret for `staging`.
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
           RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
         run: |
           set -euo pipefail
@@ -64,5 +64,5 @@ jobs:
       - name: Deploy to Railway (staging)
         run: railway up --ci --environment staging --service "$RAILWAY_SERVICE_NAME"
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
           RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
