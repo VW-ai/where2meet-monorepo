@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, Copy, Check, Link } from 'lucide-react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
+import { analyticsEvents } from '@/lib/analytics/events';
 
 export function ShareModal() {
   const { isShareModalOpen, closeShareModal } = useUIStore();
@@ -54,6 +55,12 @@ export function ShareModal() {
         document.body.removeChild(textArea);
       }
       setCopied(true);
+
+      // Track share event in analytics
+      if (currentEvent?.id) {
+        analyticsEvents.shareEvent(currentEvent.id, 'link');
+      }
+
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);

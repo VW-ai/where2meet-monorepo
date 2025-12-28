@@ -10,6 +10,7 @@ import { eventClient } from '@/features/meeting/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { SignInButton } from '@/features/auth/ui/sign-in-button';
 import { UserMenu } from '@/features/auth/ui/user-menu';
+import { analyticsEvents } from '@/lib/analytics/events';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -95,6 +96,9 @@ export default function LandingPage() {
           hasOrganizerParticipantId: !!event.organizerParticipantId,
         });
       }
+
+      // Track event creation in analytics
+      analyticsEvents.createEvent(event.id);
 
       router.push(`/meet/${event.id}`);
     } catch (error) {
