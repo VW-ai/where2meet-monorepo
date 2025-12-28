@@ -7,6 +7,7 @@
  */
 
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { AppError, createErrorResponse } from "../types/errors.js";
 import { createLogger } from "../lib/logger.js";
@@ -98,6 +99,20 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
         message: "Too many requests, please try again later",
       },
     });
+  }
+
+  // Handle Prisma unique constraint violations (race conditions)
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      const target = (error.meta?.target as string[])?.join(", ") || "field";
+      logger.warn(logContext, "Unique constraint violation");
+      return reply.status(409).send({
+        error: {
+          code: "CONFLICT",
+          message: `Duplicate value for ${target}`,
+        },
+      });
+    }
   }
 
   // Handle unknown errors (don't expose details to client)

@@ -68,3 +68,25 @@ export type {
   RouteResponse,
   DirectionsResponse,
 } from "./directions.dto.js";
+
+// User DTOs
+export {
+  UserResponseSchema,
+  ParticipantSummarySchema,
+  UserEventSummarySchema,
+  UserEventResponseSchema,
+  UserEventsListResponseSchema,
+  ClaimEventResponseSchema,
+} from "./user.dto.js";
+export type {
+  UserResponse,
+  ParticipantSummary,
+  UserEventSummary,
+  UserEventResponse,
+  UserEventsListResponse,
+  ClaimEventResponse,
+} from "./user.dto.js";
+
+// Auth DTOs
+export { AuthResponseSchema, SessionResponseSchema, LogoutResponseSchema } from "./auth.dto.js";
+export type { AuthResponse, SessionResponse, LogoutResponse } from "./auth.dto.js";
