@@ -7,6 +7,7 @@ const eslintConfig = [
   },
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
+    ignores: ["**/features/*/api/index.ts"], // Feature API clients can import from @/lib/api/*
     languageOptions: {
       parser: typescriptEslintParser,
       parserOptions: {
@@ -24,6 +25,29 @@ const eslintConfig = [
       "no-console": ["warn", { "allow": ["warn", "error"] }],
       "prefer-const": "error",
       "@typescript-eslint/no-explicit-any": "error",
+      "no-restricted-imports": [
+        "error",
+        {
+          "paths": [
+            {
+              "name": "@/lib/api/auth",
+              "message": "Import from feature API client (@/features/auth/api)"
+            },
+            {
+              "name": "@/lib/api/users",
+              "message": "Import from feature API client (@/features/user/api)"
+            },
+            {
+              "name": "@/lib/api/events",
+              "message": "Import from feature API client (@/features/meeting/api)"
+            },
+            {
+              "name": "@/lib/api/voting",
+              "message": "Import from feature API client (@/features/voting/api)"
+            }
+          ]
+        }
+      ],
     }
   }
 ];

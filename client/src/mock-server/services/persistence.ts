@@ -8,7 +8,7 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
-import { Event } from '@/types';
+import { Event } from '@/entities';
 
 const DATA_DIR = path.join(process.cwd(), '.mock-data');
 const EVENTS_FILE = path.join(DATA_DIR, 'events.json');

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Token Claim Debugger</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+    .section { margin: 20px 0; padding: 15px; background: #2d2d2d; border-left: 3px solid #007acc; }
+    .token { background: #3c3c3c; padding: 5px; margin: 5px 0; }
+    .valid { color: #4ec9b0; }
+    .invalid { color: #f48771; }
+    .warning { color: #dcdcaa; }
+    button { background: #007acc; color: white; border: none; padding: 10px 20px; cursor: pointer; margin: 5px; }
+    button:hover { background: #005a9e; }
+    pre { background: #1e1e1e; padding: 10px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Token Claim Debugger</h1>
+
+  <div class="section">
+    <h2>Step 1: Scan localStorage</h2>
+    <button onclick="scanTokens()">Scan Tokens</button>
+    <div id="tokens-output"></div>
+  </div>
+
+  <div class="section">
+    <h2>Step 2: Test Claim (Pick One Event)</h2>
+    <input type="text" id="eventId" placeholder="evt_xxx" style="width: 300px; padding: 5px;">
+    <input type="text" id="token" placeholder="pt_xxx..." style="width: 500px; padding: 5px;">
+    <button onclick="testClaim()">Test Claim</button>
+    <div id="claim-output"></div>
+  </div>
+
+  <div class="section">
+    <h2>Step 3: Check Backend Event Data</h2>
+    <input type="text" id="checkEventId" placeholder="evt_xxx" style="width: 300px; padding: 5px;">
+    <button onclick="checkEvent()">Fetch Event from Backend</button>
+    <div id="event-output"></div>
+  </div>
+
+  <div class="section">
+    <h2>Step 4: Cleanup</h2>
+    <button onclick="cleanupOldTokens()">Remove Obsolete ot_ Tokens</button>
+    <div id="cleanup-output"></div>
+  </div>
+
+  <script>
+    function scanTokens() {
+      const output = document.getElementById('tokens-output');
+      output.innerHTML = '<h3>Scanning localStorage...</h3>';
+
+      const participantTokens = [];
+      const organizerTokens = [];
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+
+        if (key.startsWith('participant_token_')) {
+          const eventId = key.replace('participant_token_', '');
+          const token = localStorage.getItem(key);
+          participantTokens.push({ eventId, token, key });
+        } else if (key.startsWith('organizer_token_')) {
+          const eventId = key.replace('organizer_token_', '');
+          const token = localStorage.getItem(key);
+          organizerTokens.push({ eventId, token, key });
+        }
+      }
+
+      let html = '';
+
+      if (participantTokens.length > 0) {
+        html += '<h3 class="valid">✅ Participant Tokens (pt_)</h3>';
+        participantTokens.forEach(({ eventId, token, key }) => {
+          const isValid = /^pt_[0-9a-f]{64}$/.test(token);
+          const className = isValid ? 'valid' : 'invalid';
+          html += `
+            <div class="token">
+              <strong class="${className}">Event:</strong> ${eventId}<br>
+              <strong>Token:</strong> ${token.substring(0, 40)}...<br>
+              <strong>Length:</strong> ${token.length} chars<br>
+              <strong>Format:</strong> ${isValid ? '✅ Valid' : '❌ Invalid'}<br>
+              <button onclick="document.getElementById('eventId').value='${eventId}'; document.getElementById('token').value='${token}'">
+                Use This Token for Testing
+              </button>
+            </div>
+          `;
+        });
+      } else {
+        html += '<div class="warning">⚠️ No participant tokens found (pt_)</div>';
+      }
+
+      if (organizerTokens.length > 0) {
+        html += '<h3 class="invalid">❌ Obsolete Organizer Tokens (ot_)</h3>';
+        organizerTokens.forEach(({ eventId, token, key }) => {
+          html += `
+            <div class="token">
+              <strong>Event:</strong> ${eventId}<br>
+              <strong>Token:</strong> ${token.substring(0, 40)}...<br>
+              <strong>Note:</strong> This is an old format token that cannot be claimed
+            </div>
+          `;
+        });
+      }
+
+      output.innerHTML = html;
+    }
+
+    async function testClaim() {
+      const eventId = document.getElementById('eventId').value;
+      const token = document.getElementById('token').value;
+      const output = document.getElementById('claim-output');
+
+      if (!eventId || !token) {
+        output.innerHTML = '<div class="invalid">❌ Please enter both Event ID and Token</div>';
+        return;
+      }
+
+      output.innerHTML = '<div>⏳ Testing claim...</div>';
+
+      try {
+        const response = await fetch('/api/users/me/events/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            eventId: eventId,
+            participantToken: token
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          output.innerHTML = `
+            <div class="valid">
+              <h3>✅ Claim Successful!</h3>
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+            </div>
+          `;
+        } else {
+          output.innerHTML = `
+            <div class="invalid">
+              <h3>❌ Claim Failed (${response.status})</h3>
+              <strong>Error Code:</strong> ${data.error?.code}<br>
+              <strong>Message:</strong> ${data.error?.message}<br>
+              <br>
+              <strong>Possible Reasons:</strong>
+              <ul>
+                <li>Token doesn't match any participant in the event</li>
+                <li>Event doesn't exist in backend database</li>
+                <li>Participant record missing from event</li>
+                <li>Token mismatch between frontend localStorage and backend DB</li>
+              </ul>
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+            </div>
+          `;
+        }
+      } catch (error) {
+        output.innerHTML = `<div class="invalid">❌ Network Error: ${error.message}</div>`;
+      }
+    }
+
+    async function checkEvent() {
+      const eventId = document.getElementById('checkEventId').value;
+      const output = document.getElementById('event-output');
+
+      if (!eventId) {
+        output.innerHTML = '<div class="invalid">❌ Please enter an Event ID</div>';
+        return;
+      }
+
+      output.innerHTML = '<div>⏳ Fetching event data from backend...</div>';
+
+      try {
+        const response = await fetch(`/api/events/${eventId}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          output.innerHTML = `
+            <div class="valid">
+              <h3>✅ Event Found</h3>
+              <strong>Title:</strong> ${data.title || 'N/A'}<br>
+              <strong>Participants:</strong> ${data.participants?.length || 0}<br>
+              <br>
+              <strong>Participants:</strong>
+              <pre>${JSON.stringify(data.participants, null, 2)}</pre>
+              <br>
+              <strong>Note:</strong> Participant tokens are NOT exposed in public API for security.
+              The backend stores token hashes internally.
+            </div>
+          `;
+        } else {
+          output.innerHTML = `
+            <div class="invalid">
+              <h3>❌ Event Not Found (${response.status})</h3>
+              <p>This event doesn't exist in the backend database.</p>
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+            </div>
+          `;
+        }
+      } catch (error) {
+        output.innerHTML = `<div class="invalid">❌ Network Error: ${error.message}</div>`;
+      }
+    }
+
+    function cleanupOldTokens() {
+      const output = document.getElementById('cleanup-output');
+
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('organizer_token_')) {
+          keysToRemove.push(key);
+          const eventId = key.replace('organizer_token_', '');
+          keysToRemove.push(`organizer_participant_id_${eventId}`);
+        }
+      }
+
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      output.innerHTML = `<div class="valid">✅ Removed ${keysToRemove.length} obsolete token entries</div>`;
+
+      setTimeout(() => scanTokens(), 500);
+    }
+
+    // Auto-scan on load
+    window.onload = () => scanTokens();
+  </script>
+</body>
+</html>

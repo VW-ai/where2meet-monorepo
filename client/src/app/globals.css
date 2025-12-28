@@ -110,3 +110,42 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* Landing page staggered animations */
+@layer utilities {
+  .animate-on-load {
+    opacity: 0;
+  }
+
+  .animate-on-load.loaded {
+    animation-play-state: running;
+  }
+}
+
+/* Animation delays */
+.animation-delay-0 {
+  animation-delay: 0ms;
+}
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+.animation-delay-600 {
+  animation-delay: 600ms;
+}
+.animation-delay-800 {
+  animation-delay: 800ms;
+}
+.animation-delay-1000 {
+  animation-delay: 1000ms;
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-on-load {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+}

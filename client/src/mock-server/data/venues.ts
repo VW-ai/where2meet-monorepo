@@ -1,10 +1,11 @@
 /**
  * Mock venue data
+ * @deprecated Uses LegacyVenue format - backend now returns different structure
  */
 
-import { Venue } from '@/types';
+import { LegacyVenue } from '@/entities';
 
-export const MOCK_VENUES: Venue[] = [
+export const MOCK_VENUES: LegacyVenue[] = [
   // Cafes
   {
     id: 'ven_001',
