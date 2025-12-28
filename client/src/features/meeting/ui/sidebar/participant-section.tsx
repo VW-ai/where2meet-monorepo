@@ -12,6 +12,7 @@ import { ParticipantPill } from './participant-pill';
 import { participantClient } from '@/features/meeting/api';
 import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
+import { analyticsEvents } from '@/lib/analytics/events';
 
 export function ParticipantSection() {
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
@@ -106,6 +107,12 @@ export function ParticipantSection() {
             ),
           });
         }
+
+        // Track location update if address changed
+        if (data.address && data.address !== editingParticipant.address) {
+          analyticsEvents.addLocation(currentEvent.id, data.address);
+        }
+
         setEditingParticipant(null);
       } else {
         // Create new participant via API
@@ -134,6 +141,9 @@ export function ParticipantSection() {
               participants: [newParticipant],
             });
           }
+
+          // Track participant added by organizer
+          analyticsEvents.addLocation(currentEvent.id, data.address);
         } else {
           // Self-registration (user joins themselves)
           const response = await participantClient.join(currentEvent.id, {
@@ -161,6 +171,10 @@ export function ParticipantSection() {
               participants: [participant as Participant],
             });
           }
+
+          // Track participant self-join
+          analyticsEvents.joinEvent(currentEvent.id, response.id);
+          analyticsEvents.addLocation(currentEvent.id, data.address);
         }
       }
 

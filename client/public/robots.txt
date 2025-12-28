@@ -1,0 +1,18 @@
+# Robots.txt for Where2Meet
+# https://where2meet.com/robots.txt
+
+# Allow all crawlers by default
+User-agent: *
+Allow: /
+
+# Disallow private pages
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /auth/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://where2meet.com/sitemap.xml
+
+# Crawl-delay for courtesy
+Crawl-delay: 1

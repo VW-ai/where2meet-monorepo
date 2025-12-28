@@ -14,6 +14,7 @@ import { VoteStatisticsResponse, CastVoteRequest } from '@/shared/types/api';
 import { votingClient } from '@/features/voting/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
+import { analyticsEvents } from '@/lib/analytics/events';
 
 interface VotingState {
   // Vote statistics from backend (indexed by venue ID)
@@ -133,6 +134,9 @@ export const useVotingStore = create<VotingState>((set, get) => ({
       // Call backend API with venue data
       await votingClient.castVote(eventId, participantId, { venueId, venueData }, token);
 
+      // Track upvote in analytics
+      analyticsEvents.voteVenue(eventId, venueId, 'up');
+
       // Load fresh statistics from backend to reconcile
       await get().loadVoteStatistics(eventId);
     } catch (error) {
@@ -201,6 +205,9 @@ export const useVotingStore = create<VotingState>((set, get) => ({
 
       // Call backend API
       await votingClient.removeVote(eventId, participantId, venueId, token);
+
+      // Track downvote in analytics
+      analyticsEvents.voteVenue(eventId, venueId, 'down');
 
       // Load fresh statistics from backend to reconcile
       await get().loadVoteStatistics(eventId);
