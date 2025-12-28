@@ -160,37 +160,46 @@ export default function LandingPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            <div
+          <section
+            aria-label="Features"
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
+          >
+            <article
               className={`bg-white/60 backdrop-blur-sm rounded-2xl p-6 animate-on-load animate-fade-slide-up animation-delay-600 ${animationLoaded ? 'loaded' : ''}`}
             >
-              <div className="text-3xl mb-3">📍</div>
+              <div className="text-3xl mb-3" aria-hidden="true">
+                📍
+              </div>
               <h3 className="font-semibold text-gray-900 mb-2">Fair for Everyone</h3>
               <p className="text-sm text-gray-600">
                 Compare travel times and find locations that work for all participants
               </p>
-            </div>
+            </article>
 
-            <div
+            <article
               className={`bg-white/60 backdrop-blur-sm rounded-2xl p-6 animate-on-load animate-fade-slide-up animation-delay-800 ${animationLoaded ? 'loaded' : ''}`}
             >
-              <div className="text-3xl mb-3">🗺️</div>
+              <div className="text-3xl mb-3" aria-hidden="true">
+                🗺️
+              </div>
               <h3 className="font-semibold text-gray-900 mb-2">Visual Planning</h3>
               <p className="text-sm text-gray-600">
                 See everyone's locations on a map with travel routes and times
               </p>
-            </div>
+            </article>
 
-            <div
+            <article
               className={`bg-white/60 backdrop-blur-sm rounded-2xl p-6 animate-on-load animate-fade-slide-up animation-delay-1000 ${animationLoaded ? 'loaded' : ''}`}
             >
-              <div className="text-3xl mb-3">✨</div>
+              <div className="text-3xl mb-3" aria-hidden="true">
+                ✨
+              </div>
               <h3 className="font-semibold text-gray-900 mb-2">Smart Suggestions</h3>
               <p className="text-sm text-gray-600">
                 Get venue recommendations based on optimal location and preferences
               </p>
-            </div>
-          </div>
+            </article>
+          </section>
         </div>
       </main>
     </div>
