@@ -53,19 +53,19 @@ export function healthRoutes(fastify: FastifyInstance) {
     return reply.send({ status: "ok" });
   });
 
-  /**
+ /**
    * Detailed readiness check.
-   * Checks database and Redis connectivity.
+   * Checks database connectivity (required) and Redis connectivity (optional).
    *
    * Status codes:
-   * - 200: All services healthy OR partially healthy (degraded)
-   * - 503: All services unhealthy
+   * - 200: Database healthy (Redis may be unhealthy)
+   * - 503: Database unhealthy
    */
   fastify.get("/health/ready", async (_request, reply) => {
     const [dbHealth, redisHealth] = await Promise.all([checkDatabaseHealth(), checkRedisHealth()]);
 
     const response: HealthResponse = {
-      status: dbHealth && redisHealth ? "ok" : dbHealth || redisHealth ? "degraded" : "unhealthy",
+      status: dbHealth ? (redisHealth ? "ok" : "degraded") : "unhealthy",
       timestamp: new Date().toISOString(),
       services: {
         database: dbHealth ? "ok" : "unhealthy",
@@ -73,7 +73,7 @@ export function healthRoutes(fastify: FastifyInstance) {
       },
     };
 
-    const statusCode = response.status === "ok" ? 200 : response.status === "degraded" ? 200 : 503;
+    const statusCode = dbHealth ? 200 : 503;
 
     return reply.status(statusCode).send(response);
   });
