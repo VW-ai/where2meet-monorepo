@@ -3,8 +3,8 @@
  * Converts addresses to coordinates using Google Places API
  */
 
-import type { Location } from '@/types';
-import { getPlaceDetails } from '@/lib/google-maps/places-autocomplete';
+import type { Location } from '@/shared/types/map';
+import { getPlaceDetails } from '@/shared/lib/google-maps/places-autocomplete';
 
 /**
  * Get coordinates for an address using Google Places API

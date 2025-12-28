@@ -7,7 +7,8 @@
  * - GET /api/venues/:id - Get venue details
  */
 
-import { VenueSearchRequest, VenueSearchResponse, Venue } from '@/types';
+import { Venue } from '@/entities';
+import { VenueSearchRequest, VenueSearchResponse } from '@/shared/types/api';
 import { backendCall } from './client';
 
 /**

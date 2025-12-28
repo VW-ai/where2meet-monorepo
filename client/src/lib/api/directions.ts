@@ -5,7 +5,7 @@
  * Calls backend directly at http://localhost:3000
  */
 
-import type { TravelMode, Distance, Duration } from '@/types';
+import type { TravelMode, Distance, Duration } from '@/shared/types/map';
 import { backendCall } from './client';
 
 /**

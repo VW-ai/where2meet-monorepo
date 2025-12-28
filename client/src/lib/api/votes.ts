@@ -16,7 +16,7 @@ import type {
   CastVoteResponse,
   RemoveVoteResponse,
   VoteStatisticsResponse,
-} from '@/types/api';
+} from '@/shared/types/api';
 
 export const votesApi = {
   /**

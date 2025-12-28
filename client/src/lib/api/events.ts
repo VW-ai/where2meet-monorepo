@@ -5,7 +5,8 @@
  * Calls backend directly at http://localhost:3000
  */
 
-import { Event, CreateEventDTO, UpdateEventDTO } from '@/types';
+import { Event, CreateEventDTO, UpdateEventDTO } from '@/entities';
+import { ParticipantResponse } from '@/entities/participant/types';
 import { backendCall } from './client';
 
 export const eventsApi = {
@@ -47,6 +48,15 @@ export const eventsApi = {
   unpublish: (id: string, token: string) =>
     backendCall<Event>(`/api/events/${id}/publish`, {
       method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  /**
+   * Get the current participant's information for this event
+   * Returns participant details with isOrganizer flag for role detection
+   */
+  getMe: (id: string, token: string) =>
+    backendCall<ParticipantResponse>(`/api/events/${id}/me`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
 };

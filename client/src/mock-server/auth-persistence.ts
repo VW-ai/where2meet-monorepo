@@ -9,7 +9,7 @@ import {
   PasswordResetTokensData,
   OAuthStatesData,
   OAuthState,
-} from '@/types/user';
+} from '@/features/auth/types';
 
 const MOCK_DATA_DIR = path.join(process.cwd(), '.mock-data');
 

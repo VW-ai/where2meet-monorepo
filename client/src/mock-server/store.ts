@@ -5,8 +5,9 @@
  * Simulates backend database and API operations
  */
 
-import { Event, Participant, Location } from '@/types';
-import { LegacyVenue } from '@/types/venue';
+import { Event, Participant } from '@/entities';
+import { Location } from '@/shared/types/map';
+import { LegacyVenue } from '@/entities';
 import { MOCK_VENUES } from './data/venues';
 import { geocodeAddress, calculateDistance } from './services/geocoding';
 import { loadDataSync, saveData, saveDataSync } from './services/persistence';

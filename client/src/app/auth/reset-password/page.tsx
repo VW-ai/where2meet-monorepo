@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { api } from '@/lib/api';
+import { authClient } from '@/features/auth/api';
 import catLogo from '@/components/cat/image.png';
 
 function ResetPasswordForm() {
@@ -52,7 +52,7 @@ function ResetPasswordForm() {
     }
 
     try {
-      await api.auth.resetPassword({ token, newPassword });
+      await authClient.resetPassword({ token, newPassword });
       setIsSuccess(true);
       setTimeout(() => {
         router.push('/auth/signin');

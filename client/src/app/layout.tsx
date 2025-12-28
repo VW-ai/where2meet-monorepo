@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { SessionProvider } from '@/components/auth/session-provider';
+import { SessionProvider } from '@/features/auth/ui/session-provider';
 
 export const metadata: Metadata = {
   title: 'Where2Meet - Find the Perfect Meeting Spot',

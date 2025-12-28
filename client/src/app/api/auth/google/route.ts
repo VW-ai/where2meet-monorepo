@@ -1,25 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { authPersistence } from '@/mock-server/auth-persistence';
+/**
+ * Google OAuth Initiation API Route
+ * GET /api/auth/google - Initiate Google OAuth flow
+ */
 
-export async function GET(request: NextRequest) {
-  try {
-    // Get redirect URL from query params (where to send user after OAuth completes)
-    const redirectUrl = request.nextUrl.searchParams.get('redirect') || '/dashboard';
+import { handleGoogleOAuth } from '@/features/auth/api/handlers/oauth-google';
 
-    // Create OAuth state token for CSRF protection
-    const oauthState = await authPersistence.createOAuthState('google', redirectUrl);
-
-    // Redirect to mock OAuth consent page
-    const mockOAuthUrl = new URL('/auth/oauth-mock', request.url);
-    mockOAuthUrl.searchParams.set('provider', 'google');
-    mockOAuthUrl.searchParams.set('state', oauthState.state);
-
-    return NextResponse.redirect(mockOAuthUrl);
-  } catch (error) {
-    console.error('Error initiating Google OAuth:', error);
-    return NextResponse.json(
-      { error: { code: 'OAUTH_ERROR', message: 'Failed to initiate OAuth' } },
-      { status: 500 }
-    );
-  }
-}
+export { handleGoogleOAuth as GET };

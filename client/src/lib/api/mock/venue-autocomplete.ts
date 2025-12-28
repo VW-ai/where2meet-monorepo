@@ -1,4 +1,4 @@
-import type { LegacyVenue } from '@/types/venue';
+import type { LegacyVenue } from '@/entities';
 
 /**
  * Mock NYC venues database for autocomplete search

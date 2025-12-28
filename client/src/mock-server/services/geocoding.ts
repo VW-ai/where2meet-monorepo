@@ -5,7 +5,7 @@
  * Can use Google Maps API or mock data
  */
 
-import { Location, GeocodeResult } from '@/types';
+import { Location, GeocodeResult } from '@/shared/types/map';
 
 const USE_GOOGLE_MAPS = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 

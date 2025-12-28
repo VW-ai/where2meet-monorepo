@@ -3,7 +3,7 @@
  * @deprecated Uses LegacyVenue format - backend now returns different structure
  */
 
-import { LegacyVenue } from '@/types/venue';
+import { LegacyVenue } from '@/entities';
 
 export const MOCK_VENUES: LegacyVenue[] = [
   // Cafes

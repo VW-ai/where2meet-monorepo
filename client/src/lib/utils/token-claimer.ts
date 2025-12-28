@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { authClient } from '@/features/auth/api';
 
 export interface UnclaimedToken {
   eventId: string;
@@ -64,7 +64,7 @@ export async function claimAllTokens(tokens: UnclaimedToken[]): Promise<ClaimRes
     tokens.map(async (token) => {
       try {
         // Call API to claim token
-        await api.auth.claimToken({
+        await authClient.claimToken({
           eventId: token.eventId,
           token: token.token,
           tokenType: token.tokenType,

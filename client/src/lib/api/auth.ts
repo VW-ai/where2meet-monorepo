@@ -1,5 +1,5 @@
 import { apiCall } from './client'; // Use apiCall for Next.js API routes
-import { User, RegisterDTO, LoginDTO, ClaimTokenDTO } from '@/types/user';
+import { User, RegisterDTO, LoginDTO, ClaimTokenDTO } from '@/features/auth/types';
 
 export const authApi = {
   register: (data: RegisterDTO) =>

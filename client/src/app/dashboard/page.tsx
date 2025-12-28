@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuthStore } from '@/store/auth-store';
-import { api } from '@/lib/api';
-import { Event } from '@/types';
-import { EventCard } from '@/components/dashboard/event-card';
-import { ClaimEventsBanner } from '@/components/dashboard/claim-events-banner';
-import { LikedVenuesSection } from '@/components/dashboard/liked-venues-section';
+import { useAuthStore } from '@/features/auth/model/auth-store';
+import { userClient } from '@/features/user/api';
+import { Event } from '@/entities';
+import { EventCard } from '@/features/dashboard/ui/event-card';
+import { ClaimEventsBanner } from '@/features/dashboard/ui/claim-events-banner';
+import { LikedVenuesSection } from '@/features/dashboard/ui/liked-venues-section';
 import catLogo from '@/components/cat/image.png';
 
 export default function DashboardPage() {
@@ -19,7 +19,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadEvents() {
       try {
-        const userEvents = await api.users.getEvents();
+        const userEvents = await userClient.getEvents();
         setEvents(userEvents);
       } catch (error) {
         console.error('Error loading events:', error);

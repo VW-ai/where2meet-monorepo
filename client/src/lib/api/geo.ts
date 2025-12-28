@@ -5,7 +5,7 @@
  * These may remain as Next.js routes since they proxy to Google Maps API
  */
 
-import { DirectionsRequest } from '@/types';
+import { DirectionsRequest } from '@/shared/types/api';
 import { apiCall } from './client';
 
 export const geoApi = {

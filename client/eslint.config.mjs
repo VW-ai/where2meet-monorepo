@@ -24,6 +24,17 @@ const eslintConfig = [
       "no-console": ["warn", { "allow": ["warn", "error"] }],
       "prefer-const": "error",
       "@typescript-eslint/no-explicit-any": "error",
+      "no-restricted-imports": [
+        "error",
+        {
+          "patterns": [
+            {
+              "group": ["@/lib/api/*"],
+              "message": "Import from feature API client (e.g., @/features/auth/api, @/features/user/api, @/features/meeting/api, @/features/voting/api)"
+            }
+          ]
+        }
+      ],
     }
   }
 ];

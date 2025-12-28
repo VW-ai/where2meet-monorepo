@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { api } from '@/lib/api';
+import { authClient } from '@/features/auth/api';
 import catLogo from '@/components/cat/image.png';
 
 export default function ForgotPasswordPage() {
@@ -18,7 +18,7 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      await api.auth.requestPasswordReset(email);
+      await authClient.requestPasswordReset(email);
       setIsSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send reset email');

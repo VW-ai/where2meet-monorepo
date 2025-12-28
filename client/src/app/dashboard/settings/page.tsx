@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuthStore } from '@/store/auth-store';
-import { AddressAutocomplete } from '@/components/shared/address-autocomplete';
-import { reverseGeocode } from '@/lib/google-maps/geocoding';
-import { OAuthButton } from '@/components/auth/oauth-button';
-import { OAUTH_PROVIDERS } from '@/lib/oauth-providers';
+import { useAuthStore } from '@/features/auth/model/auth-store';
+import { AddressAutocomplete } from '@/shared/ui/address-autocomplete';
+import { reverseGeocode } from '@/shared/lib/google-maps/geocoding';
+import { OAuthButton } from '@/features/auth/ui/oauth-button';
+import { OAUTH_PROVIDERS } from '@/features/auth/lib/oauth-providers';
+import { userClient } from '@/features/user/api';
 import catLogo from '@/components/cat/image.png';
 
 interface Identity {
@@ -42,14 +43,8 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchIdentities = async () => {
       try {
-        const response = await fetch('/api/users/me/identities', {
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setIdentities(data.identities);
-        }
+        const data = await userClient.getIdentities();
+        setIdentities(data.identities);
       } catch (error) {
         console.error('Error fetching identities:', error);
       } finally {
@@ -72,30 +67,16 @@ export default function SettingsPage() {
     setUnlinkingProvider(provider);
 
     try {
-      const response = await fetch('/api/users/me/identities/unlink', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ provider }),
-      });
+      await userClient.unlinkIdentity(provider);
 
-      if (response.ok) {
-        // Refresh identities
-        const identitiesResponse = await fetch('/api/users/me/identities', {
-          credentials: 'include',
-        });
-        if (identitiesResponse.ok) {
-          const data = await identitiesResponse.json();
-          setIdentities(data.identities);
-        }
-        setSaveMessage(
-          `${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected successfully!`
-        );
-        setTimeout(() => setSaveMessage(''), 3000);
-      } else {
-        const error = await response.json();
-        setSaveMessage(error.error?.message || 'Failed to disconnect provider');
-      }
+      // Refresh identities
+      const data = await userClient.getIdentities();
+      setIdentities(data.identities);
+
+      setSaveMessage(
+        `${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected successfully!`
+      );
+      setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
       console.error('Error unlinking provider:', error);
       setSaveMessage('Failed to disconnect provider. Please try again.');

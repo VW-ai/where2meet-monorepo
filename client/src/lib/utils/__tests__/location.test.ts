@@ -9,7 +9,7 @@ import {
   calculateDistance,
   formatDistance,
 } from '../location';
-import type { Location } from '@/types';
+import type { Location } from '@/shared/types/map';
 
 describe('applyFuzzyOffset', () => {
   it('should apply offset to coordinates', () => {

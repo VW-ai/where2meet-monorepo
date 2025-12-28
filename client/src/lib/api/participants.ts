@@ -10,7 +10,7 @@ import {
   UpdateParticipantDTO,
   ParticipantResponse,
   Participant,
-} from '@/types';
+} from '@/entities';
 import { backendCall } from './client';
 
 export const participantsApi = {

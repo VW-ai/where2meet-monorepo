@@ -4,13 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import catLogo from '@/components/cat/image.png';
-import { HeroInput } from '@/components/landing/hero-input';
-import { ActionButtons } from '@/components/landing/action-buttons';
-import { api } from '@/lib/api';
-import { useUIStore } from '@/store/ui-store';
-import { useAuthStore } from '@/store/auth-store';
-import { SignInButton } from '@/components/header/sign-in-button';
-import { UserMenu } from '@/components/header/user-menu';
+import { HeroInput } from '@/features/landing/ui/hero-input';
+import { ActionButtons } from '@/features/landing/ui/action-buttons';
+import { eventClient } from '@/features/meeting/api';
+import { useAuthStore } from '@/features/auth/model/auth-store';
+import { SignInButton } from '@/features/auth/ui/sign-in-button';
+import { UserMenu } from '@/features/auth/ui/user-menu';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -34,15 +33,29 @@ export default function LandingPage() {
 
     try {
       // Calls backend directly, returns event with UUID from backend
-      const event = await api.events.create({
+      const event = await eventClient.create({
         title,
         meetingTime: new Date(meetingTime).toISOString(),
       });
 
       // Store organizer token and participant ID for organizer actions
-      if (event.organizerToken && event.organizerParticipantId) {
-        const { setOrganizerInfo } = useUIStore.getState();
-        setOrganizerInfo(event.id, event.organizerToken, event.organizerParticipantId);
+      if (event.participantToken && event.organizerParticipantId) {
+        console.log('[LandingPage] Storing organizer credentials:', {
+          eventId: event.id,
+          hasToken: !!event.participantToken,
+          hasParticipantId: !!event.organizerParticipantId,
+        });
+        const { setOrganizerInfo } = useAuthStore.getState();
+        setOrganizerInfo(event.id, event.participantToken, event.organizerParticipantId);
+        console.log('[LandingPage] Auth store after setOrganizerInfo:', {
+          isOrganizerMode: useAuthStore.getState().isOrganizerMode,
+          hasOrganizerToken: !!useAuthStore.getState().organizerToken,
+        });
+      } else {
+        console.error('[LandingPage] Missing credentials in event response:', {
+          hasParticipantToken: !!event.participantToken,
+          hasOrganizerParticipantId: !!event.organizerParticipantId,
+        });
       }
 
       router.push(`/meet/${event.id}`);

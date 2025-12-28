@@ -2,16 +2,18 @@
 
 import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Header } from '@/components/header';
-import { Sidebar } from '@/components/sidebar';
-import { MapArea } from '@/components/map';
-import { VenueInfo } from '@/components/sidebar/venue/venue-info';
-import { ParticipantStats } from '@/components/sidebar/participant/participant-stats';
-import { ModalProvider } from '@/components/modals';
-import { useMeetingStore } from '@/store/useMeetingStore';
-import { useUIStore } from '@/store/ui-store';
-import { api } from '@/lib/api';
-import { useEventStream } from '@/hooks/useEventStream';
+import { Header } from '@/features/meeting/ui/header';
+import { Sidebar } from '@/features/meeting/ui/sidebar';
+import { MapArea } from '@/features/meeting/ui/map';
+import { VenueInfo } from '@/features/meeting/ui/sidebar/venue-info';
+import { ParticipantStats } from '@/features/meeting/ui/sidebar/participant-stats';
+import { ModalProvider } from '@/features/meeting/ui/modals';
+import { useMeetingStore } from '@/features/meeting/model/meeting-store';
+import { useParticipantStore } from '@/features/meeting/model/participant-store';
+import { useAuthStore } from '@/features/auth/model/auth-store';
+import { useVotingStore } from '@/features/voting/model/voting-store';
+import { eventClient } from '@/features/meeting/api';
+import { useEventStream } from '@/features/meeting/hooks/useEventStream';
 
 export default function MeetPage() {
   const params = useParams();
@@ -23,10 +25,11 @@ export default function MeetPage() {
     setEventError,
     isLoadingEvent,
     eventError,
-    loadVoteStatistics,
   } = useMeetingStore();
-  const { initializeOrganizerMode, initializeParticipantMode, organizerToken, participantToken } =
-    useUIStore();
+  const { loadVoteStatistics, setMyParticipantId } = useVotingStore();
+   const { initializeOrganizerMode, initializeParticipantMode, organizerToken, participantToken, organizerParticipantId, currentParticipantId } =
+    useAuthStore();
+  const { setParticipants } = useParticipantStore();
 
   // Get authentication token (prefer organizer token, fallback to participant token)
   const token = organizerToken || participantToken || null;
@@ -39,6 +42,43 @@ export default function MeetPage() {
     }
   }, [eventId, initializeOrganizerMode, initializeParticipantMode]);
 
+  // Set participant ID for voting (organizer's participant ID takes precedence)
+  useEffect(() => {
+    const participantId = organizerParticipantId || currentParticipantId;
+    if (participantId) {
+      console.log('[MeetPage] Setting myParticipantId for voting:', participantId);
+      setMyParticipantId(participantId);
+    }
+  }, [organizerParticipantId, currentParticipantId, setMyParticipantId]);
+
+  // Restore user identity using /me endpoint after page refresh
+  useEffect(() => {
+    async function restoreIdentity() {
+      if (!eventId || !token) return;
+
+      try {
+        const participant = await eventClient.getMe(eventId, token);
+        console.log('[MeetPage] Restored participant identity:', {
+          id: participant.id,
+          name: participant.name,
+          isOrganizer: participant.isOrganizer,
+        });
+
+        // Update auth store with participant info if needed
+        // This ensures the participant ID is available for voting operations
+        const { setParticipantInfo } = useAuthStore.getState();
+        if (!participantToken && participant.participantToken) {
+          setParticipantInfo(eventId, participant.id, participant.participantToken);
+        }
+      } catch (error) {
+        console.error('[MeetPage] Failed to restore identity:', error);
+        // Silently fail - user may not have a token or it may be invalid
+      }
+    }
+
+    restoreIdentity();
+  }, [eventId, token, participantToken]);
+
   // Connect to SSE stream for real-time updates
   // Trigger snapshot reconciliation on (re)connect to prevent drift
   useEventStream(eventId, token, {
@@ -46,9 +86,20 @@ export default function MeetPage() {
       console.log(
         '[SSE] Connection established - loading vote statistics snapshot for reconciliation'
       );
-      loadVoteStatistics();
+      loadVoteStatistics(eventId);
     },
   });
+
+  // Sync participants from event to participant store
+  useEffect(() => {
+    if (!currentEvent?.participants) {
+      return;
+    }
+
+    // Sync participants to participant store for SSE updates and UI rendering
+    console.log('[MeetPage] Syncing participants to store:', currentEvent.participants.length);
+    setParticipants(currentEvent.participants);
+  }, [currentEvent, setParticipants]);
 
   // Load initial vote statistics once event is loaded
   // Real-time updates are handled via SSE connection
@@ -58,7 +109,7 @@ export default function MeetPage() {
     }
 
     // Load initial vote statistics
-    loadVoteStatistics();
+    loadVoteStatistics(eventId);
   }, [eventId, currentEvent, loadVoteStatistics]);
 
   useEffect(() => {
@@ -68,7 +119,7 @@ export default function MeetPage() {
       try {
         setLoadingEvent(true);
         setEventError(null);
-        const event = await api.events.get(eventId);
+        const event = await eventClient.get(eventId);
         setCurrentEvent(event);
       } catch (error) {
         console.error('Failed to load event:', error);
