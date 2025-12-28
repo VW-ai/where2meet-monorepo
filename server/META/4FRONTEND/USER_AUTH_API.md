@@ -1,6 +1,8 @@
 # User Authentication & Management API Guide
 
-This guide documents the new user authentication system (Milestone 8) for frontend integration.
+> **Last verified:** 2025-12-27 against codebase (Milestone 8 complete)
+
+This guide documents the user authentication system (Milestone 8) for frontend integration.
 
 ## Overview
 
@@ -88,7 +90,7 @@ interface AuthResponse {
 ```
 
 **Errors:**
-- `400` - Invalid email format or password too short
+- `400` - Invalid email format or password too short (`VALIDATION_ERROR`)
 - `409` - Email already registered (`EMAIL_EXISTS`)
 
 **Example:**
@@ -137,6 +139,7 @@ interface AuthResponse {
 ```
 
 **Errors:**
+- `400` - Invalid input format (`VALIDATION_ERROR`)
 - `401` - Invalid credentials (`INVALID_CREDENTIALS`)
 
 **Example:**
@@ -256,7 +259,7 @@ interface UserResponse {
 ```
 
 **Errors:**
-- `401` - Not authenticated
+- `401` - Not authenticated (`UNAUTHORIZED`)
 
 ---
 
@@ -282,8 +285,8 @@ interface UserResponse { /* same as GET */ }
 ```
 
 **Errors:**
-- `400` - Empty body or invalid data
-- `401` - Not authenticated
+- `400` - Empty body or invalid data (`VALIDATION_ERROR`)
+- `401` - Not authenticated (`UNAUTHORIZED`)
 
 **Example:**
 ```typescript
@@ -310,6 +313,9 @@ await fetch('/api/users/me', {
 List all events linked to the current user.
 
 **Request:** None (uses cookie)
+
+**Errors:**
+- `401` - Not authenticated (`UNAUTHORIZED`)
 
 **Response (200 OK):**
 ```typescript
@@ -381,10 +387,10 @@ interface ClaimEventResponse {
 ```
 
 **Errors:**
-- `400` - Invalid event ID format
-- `401` - Not authenticated
+- `400` - Invalid event ID or token format (`VALIDATION_ERROR`)
+- `401` - Not authenticated (`UNAUTHORIZED`)
 - `403` - Invalid participant token (`FORBIDDEN`)
-- `404` - Event not found
+- `404` - Event not found (`EVENT_NOT_FOUND`)
 
 **Example:**
 ```typescript
@@ -518,9 +524,12 @@ interface ApiError {
 }
 
 type AuthErrorCode =
-  | "EMAIL_EXISTS"         // 409 - Registration
-  | "INVALID_CREDENTIALS"  // 401 - Login
-  | "UNAUTHORIZED";        // 401 - Session expired
+  | "EMAIL_EXISTS"         // 409 - Registration (email already taken)
+  | "INVALID_CREDENTIALS"  // 401 - Login (wrong email/password)
+  | "UNAUTHORIZED"         // 401 - Session expired or missing
+  | "VALIDATION_ERROR"     // 400 - Invalid input format
+  | "FORBIDDEN"            // 403 - Invalid participant token
+  | "EVENT_NOT_FOUND";     // 404 - Event doesn't exist
 ```
 
 ---
@@ -599,7 +608,7 @@ async function updateProfile(data: object) {
   return fetch('/api/users/me', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include'  // Session cookie
+    credentials: 'include',  // Session cookie
     body: JSON.stringify(data)
   });
 }
