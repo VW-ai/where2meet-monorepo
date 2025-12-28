@@ -1,11 +1,27 @@
 import type { Metadata } from 'next';
 
 /**
+ * Normalize URL to ensure it has a protocol
+ * Handles cases where env var might be set without https://
+ */
+function normalizeUrl(url: string | undefined): string {
+  if (!url) return 'https://where2meet.com';
+
+  // If URL already has protocol, return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  // Add https:// protocol if missing
+  return `https://${url}`;
+}
+
+/**
  * Base site configuration for SEO
  */
 export const SITE_CONFIG = {
   name: 'Where2Meet',
-  url: process.env.NEXT_PUBLIC_APP_URL || 'https://where2meet.com',
+  url: normalizeUrl(process.env.NEXT_PUBLIC_APP_URL),
   description:
     'Find the perfect meeting spot for everyone. Compare travel times, visualize locations on a map, and discover ideal venues for your group meetings.',
   keywords: [
