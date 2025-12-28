@@ -28,7 +28,6 @@
 │  id                     VARCHAR(64)  PK (semantic ID)   │
 │  title                  VARCHAR(100)    NOT NULL        │
 │  meeting_time           TIMESTAMP       NULL            │
-│  organizer_token_hash   VARCHAR(64)     NOT NULL        │
 │  organizer_participant_id UUID         FK -> Participant│
 │  published_venue_id     VARCHAR(255)    NULL            │
 │  published_at           TIMESTAMP       NULL            │
@@ -42,8 +41,7 @@
 | `id` | VARCHAR(64) | 主键，语义化 ID (格式: `evt_<timestamp>_<random16>`) |
 | `title` | VARCHAR(100) | 活动标题 |
 | `meeting_time` | TIMESTAMP | 预计见面时间（可为空） |
-| `organizer_token_hash` | VARCHAR(64) | 组织者令牌哈希（用于编辑权限） |
-| `organizer_participant_id` | UUID | 组织者参与者 ID（用于投票） |
+| `organizer_participant_id` | UUID | 组织者参与者 ID（用于投票和权限验证） |
 | `published_venue_id` | VARCHAR(255) | 已发布的场所 ID（Google Place ID） |
 | `published_at` | TIMESTAMP | 发布时间 |
 | `created_at` | TIMESTAMP | 创建时间 |
@@ -53,7 +51,8 @@
 - `published_venue_id` 存 Google Place ID，不存完整 venue 信息
 - 不存 MEC（从 participants 实时计算）
 - `organizer_participant_id` 指向自动创建的组织者参与者，用于投票
-- 创建活动时自动创建组织者参与者（isOrganizer=true，无位置信息）
+- 创建活动时自动创建组织者参与者（isOrganizer=true，拥有 tokenHash）
+- 组织者权限通过 Participant.isOrganizer 标志确定，不再使用独立的 organizerTokenHash
 
 ---
 
@@ -90,7 +89,7 @@
 | `fuzzy_location` | BOOLEAN | 是否模糊位置 |
 | `color` | VARCHAR(20) | 显示颜色（如 "coral"） |
 | `is_organizer` | BOOLEAN | 是否为组织者参与者 |
-| `token_hash` | VARCHAR(64) | 参与者令牌哈希（SHA-256），用于自助管理 |
+| `token_hash` | VARCHAR(64) | 参与者令牌哈希（SHA-256），用于认证。组织者和自行加入者有此令牌，组织者添加的参与者为空 |
 | `created_at` | TIMESTAMP | 创建时间 |
 
 **说明**：
@@ -100,6 +99,7 @@
 - 如果 fuzzy_location=true，存储的是偏移后的坐标
 - `is_organizer=true` 的参与者在创建活动时自动创建，无需提供位置信息
 - 组织者参与者若 lat/lng 为 NULL 则不会计入 MEC；当组织者添加了位置后，将计入 MEC 计算
+- 组织者通过 `token_hash` 认证，权限由 `is_organizer` 标志确定
 
 ---
 
@@ -274,8 +274,7 @@ CREATE INDEX idx_vote_venue_id ON vote(venue_id);
 ## 五、约束
 
 ```sql
--- Event
-ALTER TABLE event ADD CONSTRAINT unique_organizer_token UNIQUE (organizer_token);
+-- Event（无需单独的令牌约束，认证通过 Participant.tokenHash）
 
 -- Participant
 ALTER TABLE participant ADD CONSTRAINT fk_participant_event
@@ -318,7 +317,7 @@ ALTER TABLE vote ADD CONSTRAINT unique_vote
 │ title        │                                           │
 │ meeting_time │                                           │
 │ organizer_   │                                           │
-│   token      │                                           │
+│   part_id    │                                           │
 │ published_   │                                           │
 │   venue_id   │                                           │
 │ published_at │                                           │
@@ -375,11 +374,13 @@ ALTER TABLE vote ADD CONSTRAINT unique_vote
 ```
 输入: { title, meetingTime }
   ↓
-生成: id = evt_<timestamp>_<random16>, organizer_token = random(64)
+生成: id = evt_<timestamp>_<random16>, participantToken = pt_<random64>
   ↓
-INSERT INTO event (id, title, meeting_time, organizer_token)
+创建 Participant (isOrganizer=true, tokenHash=SHA256(participantToken))
   ↓
-返回: { id, title, meetingTime, organizerToken }
+INSERT INTO event (id, title, meeting_time, organizer_participant_id)
+  ↓
+返回: { id, title, meetingTime, participantToken, organizerParticipantId }
 ```
 
 ### 添加参与者
@@ -413,9 +414,9 @@ SELECT * FROM participant WHERE event_id = ?
 ### 发布场所
 
 ```
-输入: { eventId, venueId, organizerToken }
+输入: { eventId, venueId, participantToken }
   ↓
-验证 organizer_token
+验证 participantToken 对应 isOrganizer=true 的参与者
   ↓
 UPDATE event SET published_venue_id = ?, published_at = NOW()
   ↓

@@ -24,7 +24,7 @@ import {
 import { getPlaceDetails, buildPhotoUrl, PlacesApiError } from "../lib/places/index.js";
 import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
 import { createLogger } from "../lib/logger.js";
-import { generateOrganizerToken, verifyToken } from "../utils/token.js";
+import { generateParticipantToken } from "../utils/token.js";
 import { PARTICIPANT_COLORS } from "../utils/colors.js";
 import { calculateMEC, type GeoPoint, type MECResult } from "../utils/mec.js";
 
@@ -32,11 +32,11 @@ const logger = createLogger("EventService");
 
 /**
  * Result of creating an event.
- * Includes the entity, organizerToken, and organizerParticipantId.
+ * Includes the entity, participantToken (for organizer), and organizerParticipantId.
  */
 export interface CreateEventResult {
   event: EventWithParticipants;
-  organizerToken: string;
+  participantToken: string;
   organizerParticipantId: string;
 }
 
@@ -62,28 +62,27 @@ export class EventService {
    * once they add a location).
    * Uses repository with ID collision retry logic.
    * @param input - Event creation data
-   * @returns Created event entity, organizerToken, and organizerParticipantId
+   * @returns Created event entity, participantToken, and organizerParticipantId
    */
   async createEvent(input: CreateEventInput): Promise<CreateEventResult> {
-    const { token: organizerToken, hash: organizerTokenHash } = generateOrganizerToken();
+    const { token: participantToken, hash: tokenHash } = generateParticipantToken();
 
     // Use repository method with ID collision retry logic
     const result = await this.repository.createWithOrganizerParticipant(
       {
         title: input.title,
         meetingTime: input.meetingTime,
-        organizerTokenHash,
       },
       {
         name: "Organizer",
         color: PARTICIPANT_COLORS[0],
-        tokenHash: organizerTokenHash,
+        tokenHash,
       }
     );
 
     return {
       event: result.event,
-      organizerToken,
+      participantToken,
       organizerParticipantId: result.organizerParticipantId,
     };
   }
@@ -132,23 +131,6 @@ export class EventService {
     }
 
     await this.repository.delete(id);
-  }
-
-  /**
-   * Verifies that a token matches the event's organizerToken.
-   * @param eventId - Event ID
-   * @param token - Plaintext token to verify
-   * @returns True if token is valid
-   * @throws EventNotFoundError if event doesn't exist
-   */
-  async verifyOrganizerToken(eventId: string, token: string): Promise<boolean> {
-    const storedHash = await this.repository.getTokenHash(eventId);
-
-    if (storedHash === null) {
-      throw new EventNotFoundError(eventId);
-    }
-
-    return verifyToken(token, storedHash);
   }
 
   /**

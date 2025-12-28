@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { VenueService } from "../../src/services/venue.js";
-import type { PrismaClient } from "../../src/generated/prisma/index.js";
+import type { PrismaClient } from "@prisma/client";
 import { ExternalServiceError } from "../../src/types/errors.js";
 import type { GeoPoint } from "../../src/types/geo.js";
 

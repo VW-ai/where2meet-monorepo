@@ -72,7 +72,7 @@ export function directionsRoutes(fastify: FastifyInstance): void {
    * - travelMode: driving | walking | transit | bicycling (default: driving)
    * - participantId: UUID (optional - for single participant route)
    *
-   * Authentication: Requires organizerToken OR participantToken
+   * Authentication: Requires valid participant token
    */
   fastify.get(
     "/api/events/:id/venues/:venueId/directions",

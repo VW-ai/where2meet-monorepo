@@ -118,7 +118,7 @@ export function toEventSettingsResponse(): EventSettingsResponse {
 /**
  * Transforms an Event entity to EventResponse DTO.
  * Validates output at runtime to ensure contract compliance.
- * Does NOT include organizerToken.
+ * Does NOT include tokens.
  */
 export function toEventResponse(entity: EventWithParticipants): EventResponse {
   const response = {
@@ -140,11 +140,11 @@ export function toEventResponse(entity: EventWithParticipants): EventResponse {
 /**
  * Transforms an Event entity to CreateEventResponse DTO.
  * Validates output at runtime to ensure contract compliance.
- * Includes organizerToken and organizerParticipantId (only used after creation).
+ * Includes participantToken (for organizer) and organizerParticipantId (only used after creation).
  */
 export function toCreateEventResponse(
   entity: EventWithParticipants,
-  organizerToken: string,
+  participantToken: string,
   organizerParticipantId: string
 ): CreateEventResponse {
   const response = {
@@ -158,7 +158,7 @@ export function toCreateEventResponse(
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString(),
     settings: toEventSettingsResponse(),
-    organizerToken,
+    participantToken,
     organizerParticipantId,
   };
 

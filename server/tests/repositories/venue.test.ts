@@ -4,8 +4,8 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { VenueRepository } from "../../src/repositories/venue.js";
-import type { PrismaClient, Venue } from "../../src/generated/prisma/index.js";
-import { Decimal } from "../../src/generated/prisma/runtime/library.js";
+import type { PrismaClient, Venue } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 /** Test Google Place ID */
 const TEST_PLACE_ID = "ChIJN1t_tDeuEmsRUsoyG83frY4";

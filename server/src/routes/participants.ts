@@ -2,9 +2,9 @@
  * Participant routes module.
  *
  * Provides API endpoints for participant CRUD operations.
- * Supports dual-token authentication:
- * - organizerToken: Full access to all participants
- * - participantToken: Self-access only (for PATCH/DELETE)
+ * Authentication is based on Participant.isOrganizer flag:
+ * - Organizer (isOrganizer=true): Full access to all participants
+ * - Non-organizer: Self-access only (for PATCH/DELETE)
  * @module routes/participants
  */
 
@@ -19,7 +19,7 @@ import {
 import { EventIdSchema } from "../schemas/event.js";
 import { toParticipantResponse, toCreateParticipantResponse } from "../mappers/event.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
-import { verifyOrganizerToken, createVerifyParticipantAccess } from "../hooks/auth.js";
+import { createVerifyToken, createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
 import type {
   ParticipantAddedPayload,
@@ -47,8 +47,8 @@ interface ParticipantParams extends EventParams {
  * - DELETE /api/events/:id/participants/:participantId - Remove a participant
  *
  * Authentication:
- * - POST: Optional organizerToken (no auth = self-registration with participantToken)
- * - PATCH/DELETE: organizerToken (any participant) or participantToken (self only)
+ * - POST: Optional token (no auth = self-registration with new participantToken)
+ * - PATCH/DELETE: Organizer can access any participant, non-organizer only self
  */
 export function participantRoutes(fastify: FastifyInstance): void {
   const participantService = createParticipantService(fastify.db);
@@ -59,14 +59,14 @@ export function participantRoutes(fastify: FastifyInstance): void {
    *
    * Authentication modes:
    * - No auth: Self-registration, returns participantToken for self-management
-   * - organizerToken: Organizer adds participant, no participantToken returned
+   * - With token (isOrganizer=true): Organizer adds participant, no token returned
    *
    * Fails if event is published.
    */
   fastify.post<{ Params: EventParams; Body: CreateParticipantInput }>(
     "/api/events/:id/participants",
     {
-      preHandler: [verifyOrganizerToken({ optional: true })],
+      preHandler: [createVerifyToken({ optional: true, requireOrganizer: true })],
     },
     async (
       request: FastifyRequest<{ Params: EventParams; Body: CreateParticipantInput }>,
@@ -126,8 +126,8 @@ export function participantRoutes(fastify: FastifyInstance): void {
    * Updates a participant's details.
    *
    * Authentication:
-   * - organizerToken: Can update any participant
-   * - participantToken: Can only update self
+   * - Organizer (isOrganizer=true): Can update any participant
+   * - Non-organizer: Can only update self
    *
    * Fails if event is published.
    */
@@ -184,8 +184,8 @@ export function participantRoutes(fastify: FastifyInstance): void {
    * Removes a participant from an event.
    *
    * Authentication:
-   * - organizerToken: Can delete any participant
-   * - participantToken: Can only delete self
+   * - Organizer (isOrganizer=true): Can delete any participant
+   * - Non-organizer: Can only delete self
    *
    * Fails if event is published.
    */

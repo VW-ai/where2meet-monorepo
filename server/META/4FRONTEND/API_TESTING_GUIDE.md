@@ -69,11 +69,12 @@ curl -X POST http://localhost:3000/api/events \
   "settings": {
     "allowParticipantsAfterPublish": false
   },
-  "organizerToken": "a1b2c3d4e5f6...64chars"
+  "participantToken": "pt_a1b2c3d4e5f6...64chars",
+  "organizerParticipantId": "uuid-of-organizer-participant"
 }
 ```
 
-**IMPORTANT**: Save the `organizerToken` - it's only returned once on creation!
+**IMPORTANT**: Save the `participantToken` - it's only returned once on creation!
 
 ### Create Event with Meeting Time
 
@@ -110,7 +111,7 @@ curl http://localhost:3000/api/events/{EVENT_ID}
 }
 ```
 
-Note: `organizerToken` is NOT included in GET responses.
+Note: `participantToken` is NOT included in GET responses.
 
 ### Update Event (Requires Auth)
 
@@ -201,7 +202,8 @@ interface EventResponse {
 
 // Create Event Response (POST /api/events)
 interface CreateEventResponse extends EventResponse {
-  organizerToken: string;        // 64-char token (SAVE THIS!)
+  participantToken: string;         // Token for auth (SAVE THIS!)
+  organizerParticipantId: string;   // UUID of organizer participant
 }
 
 // Participant (future milestone)
@@ -237,7 +239,7 @@ interface DeleteSuccessResponse {
 
 ### Happy Path Flow
 
-1. **Create Event** → Save `organizerToken` and `id`
+1. **Create Event** → Save `participantToken` and `id`
 2. **Get Event** → Verify event exists
 3. **Update Event** → Change title with auth
 4. **Get Event** → Verify title changed
@@ -290,6 +292,6 @@ interface DeleteSuccessResponse {
 
 - All timestamps are ISO 8601 format
 - Event IDs use semantic format: `evt_<timestamp>_<random16>` (e.g., `evt_1734001234567_aB3xK9mPqR7sNz2w`)
-- `organizerToken` is 64 characters (base62)
+- `participantToken` format: `pt_<64 hex chars>`
 - Participants array is empty until Milestone 3
 - `mec` (minimum enclosing circle) is calculated when participants have locations

@@ -61,7 +61,7 @@ function createMockPlaceDetails(overrides: Partial<{
 describe("Publish Endpoints", () => {
   let server: FastifyInstance;
   let testEventId: string;
-  let testOrganizerToken: string;
+  let testOrganizerParticipantToken: string;
   let testParticipantId: string;
   let testParticipantToken: string;
   const testVenueId = "ChIJ_valid_venue_id";
@@ -95,7 +95,7 @@ describe("Publish Endpoints", () => {
 
     const event = eventResponse.json();
     testEventId = event.id;
-    testOrganizerToken = event.organizerToken;
+    testOrganizerParticipantToken = event.participantToken;
 
     // Add a participant (self-registration to get participantToken)
     const participantResponse = await server.inject({
@@ -161,7 +161,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${nonExistentEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: testVenueId },
       });
 
@@ -173,7 +173,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/invalid-id/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: testVenueId },
       });
 
@@ -184,7 +184,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {},
       });
 
@@ -199,7 +199,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: "ChIJ_invalid_venue" },
       });
 
@@ -213,7 +213,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: testVenueId },
       });
 
@@ -232,7 +232,7 @@ describe("Publish Endpoints", () => {
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: testVenueId },
       });
 
@@ -240,7 +240,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: testVenueId },
       });
 
@@ -256,7 +256,7 @@ describe("Publish Endpoints", () => {
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: testVenueId },
       });
     });
@@ -297,7 +297,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(200);
@@ -312,14 +312,14 @@ describe("Publish Endpoints", () => {
       await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       // Second unpublish should fail
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(409);
@@ -351,7 +351,7 @@ describe("Publish Endpoints", () => {
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: testVenueId },
       });
     });
@@ -360,7 +360,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           name: "Bob",
           address: "456 Other St",
@@ -389,7 +389,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/participants/${testParticipantId}`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
 
       expect(response.statusCode).toBe(409);
@@ -428,13 +428,13 @@ describe("Publish Endpoints", () => {
       await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: { venueId: testVenueId },
       });
       await server.inject({
         method: "DELETE",
         url: `/api/events/${testEventId}/publish`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
       });
     });
 
@@ -442,7 +442,7 @@ describe("Publish Endpoints", () => {
       const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
-        headers: { Authorization: `Bearer ${testOrganizerToken}` },
+        headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
         payload: {
           name: "Bob",
           address: "456 Other St",

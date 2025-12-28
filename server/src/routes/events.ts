@@ -8,6 +8,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createEventService } from "../services/event.js";
+import { createParticipantService } from "../services/participant.js";
 import {
   CreateEventSchema,
   UpdateEventSchema,
@@ -24,9 +25,10 @@ import {
   toGetMECResponse,
 } from "../mappers/event.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
-import { verifyOrganizerToken } from "../hooks/auth.js";
+import { createVerifyToken } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
 import type { EventUpdatedPayload, EventPublishedPayload } from "../types/sse.js";
+import type { ParticipantMeResponse } from "../dto/participant.dto.js";
 import { createVenueService } from "../services/venue.js";
 
 /**
@@ -52,7 +54,7 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * POST /api/events
-   * Creates a new event and returns it with the organizerToken.
+   * Creates a new event and returns it with the participantToken for the organizer.
    */
   fastify.post("/api/events", async (request: CreateEventRequest, reply: FastifyReply) => {
     // Validate request body
@@ -61,17 +63,17 @@ export function eventRoutes(fastify: FastifyInstance): void {
       throw parseResult.error;
     }
 
-    const { event, organizerToken, organizerParticipantId } = await eventService.createEvent(
+    const { event, participantToken, organizerParticipantId } = await eventService.createEvent(
       parseResult.data
     );
-    const response = toCreateEventResponse(event, organizerToken, organizerParticipantId);
+    const response = toCreateEventResponse(event, participantToken, organizerParticipantId);
 
     return reply.status(201).send(response);
   });
 
   /**
    * GET /api/events/:id
-   * Returns event details without organizerToken.
+   * Returns event details (tokens are never included in GET).
    */
   fastify.get("/api/events/:id", async (request: GetEventRequest, reply: FastifyReply) => {
     // Validate params
@@ -85,6 +87,44 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
     return reply.send(response);
   });
+
+  /**
+   * GET /api/events/:id/me
+   * Returns the authenticated user's participant info.
+   * Used by frontend to determine user's role after page refresh.
+   */
+  fastify.get<{ Params: EventIdParam }>(
+    "/api/events/:id/me",
+    {
+      preHandler: [createVerifyToken()],
+    },
+    async (request, reply) => {
+      // Validate params
+      const parseResult = EventIdSchema.safeParse(request.params);
+      if (!parseResult.success) {
+        throw new ValidationError("Invalid event ID format");
+      }
+
+      const eventId = parseResult.data.id;
+      const { participantId, isOrganizer } = request.participantAuth!;
+
+      // Get full participant details
+      const participantService = createParticipantService(fastify.db);
+      const participant = await participantService.getParticipant(eventId, participantId);
+
+      const response: ParticipantMeResponse = {
+        participantId: participant.id,
+        name: participant.name,
+        isOrganizer,
+        color: participant.color,
+        address: participant.address,
+        lat: participant.lat ? Number(participant.lat) : null,
+        lng: participant.lng ? Number(participant.lng) : null,
+      };
+
+      return reply.send(response);
+    }
+  );
 
   /**
    * GET /api/events/:id/mec
@@ -106,12 +146,12 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * PATCH /api/events/:id
-   * Updates event fields. Requires organizerToken.
+   * Updates event fields. Requires organizer access.
    */
   fastify.patch<{ Params: { id: string }; Body: UpdateEventInput }>(
     "/api/events/:id",
     {
-      preHandler: [verifyOrganizerToken()],
+      preHandler: [createVerifyToken({ requireOrganizer: true })],
     },
     async (request, reply) => {
       // Validate params
@@ -155,12 +195,12 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * DELETE /api/events/:id
-   * Deletes an event. Requires organizerToken.
+   * Deletes an event. Requires organizer access.
    */
   fastify.delete<{ Params: { id: string } }>(
     "/api/events/:id",
     {
-      preHandler: [verifyOrganizerToken()],
+      preHandler: [createVerifyToken({ requireOrganizer: true })],
     },
     async (request, reply) => {
       // Validate params
@@ -177,12 +217,12 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * POST /api/events/:id/publish
-   * Publishes an event with the selected venue. Requires organizerToken.
+   * Publishes an event with the selected venue. Requires organizer access.
    */
   fastify.post<{ Params: { id: string }; Body: PublishEventInput }>(
     "/api/events/:id/publish",
     {
-      preHandler: [verifyOrganizerToken()],
+      preHandler: [createVerifyToken({ requireOrganizer: true })],
     },
     async (request, reply) => {
       // Validate params
@@ -242,12 +282,12 @@ export function eventRoutes(fastify: FastifyInstance): void {
 
   /**
    * DELETE /api/events/:id/publish
-   * Unpublishes an event. Requires organizerToken.
+   * Unpublishes an event. Requires organizer access.
    */
   fastify.delete<{ Params: { id: string } }>(
     "/api/events/:id/publish",
     {
-      preHandler: [verifyOrganizerToken()],
+      preHandler: [createVerifyToken({ requireOrganizer: true })],
     },
     async (request, reply) => {
       // Validate params

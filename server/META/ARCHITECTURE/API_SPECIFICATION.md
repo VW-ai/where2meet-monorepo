@@ -16,8 +16,8 @@
 | Event | /api/events/:id/publish | DELETE | 取消发布 |
 | Event | /api/events/:id/mec | GET | 获取最小外接圆 (MEC) |
 | Participant | /api/events/:id/participants | POST | 添加参与者（可选认证） |
-| Participant | /api/events/:id/participants/:participantId | PATCH | 更新参与者（双令牌） |
-| Participant | /api/events/:id/participants/:participantId | DELETE | 移除参与者（双令牌） |
+| Participant | /api/events/:id/participants/:participantId | PATCH | 更新参与者（统一令牌） |
+| Participant | /api/events/:id/participants/:participantId | DELETE | 移除参与者（统一令牌） |
 | Venue | /api/venues/search | POST | 搜索场所（用户指定中心点） |
 | Venue | /api/venues/:id | GET | 获取场所详情 |
 | Vote | /api/events/:id/participants/:participantId/votes | POST | 投票（仅自己） |
@@ -53,9 +53,9 @@
 
 | Hook | 负责事项 | 说明 |
 |------|----------|------|
-| `onRequest` | requestId 注入、基础日志、全局速率限制入口 | 结合 Pino，把 organizerToken、API Key 通过 `redact` 脱敏 |
+| `onRequest` | requestId 注入、基础日志、全局速率限制入口 | 结合 Pino，把 participantToken、API Key 通过 `redact` 脱敏 |
 | `preValidation` | 字符串 trim/normalize、幂等 key 解析、严格 schema | 建议使用 `fastify-type-provider-zod`，保持 schema 单一来源 |
-| `preHandler` | 鉴权/授权（如 organizerToken 校验）、RBAC、feature flag | 可针对 `/api/events/:id/*` 设专属 hook，集中校验 event 状态 |
+| `preHandler` | 鉴权/授权（如 participantToken 校验）、RBAC、feature flag | 可针对 `/api/events/:id/*` 设专属 hook，集中校验 event 状态 |
 | `onResponse` | latency/状态码指标、缓存命中统计 | 写入 Prometheus 计数器 + 结构化日志 |
 | `onSend` | 统一响应 envelope/headers（如 `Cache-Control`、`X-Request-Id`） | 需要时可在这里做 gzip、脱敏兜底 |
 
@@ -64,7 +64,7 @@
 ### 4. 额外生产级防护（推荐）
 
 - **资源关闭**：所有插件在 `onClose` 中优雅关闭，配合 `vitest`/`app.inject` 避免句柄泄漏。
-- **日志脱敏**：Pino `redact` 针对 `organizerToken`、地址、Google API Key 等敏感字段。
+- **日志脱敏**：Pino `redact` 针对 `participantToken`、地址、Google API Key 等敏感字段。
 - **Schema 单一来源**：Zod → JSON Schema（`fastify-type-provider-zod`）以便既做校验又生成类型/文档。
 - **测试首选 `app.inject`**：无需监听端口，直接注入请求，搭配自定义插件便于替换依赖。
 - **外部调用并发阀门**：对 Places/Directions 调用增加信号量/队列，防止瞬时压爆配额。
@@ -91,7 +91,7 @@ POST /api/events
 | id | string | 活动 ID (格式: `evt_<timestamp>_<random16>`) |
 | title | string | 活动标题 |
 | meetingTime | string \| null | 预计见面时间 |
-| organizerToken | string | 组织者令牌（仅创建时返回） |
+| participantToken | string | 参与者令牌（仅创建时返回，用于组织者身份验证） |
 | organizerParticipantId | string | 组织者参与者 ID（用于投票） |
 | participants | array | 参与者列表（包含组织者，isOrganizer=true） |
 | mec | object \| null | 最小外接圆（MEC），包含所有有位置的参与者 |
@@ -136,7 +136,7 @@ GET /api/events/:id
 | updatedAt | string | 更新时间 |
 | settings | object | 活动设置 |
 
-**注意**：不返回 organizerToken（防止泄露）
+**注意**：不返回 participantToken（防止泄露）
 
 **错误响应：**
 | 状态码 | code | 说明 |
@@ -155,7 +155,7 @@ PATCH /api/events/:id
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
 | id | URL Path | string | ✓ | 活动 ID |
-| Authorization | Header | string | ✓ | Bearer {organizerToken} |
+| Authorization | Header | string | ✓ | Bearer {participantToken}（需 isOrganizer=true） |
 | title | Body | string | - | 新标题 |
 | meetingTime | Body | string | - | 新时间（可置为 null） |
 
@@ -209,7 +209,7 @@ POST /api/events/:id/publish
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
 | id | URL Path | string | ✓ | 活动 ID |
-| Authorization | Header | string | ✓ | Bearer {organizerToken} |
+| Authorization | Header | string | ✓ | Bearer {participantToken}（需 isOrganizer=true） |
 | venueId | Body | string | ✓ | 要发布的场所 ID (Google Place ID) |
 
 **后端输出（成功 200）：**
@@ -271,7 +271,7 @@ DELETE /api/events/:id/publish
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
 | id | URL Path | string | ✓ | 活动 ID |
-| Authorization | Header | string | ✓ | Bearer {organizerToken} |
+| Authorization | Header | string | ✓ | Bearer {participantToken}（需 isOrganizer=true） |
 
 **后端输出（成功 200）：**
 
@@ -297,20 +297,20 @@ POST /api/events/:id/participants
 
 **说明**：统一端点，支持两种模式：
 - **无认证**：参与者自行加入（返回 participantToken）
-- **有 organizerToken**：组织者添加他人（不返回 participantToken）
+- **有 participantToken（isOrganizer=true）**：组织者添加他人（不返回 participantToken）
 
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
 | id | URL Path | string | ✓ | 活动 ID |
-| Authorization | Header | string | - | Bearer {organizerToken}（可选） |
+| Authorization | Header | string | - | Bearer {participantToken}（可选，需 isOrganizer=true） |
 | name | Body | string | ✓ | 参与者姓名，max 50 |
 | address | Body | string | ✓ | 地址（用户输入） |
 | fuzzyLocation | Body | boolean | - | 是否模糊位置，默认 false |
 
 **后端处理**：
 1. 验证活动存在且未发布
-2. 如有 Authorization header：验证 organizerToken（失败则 403）
+2. 如有 Authorization header：验证 participantToken 且 isOrganizer=true（失败则 403）
 3. 调用 Google Geocoding 获取坐标（内部服务）
 4. 如果 fuzzyLocation=true，对坐标添加随机偏移
 5. 分配颜色
@@ -334,7 +334,7 @@ POST /api/events/:id/participants
 |--------|------|------|
 | 400 | VALIDATION_ERROR | 缺少必填字段 |
 | 400 | ADDRESS_NOT_FOUND | 无法解析地址 |
-| 403 | FORBIDDEN | 无效的 organizerToken |
+| 403 | FORBIDDEN | 无效的 participantToken 或非组织者 |
 | 404 | EVENT_NOT_FOUND | 活动不存在 |
 | 409 | EVENT_ALREADY_PUBLISHED | 活动已发布，不能添加 |
 
@@ -346,22 +346,23 @@ POST /api/events/:id/participants
 PATCH /api/events/:id/participants/:participantId
 ```
 
-**说明**：支持双令牌认证 - 组织者可更新任何参与者，参与者只能更新自己。
+**说明**：统一令牌认证 - 组织者（isOrganizer=true）可更新任何参与者，非组织者只能更新自己。
 
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
 | id | URL Path | string | ✓ | 活动 ID |
 | participantId | URL Path | string | ✓ | 参与者 UUID |
-| Authorization | Header | string | ✓ | Bearer {organizerToken} 或 Bearer {participantToken} |
+| Authorization | Header | string | ✓ | Bearer {participantToken} |
 | name | Body | string | - | 新姓名 |
 | address | Body | string | - | 新地址（会触发重新 geocode） |
 | fuzzyLocation | Body | boolean | - | 是否模糊 |
 
 **认证逻辑**：
-1. 尝试验证为 organizerToken → 可更新任何参与者
-2. 尝试验证为 participantToken → 只能更新自己（participantId 必须匹配）
-3. 都不匹配 → 403 Forbidden
+1. 验证 participantToken 属于该活动
+2. 如果 isOrganizer=true → 可更新任何参与者
+3. 如果 isOrganizer=false → 只能更新自己（participantId 必须匹配）
+4. 不匹配 → 403 Forbidden
 
 **后端输出（成功 200）：**
 
@@ -384,19 +385,20 @@ PATCH /api/events/:id/participants/:participantId
 DELETE /api/events/:id/participants/:participantId
 ```
 
-**说明**：支持双令牌认证 - 组织者可删除任何参与者，参与者可删除自己（退出活动）。
+**说明**：统一令牌认证 - 组织者（isOrganizer=true）可删除任何参与者，非组织者可删除自己（退出活动）。
 
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
 |------|------|------|------|------|
 | id | URL Path | string | ✓ | 活动 ID |
 | participantId | URL Path | string | ✓ | 参与者 UUID |
-| Authorization | Header | string | ✓ | Bearer {organizerToken} 或 Bearer {participantToken} |
+| Authorization | Header | string | ✓ | Bearer {participantToken} |
 
 **认证逻辑**：
-1. 尝试验证为 organizerToken → 可删除任何参与者
-2. 尝试验证为 participantToken → 只能删除自己（participantId 必须匹配）
-3. 都不匹配 → 403 Forbidden
+1. 验证 participantToken 属于该活动
+2. 如果 isOrganizer=true → 可删除任何参与者（但不能删除自己）
+3. 如果 isOrganizer=false → 只能删除自己（participantId 必须匹配）
+4. 不匹配 → 403 Forbidden
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
@@ -501,7 +503,7 @@ GET /api/venues/:id
 POST /api/events/:id/participants/:participantId/votes
 ```
 
-**认证**：必须使用 `participantToken` 或 `organizerToken`，且只能为自己投票（participantId 必须匹配认证身份）。
+**认证**：必须使用 `participantToken`，且只能为自己投票（participantId 必须匹配认证身份）。
 
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
@@ -524,7 +526,7 @@ POST /api/events/:id/participants/:participantId/votes
 | photoUrl | string | 照片 URL |
 
 **后端处理**：
-1. 验证认证令牌（organizerToken 或 participantToken）
+1. 验证认证令牌（participantToken）
 2. 验证 participantId 与认证身份匹配（只能为自己投票）
 3. 验证 event 存在
 4. 验证 participant 属于该 event
@@ -556,7 +558,7 @@ POST /api/events/:id/participants/:participantId/votes
 DELETE /api/events/:id/participants/:participantId/votes/:venueId
 ```
 
-**认证**：必须使用 `participantToken` 或 `organizerToken`，且只能取消自己的投票（participantId 必须匹配认证身份）。
+**认证**：必须使用 `participantToken`，且只能取消自己的投票（participantId 必须匹配认证身份）。
 
 **前端输入：**
 | 参数 | 位置 | 类型 | 必填 | 说明 |
@@ -666,7 +668,7 @@ GET /api/events/:id/venues/:venueId/directions
 | travelMode | string | - | driving/walking/transit/bicycling（默认 driving） |
 | participantId | string | - | 可选，仅计算某一参与者（UUID） |
 
-**认证**：需要 Authorization: Bearer {organizerToken 或 participantToken}（需属于该活动）。
+**认证**：需要 Authorization: Bearer {participantToken}（需属于该活动）。
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
@@ -704,7 +706,7 @@ GET /api/events/:id/venues/:venueId/directions
 GET /api/events/:id/stream
 ```
 
-**认证**：需要 Authorization: Bearer {organizerToken 或 participantToken}。
+**认证**：需要 Authorization: Bearer {participantToken}（需属于该活动）。
 
 **响应头**：`Content-Type: text/event-stream`
 
@@ -801,46 +803,51 @@ GET /api/events/:id/stream
 
 ## 九、认证方式
 
-### 9.1 令牌类型
+### 9.1 统一令牌系统
+
+系统使用统一的 `participantToken` 进行认证，授权通过数据库中的 `Participant.isOrganizer` 标志确定。
 
 | 令牌类型 | 生成时机 | 存储 | 用途 |
 |----------|----------|------|------|
-| organizerToken | 创建活动时 | Event.organizerToken (SHA-256 hash) | 活动完全控制权 |
-| participantToken | 加入活动时 | Participant.tokenHash (SHA-256 hash) | 自我管理（只能操作自己） |
+| participantToken | 创建活动时（组织者）/ 自行加入时（参与者） | Participant.tokenHash (SHA-256 hash) | 认证身份，授权由 isOrganizer 决定 |
+
+**令牌分配规则**：
+- 组织者：创建活动时自动获得 participantToken
+- 自行加入的参与者：加入时获得 participantToken
+- 组织者添加的参与者：**不获得令牌**（无法自行操作）
 
 ### 9.2 端点认证矩阵
 
-| 场景 | 无认证 | participantToken | organizerToken |
-|------|--------|------------------|----------------|
+| 场景 | 无认证 | participantToken (isOrganizer=false) | participantToken (isOrganizer=true) |
+|------|--------|--------------------------------------|-------------------------------------|
 | 创建活动 | ✓ | - | - |
 | 查看活动 | ✓ | - | - |
 | 修改活动 | - | - | ✓ |
 | 删除活动 | - | - | ✓ |
 | 发布场所 | - | - | ✓ |
-| 添加参与者 | ✓（自加入，返回token） | - | ✓（添加他人） |
+| 添加参与者 | ✓（自加入，返回token） | - | ✓（添加他人，不返回token） |
 | 更新参与者 | - | ✓（仅自己） | ✓（任何人） |
-| 删除参与者 | - | ✓（仅自己） | ✓（任何人） |
-| 投票 | - | ✓（仅自己） | ✓（仅自己，需使用 organizerParticipantId） |
-| 取消投票 | - | ✓（仅自己） | ✓（仅自己，需使用 organizerParticipantId） |
+| 删除参与者 | - | ✓（仅自己） | ✓（任何人，但不能删除自己） |
+| 投票 | - | ✓（仅自己） | ✓（仅自己，使用 organizerParticipantId） |
+| 取消投票 | - | ✓（仅自己） | ✓（仅自己，使用 organizerParticipantId） |
 | 查看投票统计 | ✓ | - | - |
 | 订阅 SSE | - | ✓ | ✓ |
-| 获取路线 | - | ✓（属于该活动） | ✓ |
+| 获取路线 | - | ✓ | ✓ |
 
-**投票说明**：组织者创建活动时自动获得 `organizerParticipantId`，投票时使用此 ID。组织者不能代替其他参与者投票。
+**投票说明**：组织者创建活动时自动获得 `organizerParticipantId`，投票时使用此 ID。所有人只能为自己投票。
 
-### 9.3 双令牌认证流程
+### 9.3 认证流程
 
-参与者管理端点（PATCH/DELETE /participants/:participantId）支持双令牌认证：
+所有需要认证的端点使用统一的认证流程：
 
 ```
-1. 提取 Authorization: Bearer {token}
-2. 尝试作为 organizerToken 验证
-   - 成功 → 允许操作任何参与者
-3. 尝试作为 participantToken 验证
-   - 成功 → 验证 participantId 匹配
-   - 匹配 → 允许操作
-   - 不匹配 → 403 Forbidden
-4. 都失败 → 403 Forbidden
+1. 提取 Authorization: Bearer {participantToken}
+2. 在 Participant 表中查找匹配的 tokenHash
+3. 验证 participant 属于请求的 event
+4. 根据端点需求检查权限：
+   - 需要组织者权限 → 检查 isOrganizer=true
+   - 需要参与者访问权限 → 检查是否为自己或是否为组织者
+5. 验证失败 → 403 Forbidden
 ```
 
 ### 9.4 安全措施
@@ -848,6 +855,7 @@ GET /api/events/:id/stream
 | 措施 | 值 | 说明 |
 |------|-----|------|
 | 令牌长度 | 64 hex (256 bits) | 防止枚举攻击 |
+| 令牌前缀 | `pt_` | 标识令牌类型 |
 | 存储方式 | SHA-256 hash | 数据库泄露不暴露原始令牌 |
 | 加入限流 | - | 暂未实现（可按需添加） |
 | 参与者上限 | - | 暂未实现（可按需添加） |
