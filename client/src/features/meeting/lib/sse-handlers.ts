@@ -89,15 +89,27 @@ function handleEventPublished(data: EventPublishedPayload): void {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
   const { setActiveView } = useUIStore.getState();
 
+  // Backend sends nested structure: { event: {...}, venue: {...} }
+  // Handle both formats for compatibility
+  const payload = data as unknown as {
+    event?: { id: string; publishedVenueId: string; publishedAt: string };
+    eventId?: string;
+    publishedVenueId?: string;
+    publishedAt?: string;
+  };
+
+  const eventData = payload.event || (data as EventPublishedPayload);
+  const eventId = payload.event?.id || payload.eventId;
+
   // Only update if we're viewing the same event
-  if (!currentEvent || currentEvent.id !== data.eventId) {
+  if (!currentEvent || !eventId || currentEvent.id !== eventId) {
     return;
   }
 
   setCurrentEvent({
     ...currentEvent,
-    publishedVenueId: data.publishedVenueId,
-    publishedAt: data.publishedAt,
+    publishedVenueId: eventData.publishedVenueId,
+    publishedAt: eventData.publishedAt,
     updatedAt: new Date().toISOString(),
   });
 
