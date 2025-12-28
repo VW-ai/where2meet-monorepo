@@ -13,7 +13,7 @@ export function PublishEventModal() {
   const { isPublishModalOpen, closePublishModal } = useUIStore();
   const { organizerToken } = useAuthStore();
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
-  const { voteForVenue } = useVotingStore();
+  const { voteForVenue, hasVotedFor } = useVotingStore();
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
@@ -61,27 +61,34 @@ export function PublishEventModal() {
       // Update local state with the returned event data
       setCurrentEvent(updatedEvent);
 
-      // Automatically vote for the published venue
-      try {
-        await voteForVenue(currentEvent.id, selectedVenue.id, {
-          name: selectedVenue.name,
-          address: selectedVenue.address,
-          lat: selectedVenue.location.lat,
-          lng: selectedVenue.location.lng,
-          category: selectedVenue.types?.[0],
-          rating: selectedVenue.rating ?? undefined,
-          priceLevel: selectedVenue.priceLevel ?? undefined,
-          photoUrl: selectedVenue.photoUrl ?? undefined,
-        });
+      // Automatically vote for the published venue if not already voted
+      const alreadyVoted = hasVotedFor(selectedVenue.id);
+      if (!alreadyVoted) {
+        try {
+          await voteForVenue(currentEvent.id, selectedVenue.id, {
+            name: selectedVenue.name,
+            address: selectedVenue.address,
+            lat: selectedVenue.location.lat,
+            lng: selectedVenue.location.lng,
+            category: selectedVenue.types?.[0],
+            rating: selectedVenue.rating ?? undefined,
+            priceLevel: selectedVenue.priceLevel ?? undefined,
+            photoUrl: selectedVenue.photoUrl ?? undefined,
+          });
+          console.log(
+            '[PublishEventModal] Automatically voted for published venue:',
+            selectedVenue.id
+          );
+        } catch (voteError) {
+          // Log error but don't fail the publish operation
+          console.error(
+            '[PublishEventModal] Failed to automatically vote for published venue:',
+            voteError
+          );
+        }
+      } else {
         console.log(
-          '[PublishEventModal] Automatically voted for published venue:',
-          selectedVenue.id
-        );
-      } catch (voteError) {
-        // Log error but don't fail the publish operation
-        console.error(
-          '[PublishEventModal] Failed to automatically vote for published venue:',
-          voteError
+          '[PublishEventModal] Organizer already voted for published venue, skipping auto-vote'
         );
       }
 
