@@ -13,7 +13,7 @@ export function PublishEventModal() {
   const { isPublishModalOpen, closePublishModal } = useUIStore();
   const { organizerToken } = useAuthStore();
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
-  const { voteForVenue, hasVotedFor } = useVotingStore();
+  const { voteForVenue } = useVotingStore();
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
@@ -61,35 +61,36 @@ export function PublishEventModal() {
       // Update local state with the returned event data
       setCurrentEvent(updatedEvent);
 
-      // Automatically vote for the published venue if not already voted
-      const alreadyVoted = hasVotedFor(selectedVenue.id);
-      if (!alreadyVoted) {
-        try {
-          await voteForVenue(currentEvent.id, selectedVenue.id, {
-            name: selectedVenue.name,
-            address: selectedVenue.address,
-            lat: selectedVenue.location.lat,
-            lng: selectedVenue.location.lng,
-            category: selectedVenue.types?.[0],
-            rating: selectedVenue.rating ?? undefined,
-            priceLevel: selectedVenue.priceLevel ?? undefined,
-            photoUrl: selectedVenue.photoUrl ?? undefined,
-          });
+      // Automatically vote for the published venue
+      // Always attempt to vote - if organizer already voted, backend will return 409 which we treat as success
+      try {
+        await voteForVenue(currentEvent.id, selectedVenue.id, {
+          name: selectedVenue.name,
+          address: selectedVenue.address,
+          lat: selectedVenue.location.lat,
+          lng: selectedVenue.location.lng,
+          category: selectedVenue.types?.[0],
+          rating: selectedVenue.rating ?? undefined,
+          priceLevel: selectedVenue.priceLevel ?? undefined,
+          photoUrl: selectedVenue.photoUrl ?? undefined,
+        });
+        console.log(
+          '[PublishEventModal] Automatically voted for published venue:',
+          selectedVenue.id
+        );
+      } catch (voteError) {
+        // 409 Conflict means organizer already voted - this is fine, goal achieved
+        if (voteError instanceof APIError && voteError.status === 409) {
           console.log(
-            '[PublishEventModal] Automatically voted for published venue:',
-            selectedVenue.id
+            '[PublishEventModal] Organizer already voted for published venue (409 - expected)'
           );
-        } catch (voteError) {
-          // Log error but don't fail the publish operation
+        } else {
+          // Other errors are logged but don't fail the publish operation
           console.error(
             '[PublishEventModal] Failed to automatically vote for published venue:',
             voteError
           );
         }
-      } else {
-        console.log(
-          '[PublishEventModal] Organizer already voted for published venue, skipping auto-vote'
-        );
       }
 
       setIsPublished(true);
