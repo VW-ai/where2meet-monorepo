@@ -67,7 +67,12 @@ export class UserEventRepository {
         participantId: data.participantId,
         role: data.role,
       },
-      update: {}, // Return existing on conflict (idempotent)
+      update: {
+        // Self-healing: restore participantId/role if they were cleared
+        // (e.g., participant deleted then user re-claims with new token)
+        participantId: data.participantId,
+        role: data.role,
+      },
     });
   }
 
