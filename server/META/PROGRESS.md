@@ -789,3 +789,49 @@ Created a dedicated test file `tests/participants-sse.test.ts` with 16 comprehen
 - Uses Vitest mocking best practices
 - Type-safe payload assertions with TypeScript interfaces
 - Non-blocking broadcast behavior verified
+
+---
+
+## 2025-12-28
+
+### Directions API: Include All Participants (COMPLETED)
+
+#### Problem Statement
+The directions endpoint was filtering out:
+1. Organizer participants (`isOrganizer: true`)
+2. Participants without location data
+
+This meant the frontend couldn't know which participants had route data available.
+
+#### Solution: Return All Participants with Nullable Route Data
+
+**Behavior Change**:
+- Before: Only participants with valid locations were returned
+- After: All participants are returned; those without locations have null distance/duration/polyline
+
+**Response Example**:
+```json
+{
+  "venueId": "ChIJ...",
+  "travelMode": "driving",
+  "routes": [
+    { "participantId": "alice-id", "distance": {...}, "duration": {...}, "polyline": "..." },
+    { "participantId": "bob-id", "distance": null, "duration": null, "polyline": null }
+  ]
+}
+```
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/lib/directions/types.ts` | Made `distance`, `duration`, `polyline` nullable in `RouteResult` |
+| `src/dto/directions.dto.ts` | Updated schema to allow null values |
+| `src/services/directions.ts` | Removed `!p.isOrganizer` filter, return all participants with null for missing locations |
+| `src/mappers/directions.mapper.ts` | Handle null values in transformation |
+| `tests/directions.test.ts` | Updated 4 test cases to match new behavior |
+| `META/ARCHITECTURE/API_SPECIFICATION.md` | Updated Route structure documentation |
+
+#### Test Summary
+- All tests passing (405 tests)
+- Updated tests: 4 directions endpoint tests

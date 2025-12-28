@@ -30,12 +30,12 @@ export type FormattedValue = z.infer<typeof FormattedValueSchema>;
 export const RouteResponseSchema = z.object({
   /** Participant UUID */
   participantId: z.uuid(),
-  /** Distance in meters with formatted imperial text */
-  distance: FormattedValueSchema,
-  /** Duration in seconds with formatted text */
-  duration: FormattedValueSchema,
-  /** Encoded polyline for Google Maps rendering */
-  polyline: z.string(),
+  /** Distance in meters with formatted imperial text. Null if participant has no location. */
+  distance: FormattedValueSchema.nullable(),
+  /** Duration in seconds with formatted text. Null if participant has no location. */
+  duration: FormattedValueSchema.nullable(),
+  /** Encoded polyline for Google Maps rendering. Null if participant has no location. */
+  polyline: z.string().nullable(),
 });
 
 export type RouteResponse = z.infer<typeof RouteResponseSchema>;
