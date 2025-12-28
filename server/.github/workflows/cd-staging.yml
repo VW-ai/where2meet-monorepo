@@ -40,36 +40,29 @@ jobs:
       - name: Verify Railway configuration
         shell: bash
         env:
-          # `railway link` requires an account/team token (Project Tokens can't link).
-          # Prefer `RAILWAY_API_TOKEN`; fall back to legacy `RAILWAY_TOKEN` secret name if used.
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          # Use a Project Token scoped to the staging environment.
+          # Configure this as a GitHub Environment secret for `staging`.
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
         run: |
           set -euo pipefail
           missing=0
-          for key in RAILWAY_API_TOKEN RAILWAY_PROJECT_ID RAILWAY_SERVICE_NAME; do
+          for key in RAILWAY_TOKEN RAILWAY_SERVICE_NAME; do
             if [[ -z "${!key:-}" ]]; then
               echo "::error::Missing required config: ${key}"
               missing=1
             fi
           done
           if [[ "$missing" -eq 1 ]]; then
-            echo "::error::Configure GitHub 'Actions secrets and variables' (repo vars + secrets) before running CD."
+            echo "::error::Configure GitHub 'Actions secrets and variables' (Environment secret + repo vars) before running CD."
             exit 1
           fi
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Link Railway project (staging)
-        run: railway link --project "$RAILWAY_PROJECT_ID" --environment staging --service "$RAILWAY_SERVICE_NAME"
-        env:
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
-          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
-
       - name: Deploy to Railway (staging)
-        run: railway up --ci
+        run: railway up --ci --environment staging --service "$RAILWAY_SERVICE_NAME"
         env:
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
