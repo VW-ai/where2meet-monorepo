@@ -53,7 +53,7 @@ export function healthRoutes(fastify: FastifyInstance) {
     return reply.send({ status: "ok" });
   });
 
- /**
+  /**
    * Detailed readiness check.
    * Checks database connectivity (required) and Redis connectivity (optional).
    *

@@ -26,12 +26,8 @@ export function toDirectionsResponse(
     travelMode,
     routes: routes.map((route) => ({
       participantId: route.participantId,
-      distance: route.distance
-        ? { value: route.distance.value, text: route.distance.text }
-        : null,
-      duration: route.duration
-        ? { value: route.duration.value, text: route.duration.text }
-        : null,
+      distance: route.distance ? { value: route.distance.value, text: route.distance.text } : null,
+      duration: route.duration ? { value: route.duration.value, text: route.duration.text } : null,
       polyline: route.polyline,
     })),
   };

@@ -21,11 +21,7 @@ import {
   toUserEventResponse,
   toClaimEventResponse,
 } from "../mappers/user.mapper.js";
-import type {
-  UserResponse,
-  UserEventsListResponse,
-  ClaimEventResponse,
-} from "../dto/index.js";
+import type { UserResponse, UserEventsListResponse, ClaimEventResponse } from "../dto/index.js";
 
 /**
  * Registers user routes on the Fastify instance.
@@ -51,7 +47,10 @@ export function userRoutes(fastify: FastifyInstance): void {
       preHandler: [requireSession],
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const { userId } = request.userAuth!;
+      if (!request.userAuth) {
+        throw new Error("Session required");
+      }
+      const { userId } = request.userAuth;
 
       const user = await userService.getProfile(userId);
 
@@ -77,7 +76,10 @@ export function userRoutes(fastify: FastifyInstance): void {
         throw parseResult.error;
       }
 
-      const { userId } = request.userAuth!;
+      if (!request.userAuth) {
+        throw new Error("Session required");
+      }
+      const { userId } = request.userAuth;
 
       const user = await userService.updateProfile(userId, parseResult.data);
 
@@ -97,7 +99,10 @@ export function userRoutes(fastify: FastifyInstance): void {
       preHandler: [requireSession],
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const { userId } = request.userAuth!;
+      if (!request.userAuth) {
+        throw new Error("Session required");
+      }
+      const { userId } = request.userAuth;
 
       const userEvents = await userEventService.listEvents(userId);
 
@@ -126,7 +131,10 @@ export function userRoutes(fastify: FastifyInstance): void {
         throw parseResult.error;
       }
 
-      const { userId } = request.userAuth!;
+      if (!request.userAuth) {
+        throw new Error("Session required");
+      }
+      const { userId } = request.userAuth;
       const { eventId, participantToken } = parseResult.data;
 
       const userEvent = await userEventService.claimEvent({

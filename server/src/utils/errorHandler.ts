@@ -104,7 +104,8 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
   // Handle Prisma unique constraint violations (race conditions)
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
-      const target = (error.meta?.target as string[])?.join(", ") || "field";
+      const targetMeta = error.meta?.target;
+      const target = Array.isArray(targetMeta) ? targetMeta.join(", ") : "field";
       logger.warn(logContext, "Unique constraint violation");
       return reply.status(409).send({
         error: {

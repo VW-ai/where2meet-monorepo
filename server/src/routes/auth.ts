@@ -101,11 +101,7 @@ export function authRoutes(fastify: FastifyInstance): void {
     }
 
     // Clear session cookie
-    void reply.setCookie(
-      SESSION_COOKIE_NAME,
-      "",
-      getClearSessionCookieOptions(isProduction)
-    );
+    void reply.setCookie(SESSION_COOKIE_NAME, "", getClearSessionCookieOptions(isProduction));
 
     const response: LogoutResponse = {
       success: true,

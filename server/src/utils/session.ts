@@ -62,9 +62,7 @@ export function getSessionExpiresAt(): Date {
  * @param isProduction - Whether running in production environment
  * @returns Cookie serialization options
  */
-export function getSessionCookieOptions(
-  isProduction: boolean
-): CookieSerializeOptions {
+export function getSessionCookieOptions(isProduction: boolean): CookieSerializeOptions {
   return {
     httpOnly: true,
     secure: isProduction,
@@ -81,9 +79,7 @@ export function getSessionCookieOptions(
  * @param isProduction - Whether running in production environment
  * @returns Cookie serialization options for deletion
  */
-export function getClearSessionCookieOptions(
-  isProduction: boolean
-): CookieSerializeOptions {
+export function getClearSessionCookieOptions(isProduction: boolean): CookieSerializeOptions {
   return {
     httpOnly: true,
     secure: isProduction,

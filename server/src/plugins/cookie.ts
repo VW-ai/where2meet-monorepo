@@ -1,7 +1,7 @@
 /**
  * Cookie plugin module.
  *
- * Registers @fastify/cookie for parsing and setting cookies.
+ * Registers `@fastify/cookie` for parsing and setting cookies.
  * Used for session-based authentication.
  * @module plugins/cookie
  */

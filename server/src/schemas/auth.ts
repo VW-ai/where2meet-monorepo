@@ -23,7 +23,10 @@ export const RegisterSchema = z.object({
     .transform((email) => email.toLowerCase().trim()),
   password: z
     .string()
-    .min(PASSWORD_MIN_LENGTH, `Password must be at least ${String(PASSWORD_MIN_LENGTH)} characters`),
+    .min(
+      PASSWORD_MIN_LENGTH,
+      `Password must be at least ${String(PASSWORD_MIN_LENGTH)} characters`
+    ),
   name: z.string().max(255, "Name must be 255 characters or less").optional(),
 });
 
@@ -33,9 +36,7 @@ export type RegisterInput = z.infer<typeof RegisterSchema>;
  * Schema for user login.
  */
 export const LoginSchema = z.object({
-  email: z
-    .email("Invalid email format")
-    .transform((email) => email.toLowerCase().trim()),
+  email: z.email("Invalid email format").transform((email) => email.toLowerCase().trim()),
   password: z.string().min(1, "Password is required"),
 });
 

@@ -16,9 +16,17 @@ import { EVENT_ID_PATTERN } from "../utils/id.js";
 export const UpdateUserSchema = z
   .object({
     name: z.string().max(255, "Name must be 255 characters or less").nullable().optional(),
-    avatarUrl: z.url("Invalid URL format").max(512, "URL must be 512 characters or less").nullable().optional(),
+    avatarUrl: z
+      .url("Invalid URL format")
+      .max(512, "URL must be 512 characters or less")
+      .nullable()
+      .optional(),
     defaultAddress: z.string().nullable().optional(),
-    defaultPlaceId: z.string().max(255, "Place ID must be 255 characters or less").nullable().optional(),
+    defaultPlaceId: z
+      .string()
+      .max(255, "Place ID must be 255 characters or less")
+      .nullable()
+      .optional(),
     defaultFuzzyLocation: z.boolean().optional(),
   })
   .refine(
