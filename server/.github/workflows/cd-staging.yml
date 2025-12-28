@@ -7,10 +7,15 @@ on:
     branches: [main]
     types: [completed]
 
+concurrency:
+  group: cd-staging
+  cancel-in-progress: true
+
 jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
+    environment: staging
     # For workflow_run: check CI success + push to main + vars configured
     # For workflow_dispatch: skip workflow_run checks (manual trigger)
     if: |
@@ -18,9 +23,7 @@ jobs:
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       vars.RAILWAY_PROJECT_ID != '' &&
-       vars.RAILWAY_SERVICE_NAME != '')
+       github.event.workflow_run.head_branch == 'main')
 
     steps:
       - name: Checkout
@@ -34,17 +37,39 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Verify Railway configuration
+        shell: bash
+        env:
+          # `railway link` requires an account/team token (Project Tokens can't link).
+          # Prefer `RAILWAY_API_TOKEN`; fall back to legacy `RAILWAY_TOKEN` secret name if used.
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in RAILWAY_API_TOKEN RAILWAY_PROJECT_ID RAILWAY_SERVICE_NAME; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "::error::Missing required config: ${key}"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -eq 1 ]]; then
+            echo "::error::Configure GitHub 'Actions secrets and variables' (repo vars + secrets) before running CD."
+            exit 1
+          fi
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
       - name: Link Railway project (staging)
         run: railway link --project "$RAILWAY_PROJECT_ID" --environment staging --service "$RAILWAY_SERVICE_NAME"
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
 
       - name: Deploy to Railway (staging)
         run: railway up --ci
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
