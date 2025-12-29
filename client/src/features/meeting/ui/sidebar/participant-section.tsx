@@ -254,6 +254,7 @@ export function ParticipantSection() {
           )}
           {/* Stats button */}
           <button
+            data-tutorial="stats-button"
             onClick={toggleParticipantStats}
             className="p-1.5 rounded-lg hover:bg-coral-50 text-muted-foreground hover:text-coral-600 transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500/20"
             aria-label="View travel time statistics"

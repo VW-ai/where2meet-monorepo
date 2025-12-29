@@ -96,4 +96,50 @@ export const analyticsEvents = {
       event_category: 'engagement',
     });
   },
+
+  /**
+   * Track when organizer tutorial starts
+   */
+  tutorialStarted: (eventId: string) => {
+    trackEvent('tutorial_started', {
+      event_id: eventId,
+      tutorial_type: 'organizer_first_time',
+      event_category: 'engagement',
+    });
+  },
+
+  /**
+   * Track when a tutorial step is completed
+   */
+  tutorialStepCompleted: (eventId: string, step: number) => {
+    trackEvent('tutorial_step_completed', {
+      event_id: eventId,
+      step_number: step,
+      tutorial_type: 'organizer_first_time',
+      event_category: 'engagement',
+    });
+  },
+
+  /**
+   * Track when tutorial is skipped
+   */
+  tutorialSkipped: (eventId: string, atStep: number) => {
+    trackEvent('tutorial_skipped', {
+      event_id: eventId,
+      at_step: atStep,
+      tutorial_type: 'organizer_first_time',
+      event_category: 'engagement',
+    });
+  },
+
+  /**
+   * Track when tutorial is completed
+   */
+  tutorialCompleted: (eventId: string) => {
+    trackEvent('tutorial_completed', {
+      event_id: eventId,
+      tutorial_type: 'organizer_first_time',
+      event_category: 'engagement',
+    });
+  },
 };

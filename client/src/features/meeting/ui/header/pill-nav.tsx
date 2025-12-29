@@ -50,7 +50,7 @@ export function PillNav() {
   return (
     <div className="flex items-center justify-between w-full">
       {/* Navigation Buttons */}
-      <div className="hidden sm:flex items-center gap-1 md:gap-2">
+      <div className="hidden sm:flex items-center gap-1 md:gap-2" data-tutorial="view-toggle">
         {/* Home Button (Logo) */}
         <button
           onClick={() => router.push('/')}
@@ -101,7 +101,7 @@ export function PillNav() {
       </div>
 
       {/* Mobile Navigation (Icons Only) */}
-      <div className="flex sm:hidden items-center gap-1">
+      <div className="flex sm:hidden items-center gap-1" data-tutorial="view-toggle">
         {/* Home Button (Logo) */}
         <button
           onClick={() => router.push('/')}

@@ -97,11 +97,21 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'tutorial-fade-in': {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'tutorial-pulse': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.02)', opacity: '0.95' },
+        },
       },
       animation: {
         'flash-pulse': 'flash-pulse 600ms ease-in-out',
         'fade-scale-in': 'fade-scale-in 400ms ease-out forwards',
         'fade-slide-up': 'fade-slide-up 400ms ease-out forwards',
+        'tutorial-fade-in': 'tutorial-fade-in 400ms ease-out forwards',
+        'tutorial-pulse': 'tutorial-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
     },
   },
