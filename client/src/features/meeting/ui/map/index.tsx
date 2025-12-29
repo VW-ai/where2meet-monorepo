@@ -85,6 +85,11 @@ export function MapArea() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [center, setCenter] = useState(defaultCenter);
+  const [circleOverlayPosition, setCircleOverlayPosition] = useState<{
+    x: number;
+    y: number;
+    radiusPixels: number;
+  } | null>(null);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const participantMarkersRef = useRef<google.maps.Marker[]>([]);
@@ -197,6 +202,83 @@ export function MapArea() {
       }
     });
   }, [map, setSearchRadius, setMecCircle, setSearchCircle]);
+
+  // Track search circle position for tutorial overlay
+  useEffect(() => {
+    if (!map || !searchCircleRef.current || !window.google) return;
+
+    const updateCircleOverlayPosition = () => {
+      const center = searchCircleRef.current?.getCenter();
+      const radiusMeters = searchCircleRef.current?.getRadius();
+      if (!center || !radiusMeters) return;
+
+      // Get the map's projection
+      const projection = map.getProjection();
+      if (!projection) return;
+
+      // Convert lat/lng to pixel coordinates
+      const bounds = map.getBounds();
+      if (!bounds) return;
+
+      // Use the built-in method to convert to pixel coordinates
+      const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
+      const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
+      const worldPoint = projection.fromLatLngToPoint(center);
+
+      if (!topRight || !bottomLeft || !worldPoint) return;
+
+      const scale = Math.pow(2, map.getZoom() || 0);
+      const pixelOffset = new google.maps.Point(
+        (worldPoint.x - bottomLeft.x) * scale,
+        (worldPoint.y - topRight.y) * scale
+      );
+
+      // Convert radius from meters to pixels
+      // Formula: meters per pixel = 156543.03392 * Math.cos(latRadians) / Math.pow(2, zoom)
+      const zoom = map.getZoom() || 0;
+      const latRadians = (center.lat() * Math.PI) / 180;
+      const metersPerPixel = (156543.03392 * Math.cos(latRadians)) / Math.pow(2, zoom);
+      const radiusPixels = radiusMeters / metersPerPixel;
+
+      setCircleOverlayPosition({
+        x: pixelOffset.x,
+        y: pixelOffset.y,
+        radiusPixels: radiusPixels,
+      });
+    };
+
+    // Update position initially
+    updateCircleOverlayPosition();
+
+    // Listen to circle and map changes
+    const centerListener = google.maps.event.addListener(
+      searchCircleRef.current,
+      'center_changed',
+      updateCircleOverlayPosition
+    );
+    const radiusListener = google.maps.event.addListener(
+      searchCircleRef.current,
+      'radius_changed',
+      updateCircleOverlayPosition
+    );
+    const zoomListener = google.maps.event.addListener(
+      map,
+      'zoom_changed',
+      updateCircleOverlayPosition
+    );
+    const boundsListener = google.maps.event.addListener(
+      map,
+      'bounds_changed',
+      updateCircleOverlayPosition
+    );
+
+    return () => {
+      google.maps.event.removeListener(centerListener);
+      google.maps.event.removeListener(radiusListener);
+      google.maps.event.removeListener(zoomListener);
+      google.maps.event.removeListener(boundsListener);
+    };
+  }, [map]);
 
   // Calculate MEC and update circles when participants change
   useEffect(() => {
@@ -809,6 +891,23 @@ export function MapArea() {
       {/* Map container - MUST be relative for absolute overlay positioning */}
       <div className="relative w-full h-full">
         <div ref={mapRef} id="map" className="w-full h-full" />
+
+        {/* Tutorial overlay marker for search circle */}
+        {circleOverlayPosition && (
+          <div
+            data-tutorial="search-circle"
+            className="absolute pointer-events-none rounded-full border-2 border-transparent"
+            style={{
+              top: circleOverlayPosition.y,
+              left: circleOverlayPosition.x,
+              width: `${circleOverlayPosition.radiusPixels * 2}px`,
+              height: `${circleOverlayPosition.radiusPixels * 2}px`,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 300,
+            }}
+            aria-hidden="true"
+          />
+        )}
 
         {/* Blur overlay for non-participants - only show after auth initialization */}
         {isAuthInitialized && !hasJoined && (

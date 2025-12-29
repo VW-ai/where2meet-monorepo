@@ -18,6 +18,7 @@ export function TopRightActions({ eventId }: TopRightActionsProps) {
 
       {/* Share Button */}
       <button
+        data-tutorial="share-button"
         onClick={openShareModal}
         className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-2 bg-white text-foreground border-2 border-border hover:border-coral-500 hover:bg-coral-50 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2"
         aria-label="Share event"

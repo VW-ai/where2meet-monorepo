@@ -8,12 +8,15 @@ import { MapArea } from '@/features/meeting/ui/map';
 import { VenueInfo } from '@/features/meeting/ui/sidebar/venue-info';
 import { ParticipantStats } from '@/features/meeting/ui/sidebar/participant-stats';
 import { ModalProvider } from '@/features/meeting/ui/modals';
+import { TutorialProvider } from '@/features/tutorial/ui';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
+import { useTutorialStore } from '@/features/tutorial/model/tutorial-store';
 import { eventClient } from '@/features/meeting/api';
 import { useEventStream } from '@/features/meeting/hooks/useEventStream';
+import { analyticsEvents } from '@/lib/analytics/events';
 
 export default function MeetPage() {
   const params = useParams();
@@ -27,9 +30,16 @@ export default function MeetPage() {
     eventError,
   } = useMeetingStore();
   const { loadVoteStatistics, setMyParticipantId } = useVotingStore();
-   const { initializeOrganizerMode, initializeParticipantMode, organizerToken, participantToken, organizerParticipantId, currentParticipantId } =
-    useAuthStore();
+  const {
+    initializeOrganizerMode,
+    initializeParticipantMode,
+    organizerToken,
+    participantToken,
+    organizerParticipantId,
+    currentParticipantId,
+  } = useAuthStore();
   const { setParticipants } = useParticipantStore();
+  const { hasSeenOrganizerTutorial, startTutorial } = useTutorialStore();
 
   // Get authentication token (prefer organizer token, fallback to participant token)
   const token = organizerToken || participantToken || null;
@@ -132,6 +142,31 @@ export default function MeetPage() {
     loadEvent();
   }, [eventId, setCurrentEvent, setLoadingEvent, setEventError]);
 
+  // Trigger tutorial for first-time organizers
+  useEffect(() => {
+    // Only trigger after event loads successfully
+    if (!currentEvent || isLoadingEvent) return;
+
+    // Only for organizers (has organizer token)
+    if (!organizerToken) return;
+
+    // Check if first time
+    if (!hasSeenOrganizerTutorial) {
+      // Small delay to let page render
+      setTimeout(() => {
+        startTutorial();
+        analyticsEvents.tutorialStarted(eventId);
+      }, 800);
+    }
+  }, [
+    currentEvent,
+    isLoadingEvent,
+    organizerToken,
+    hasSeenOrganizerTutorial,
+    startTutorial,
+    eventId,
+  ]);
+
   // Loading state
   if (isLoadingEvent) {
     return (
@@ -170,37 +205,39 @@ export default function MeetPage() {
   }
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden">
-      {/* Map - Full Screen Background */}
-      <div className="absolute inset-0">
-        <MapArea />
+    <TutorialProvider>
+      <div className="relative h-screen w-screen overflow-hidden">
+        {/* Map - Full Screen Background */}
+        <div className="absolute inset-0">
+          <MapArea />
+        </div>
+
+        {/* Floating UI Components */}
+        <div className="relative z-10 h-full w-full pointer-events-none">
+          {/* Header - Floating at top */}
+          <div className="pointer-events-auto">
+            <Header eventId={eventId} />
+          </div>
+
+          {/* Sidebar - Floating overlay (bottom on mobile, left on desktop) */}
+          <div className="pointer-events-auto fixed bottom-0 left-0 right-0 h-[50vh] md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
+            <Sidebar />
+          </div>
+
+          {/* Venue Info Slide-out - Global overlay */}
+          <div className="pointer-events-auto">
+            <VenueInfo />
+          </div>
+
+          {/* Participant Stats Slide-out */}
+          <div className="pointer-events-auto">
+            <ParticipantStats />
+          </div>
+        </div>
+
+        {/* Modals */}
+        <ModalProvider />
       </div>
-
-      {/* Floating UI Components */}
-      <div className="relative z-10 h-full w-full pointer-events-none">
-        {/* Header - Floating at top */}
-        <div className="pointer-events-auto">
-          <Header eventId={eventId} />
-        </div>
-
-        {/* Sidebar - Floating overlay (bottom on mobile, left on desktop) */}
-        <div className="pointer-events-auto fixed bottom-0 left-0 right-0 h-[50vh] md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
-          <Sidebar />
-        </div>
-
-        {/* Venue Info Slide-out - Global overlay */}
-        <div className="pointer-events-auto">
-          <VenueInfo />
-        </div>
-
-        {/* Participant Stats Slide-out */}
-        <div className="pointer-events-auto">
-          <ParticipantStats />
-        </div>
-      </div>
-
-      {/* Modals */}
-      <ModalProvider />
-    </div>
+    </TutorialProvider>
   );
 }
