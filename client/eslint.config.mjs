@@ -7,7 +7,7 @@ const eslintConfig = [
   },
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
-    ignores: ["**/features/*/api/index.ts"], // Feature API clients can import from @/lib/api/*
+    ignores: ["**/features/*/api/**"], // Feature API clients can import from @/lib/api/*
     languageOptions: {
       parser: typescriptEslintParser,
       parserOptions: {
