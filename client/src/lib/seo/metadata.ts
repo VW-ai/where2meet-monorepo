@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
  * Handles cases where env var might be set without https://
  */
 function normalizeUrl(url: string | undefined): string {
-  if (!url) return 'https://where2meet.com';
+  if (!url) return 'https://where2meet.org';
 
   // If URL already has protocol, return as-is
   if (url.startsWith('http://') || url.startsWith('https://')) {

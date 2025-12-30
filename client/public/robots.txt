@@ -12,7 +12,7 @@ Disallow: /auth/
 Disallow: /api/
 
 # Sitemap location
-Sitemap: https://where2meet.com/sitemap.xml
+Sitemap: https://where2meet.org/sitemap.xml
 
 # Crawl-delay for courtesy
 Crawl-delay: 1
