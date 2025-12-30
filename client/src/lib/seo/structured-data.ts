@@ -1,4 +1,4 @@
-import type { Organization, WebSite, Event, WithContext } from 'schema-dts';
+import type { Organization, WebSite, Event, FAQPage, WithContext } from 'schema-dts';
 import { SITE_CONFIG } from './metadata';
 
 /**
@@ -120,4 +120,39 @@ export function generateEventSchema(data: EventData): WithContext<Event> {
   }
 
   return schema;
+}
+
+/**
+ * FAQ item for generating FAQ schema
+ */
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+/**
+ * Generate FAQPage schema for FAQ pages
+ *
+ * Best practices:
+ * - Only include questions that are actually visible on the page
+ * - Keep answers factual and concise (avoid marketing language)
+ * - Use plain text (HTML will be stripped by search engines)
+ * - Minimum 2 questions recommended
+ *
+ * @param faqs - Array of FAQ items (question + answer pairs)
+ * @returns FAQPage schema
+ */
+export function generateFAQSchema(faqs: FAQItem[]): WithContext<FAQPage> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
+  };
 }

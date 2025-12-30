@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import catLogo from '@/components/cat/image.png';
 import { HeroInput } from '@/features/landing/ui/hero-input';
@@ -206,6 +207,36 @@ export default function LandingPage() {
           </section>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="container mx-auto px-4 py-12 border-t border-gray-200">
+        <div className="max-w-2xl mx-auto">
+          <nav className="flex flex-wrap justify-center gap-6 text-sm mb-6">
+            <Link
+              href="/how-it-works"
+              className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
+            >
+              How It Works
+            </Link>
+            <Link
+              href="/faq"
+              className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
+            >
+              FAQ
+            </Link>
+            <Link
+              href="/contact"
+              className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
+            >
+              Contact
+            </Link>
+          </nav>
+          <p className="text-center text-sm text-gray-500">
+            © {new Date().getFullYear()} Where2Meet. Find fair meeting locations with equal travel
+            time for everyone.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

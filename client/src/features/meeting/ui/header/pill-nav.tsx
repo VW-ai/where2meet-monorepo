@@ -30,7 +30,7 @@ function NavButton({
   onFlashComplete,
 }: NavButtonProps) {
   const content = shouldFlash ? (
-    <ParticipantIconFlash shouldFlash={shouldFlash} onFlashComplete={onFlashComplete}>
+    <ParticipantIconFlash shouldFlash={shouldFlash} onFlashComplete={onFlashComplete || (() => {})}>
       <Icon className="w-5 h-5" />
     </ParticipantIconFlash>
   ) : (
