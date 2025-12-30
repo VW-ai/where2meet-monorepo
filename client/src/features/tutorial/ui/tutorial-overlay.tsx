@@ -69,6 +69,12 @@ export function TutorialOverlay({ currentStep }: TutorialOverlayProps) {
     return null;
   }
 
+  // Responsive spotlight padding - ensure elements are fully visible
+  const isMobile = window.innerWidth < 640;
+  const responsivePadding = isMobile
+    ? stepConfig.highlightPadding + 4 // Add extra padding on mobile for better visibility
+    : stepConfig.highlightPadding;
+
   return (
     <>
       {/* Backdrop container */}
@@ -83,11 +89,11 @@ export function TutorialOverlay({ currentStep }: TutorialOverlayProps) {
             stepConfig.id === 'drag-search' ? 'rounded-full' : 'rounded-xl'
           }`}
           style={{
-            top: targetRect.top - stepConfig.highlightPadding,
-            left: targetRect.left - stepConfig.highlightPadding,
-            width: targetRect.width + stepConfig.highlightPadding * 2,
-            height: targetRect.height + stepConfig.highlightPadding * 2,
-            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 0 4px rgba(255, 107, 107, 0.4)',
+            top: targetRect.top - responsivePadding,
+            left: targetRect.left - responsivePadding,
+            width: targetRect.width + responsivePadding * 2,
+            height: targetRect.height + responsivePadding * 2,
+            boxShadow: `0 0 0 9999px rgba(0, 0, 0, ${isMobile ? '0.6' : '0.7'}), 0 0 0 4px rgba(255, 107, 107, 0.4)`,
             pointerEvents: 'none',
           }}
         />

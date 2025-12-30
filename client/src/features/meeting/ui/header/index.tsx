@@ -20,21 +20,21 @@ export function Header({ eventId }: HeaderProps) {
       {/* SEO: Hidden h1 with event title for search engines */}
       <h1 className="sr-only">{currentEvent?.title || 'Meeting Event'}</h1>
 
-      <div className="h-full w-full bg-transparent flex items-center px-4 md:px-6">
+      <div className="h-full w-full bg-transparent flex items-center px-3 sm:px-4 md:px-5 lg:px-6 gap-2 sm:gap-3 md:gap-4">
         {/* Left: PillNav (Logo + View Toggles) */}
-        <div className="flex-shrink-0 pr-4 md:pr-6">
+        <div className="flex-shrink-0 pr-2 sm:pr-3 md:pr-4">
           <PillNav />
         </div>
 
-        {/* Right: Filter Pills + Actions */}
-        <div className="flex-1 flex items-center justify-between gap-4 min-w-0">
-          {/* Center: Filter Pills */}
-          <div className="flex-1 flex items-center justify-center overflow-hidden">
+        {/* Right: Filter Pills + Actions - min-w-0 REQUIRED */}
+        <div className="flex-1 flex items-center justify-between gap-2 sm:gap-3 md:gap-4 min-w-0">
+          {/* Center: Filter Pills - min-w-0 REQUIRED */}
+          <div className="flex-1 flex items-center justify-center overflow-hidden min-w-0">
             <FilterPills />
           </div>
 
-          {/* Right: Mode Toggle + Settings + Share */}
-          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+          {/* Right: Mode Toggle + Settings + Share - min-w-0 REQUIRED */}
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0 min-w-0">
             <ModeToggle />
             <TopRightActions eventId={eventId} />
           </div>

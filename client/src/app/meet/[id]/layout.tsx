@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { createMeetingMetadata } from '@/lib/seo/metadata';
+import { createMeetingPageMetadata } from '@/lib/seo/metadata';
 import { eventClient } from '@/features/meeting/api';
 
 /**
@@ -35,7 +35,7 @@ export async function generateMetadata({
       dateTimeText = ` on ${formattedDate} at ${formattedTime}`;
     }
 
-    return createMeetingMetadata({
+    return createMeetingPageMetadata({
       title: `${event.title} - Meeting Planner`,
       description: `Join the meeting "${event.title}"${dateTimeText}. Add your location and vote on the best venue.`,
       canonical: `/meet/${id}`,
@@ -43,7 +43,7 @@ export async function generateMetadata({
   } catch (error) {
     // Fallback metadata if event can't be loaded
     console.error('[Meeting Layout] Failed to load event for metadata:', error);
-    return createMeetingMetadata({
+    return createMeetingPageMetadata({
       title: 'Meeting Event',
       description: 'Plan your group meeting with Where2Meet. Find the perfect spot for everyone.',
     });

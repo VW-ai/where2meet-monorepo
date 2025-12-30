@@ -9,11 +9,11 @@ import { SITE_CONFIG } from '@/lib/seo/metadata';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_CONFIG.url),
   title: {
-    default: 'Where2Meet - Meeting Spot Finder & Group Planner',
-    template: '%s | Where2Meet',
+    default: SITE_CONFIG.defaultTitle,
+    template: '%s | Where2Meet – Fair Meeting Planner',
   },
   description: SITE_CONFIG.description,
-  keywords: SITE_CONFIG.keywords,
+  keywords: SITE_CONFIG.allKeywords,
   authors: [{ name: SITE_CONFIG.author }],
   creator: SITE_CONFIG.author,
   openGraph: {
@@ -21,22 +21,22 @@ export const metadata: Metadata = {
     locale: SITE_CONFIG.locale,
     url: '/',
     siteName: SITE_CONFIG.name,
-    title: 'Where2Meet - Meeting Spot Finder & Group Planner',
+    title: SITE_CONFIG.defaultTitle,
     description: SITE_CONFIG.description,
     images: [
       {
-        url: '/og-image.png',
+        url: new URL('/og-image.png', SITE_CONFIG.url).toString(),
         width: 1200,
         height: 630,
-        alt: 'Where2Meet - Find the Perfect Meeting Spot',
+        alt: 'Where2Meet - Fair Meeting Planner with Travel Time Comparison',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Where2Meet - Meeting Spot Finder & Group Planner',
+    title: SITE_CONFIG.defaultTitle,
     description: SITE_CONFIG.description,
-    images: ['/twitter-image.png'],
+    images: [new URL('/twitter-image.png', SITE_CONFIG.url).toString()],
   },
   robots: {
     index: true,
