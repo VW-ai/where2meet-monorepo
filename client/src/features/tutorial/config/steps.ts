@@ -15,7 +15,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
       'Click here to get a shareable link. Send it to participants so they can join and add their locations.',
     targetSelector: '[data-tutorial="share-button"]',
     placement: 'bottom',
-    highlightPadding: 8,
+    highlightPadding: 12,
   },
   {
     id: 'drag-search',
@@ -24,7 +24,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
       'Drag this circle to set where you want to search for meeting venues. You can also resize it to search in a wider or narrower area.',
     targetSelector: '[data-tutorial="search-circle"]',
     placement: 'left',
-    highlightPadding: 12,
+    highlightPadding: 16,
   },
   {
     id: 'view-toggle',
@@ -33,7 +33,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
       'Toggle between Venues and Participants views. Use Venues to search and vote on meeting spots, and Participants to manage who is joining.',
     targetSelector: '[data-tutorial="view-toggle"]',
     placement: 'bottom',
-    highlightPadding: 8,
+    highlightPadding: 12,
   },
   {
     id: 'travel-stats',
@@ -42,6 +42,6 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
       'Click this icon to see detailed travel statistics for all participants. This helps you find the fairest meeting spot.',
     targetSelector: '[data-tutorial="stats-button"]',
     placement: 'left',
-    highlightPadding: 8,
+    highlightPadding: 12,
   },
 ];

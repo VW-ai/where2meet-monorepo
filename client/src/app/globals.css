@@ -149,3 +149,50 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
     animation: none !important;
   }
 }
+
+/*
+ * Custom Responsive Utilities
+ * NOTE: Only add cross-component utilities here.
+ * Component-specific styles belong in the component files.
+ */
+@layer utilities {
+  /* Responsive Typography */
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-sm sm:text-base md:text-base;
+  }
+
+  .text-responsive-lg {
+    @apply text-base sm:text-lg md:text-xl;
+  }
+
+  /* Responsive Spacing */
+  .space-responsive-sm {
+    @apply space-y-3 sm:space-y-4 md:space-y-5;
+  }
+
+  .gap-responsive {
+    @apply gap-2 sm:gap-3 md:gap-4;
+  }
+
+  .p-responsive {
+    @apply p-4 sm:p-5 md:p-6;
+  }
+
+  /* Touch Target Accessibility */
+  .touch-target {
+    @apply min-w-[44px] min-h-[44px];
+  }
+
+  .touch-target-lg {
+    @apply min-w-[48px] min-h-[48px];
+  }
+
+  /* Mobile Safe Area (iOS notch/home indicator) */
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}

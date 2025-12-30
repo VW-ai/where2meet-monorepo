@@ -66,14 +66,16 @@ export function FilterPills() {
   };
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full py-1 px-1">
+    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar max-w-full py-1 px-1">
       {CATEGORY_FILTERS.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           onClick={() => handleCategoryClick(id)}
           disabled={!hasJoined}
           className={cn(
-            'flex items-center gap-2 px-3 md:px-4 py-2 md:py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-coral-500',
+            'flex items-center gap-1.5 sm:gap-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0',
+            'px-3 py-2 touch-target',
+            'focus:outline-none focus:ring-2 focus:ring-coral-500',
             !hasJoined &&
               'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 border-2 border-gray-200',
             hasJoined &&
@@ -84,7 +86,7 @@ export function FilterPills() {
           title={!hasJoined ? 'Join the event to search for venues' : undefined}
         >
           <Icon className="w-5 h-5" />
-          <span className="hidden md:inline">{label}</span>
+          <span className="hidden sm:inline">{label}</span>
         </button>
       ))}
     </div>

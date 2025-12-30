@@ -29,11 +29,14 @@ export function Sidebar() {
     <aside
       className={cn(
         'h-full w-full',
-        'md:w-[320px] lg:w-[360px] xl:w-[400px]',
-        'md:max-w-[30vw]',
-        'md:ml-3 md:mr-0',
+        // Progressive width scaling
+        'sm:w-full md:w-[300px] lg:w-[360px] xl:w-[400px]',
+        'md:max-w-[35vw] lg:max-w-[30vw]',
+        // Progressive spacing
+        'md:ml-2 lg:ml-3',
         'rounded-b-2xl md:rounded-2xl',
-        'overflow-y-auto overflow-x-visible',
+        // Scroll behavior (prevents stuck scrolling on mobile)
+        'overflow-y-auto overflow-x-visible overscroll-contain',
         'transition-transform duration-300 ease-in-out',
         // Semi-transparent background
         'bg-white/90 backdrop-blur-md',
@@ -45,7 +48,7 @@ export function Sidebar() {
         isSidebarVisible ? 'md:translate-x-0' : 'md:-translate-x-full'
       )}
     >
-      <div className="p-4 md:p-6 space-y-6 relative">
+      <div className="p-4 md:p-5 lg:p-6 space-y-4 md:space-y-5 lg:space-y-6 relative">
         {/* Content based on active view with smooth cross-fade transitions */}
         <div
           className={cn(

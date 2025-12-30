@@ -51,7 +51,7 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
       aria-labelledby="tutorial-title"
       aria-describedby="tutorial-description"
       aria-modal="true"
-      className="absolute bg-white rounded-2xl shadow-2xl p-6 max-w-sm pointer-events-auto animate-tutorial-fade-in"
+      className="absolute bg-white rounded-2xl shadow-2xl p-4 sm:p-6 w-[90vw] sm:w-auto max-w-[90vw] sm:max-w-sm max-h-[70vh] overflow-auto break-words pointer-events-auto animate-tutorial-fade-in"
       style={{
         top: position.top,
         left: position.left,
@@ -94,12 +94,18 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
         </div>
 
         {/* Title */}
-        <h3 id="tutorial-title" className="text-lg font-bold text-foreground">
+        <h3
+          id="tutorial-title"
+          className="text-base sm:text-lg font-bold text-foreground break-words"
+        >
           {stepConfig.title}
         </h3>
 
         {/* Description */}
-        <p id="tutorial-description" className="text-sm text-muted-foreground leading-relaxed">
+        <p
+          id="tutorial-description"
+          className="text-xs sm:text-sm text-muted-foreground leading-relaxed break-words"
+        >
           {stepConfig.description}
         </p>
 
@@ -131,7 +137,7 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
         <button
           ref={buttonRef}
           onClick={handleNext}
-          className="w-full px-6 py-3 bg-coral-500 text-white rounded-full font-medium hover:bg-coral-600 active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2"
+          className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-coral-500 text-white rounded-full text-sm font-medium hover:bg-coral-600 active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2"
         >
           {isLastStep ? 'Got it!' : 'Next'}
         </button>

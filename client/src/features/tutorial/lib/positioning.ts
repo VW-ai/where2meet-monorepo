@@ -27,90 +27,116 @@ export interface ArrowStyles {
 export function calculatePopoverPosition(
   targetRect: DOMRect,
   placement: TutorialStep['placement'],
-  popoverWidth = 384, // max-w-sm ~24rem
-  popoverHeight = 250, // Approximate height
-  offset = 20 // Distance from target
+  popoverWidth?: number,
+  popoverHeight?: number,
+  offset?: number
 ): PopoverPosition {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const scrollY = window.scrollY;
-  const scrollX = window.scrollX;
+  const scrollX = window.scrollX || window.pageXOffset;
+  const scrollY = window.scrollY || window.pageYOffset;
+
+  // Responsive calculations with clamp approach
+  const isMobile = viewportWidth < 640; // sm breakpoint
+  const margin = isMobile ? 16 : 10;
+
+  // Use min() to prevent overflow on extreme screens (320px old phones, landscape mode)
+  const calculatedWidth = popoverWidth || Math.min(384, viewportWidth - 2 * margin);
+  const calculatedHeight = popoverHeight || (isMobile ? 220 : 250);
+  const calculatedOffset = offset || (isMobile ? 12 : 20);
+
+  // Safe area consideration for bottom boundary (important for iPhone notch/home indicator)
+  const safeAreaBottom = isMobile ? 20 : 0; // Extra margin for iOS safe area
+
+  // Placement fallback: if target too close to edge, prefer bottom or centered
+  let finalPlacement = placement;
+  const isTargetNearEdge =
+    targetRect.left < margin ||
+    targetRect.right > viewportWidth - margin ||
+    targetRect.top < margin ||
+    targetRect.bottom > viewportHeight - margin - safeAreaBottom;
+
+  if (isTargetNearEdge && (placement === 'left' || placement === 'right')) {
+    // Fallback to bottom for edge elements
+    finalPlacement =
+      targetRect.bottom + calculatedHeight + calculatedOffset < viewportHeight ? 'bottom' : 'top';
+  }
 
   let top = 0;
   let left = 0;
   let transform = '';
-  let actualPlacement = placement; // Track the actual placement used
+  let actualPlacement = finalPlacement; // Track the actual placement used
 
   // Calculate center points of target
   const targetCenterX = targetRect.left + targetRect.width / 2;
   const targetCenterY = targetRect.top + targetRect.height / 2;
 
-  switch (placement) {
+  switch (finalPlacement) {
     case 'top':
-      top = targetRect.top - popoverHeight - offset + scrollY;
-      left = targetCenterX - popoverWidth / 2 + scrollX;
+      top = targetRect.top - calculatedHeight - calculatedOffset + scrollY;
+      left = targetCenterX - calculatedWidth / 2 + scrollX;
       transform = 'translateX(0)';
 
       // Prevent going above viewport
-      if (top < scrollY + 10) {
+      if (top < scrollY + margin) {
         // Flip to bottom
-        top = targetRect.bottom + offset + scrollY;
+        top = targetRect.bottom + calculatedOffset + scrollY;
         actualPlacement = 'bottom';
       }
       break;
 
     case 'bottom':
-      top = targetRect.bottom + offset + scrollY;
-      left = targetCenterX - popoverWidth / 2 + scrollX;
+      top = targetRect.bottom + calculatedOffset + scrollY;
+      left = targetCenterX - calculatedWidth / 2 + scrollX;
       transform = 'translateX(0)';
 
       // Prevent going below viewport
-      if (top + popoverHeight > scrollY + viewportHeight - 10) {
+      if (top + calculatedHeight > scrollY + viewportHeight - margin - safeAreaBottom) {
         // Flip to top
-        top = targetRect.top - popoverHeight - offset + scrollY;
+        top = targetRect.top - calculatedHeight - calculatedOffset + scrollY;
         actualPlacement = 'top';
       }
       break;
 
     case 'left':
-      top = targetCenterY - popoverHeight / 2 + scrollY;
-      left = targetRect.left - popoverWidth - offset + scrollX;
+      top = targetCenterY - calculatedHeight / 2 + scrollY;
+      left = targetRect.left - calculatedWidth - calculatedOffset + scrollX;
       transform = 'translateY(0)';
 
       // Prevent going off left edge
-      if (left < scrollX + 10) {
+      if (left < scrollX + margin) {
         // Flip to right
-        left = targetRect.right + offset + scrollX;
+        left = targetRect.right + calculatedOffset + scrollX;
         actualPlacement = 'right';
       }
       break;
 
     case 'right':
-      top = targetCenterY - popoverHeight / 2 + scrollY;
-      left = targetRect.right + offset + scrollX;
+      top = targetCenterY - calculatedHeight / 2 + scrollY;
+      left = targetRect.right + calculatedOffset + scrollX;
       transform = 'translateY(0)';
 
       // Prevent going off right edge
-      if (left + popoverWidth > scrollX + viewportWidth - 10) {
+      if (left + calculatedWidth > scrollX + viewportWidth - margin) {
         // Flip to left
-        left = targetRect.left - popoverWidth - offset + scrollX;
+        left = targetRect.left - calculatedWidth - calculatedOffset + scrollX;
         actualPlacement = 'left';
       }
       break;
   }
 
   // Ensure popover stays within horizontal bounds
-  if (left < scrollX + 10) {
-    left = scrollX + 10;
-  } else if (left + popoverWidth > scrollX + viewportWidth - 10) {
-    left = scrollX + viewportWidth - popoverWidth - 10;
+  if (left < scrollX + margin) {
+    left = scrollX + margin;
+  } else if (left + calculatedWidth > scrollX + viewportWidth - margin) {
+    left = scrollX + viewportWidth - calculatedWidth - margin;
   }
 
   // Ensure popover stays within vertical bounds
-  if (top < scrollY + 10) {
-    top = scrollY + 10;
-  } else if (top + popoverHeight > scrollY + viewportHeight - 10) {
-    top = scrollY + viewportHeight - popoverHeight - 10;
+  if (top < scrollY + margin) {
+    top = scrollY + margin;
+  } else if (top + calculatedHeight > scrollY + viewportHeight - margin - safeAreaBottom) {
+    top = scrollY + viewportHeight - calculatedHeight - margin - safeAreaBottom;
   }
 
   // Calculate arrow offset based on target position relative to popover
