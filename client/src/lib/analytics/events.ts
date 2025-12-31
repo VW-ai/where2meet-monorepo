@@ -142,4 +142,59 @@ export const analyticsEvents = {
       event_category: 'engagement',
     });
   },
+
+  /**
+   * Track scroll depth milestone
+   */
+  scrollDepth: (depth: number, pagePath: string) => {
+    trackEvent('scroll_depth', {
+      scroll_depth: depth,
+      page_path: pagePath,
+      event_category: 'engagement',
+    });
+  },
+
+  /**
+   * Track engagement time milestone
+   */
+  engagementTime: (seconds: number, pagePath: string) => {
+    trackEvent('engagement_time', {
+      engagement_seconds: seconds,
+      page_path: pagePath,
+      event_category: 'engagement',
+    });
+  },
+
+  /**
+   * Track CTA click with context
+   */
+  ctaClick: (params: {
+    ctaText: string;
+    ctaLocation: string;
+    ctaType: string;
+    pagePath: string;
+    destination?: string;
+    customAttributes?: Record<string, string | number | boolean>;
+  }) => {
+    trackEvent('cta_click', {
+      cta_text: params.ctaText,
+      cta_location: params.ctaLocation,
+      cta_type: params.ctaType,
+      page_path: params.pagePath,
+      destination: params.destination,
+      event_category: 'conversion',
+      ...params.customAttributes,
+    });
+  },
+
+  /**
+   * Track exit intent (user about to leave page)
+   */
+  exitIntent: (pagePath: string, timeOnPage: number) => {
+    trackEvent('exit_intent', {
+      page_path: pagePath,
+      time_on_page: timeOnPage,
+      event_category: 'engagement',
+    });
+  },
 };

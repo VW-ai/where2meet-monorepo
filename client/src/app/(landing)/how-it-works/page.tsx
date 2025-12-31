@@ -233,6 +233,163 @@ export default function HowItWorksPage() {
             </div>
           </section>
 
+          {/* Section 4.5: Comparison Table */}
+          <section>
+            <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
+              Where2Meet vs Other Approaches
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse bg-white rounded-2xl overflow-hidden shadow-lg">
+                <thead>
+                  <tr className="bg-gradient-to-r from-coral-500 to-coral-600 text-white">
+                    <th className="px-6 py-4 text-left font-semibold">Feature</th>
+                    <th className="px-6 py-4 text-left font-semibold">
+                      Where2Meet
+                      <br />
+                      <span className="text-sm font-normal opacity-90">(Travel Time Based)</span>
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold">
+                      Geographic Midpoint Tools
+                      <br />
+                      <span className="text-sm font-normal opacity-90">(Distance Based)</span>
+                    </th>
+                    <th className="px-6 py-4 text-left font-semibold">
+                      Manual Planning
+                      <br />
+                      <span className="text-sm font-normal opacity-90">(Google Maps)</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-200">
+                    <td className="px-6 py-4 font-semibold text-gray-900">Optimization Goal</td>
+                    <td className="px-6 py-4 text-gray-700">Equal travel times</td>
+                    <td className="px-6 py-4 text-gray-700">Equal distance</td>
+                    <td className="px-6 py-4 text-gray-700">Guesswork</td>
+                  </tr>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <td className="px-6 py-4 font-semibold text-gray-900">Accounts for Traffic</td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">✅ Yes</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Real routing data</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">❌ No</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Straight-line distance only</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">❌ No</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Manual checks required</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-200">
+                    <td className="px-6 py-4 font-semibold text-gray-900">Transportation Modes</td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">✅ Multiple</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Driving, transit, walking</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">❌ None</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Distance only</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-yellow-600 font-semibold">⚠️ Manual</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Check each separately</span>
+                    </td>
+                  </tr>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <td className="px-6 py-4 font-semibold text-gray-900">Fairness Focus</td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">✅ Balanced commutes</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Minimizes time differences</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">❌ Midpoint may be unfair</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Equal distance ≠ equal time</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">❌ Subjective</span>
+                      <br />
+                      <span className="text-sm text-gray-600">No fairness calculation</span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-200">
+                    <td className="px-6 py-4 font-semibold text-gray-900">Visual Comparison</td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">✅ Interactive map</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Routes for all participants</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-yellow-600 font-semibold">⚠️ Static map</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Shows midpoint only</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">❌ Multiple apps</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Switch between screens</span>
+                    </td>
+                  </tr>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <td className="px-6 py-4 font-semibold text-gray-900">Group Decision</td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">✅ Collaborative voting</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Everyone sees and votes</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">❌ No voting</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Organizer decides alone</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">❌ Text thread chaos</span>
+                      <br />
+                      <span className="text-sm text-gray-600">"Works for me" messages</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-6 py-4 font-semibold text-gray-900">Time to Plan</td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">⏱️ &lt; 2 minutes</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Automated analysis</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">⏱️ &lt; 1 minute</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Fast but inaccurate</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-red-600 font-semibold">⏱️ 20+ minutes</span>
+                      <br />
+                      <span className="text-sm text-gray-600">Manual route checks</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-6 bg-mint-50 rounded-xl p-6 border-l-4 border-mint-500">
+              <p className="font-semibold text-lg mb-2">🎯 The Bottom Line</p>
+              <p className="text-gray-700">
+                Geographic midpoint tools are fast but often unfair. Manual planning with Google
+                Maps is accurate but tedious.{' '}
+                <strong>Where2Meet combines speed with fairness</strong>—showing you real travel
+                time comparisons in under 2 minutes.
+              </p>
+            </div>
+          </section>
+
           {/* Section 5: Use Cases */}
           <section>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Who Is Where2Meet For?</h2>

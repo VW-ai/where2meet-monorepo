@@ -140,11 +140,19 @@ export default function LandingPage() {
             className={`mb-12 animate-on-load animate-fade-slide-up animation-delay-200 ${animationLoaded ? 'loaded' : ''}`}
           >
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
-              Find the perfect
-              <span className="text-coral-500"> meeting spot</span>
+              Find <span className="text-coral-500">Fair Meeting Spots</span> with Equal Travel
+              Times
             </h1>
-            <p className="text-lg md:text-xl text-gray-600">
-              Add participants, compare travel times, and discover the ideal location for everyone
+            <p className="text-lg md:text-xl text-gray-600 mb-4">
+              Stop making one person travel twice as far. Compare real travel times and find
+              equitable locations for everyone.
+            </p>
+            <p className="text-sm md:text-base text-gray-500 italic mb-3">
+              Unlike other planners, Where2Meet optimizes for travel time fairness, not just
+              distance
+            </p>
+            <p className="text-base md:text-lg text-coral-600 font-semibold">
+              ✨ No sign-up required—start planning in seconds
             </p>
           </div>
 
@@ -197,11 +205,12 @@ export default function LandingPage() {
               className={`bg-white/60 backdrop-blur-sm rounded-2xl p-6 animate-on-load animate-fade-slide-up animation-delay-1000 ${animationLoaded ? 'loaded' : ''}`}
             >
               <div className="text-3xl mb-3" aria-hidden="true">
-                ✨
+                ⏱️
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Smart Suggestions</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">Equal Travel Times</h3>
               <p className="text-sm text-gray-600">
-                Get venue recommendations based on optimal location and preferences
+                Real-time routing calculates actual commutes—not just distance—so everyone's travel
+                burden is balanced
               </p>
             </article>
           </section>
@@ -217,6 +226,12 @@ export default function LandingPage() {
               className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
             >
               How It Works
+            </Link>
+            <Link
+              href="/scenarios"
+              className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
+            >
+              Scenarios
             </Link>
             <Link
               href="/faq"

@@ -14,7 +14,8 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "audit:content": "tsx scripts/audit-content.ts"
   },
   "repository": {
     "type": "git",
