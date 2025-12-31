@@ -40,6 +40,16 @@ const faqData: Array<{ category: string; questions: FAQItem[] }> = [
         answer:
           "Our algorithm finds meeting locations where the difference in travel times between participants is minimized. We prioritize locations where everyone's commute is roughly equal, rather than optimizing for the shortest total distance. You can see each person's travel time on the map and vote on the fairest option together.",
       },
+      {
+        question: 'How is Where2Meet.com different from where2meet.net?',
+        answer:
+          "Where2Meet.com (this site) optimizes for travel time fairness by calculating real commute times and balancing everyone's travel burden. Where2meet.net uses geographic midpoint calculation based on straight-line distance. The key difference: we show you actual travel times (accounting for traffic, roads, and transit), while midpoint tools only consider distance. A geographic midpoint can be unfair if one person has highway access and another doesn't—travel time reveals the real story.",
+      },
+      {
+        question: 'Why not just use Google Maps to find a meeting point?',
+        answer:
+          "Google Maps is excellent for point-to-point navigation, but it doesn't optimize for fairness across multiple starting locations. To find a fair meeting spot manually, you'd need to: (1) guess potential meeting locations, (2) check each participant's route to every location, (3) compare travel times across dozens of combinations, and (4) coordinate feedback in a group chat. Where2Meet automates all of this—showing you side-by-side travel time comparisons in under 2 minutes, with an interactive map where everyone can vote on the fairest option.",
+      },
     ],
   },
   {
@@ -99,6 +109,11 @@ const faqData: Array<{ category: string; questions: FAQItem[] }> = [
         question: 'Is Where2Meet free to use?',
         answer:
           'Yes, Where2Meet is free to use. You can create meetings, add unlimited participants, view the map, and vote on venues without any cost.',
+      },
+      {
+        question: 'Do I need to create an account to use Where2Meet?',
+        answer:
+          'No! You can start planning your meeting immediately without signing up. Simply enter your event details and begin adding participants. No account, no registration, no barriers—just instant planning. Organizers can optionally create an account later to manage multiple events and claim ownership.',
       },
       {
         question: 'Do participants need an account?',
