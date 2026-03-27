@@ -38,6 +38,10 @@ process.on("unhandledRejection", (reason) => {
 
 // Start the server
 startServer().catch((err: unknown) => {
+  // Write raw error to stderr so it's visible regardless of log format
+  process.stderr.write(
+    `STARTUP FAILED: ${err instanceof Error ? err.stack : String(err)}\n`
+  );
   logger.fatal(err, "Failed to start server");
   process.exit(1);
 });
