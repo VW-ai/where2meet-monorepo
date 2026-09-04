@@ -835,3 +835,31 @@ This meant the frontend couldn't know which participants had route data availabl
 #### Test Summary
 - All tests passing (405 tests)
 - Updated tests: 4 directions endpoint tests
+
+---
+
+## 2026-09-04
+
+### Railway Deployment Fix: Start Command Never Reached Node
+
+#### Problem Statement
+Every Railway deploy since March failed at the healthcheck with `service unavailable`. Deploy logs showed `prisma migrate deploy` completing, then the container stopping with no server output at all.
+
+Root cause: for Dockerfile-based services Railway runs `startCommand` in exec form, without a shell. The `&&` in `npx prisma migrate deploy && npm start` was handed to Prisma as literal arguments, which it ignored. Prisma exited 0, `npm start` never ran, and nothing listened on `PORT`. Exit code 0 also meant the container was never restarted.
+
+Reproduced locally by running the production image with the same argv and no shell: migrations applied, exit code 0, no server. The same chain through `sh -c` starts the server and passes `/health/ready`.
+
+#### Solution
+- Wrap the chain in a shell: `startCommand = '/bin/sh -c "npx prisma migrate deploy && exec node dist/index.js"'`
+- `exec` makes Node PID 1 so Railway's SIGTERM reaches the graceful-shutdown handler in `src/index.ts`
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `railway.toml` | Shell-wrapped `startCommand` |
+
+#### Notes
+- `CORS_ORIGINS` is still required on Railway (production fail-fast in `src/server.ts`)
+- `REDIS_URL` is optional; `/health/ready` returns `degraded` without it
+- Reference: https://docs.railway.com/guides/start-command (Dockerfile/Image: exec form; Railpack: shell)

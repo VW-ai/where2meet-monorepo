@@ -135,3 +135,14 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [x] Reconnection recovery via snapshot endpoint
 - [ ] Participant add/update/remove events (if needed)
 - [ ] Event update/publish events (if needed)
+
+---
+
+## 2026-09-04
+
+### Railway Deployment Follow-ups
+- [x] Fix `startCommand` so Node actually starts on Railway (shell-wrapped, see PROGRESS.md)
+- [ ] Confirm first green deploy: healthcheck passes and `/health/ready` returns `ok` or `degraded`
+- [ ] Set `REDIS_URL` on Railway (Redis service reference) for caching and cross-replica SSE
+- [ ] Add the real frontend origin to `CORS_ORIGINS` before the frontend goes live
+- [ ] Update `docs/DEPLOYMENT.md` and `META/ARCHITECTURE/DEPLOYMENT.md`, which still describe `preDeployCommand`
