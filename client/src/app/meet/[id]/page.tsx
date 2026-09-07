@@ -1,7 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import {
+  PhoneHeader,
+  PhoneSheetHeading,
+  PhoneShareButton,
+} from '@/features/meeting/ui/mobile/phone-chrome';
 import { Header } from '@/features/meeting/ui/header';
 import { Sidebar } from '@/features/meeting/ui/sidebar';
 import { MapArea } from '@/features/meeting/ui/map';
@@ -19,6 +24,7 @@ import { useEventStream } from '@/features/meeting/hooks/useEventStream';
 import { analyticsEvents } from '@/lib/analytics/events';
 
 export default function MeetPage() {
+  const [sheetExpanded, setSheetExpanded] = useState(false);
   const params = useParams();
   const eventId = params.id as string;
   const {
@@ -206,22 +212,34 @@ export default function MeetPage() {
 
   return (
     <TutorialProvider>
-      <div className="relative h-screen w-screen overflow-hidden">
+      <div
+        className="meeting-screen relative h-screen w-screen overflow-hidden"
+        data-expanded={sheetExpanded}
+      >
         {/* Map - Full Screen Background */}
-        <div className="absolute inset-0">
+        <div className="meeting-map absolute inset-0">
           <MapArea />
         </div>
 
         {/* Floating UI Components */}
         <div className="relative z-10 h-full w-full pointer-events-none">
           {/* Header - Floating at top */}
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto hidden md:block">
             <Header eventId={eventId} />
           </div>
 
+          <PhoneHeader eventId={eventId} />
+
           {/* Sidebar - Floating overlay (bottom on mobile, left on desktop) */}
-          <div className="pointer-events-auto fixed bottom-0 left-0 right-0 h-[50vh] md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
-            <Sidebar />
+          <div className="meeting-sheet pointer-events-auto md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
+            <PhoneSheetHeading
+              expanded={sheetExpanded}
+              onToggle={() => setSheetExpanded(!sheetExpanded)}
+            />
+            <div id="meeting-sheet-content" className="meeting-sheet-content md:h-full">
+              <Sidebar />
+            </div>
+            <PhoneShareButton />
           </div>
 
           {/* Venue Info Slide-out - Global overlay */}

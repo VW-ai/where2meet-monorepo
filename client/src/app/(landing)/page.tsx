@@ -143,17 +143,7 @@ export default function LandingPage() {
               Find <span className="text-coral-500">Fair Meeting Spots</span> with Equal Travel
               Times
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-4">
-              Stop making one person travel twice as far. Compare real travel times and find
-              equitable locations for everyone.
-            </p>
-            <p className="text-sm md:text-base text-gray-500 italic mb-3">
-              Unlike other planners, Where2Meet optimizes for travel time fairness, not just
-              distance
-            </p>
-            <p className="text-base md:text-lg text-coral-600 font-semibold">
-              ✨ No sign-up required—start planning in seconds
-            </p>
+
           </div>
 
           <div

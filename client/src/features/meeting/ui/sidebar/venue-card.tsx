@@ -5,7 +5,7 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import type { Venue } from '@/entities';
-import { MapPin, Star, Clock, Crown } from 'lucide-react';
+import { MapPin, Star, Clock, Crown, Store, Coffee, Utensils, Wine } from 'lucide-react';
 import { VoteButton } from '@/features/voting/ui/vote-button';
 
 interface VenueCardProps {
@@ -18,6 +18,7 @@ export function VenueCard({ venue, isPublishedVenue = false }: VenueCardProps) {
   const { openVenueInfo } = useUIStore();
   const { setHoveredVenueId } = useMapStore();
   const isSelected = selectedVenue?.id === venue.id;
+  const VenueIcon = venue.types.includes('cafe') ? Coffee : venue.types.includes('restaurant') ? Utensils : venue.types.includes('bar') ? Wine : Store;
 
   // Ref for scroll-to-view behavior
   const cardRef = useRef<HTMLDivElement>(null);
@@ -81,6 +82,7 @@ export function VenueCard({ venue, isPublishedVenue = false }: VenueCardProps) {
         </div>
       )}
 
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-coral-50 text-coral-600 md:hidden" aria-hidden="true"><VenueIcon size={22} /></div>
       {/* Venue Name */}
       <h3
         className={`font-semibold transition-colors ${
