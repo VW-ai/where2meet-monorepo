@@ -4,12 +4,40 @@
  */
 
 import { config } from "../config.js";
-import { redis } from "../redis.js";
+import { placesRedis as redis } from "./redis.js";
 import type { PlaceResult, PlaceDetails, GeoPoint } from "./types.js";
 
 /** Cache key prefixes */
 const PLACES_SEARCH_CACHE_PREFIX = "places:search:";
 const PLACES_DETAILS_CACHE_PREFIX = "places:details:";
+
+/**
+ * Places caching is optional. Skip reconnecting Redis and bound each operation
+ * even if a connected Redis server stops answering mid-request.
+ */
+async function withCacheDeadline<T>(operation: () => Promise<T>): Promise<T> {
+  if (redis.status === "wait") {
+    void redis.connect().catch(() => {
+      /* An optional cache miss is handled below. */
+    });
+  }
+  if (redis.status !== "ready") {
+    throw new Error("Cache unavailable");
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error("Cache deadline exceeded"));
+        }, 500);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Normalizes lat/lng to 4 decimal places for cache key consistency.
@@ -47,7 +75,7 @@ export function getDetailsCacheKey(placeId: string): string {
  */
 export async function getCachedSearch(cacheKey: string): Promise<PlaceResult[] | null> {
   try {
-    const cached = await redis.get(cacheKey);
+    const cached = await withCacheDeadline(() => redis.get(cacheKey));
     if (cached) {
       return JSON.parse(cached) as PlaceResult[];
     }
@@ -62,11 +90,8 @@ export async function getCachedSearch(cacheKey: string): Promise<PlaceResult[] |
  */
 export async function cacheSearchResults(cacheKey: string, results: PlaceResult[]): Promise<void> {
   try {
-    await redis.set(
-      cacheKey,
-      JSON.stringify(results),
-      "EX",
-      config.PLACES_SEARCH_CACHE_TTL_SECONDS
+    await withCacheDeadline(() =>
+      redis.set(cacheKey, JSON.stringify(results), "EX", config.PLACES_SEARCH_CACHE_TTL_SECONDS)
     );
   } catch (error) {
     console.warn("[Places] Cache write error:", error);
@@ -78,7 +103,7 @@ export async function cacheSearchResults(cacheKey: string, results: PlaceResult[
  */
 export async function getCachedDetails(placeId: string): Promise<PlaceDetails | null> {
   try {
-    const cached = await redis.get(getDetailsCacheKey(placeId));
+    const cached = await withCacheDeadline(() => redis.get(getDetailsCacheKey(placeId)));
     if (cached) {
       return JSON.parse(cached) as PlaceDetails;
     }
@@ -93,11 +118,13 @@ export async function getCachedDetails(placeId: string): Promise<PlaceDetails | 
  */
 export async function cacheDetails(placeId: string, details: PlaceDetails): Promise<void> {
   try {
-    await redis.set(
-      getDetailsCacheKey(placeId),
-      JSON.stringify(details),
-      "EX",
-      config.PLACES_DETAILS_CACHE_TTL_SECONDS
+    await withCacheDeadline(() =>
+      redis.set(
+        getDetailsCacheKey(placeId),
+        JSON.stringify(details),
+        "EX",
+        config.PLACES_DETAILS_CACHE_TTL_SECONDS
+      )
     );
   } catch (error) {
     console.warn("[Places] Cache write error:", error);

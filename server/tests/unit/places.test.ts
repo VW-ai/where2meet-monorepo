@@ -17,8 +17,9 @@ import {
 } from "../../src/lib/places/index.js";
 
 // Mock Redis
-vi.mock("../../src/lib/redis.js", () => ({
-  redis: {
+vi.mock("../../src/lib/places/redis.js", () => ({
+  placesRedis: {
+    status: "ready",
     get: vi.fn(),
     set: vi.fn(),
   },
@@ -35,10 +36,11 @@ vi.mock("../../src/lib/config.js", () => ({
 }));
 
 // Get mocked modules
-import { redis } from "../../src/lib/redis.js";
+import { placesRedis as redis } from "../../src/lib/places/redis.js";
 import { config } from "../../src/lib/config.js";
 
 const mockRedis = redis as {
+  status: string;
   get: ReturnType<typeof vi.fn>;
   set: ReturnType<typeof vi.fn>;
 };
@@ -46,11 +48,13 @@ const mockRedis = redis as {
 describe("Places Module", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRedis.status = "ready";
     vi.stubGlobal("fetch", vi.fn());
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   const center = { lat: 40.7128, lng: -74.006 };
@@ -84,10 +88,7 @@ describe("Places Module", () => {
       website: "https://testcafe.com",
       opening_hours: {
         open_now: true,
-        weekday_text: [
-          "Monday: 7:00 AM – 9:00 PM",
-          "Tuesday: 7:00 AM – 9:00 PM",
-        ],
+        weekday_text: ["Monday: 7:00 AM – 9:00 PM", "Tuesday: 7:00 AM – 9:00 PM"],
       },
     },
   };
@@ -161,10 +162,7 @@ describe("Places Module", () => {
 
       await searchNearbyPlaces(center, 5000, { type: "cafe" });
 
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining("type=cafe"),
-        expect.any(Object)
-      );
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("type=cafe"), expect.any(Object));
     });
 
     it("includes keyword parameter when specified", async () => {
@@ -267,9 +265,7 @@ describe("Places Module", () => {
       await searchNearbyPlaces({ lat: 40.71284567, lng: -74.00612345 }, 5000);
 
       // Should normalize to 4 decimal places
-      expect(mockRedis.get).toHaveBeenCalledWith(
-        expect.stringContaining("40.7128,-74.0061")
-      );
+      expect(mockRedis.get).toHaveBeenCalledWith(expect.stringContaining("40.7128,-74.0061"));
     });
 
     it("continues working if cache read fails", async () => {
@@ -323,6 +319,39 @@ describe("Places Module", () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
+    it("bypasses disconnected Redis instead of queuing a search", async () => {
+      mockRedis.status = "reconnecting";
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockNearbySearchResponse),
+      } as Response);
+
+      const results = await textSearchPlaces("coffee", center, 1500);
+
+      expect(results).toHaveLength(1);
+      expect(mockRedis.get).not.toHaveBeenCalled();
+      expect(mockRedis.set).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns Google results when connected Redis reads and writes stop responding", async () => {
+      vi.useFakeTimers();
+      mockRedis.get.mockImplementation(() => new Promise(() => {}));
+      mockRedis.set.mockImplementation(() => new Promise(() => {}));
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockNearbySearchResponse),
+      } as Response);
+
+      const pending = textSearchPlaces("coffee", center, 1500);
+      await vi.advanceTimersByTimeAsync(1000);
+      const results = await pending;
+
+      expect(results).toHaveLength(1);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
     it("calls Google API with query parameter", async () => {
       mockRedis.get.mockResolvedValue(null);
       mockRedis.set.mockResolvedValue("OK");
@@ -365,9 +394,7 @@ describe("Places Module", () => {
 
       await textSearchPlaces("  Coffee  Shop  ", center, 5000);
 
-      expect(mockRedis.get).toHaveBeenCalledWith(
-        expect.stringContaining("coffee_shop")
-      );
+      expect(mockRedis.get).toHaveBeenCalledWith(expect.stringContaining("coffee_shop"));
     });
   });
 
@@ -412,10 +439,7 @@ describe("Places Module", () => {
         expect.stringContaining("place_id=" + placeId),
         expect.any(Object)
       );
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining("fields="),
-        expect.any(Object)
-      );
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("fields="), expect.any(Object));
     });
 
     it("returns full place details", async () => {

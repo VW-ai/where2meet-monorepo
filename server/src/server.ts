@@ -104,8 +104,14 @@ export async function buildServer() {
   await server.register(cors, {
     origin: (origin, cb) => {
       // Non-browser requests (e.g. health checks, curl) often omit Origin.
-      if (!origin) { cb(null, true); return; }
-      if (corsAllowAllOrigins) { cb(null, true); return; }
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      if (corsAllowAllOrigins) {
+        cb(null, true);
+        return;
+      }
       cb(null, corsAllowedOrigins.includes(origin));
     },
     credentials: true,
