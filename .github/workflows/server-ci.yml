@@ -1,10 +1,20 @@
-name: CI
+name: Server CI
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/server-ci.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/server-ci.yml'
+
+defaults:
+  run:
+    working-directory: server
 
 jobs:
   lint:
@@ -20,6 +30,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: server/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -48,6 +59,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: server/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -95,6 +107,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: server/package-lock.json
 
       - name: Install dependencies
         run: npm ci

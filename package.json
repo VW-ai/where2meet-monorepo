@@ -1,0 +1,25 @@
+{
+  "name": "where2meet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Where2Meet monorepo: Next.js client (client/) and Fastify API server (server/)",
+  "scripts": {
+    "prepare": "husky",
+    "install:all": "npm ci && npm --prefix client ci && npm --prefix server ci",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build:client": "npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "test:client": "npm --prefix client test",
+    "test:server": "npm --prefix server test",
+    "lint:client": "npm --prefix client run lint",
+    "lint:server": "npm --prefix server run lint"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

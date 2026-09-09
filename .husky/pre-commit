@@ -1,0 +1,4 @@
+# Runs from the repo root. lint-staged picks the nearest config for each staged
+# file (client/package.json or server/package.json) and runs its commands from
+# that package's directory, so each package keeps its own eslint/prettier setup.
+npx lint-staged

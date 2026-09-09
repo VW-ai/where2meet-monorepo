@@ -1,9 +1,9 @@
-name: CD Staging
+name: Server CD Staging
 
 on:
   workflow_dispatch:  # Manual trigger for testing
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["Server CI"]
     branches: [main]
     types: [completed]
 
@@ -83,6 +83,9 @@ jobs:
             echo "No GitHub vars provided for DATABASE_URL/REDIS_URL; skipping sync."
           fi
 
+      # Uploads the whole repo from the root; the Railway service must have
+      # Root Directory set to "server" so it builds from server/ (Dockerfile,
+      # railway.toml) exactly as a GitHub-triggered deploy would.
       - name: Deploy to Railway (staging)
         run: railway up --ci --environment staging --service "$RAILWAY_SERVICE_NAME"
         env:

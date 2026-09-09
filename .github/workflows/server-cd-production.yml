@@ -1,4 +1,4 @@
-name: CD Production
+name: Server CD Production
 
 on:
   workflow_dispatch:
@@ -84,6 +84,9 @@ jobs:
             echo "No GitHub vars provided for DATABASE_URL/REDIS_URL; skipping sync."
           fi
 
+      # Uploads the whole repo from the root; the Railway service must have
+      # Root Directory set to "server" so it builds from server/ (Dockerfile,
+      # railway.toml) exactly as a GitHub-triggered deploy would.
       - name: Deploy to Railway (production)
         run: railway up --ci --environment production --service "$RAILWAY_SERVICE_NAME"
         env:
