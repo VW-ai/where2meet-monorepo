@@ -1,0 +1,92 @@
+name: Railway Auth Check
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: railway-auth-check
+  cancel-in-progress: true
+
+jobs:
+  check-staging:
+    name: Check Staging Token
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify config
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in RAILWAY_TOKEN RAILWAY_SERVICE_NAME; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "::error::Missing required config: ${key}"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -eq 1 ]]; then
+            exit 1
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Validate token (staging)
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          railway deployment list --service "$RAILWAY_SERVICE_NAME" --environment staging --limit 1 --json >/dev/null
+          echo "Staging token OK"
+
+  check-production:
+    name: Check Production Token
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify config
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_PRODUCTION || secrets.railway_production }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in RAILWAY_TOKEN RAILWAY_SERVICE_NAME; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "::error::Missing required config: ${key}"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -eq 1 ]]; then
+            exit 1
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Validate token (production)
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_PRODUCTION || secrets.railway_production }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          railway deployment list --service "$RAILWAY_SERVICE_NAME" --environment production --limit 1 --json >/dev/null
+          echo "Production token OK"
+

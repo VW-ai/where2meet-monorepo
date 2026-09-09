@@ -1,0 +1,91 @@
+name: CD Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm production deployment'
+        required: true
+        type: string
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Deployment Request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation
+        if: ${{ github.event.inputs.confirm != 'deploy' }}
+        run: |
+          echo "::error::You must type 'deploy' to confirm production deployment"
+          exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate]
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify Railway configuration
+        shell: bash
+        env:
+          # Use a Project Token scoped to the production environment.
+          # Configure this as a GitHub Environment secret for `production`.
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_PRODUCTION || secrets.railway_production }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in RAILWAY_TOKEN RAILWAY_SERVICE_NAME; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "::error::Missing required config: ${key}"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -eq 1 ]]; then
+            echo "::error::Configure GitHub 'Actions secrets and variables' (Environment secret + repo vars) before running CD."
+            exit 1
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Sync Railway env vars (optional)
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_PRODUCTION || secrets.railway_production }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+          DATABASE_URL: ${{ vars.database_url }}
+          REDIS_URL: ${{ vars.redis_url }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ -n "${DATABASE_URL:-}" ]]; then
+            args+=(--set "DATABASE_URL=${DATABASE_URL}")
+          fi
+          if [[ -n "${REDIS_URL:-}" ]]; then
+            args+=(--set "REDIS_URL=${REDIS_URL}")
+          fi
+          if [[ "${#args[@]}" -gt 0 ]]; then
+            railway variables --service "$RAILWAY_SERVICE_NAME" --environment production --skip-deploys "${args[@]}"
+          else
+            echo "No GitHub vars provided for DATABASE_URL/REDIS_URL; skipping sync."
+          fi
+
+      - name: Deploy to Railway (production)
+        run: railway up --ci --environment production --service "$RAILWAY_SERVICE_NAME"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_PRODUCTION || secrets.railway_production }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}

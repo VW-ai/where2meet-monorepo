@@ -1,0 +1,8 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = '/bin/sh -c "npx prisma migrate deploy && exec node dist/index.js"'
+healthcheckPath = "/health/ready"
+healthcheckTimeout = 300

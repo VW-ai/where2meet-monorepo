@@ -1,0 +1,90 @@
+name: CD Staging
+
+on:
+  workflow_dispatch:  # Manual trigger for testing
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+concurrency:
+  group: cd-staging-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    # For workflow_run: check CI success + push to main + vars configured
+    # For workflow_dispatch: skip workflow_run checks (manual trigger)
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Use workflow_run's commit for auto-deploy, default branch for manual trigger
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify Railway configuration
+        shell: bash
+        env:
+          # Use a Project Token scoped to the staging environment.
+          # Configure this as a GitHub Environment secret for `staging`.
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in RAILWAY_TOKEN RAILWAY_SERVICE_NAME; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "::error::Missing required config: ${key}"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -eq 1 ]]; then
+            echo "::error::Configure GitHub 'Actions secrets and variables' (Environment secret + repo vars) before running CD."
+            exit 1
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Sync Railway env vars (optional)
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+          DATABASE_URL: ${{ vars.database_url }}
+          REDIS_URL: ${{ vars.redis_url }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ -n "${DATABASE_URL:-}" ]]; then
+            args+=(--set "DATABASE_URL=${DATABASE_URL}")
+          fi
+          if [[ -n "${REDIS_URL:-}" ]]; then
+            args+=(--set "REDIS_URL=${REDIS_URL}")
+          fi
+          if [[ "${#args[@]}" -gt 0 ]]; then
+            railway variables --service "$RAILWAY_SERVICE_NAME" --environment staging --skip-deploys "${args[@]}"
+          else
+            echo "No GitHub vars provided for DATABASE_URL/REDIS_URL; skipping sync."
+          fi
+
+      - name: Deploy to Railway (staging)
+        run: railway up --ci --environment staging --service "$RAILWAY_SERVICE_NAME"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
