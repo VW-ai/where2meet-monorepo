@@ -6,7 +6,7 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-store';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Layers, LocateFixed } from 'lucide-react';
 import { loadGoogleMaps } from '@/shared/lib/google-maps/loader';
 import { calculateMEC, calculateSearchRadius } from '@/shared/lib/mec';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
@@ -81,6 +81,7 @@ export function MapArea() {
   // Convert UI travel mode to Google Maps travel mode
   const travelMode = UI_TO_GOOGLE_TRAVEL_MODE[uiTravelMode];
 
+  const [satellite, setSatellite] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -129,6 +130,9 @@ export function MapArea() {
           center,
           zoom: 12,
           ...mapOptions,
+          ...(window.matchMedia('(max-width: 767px)').matches ? {
+            mapTypeId: 'hybrid', zoomControl: false, fullscreenControl: false,
+          } : {}),
         });
 
         setMap(mapInstance);
@@ -841,17 +845,11 @@ export function MapArea() {
 
   if (!GOOGLE_MAPS_API_KEY) {
     return (
-      <main className="w-full h-full bg-gradient-to-br from-sky-50 via-coral-50/30 to-mint-50/30 relative overflow-hidden flex items-center justify-center">
-        <div className="text-center space-y-4 p-8 max-w-md">
-          <div className="text-6xl">🗺️</div>
-          <h3 className="text-xl font-semibold text-foreground">Google Maps API Key Required</h3>
-          <p className="text-sm text-muted-foreground">
-            Please add your Google Maps API key to the{' '}
-            <code className="bg-coral-50 px-2 py-1 rounded">.env.local</code> file:
-          </p>
-          <pre className="text-xs bg-gray-100 p-4 rounded-lg text-left">
-            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
-          </pre>
+      <main className="w-full h-full bg-stone-100 flex items-center justify-center">
+        <div className="text-center px-8 pt-28 max-w-sm" role="status">
+          <Layers className="mx-auto mb-3 text-stone-400" size={32} />
+          <h3 className="font-semibold text-foreground">Map temporarily unavailable</h3>
+          <p className="mt-2 text-sm text-muted-foreground">You can still manage your group below. Try the map again later.</p>
         </div>
       </main>
     );
@@ -879,6 +877,16 @@ export function MapArea() {
           </div>
         </div>
       )}
+
+      <div className="phone-map-controls hidden max-md:flex">
+        <button aria-label={satellite ? 'Show street map' : 'Show satellite map'} onClick={() => {
+          map?.setMapTypeId(satellite ? 'roadmap' : 'hybrid'); setSatellite(!satellite);
+        }}><Layers size={22} /></button>
+        <button aria-label="Center map on meeting area" onClick={() => {
+          const circle = useMapStore.getState().searchCircle;
+          if (circle) { map?.panTo(circle.center); map?.setZoom(13); }
+        }}><LocateFixed size={22} /></button>
+      </div>
 
       {/* Route calculating overlay */}
       {isCalculatingRoutes && (
