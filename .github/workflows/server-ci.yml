@@ -6,11 +6,17 @@ on:
     paths:
       - 'server/**'
       - '.github/workflows/server-ci.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.husky/**'
   pull_request:
     branches: [main]
     paths:
       - 'server/**'
       - '.github/workflows/server-ci.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.husky/**'
 
 defaults:
   run:

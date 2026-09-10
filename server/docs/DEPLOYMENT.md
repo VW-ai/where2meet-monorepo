@@ -11,8 +11,8 @@ If you want GitHub Actions to control CD, disable Railway's auto-deploy to avoid
 
 Workflows:
 
-- Staging: `.github/workflows/cd-staging.yml`
-- Production: `.github/workflows/cd-production.yml`
+- Staging: `.github/workflows/server-cd-staging.yml`
+- Production: `.github/workflows/server-cd-production.yml`
 
 ### Required GitHub config
 
@@ -26,6 +26,10 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 ### Railway settings
 
+- Root Directory: `/server`.
+- Config File Path: `/server/railway.toml` (the config path does not follow Root Directory automatically).
+- A new GitHub repository needs its own environment secrets and variables; these are not part of Git history.
+
 - Disable Railway GitHub integration auto-deploy for this service (so only Actions deploys).
 - Ensure the Railway service has the required runtime env vars configured (e.g. `DATABASE_URL`, `REDIS_URL`, `CORS_ORIGINS`).
 
@@ -33,7 +37,7 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 - (Optional) The workflows sync `database_url`/`redis_url` into Railway variables `DATABASE_URL`/`REDIS_URL` (without triggering an extra deploy)
 - Then they run `railway up --ci --environment <staging|production> --service <name>`
-- The Railway runtime runs DB migrations before start via `railway.toml` (`preDeployCommand`)
+- The Railway runtime runs DB migrations before start via `railway.toml` (`startCommand`, before the Node process starts)
 
 Note: In Railway UI, `DATABASE_URL`/`REDIS_URL` may appear as `${{<id>.DATABASE_URL}}`-style references; Railway resolves these at runtime.
 
