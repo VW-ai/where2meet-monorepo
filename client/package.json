@@ -18,15 +18,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VW-ai/Where2meet-v1.0-client.git"
+    "url": "git+https://github.com/V1ctor2182/where2meet-monorepo.git",
+    "directory": "client"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/VW-ai/Where2meet-v1.0-client/issues"
+    "url": "https://github.com/V1ctor2182/where2meet-monorepo/issues"
   },
-  "homepage": "https://github.com/VW-ai/Where2meet-v1.0-client#readme",
+  "homepage": "https://github.com/V1ctor2182/where2meet-monorepo/tree/main/client#readme",
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.0.2",
     "@radix-ui/react-popover": "^1.1.15",

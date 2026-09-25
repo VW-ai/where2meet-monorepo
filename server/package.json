@@ -21,15 +21,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VW-ai/where2meet-server.git"
+    "url": "git+https://github.com/V1ctor2182/where2meet-monorepo.git",
+    "directory": "server"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/VW-ai/where2meet-server/issues"
+    "url": "https://github.com/V1ctor2182/where2meet-monorepo/issues"
   },
-  "homepage": "https://github.com/VW-ai/where2meet-server#readme",
+  "homepage": "https://github.com/V1ctor2182/where2meet-monorepo/tree/main/server#readme",
   "description": "Where2Meet backend server - find the perfect meeting spot",
   "dependencies": {
     "@fastify/cookie": "^10.0.1",
