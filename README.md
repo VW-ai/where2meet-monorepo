@@ -2,6 +2,8 @@
 
 One Git repository for the web client and API server, with both project histories.
 
+Canonical repository: [V1ctor2182/where2meet-monorepo](https://github.com/V1ctor2182/where2meet-monorepo) (private).
+
 ```text
 client/   Next.js web app      localhost:3001
 server/   Fastify + Prisma    localhost:3000
@@ -29,11 +31,19 @@ Each package keeps its own dependencies and lockfile. The root provides `build:c
 
 ## Deployment
 
-- Vercel: select this repository and set Root Directory to `client`.
-- Railway: set Root Directory to `/server` and Config File Path to `/server/railway.toml`.
-- GitHub Actions: client and server CI use path filters. Configure the new repository's Railway service variable and environment secrets before using its CD workflows; see [server deployment](server/docs/DEPLOYMENT.md).
+The existing hosting projects use this repository:
 
-This repository consolidation does not change the existing production deployment connections. Native iOS remains in its separate sibling folder.
+| Service | Build root | Deployment |
+| --- | --- | --- |
+| Vercel `where2meet` | `client` | Git integration deploys `main` to `www.where2meet.org` |
+| Railway `where2meet-server`, staging | `/server` | `Server CI` success on `main` triggers `Server CD Staging` |
+| Railway `where2meet-server`, production | `/server` | Run `Server CD Production` on `main` with `confirm=deploy` |
+
+Railway Config File Path is `/server/railway.toml` in both environments. Its production API remains at `https://where2meet-server-production.up.railway.app`. Database, Redis, provider environment variables, and domains remain on the existing projects.
+
+GitHub Actions uses the `RAILWAY_SERVICE_NAME` and `RAILWAY_PROJECT_ID` repository variables and environment-scoped project tokens stored as repository secrets `RAILWAY_STAGING` and `RAILWAY_PRODUCTION`. `Railway Auth Check` verifies both tokens without printing them. Client and server CI can also be run manually. The old server repository's CD workflows and direct Railway trigger are disabled so it cannot redeploy the retired source automatically.
+
+Native iOS remains in its separate sibling folder. See [server deployment](server/docs/DEPLOYMENT.md) for operational commands.
 
 ## Source history and working changes
 
