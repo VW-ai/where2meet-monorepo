@@ -8,6 +8,7 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { Users, Plus, BarChart3, UserPlus } from 'lucide-react';
 import { AddParticipant, type ParticipantFormData } from './add-participant';
+import { MyLocationPrompt, MY_LOCATION_INPUT_ID } from './my-location-prompt';
 import { ParticipantPill } from './participant-pill';
 import { participantClient } from '@/features/meeting/api';
 import { cn } from '@/shared/lib/cn';
@@ -24,6 +25,7 @@ export function ParticipantSection() {
     isParticipantMode,
     participantToken,
     currentParticipantId,
+    organizerParticipantId,
     setParticipantInfo,
     clearParticipantInfo,
   } = useAuthStore();
@@ -40,9 +42,41 @@ export function ParticipantSection() {
   const [deletingParticipantId, setDeletingParticipantId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Organizers usually add several people in a row: the form stays open after each add
+  const [lastAddedName, setLastAddedName] = useState<string | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
   const participantCount = currentEvent?.participants?.length || 0;
   const isPublished = !!currentEvent?.publishedAt;
+
+  // The viewer's own participant record, if they have one in this event
+  const myParticipantId = organizerParticipantId || currentParticipantId;
+  const me = currentEvent?.participants?.find((p) => p.id === myParticipantId);
+  const iNeedLocation = !!me && !me.address && !isPublished;
+
+  // Save the viewer's own starting point from the inline prompt
+  const handleSaveMyLocation = async (data: { name?: string; address: string }) => {
+    if (!currentEvent || !me) return;
+    const token = isOrganizerMode ? organizerToken : participantToken;
+    if (!token) throw new Error('No authorization token available');
+
+    const updated = await participantClient.update(currentEvent.id, me.id, data, token);
+    updateParticipant(me.id, updated);
+    setCurrentEvent({
+      ...currentEvent,
+      participants: (currentEvent.participants ?? []).map((p) =>
+        p.id === me.id ? { ...p, ...updated } : p
+      ),
+    });
+    analyticsEvents.addLocation(currentEvent.id, data.address);
+  };
+
+  // "Add starting location" on your own card jumps to the prompt above the list
+  const focusMyLocationPrompt = () => {
+    const input = document.getElementById(MY_LOCATION_INPUT_ID);
+    input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input?.focus({ preventScroll: true });
+  };
 
   // Cancel delete
   const cancelDelete = useCallback(() => {
@@ -53,6 +87,8 @@ export function ParticipantSection() {
   const handleCancelForm = useCallback(() => {
     setShowAddForm(false);
     setEditingParticipant(null);
+    setLastAddedName(null);
+    setErrorMessage(null);
   }, []);
 
   // Keyboard event handler for Escape key
@@ -144,6 +180,11 @@ export function ParticipantSection() {
 
           // Track participant added by organizer
           analyticsEvents.addLocation(currentEvent.id, data.address);
+
+          // Keep the form open with fresh fields for the next person
+          setLastAddedName(newParticipant.name);
+          setFormKey((key) => key + 1);
+          return;
         } else {
           // Self-registration (user joins themselves)
           const response = await participantClient.join(currentEvent.id, {
@@ -195,8 +236,15 @@ export function ParticipantSection() {
   // Handle edit participant
   const handleEditParticipant = (participant: Participant) => {
     setEditingParticipant(participant);
+    setLastAddedName(null);
+    setErrorMessage(null);
+    setFormKey((key) => key + 1);
     setShowAddForm(true);
   };
+
+  const canManage = (participant: Participant) =>
+    !isPublished &&
+    (isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId));
 
   // Handle delete participant
   const handleDeleteParticipant = (id: string) => {
@@ -265,6 +313,14 @@ export function ParticipantSection() {
         </div>
       </div>
 
+      {/* Prompt for the viewer's own starting point (organizers start without one) */}
+      {!showAddForm && iNeedLocation && me && (
+        <MyLocationPrompt
+          askName={me.isOrganizer && me.name === 'Organizer'}
+          onSubmit={handleSaveMyLocation}
+        />
+      )}
+
       {/* Add Participant Button (organizer mode) */}
       {!showAddForm && isOrganizerMode && (
         <button
@@ -306,9 +362,14 @@ export function ParticipantSection() {
         <div className="space-y-3">
           <div className="p-4 bg-white/95 backdrop-blur-md rounded-xl shadow-xl ring-2 ring-coral-500/30">
             <AddParticipant
+              key={formKey}
               onSubmit={handleSubmitParticipant}
               onCancel={handleCancelForm}
               isSubmitting={isSubmitting}
+              notice={
+                lastAddedName ? `${lastAddedName} added. Add the next person, or tap Done.` : null
+              }
+              cancelLabel={lastAddedName ? 'Done' : 'Cancel'}
               mode={editingParticipant ? 'edit' : 'add'}
               initialData={
                 editingParticipant
@@ -361,21 +422,20 @@ export function ParticipantSection() {
                   setSelectedParticipantId(participant.id);
                 }
               }}
-              onEdit={
-                // Organizer can edit anyone, participant can only edit themselves
-                // Disabled when event is published
-                !isPublished &&
-                (isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId))
-                  ? () => handleEditParticipant(participant)
+              isYou={participant.id === myParticipantId}
+              // Organizer can edit/delete anyone, a participant only themselves (leave).
+              // Disabled when event is published
+              onEdit={canManage(participant) ? () => handleEditParticipant(participant) : undefined}
+              onAddLocation={
+                participant.id === myParticipantId && iNeedLocation
+                  ? () => {
+                      handleCancelForm();
+                      setTimeout(focusMyLocationPrompt, 50);
+                    }
                   : undefined
               }
               onDelete={
-                // Organizer can delete anyone, participant can only delete themselves (leave)
-                // Disabled when event is published
-                !isPublished &&
-                (isOrganizerMode || (isParticipantMode && participant.id === currentParticipantId))
-                  ? () => handleDeleteParticipant(participant.id)
-                  : undefined
+                canManage(participant) ? () => handleDeleteParticipant(participant.id) : undefined
               }
             />
           ))}

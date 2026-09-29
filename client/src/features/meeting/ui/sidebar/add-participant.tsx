@@ -1,14 +1,11 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Dices, UserPlus, X, Eye, EyeOff, Info } from 'lucide-react';
+import { Dices, UserPlus, X, EyeOff, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { generateRandomName } from '@/features/meeting/lib/name-generator';
-import { AddressAutocomplete } from '@/shared/ui/address-autocomplete';
-import { Tooltip } from '@/shared/ui/tooltip';
-import { reverseGeocode } from '@/shared/lib/google-maps/geocoding';
+import { LocationField } from '@/shared/ui/location-field';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import type { PlacePrediction } from '@/lib/api/mock/places-autocomplete';
 
 interface AddParticipantProps {
   onSubmit: (data: ParticipantFormData) => void;
@@ -16,6 +13,10 @@ interface AddParticipantProps {
   isSubmitting?: boolean;
   mode?: 'add' | 'edit';
   initialData?: ParticipantFormData;
+  /** Label for the secondary button (e.g. "Done" once people have been added in a row) */
+  cancelLabel?: string;
+  /** Confirmation for the previous submission, shown above the fields */
+  notice?: string | null;
 }
 
 export interface ParticipantFormData {
@@ -31,6 +32,8 @@ export function AddParticipant({
   isSubmitting = false,
   mode = 'add',
   initialData,
+  cancelLabel = 'Cancel',
+  notice,
 }: AddParticipantProps) {
   const { user } = useAuthStore();
   const hasDefaultAddress = !!(user?.defaultAddress && user?.defaultPlaceId);
@@ -40,80 +43,29 @@ export function AddParticipant({
   const [placeId, setPlaceId] = useState(initialData?.placeId || '');
   const [fuzzyLocation, setFuzzyLocation] = useState(initialData?.fuzzyLocation ?? false);
   const [errors, setErrors] = useState<{ name?: string; address?: string }>({});
-  const [isLocating, setIsLocating] = useState(false);
+
+  // An address that was already saved has been geocoded, so editing only the name
+  // (or the privacy toggle) must not force the user to re-pick it from the dropdown.
+  const savedAddress = mode === 'edit' ? initialData?.address?.trim() : undefined;
+  const addressIsSaved = !!savedAddress && address.trim() === savedAddress;
+
+  const clearError = (field: 'name' | 'address') => {
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
 
   // Handle dice randomizer click
   const handleRandomizeName = () => {
-    const randomName = generateRandomName();
-    setName(randomName);
-    if (errors.name) {
-      setErrors((prev) => ({ ...prev, name: undefined }));
-    }
+    setName(generateRandomName());
+    clearError('name');
   };
 
-  // Handle address selection from autocomplete
-  const handleAddressSelect = (prediction: PlacePrediction) => {
-    setAddress(prediction.full_address);
-    setPlaceId(prediction.place_id);
-    if (errors.address) {
-      setErrors((prev) => ({ ...prev, address: undefined }));
-    }
-  };
-
-  // Handle locate current location
-  const handleLocate = async () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
-      return;
-    }
-
-    setIsLocating(true);
-
-    try {
-      // Get user's current position
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-
-      // Reverse geocode to get address
-      const result = await reverseGeocode({ lat: latitude, lng: longitude });
-
-      // Set address and placeId
-      setAddress(result.address);
-      setPlaceId(result.placeId);
-
-      // Clear any previous errors
-      if (errors.address) {
-        setErrors((prev) => ({ ...prev, address: undefined }));
-      }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      if (error instanceof GeolocationPositionError) {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            alert(
-              'Location permission denied. Please enable location access in your browser settings.'
-            );
-            break;
-          case error.POSITION_UNAVAILABLE:
-            alert('Location information is unavailable.');
-            break;
-          case error.TIMEOUT:
-            alert('Location request timed out. Please try again.');
-            break;
-        }
-      } else {
-        alert('Failed to get your current location. Please try again.');
-      }
-    } finally {
-      setIsLocating(false);
-    }
+  // Typing clears a previously picked place; picking or locating sets it
+  const handleLocationChange = (nextAddress: string, nextPlaceId: string) => {
+    setAddress(nextAddress);
+    setPlaceId(nextPlaceId);
+    clearError('address');
   };
 
   // Handle use default address
@@ -122,11 +74,7 @@ export function AddParticipant({
 
     setAddress(user.defaultAddress);
     setPlaceId(user.defaultPlaceId);
-
-    // Clear any previous errors
-    if (errors.address) {
-      setErrors((prev) => ({ ...prev, address: undefined }));
-    }
+    clearError('address');
   };
 
   // Validate form
@@ -139,10 +87,8 @@ export function AddParticipant({
 
     if (!address.trim()) {
       newErrors.address = 'Address is required';
-    }
-
-    if (!placeId) {
-      newErrors.address = 'Please select an address from the dropdown';
+    } else if (!placeId && !addressIsSaved) {
+      newErrors.address = 'Pick an address from the suggestions';
     }
 
     setErrors(newErrors);
@@ -178,12 +124,22 @@ export function AddParticipant({
             type="button"
             onClick={onCancel}
             className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Cancel"
+            aria-label="Close"
           >
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
       </div>
+
+      {notice && (
+        <p
+          role="status"
+          className="flex items-center gap-1.5 text-xs font-medium text-mint-700 animate-in fade-in duration-200"
+        >
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          {notice}
+        </p>
+      )}
 
       {/* Name Input with Dice Randomizer */}
       <div className="space-y-1.5">
@@ -197,12 +153,14 @@ export function AddParticipant({
             value={name}
             onChange={(e) => {
               setName(e.target.value);
-              if (errors.name) {
-                setErrors((prev) => ({ ...prev, name: undefined }));
-              }
+              clearError('name');
             }}
             placeholder="Enter name or use the dice"
             disabled={isSubmitting}
+            autoFocus
+            autoComplete="off"
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? 'participant-name-error' : undefined}
             className={cn(
               'w-full px-4 py-2.5 pr-12 text-sm',
               'bg-white/80 backdrop-blur-sm rounded-xl shadow-md',
@@ -233,17 +191,21 @@ export function AddParticipant({
             <Dices className="w-4 h-4" />
           </button>
         </div>
-        {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+        {errors.name && (
+          <p id="participant-name-error" className="text-xs text-red-500">
+            {errors.name}
+          </p>
+        )}
       </div>
 
       {/* Address Autocomplete */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <label
             htmlFor="participant-address"
             className="block text-sm font-medium text-foreground"
           >
-            Address
+            Starting location
           </label>
           {hasDefaultAddress && (
             <button
@@ -261,73 +223,68 @@ export function AddParticipant({
             </button>
           )}
         </div>
-        <AddressAutocomplete
+        <LocationField
+          id="participant-address"
           value={address}
-          onChange={(value) => {
-            setAddress(value);
-            // Clear placeId if user types manually
-            if (placeId) {
-              setPlaceId('');
-            }
-            if (errors.address) {
-              setErrors((prev) => ({ ...prev, address: undefined }));
-            }
-          }}
-          onSelect={handleAddressSelect}
-          onLocate={handleLocate}
-          isLocating={isLocating}
-          placeholder="Search for an address..."
+          onChange={handleLocationChange}
+          onError={(message) => setErrors((prev) => ({ ...prev, address: message }))}
           disabled={isSubmitting}
-          className={cn(errors.address && 'border-red-500')}
+          invalid={!!errors.address}
+          className={cn(errors.address && 'ring-2 ring-red-500')}
         />
-        {errors.address && <p className="text-xs text-red-500">{errors.address}</p>}
+        {errors.address ? (
+          <p className="text-xs text-red-500">{errors.address}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Pick a suggestion, or tap the target icon to use where you are now.
+          </p>
+        )}
       </div>
 
-      {/* Fuzzy Location Toggle */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <label htmlFor="fuzzy-location" className="text-sm font-medium text-foreground">
-            Fuzzy Location
-          </label>
-          <Tooltip
-            content="Fuzzy location hides your exact address by showing an approximate area within 0.5-1 mile. Your precise location won't be visible to others."
-            position="right"
+      {/* Privacy switch */}
+      <div
+        className={cn(
+          'flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-colors duration-200',
+          fuzzyLocation ? 'bg-coral-50/90 ring-1 ring-coral-500/30' : 'bg-white/80 shadow-md'
+        )}
+      >
+        <div className="min-w-0">
+          <p
+            id="fuzzy-location-label"
+            className="flex items-center gap-1.5 text-sm font-medium text-foreground"
           >
-            <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-          </Tooltip>
+            <EyeOff
+              className={cn('w-4 h-4', fuzzyLocation ? 'text-coral-500' : 'text-muted-foreground')}
+            />
+            Hide exact address
+          </p>
+          <p id="fuzzy-location-help" className="text-xs text-muted-foreground">
+            {fuzzyLocation
+              ? 'Others see an approximate area (0.5–1 mi)'
+              : 'Others can see this exact location'}
+          </p>
         </div>
-
         <button
           type="button"
+          role="switch"
+          aria-checked={fuzzyLocation}
+          aria-labelledby="fuzzy-location-label"
+          aria-describedby="fuzzy-location-help"
           onClick={() => setFuzzyLocation(!fuzzyLocation)}
           disabled={isSubmitting}
           className={cn(
-            'w-full flex items-center gap-3 px-4 py-3 text-sm',
-            'rounded-xl',
-            'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-coral-500/20',
-            fuzzyLocation
-              ? 'shadow-xl ring-2 ring-coral-500/30 bg-coral-50/90 backdrop-blur-sm'
-              : 'bg-white/80 backdrop-blur-sm shadow-md hover:shadow-lg',
+            'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200',
+            'focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2',
+            fuzzyLocation ? 'bg-coral-500' : 'bg-gray-300',
             isSubmitting && 'opacity-50 cursor-not-allowed'
           )}
-          aria-label={fuzzyLocation ? 'Disable fuzzy location' : 'Enable fuzzy location'}
         >
-          {fuzzyLocation ? (
-            <EyeOff className="w-5 h-5 text-coral-500" />
-          ) : (
-            <Eye className="w-5 h-5 text-muted-foreground" />
-          )}
-          <div className="flex-1 text-left">
-            <p className={cn('font-medium', fuzzyLocation ? 'text-coral-700' : 'text-foreground')}>
-              {fuzzyLocation ? 'Fuzzy location enabled' : 'Show exact location'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {fuzzyLocation
-                ? 'Your address will be approximated for privacy'
-                : 'Others will see your precise location'}
-            </p>
-          </div>
+          <span
+            className={cn(
+              'inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200',
+              fuzzyLocation ? 'translate-x-5' : 'translate-x-0.5'
+            )}
+          />
         </button>
       </div>
 
@@ -371,7 +328,7 @@ export function AddParticipant({
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >
-            Cancel
+            {cancelLabel}
           </button>
         )}
       </div>
