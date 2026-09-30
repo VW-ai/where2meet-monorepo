@@ -164,10 +164,8 @@ function generateReport(results: AuditResult[]): string {
   report += `## Recommendations\n\n`;
   report += `### Review Schedule\n\n`;
   report += `Based on content type, here's the recommended review frequency:\n\n`;
-  report += `- **Landing Pages** (homepage, /scenarios): Monthly review\n`;
-  report += `- **Feature Pages** (/how-it-works): Quarterly review\n`;
-  report += `- **FAQ**: Monthly review (add new questions, refine answers)\n`;
-  report += `- **Scenario Pages**: Quarterly review (refresh examples, seasonal relevance)\n`;
+  report += `- **Landing** (homepage): Monthly review\n`;
+  report += `- **FAQ** (/faq): Monthly review\n`;
   report += `- **Contact**: Yearly review (verify contact info)\n\n`;
 
   report += `### Action Items\n\n`;

@@ -31,47 +31,34 @@ export function HeroInput({
   onLocationError,
 }: HeroInputProps) {
   return (
-    <div className="space-y-6">
-      {/* Title Input */}
-      <div className="transform transition-all hover:scale-[1.01]">
-        <Input
-          label="What's the occasion?"
-          placeholder="Team lunch, Study session, Weekend hangout..."
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          required
-          className="text-base"
-        />
-      </div>
+    <div className="space-y-4 text-left">
+      <Input
+        aria-label="Occasion"
+        placeholder="Dinner, date, lunch..."
+        value={title}
+        onChange={(e) => onTitleChange(e.target.value)}
+        required
+        className="text-[15px] font-normal"
+      />
 
-      {/* Meeting Time Input */}
-      <div className="transform transition-all hover:scale-[1.01]">
-        <AppointmentPicker
-          label="When are you meeting?"
-          date={meetingTime ? new Date(meetingTime) : undefined}
-          onDateTimeChange={(date) => onMeetingTimeChange(date ? date.toISOString() : '')}
-          className="text-base"
-        />
-      </div>
+      <AppointmentPicker
+        date={meetingTime ? new Date(meetingTime) : undefined}
+        onDateTimeChange={(date) => onMeetingTimeChange(date ? date.toISOString() : '')}
+      />
 
       {/* Organizer's own details, so they start on the map instead of as "Organizer" */}
-      <div className="transform transition-all hover:scale-[1.01]">
-        <Input
-          label="Your name"
-          placeholder="How your group knows you"
-          value={organizerName}
-          onChange={(e) => onOrganizerNameChange(e.target.value)}
-          autoComplete="given-name"
-          required
-          className="text-base"
-        />
-      </div>
+      <Input
+        aria-label="Your name"
+        placeholder="Your name"
+        value={organizerName}
+        onChange={(e) => onOrganizerNameChange(e.target.value)}
+        autoComplete="given-name"
+        required
+        className="text-[15px] font-normal"
+      />
 
-      <div className="text-left">
-        <label
-          htmlFor="organizer-location"
-          className="block text-sm font-semibold text-gray-700 mb-2 text-center"
-        >
+      <div>
+        <label htmlFor="organizer-location" className="sr-only">
           Where are you coming from?
         </label>
         <LocationField
@@ -80,20 +67,15 @@ export function HeroInput({
           onChange={onLocationChange}
           onError={onLocationError}
           invalid={!!locationError}
-          placeholder="Your address, neighborhood or a landmark"
+          placeholder="Where are you coming from?"
           className={cn(
-            'py-3.5 rounded-2xl border-2 border-gray-200 bg-white shadow-none text-base text-gray-900 font-medium',
-            'placeholder:text-gray-400 placeholder:font-normal',
-            'hover:border-gray-300 focus:shadow-none focus:border-coral-500 focus:ring-4 focus:ring-coral-100',
+            'py-3.5 rounded-2xl border-2 border-gray-200 bg-white shadow-none text-[15px] font-normal text-gray-900',
+            'placeholder:text-gray-400 hover:border-gray-300',
+            'focus:shadow-none focus:border-coral-500 focus:ring-4 focus:ring-coral-100',
             locationError && 'border-red-400'
           )}
         />
-        <p
-          className={cn(
-            'mt-2 text-xs text-center',
-            locationError ? 'text-red-500' : 'text-muted-foreground'
-          )}
-        >
+        <p className={cn('mt-1.5 text-xs', locationError ? 'text-red-500' : 'text-[#666b73]')}>
           {locationError ?? 'Optional. Your travel time counts toward the fair spot too.'}
         </p>
       </div>
