@@ -17,28 +17,20 @@ export function HeroInput({
   onMeetingTimeChange,
 }: HeroInputProps) {
   return (
-    <div className="space-y-6">
-      {/* Title Input */}
-      <div className="transform transition-all hover:scale-[1.01]">
-        <Input
-          label="What's the occasion?"
-          placeholder="Team lunch, Study session, Weekend hangout..."
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          required
-          className="text-base"
-        />
-      </div>
+    <div className="space-y-4 text-left">
+      <Input
+        aria-label="Occasion"
+        placeholder="Dinner, date, lunch..."
+        value={title}
+        onChange={(e) => onTitleChange(e.target.value)}
+        required
+        className="text-[15px] font-normal"
+      />
 
-      {/* Meeting Time Input */}
-      <div className="transform transition-all hover:scale-[1.01]">
-        <AppointmentPicker
-          label="When are you meeting?"
-          date={meetingTime ? new Date(meetingTime) : undefined}
-          onDateTimeChange={(date) => onMeetingTimeChange(date ? date.toISOString() : '')}
-          className="text-base"
-        />
-      </div>
+      <AppointmentPicker
+        date={meetingTime ? new Date(meetingTime) : undefined}
+        onDateTimeChange={(date) => onMeetingTimeChange(date ? date.toISOString() : '')}
+      />
     </div>
   );
 }

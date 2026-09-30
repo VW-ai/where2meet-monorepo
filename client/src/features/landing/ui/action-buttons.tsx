@@ -8,11 +8,11 @@ interface ActionButtonsProps {
 
 export function ActionButtons({ onCreateEvent, isLoading, disabled }: ActionButtonsProps) {
   return (
-    <div className="flex justify-center mt-6">
+    <div className="mt-5">
       <button
         onClick={onCreateEvent}
         disabled={disabled || isLoading}
-        className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold text-white bg-coral-500 rounded-full shadow-lg hover:bg-coral-600 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-coral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 w-full sm:w-auto min-w-[240px]"
+        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-[#c83f49] px-4 text-[15px] font-semibold text-white transition-colors hover:bg-[#b73540] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b73540] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isLoading ? (
           <>

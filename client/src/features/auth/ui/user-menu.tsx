@@ -55,19 +55,10 @@ export function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100 transition-colors"
+        aria-label="Account"
+        className="grid h-9 w-9 place-items-center rounded-full bg-[#c83f49] text-xs font-semibold text-white"
       >
-        <div className="w-8 h-8 bg-coral-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-          {getInitials()}
-        </div>
-        <svg
-          className={`w-4 h-4 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        {getInitials()}
       </button>
 
       {isOpen && (

@@ -16,7 +16,6 @@ export const CONTENT_REGISTRY: Record<string, ContentMetadata> = {
   '/': createContentMetadata('landing', 'monthly'),
 
   // Feature pages
-  '/how-it-works': createContentMetadata('feature', 'quarterly'),
   '/faq': createContentMetadata('faq', 'monthly'),
   '/contact': createContentMetadata('landing', 'yearly'),
 

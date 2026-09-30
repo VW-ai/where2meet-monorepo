@@ -14,6 +14,13 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      { source: '/how-it-works', destination: '/', permanent: true },
+      { source: '/scenarios', destination: '/', permanent: true },
+      { source: '/scenarios/:slug', destination: '/', permanent: true },
+    ];
+  },
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: false,

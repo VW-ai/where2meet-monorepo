@@ -24,12 +24,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
-      url: `${SITE_CONFIG.url}/how-it-works`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
       url: `${SITE_CONFIG.url}/faq`,
       lastModified: currentDate,
       changeFrequency: 'monthly',
@@ -40,63 +34,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: currentDate,
       changeFrequency: 'yearly',
       priority: 0.5,
-    },
-    // Scenarios Hub Page
-    {
-      url: `${SITE_CONFIG.url}/scenarios`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    // Layer 1: Everyday Use Scenarios
-    {
-      url: `${SITE_CONFIG.url}/scenarios/friends-group-dinner-spot`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_CONFIG.url}/scenarios/date-night-equal-distance`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_CONFIG.url}/scenarios/coworkers-lunch-spot`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_CONFIG.url}/scenarios/group-weekend-hangout`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_CONFIG.url}/scenarios/family-reunion-location-finder`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    // Layer 2: Professional & Pain-Heavy Scenarios
-    {
-      url: `${SITE_CONFIG.url}/scenarios/remote-team-offsite-planning`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_CONFIG.url}/scenarios/cross-city-client-meetings`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_CONFIG.url}/scenarios/long-distance-friends-reunion`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
     },
   ];
 }

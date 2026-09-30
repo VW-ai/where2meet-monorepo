@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Building2, Coffee, Heart, Sun, Users, Utensils, type LucideIcon } from 'lucide-react';
 import catLogo from '@/components/cat/image.png';
 import { HeroInput } from '@/features/landing/ui/hero-input';
 import { ActionButtons } from '@/features/landing/ui/action-buttons';
+import { StoryPreview } from '@/features/landing/ui/story-preview';
 import { eventClient } from '@/features/meeting/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { SignInButton } from '@/features/auth/ui/sign-in-button';
@@ -19,12 +21,6 @@ export default function LandingPage() {
   const [title, setTitle] = useState('');
   const [meetingTime, setMeetingTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [animationLoaded, setAnimationLoaded] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setAnimationLoaded(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleCreateEvent = async () => {
     if (!title || !meetingTime) {
@@ -109,138 +105,98 @@ export default function LandingPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-coral-50 via-mint-50 to-lavender-50">
-      <header className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`animate-on-load animate-fade-scale-in animation-delay-0 ${animationLoaded ? 'loaded' : ''}`}
-            >
-              <Image
-                src={catLogo}
-                alt="Where2Meet Cat Logo"
-                width={48}
-                height={48}
-                className="w-10 h-10 sm:w-12 sm:h-12"
-                priority
-              />
-            </div>
-            <h1 className="sr-only">Where2Meet</h1>
-          </div>
+  const scenarios: { label: string; icon: LucideIcon }[] = [
+    { label: 'Dinner', icon: Utensils },
+    { label: 'Date', icon: Heart },
+    { label: 'Lunch', icon: Coffee },
+    { label: 'Hangout', icon: Sun },
+    { label: 'Family', icon: Users },
+    { label: 'Offsite', icon: Building2 },
+  ];
 
-          {/* Auth components */}
+  return (
+    <div className="flex min-h-screen flex-col bg-[#eef1f4] text-[#21252b]">
+      <header className="mx-auto flex w-full max-w-xl items-center justify-between px-4 pt-4 sm:pt-5 lg:max-w-5xl lg:px-8 lg:pt-6">
+        <div className="rounded-full bg-white p-1.5 shadow-[0_3px_16px_rgba(23,37,45,0.15)]">
+          <Image
+            src={catLogo}
+            alt="Where2Meet"
+            width={44}
+            height={44}
+            className="h-9 w-9 lg:h-11 lg:w-11"
+            priority
+          />
+        </div>
+        <div className="rounded-full bg-white shadow-[0_3px_16px_rgba(23,37,45,0.15)]">
           {isAuthenticated ? <UserMenu /> : <SignInButton />}
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12 md:py-20">
-        <div className="max-w-2xl mx-auto text-center">
-          <div
-            className={`mb-12 animate-on-load animate-fade-slide-up animation-delay-200 ${animationLoaded ? 'loaded' : ''}`}
-          >
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
-              Find <span className="text-coral-500">Fair Meeting Spots</span> with Equal Travel
-              Times
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-8 lg:max-w-5xl lg:justify-center lg:px-8 lg:py-10">
+        <div className="lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-10">
+          <div className="flex flex-col">
+            <h1 className="mb-5 text-center text-2xl font-bold tracking-[-0.6px] lg:mb-6 lg:text-left lg:text-[44px] lg:leading-[1.05]">
+              Meet in the middle
             </h1>
 
+            <div
+              className="mb-3 flex flex-wrap justify-center gap-2 lg:mb-6 lg:grid lg:w-full lg:grid-cols-3 lg:gap-2.5"
+              aria-label="Meeting types"
+              role="group"
+            >
+              {scenarios.map(({ label, icon: Icon }) => {
+                const selected = title === label;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setTitle(label)}
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold shadow-[0_2px_8px_rgba(23,37,45,0.12)] lg:px-3 lg:py-2.5 lg:text-[15px] ${
+                      selected ? 'bg-[#fff0ef] text-[#bc3942]' : 'bg-white text-[#21252b]'
+                    }`}
+                  >
+                    <Icon size={15} className="lg:h-[18px] lg:w-[18px]" aria-hidden="true" />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="rounded-[28px] bg-white p-5 shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-6 lg:p-7">
+              <HeroInput
+                title={title}
+                meetingTime={meetingTime}
+                onTitleChange={setTitle}
+                onMeetingTimeChange={setMeetingTime}
+              />
+
+              <ActionButtons
+                onCreateEvent={handleCreateEvent}
+                isLoading={isLoading}
+                disabled={!title || !meetingTime}
+              />
+            </div>
           </div>
 
-          <div
-            className={`bg-white rounded-3xl shadow-xl p-8 md:p-12 mb-8 animate-on-load animate-fade-scale-in animation-delay-400 ${animationLoaded ? 'loaded' : ''}`}
-          >
-            <HeroInput
-              title={title}
-              meetingTime={meetingTime}
-              onTitleChange={setTitle}
-              onMeetingTimeChange={setMeetingTime}
-            />
-
-            <ActionButtons
-              onCreateEvent={handleCreateEvent}
-              isLoading={isLoading}
-              disabled={!title || !meetingTime}
-            />
+          <div className="mt-3 lg:mt-0 lg:h-full">
+            <StoryPreview />
           </div>
-
-          <section
-            aria-label="Features"
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left"
-          >
-            <article
-              className={`bg-white/60 backdrop-blur-sm rounded-2xl p-6 animate-on-load animate-fade-slide-up animation-delay-600 ${animationLoaded ? 'loaded' : ''}`}
-            >
-              <div className="text-3xl mb-3" aria-hidden="true">
-                📍
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Fair for Everyone</h3>
-              <p className="text-sm text-gray-600">
-                Compare travel times and find locations that work for all participants
-              </p>
-            </article>
-
-            <article
-              className={`bg-white/60 backdrop-blur-sm rounded-2xl p-6 animate-on-load animate-fade-slide-up animation-delay-800 ${animationLoaded ? 'loaded' : ''}`}
-            >
-              <div className="text-3xl mb-3" aria-hidden="true">
-                🗺️
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Visual Planning</h3>
-              <p className="text-sm text-gray-600">
-                See everyone's locations on a map with travel routes and times
-              </p>
-            </article>
-
-            <article
-              className={`bg-white/60 backdrop-blur-sm rounded-2xl p-6 animate-on-load animate-fade-slide-up animation-delay-1000 ${animationLoaded ? 'loaded' : ''}`}
-            >
-              <div className="text-3xl mb-3" aria-hidden="true">
-                ⏱️
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Equal Travel Times</h3>
-              <p className="text-sm text-gray-600">
-                Real-time routing calculates actual commutes—not just distance—so everyone's travel
-                burden is balanced
-              </p>
-            </article>
-          </section>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="container mx-auto px-4 py-12 border-t border-gray-200">
-        <div className="max-w-2xl mx-auto">
-          <nav className="flex flex-wrap justify-center gap-6 text-sm mb-6">
-            <Link
-              href="/how-it-works"
-              className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
-            >
-              How It Works
-            </Link>
-            <Link
-              href="/scenarios"
-              className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
-            >
-              Scenarios
-            </Link>
-            <Link
-              href="/faq"
-              className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
-            >
-              FAQ
-            </Link>
-            <Link
-              href="/contact"
-              className="text-gray-600 hover:text-coral-600 font-medium transition-colors"
-            >
-              Contact
-            </Link>
-          </nav>
-          <p className="text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} Where2Meet. Find fair meeting locations with equal travel
-            time for everyone.
-          </p>
-        </div>
+      <footer className="mx-auto w-full max-w-xl px-4 py-6 lg:max-w-5xl lg:px-8">
+        <nav className="mb-2 flex justify-center gap-5 text-sm">
+          <Link href="/faq" className="font-medium text-[#666b73] hover:text-[#bd3843]">
+            FAQ
+          </Link>
+          <Link href="/contact" className="font-medium text-[#666b73] hover:text-[#bd3843]">
+            Contact
+          </Link>
+        </nav>
+        <p className="text-center text-xs text-[#8b9098]">
+          © {new Date().getFullYear()} Where2Meet
+        </p>
       </footer>
     </div>
   );
