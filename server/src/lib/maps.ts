@@ -240,8 +240,8 @@ export async function geocode(address: string): Promise<GeocodeResult> {
       const response = await fetchFromGoogleApi(address);
       const result = parseGeocodeResponse(response, address);
 
-      // Cache successful result
-      await cacheGeocode(address, result);
+      // Cache in the background; a slow or unavailable cache must not delay the user
+      void cacheGeocode(address, result);
 
       return result;
     } catch (error) {
