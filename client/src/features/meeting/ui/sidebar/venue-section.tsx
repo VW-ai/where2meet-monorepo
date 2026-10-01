@@ -8,6 +8,7 @@ import { useMapStore } from '@/features/meeting/model/map-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
 import type { Venue } from '@/entities';
+import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
 import { VenueCard } from './venue-card';
 import { TravelTypeFilter } from './travel-type-filter';
 import { SearchPillBar } from './search-pill-bar';
@@ -15,7 +16,8 @@ import { LikedFilterButton } from '@/features/voting/ui/liked-filter-button';
 import { cn } from '@/shared/lib/cn';
 
 export function VenueSection() {
-  const { currentEvent, searchedVenues, setSearchedVenues, venueById } = useMeetingStore();
+  const { currentEvent, searchedVenues, setSearchedVenues, venueById, setSelectedVenue } =
+    useMeetingStore();
   const { getAllVotedVenueIds, voteStatsByVenueId } = useVotingStore();
   const { searchQuery, searchExecutionTrigger, executedSearchQuery, setExecutedSearchQuery } =
     useUIStore();
@@ -79,8 +81,32 @@ export function VenueSection() {
   useEffect(() => {
     if (searchExecutionTrigger > 0 && searchQuery.trim()) {
       setExecutedSearchQuery(searchQuery);
+      // Show the new results rather than the liked list (published events stay on liked)
+      if (!isPublished) {
+        setIsLikedExpanded(false);
+        setShowLikedOnly(false);
+      }
     }
-  }, [searchExecutionTrigger, searchQuery, setExecutedSearchQuery]);
+  }, [searchExecutionTrigger, searchQuery, setExecutedSearchQuery, isPublished]);
+
+  // A specific place was picked from the suggestions: put exactly that place at the top
+  // of the list and select it, instead of running a broad search on its name
+  const handlePlaceSelect = async (prediction: PlacePrediction) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const venue = await venueClient.get(prediction.place_id);
+      const next = [venue, ...venues.filter((v) => v.id !== venue.id)];
+      setVenues(next);
+      setSearchedVenues(next);
+      setSelectedVenue(venue);
+    } catch (err) {
+      console.error('Failed to load place:', err);
+      setError(`Couldn’t load “${prediction.main_text}”. Try searching for it instead.`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Search venues when a search query is executed (Phase 2 of two-phase search)
   // Re-search when search radius changes (dragging the circle)
@@ -254,6 +280,7 @@ export function VenueSection() {
                   // Phase 2: Execute search and populate venue list
                   setExecutedSearchQuery(query);
                 }}
+                onPlaceSelect={handlePlaceSelect}
                 onFocus={() => {
                   // Collapse liked section when search bar is focused
                   if (isLikedExpanded) {
@@ -306,14 +333,20 @@ export function VenueSection() {
         )}
 
         {/* Empty state - no search executed yet */}
-        {!loading && !error && !executedSearchQuery && !showLikedOnly && (
-          <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">Search for venues to get started</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Try &quot;restaurants near Central Park&quot;
-            </p>
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          !executedSearchQuery &&
+          !showLikedOnly &&
+          hasJoined &&
+          venues.length === 0 && (
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">Find places to meet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Search a type of place like &quot;ramen&quot; or &quot;coffee&quot;, or a specific
+                spot by name. Tap the heart to add it to the group&apos;s shortlist.
+              </p>
+            </div>
+          )}
 
         {/* Empty state for non-participants */}
         {!loading && !error && !executedSearchQuery && !hasJoined && (

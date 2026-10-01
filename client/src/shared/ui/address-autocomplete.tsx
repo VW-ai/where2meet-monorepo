@@ -17,6 +17,8 @@ interface AddressAutocompleteProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  id?: string;
+  invalid?: boolean;
 }
 
 export function AddressAutocomplete({
@@ -28,6 +30,8 @@ export function AddressAutocomplete({
   placeholder = 'Enter address...',
   className,
   disabled = false,
+  id,
+  invalid = false,
 }: AddressAutocompleteProps) {
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,10 +39,13 @@ export function AddressAutocomplete({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Value that came from picking a suggestion (or was prefilled) - no need to search it again
+  const settledValueRef = useRef(value);
+  const listboxId = `${id ?? 'address'}-suggestions`;
 
   // Debounced search
   useEffect(() => {
-    if (!value || value.length < 2) {
+    if (!value || value.length < 2 || value === settledValueRef.current) {
       setPredictions([]);
       setIsOpen(false);
       return;
@@ -51,7 +58,8 @@ export function AddressAutocomplete({
           types: ['geocode', 'establishment'],
         });
         setPredictions(results);
-        setIsOpen(results.length > 0);
+        // Only pop the list open while the user is still in the field
+        setIsOpen(results.length > 0 && document.activeElement === inputRef.current);
         setSelectedIndex(-1);
       } catch (error) {
         console.error('Error fetching autocomplete results:', error);
@@ -93,9 +101,8 @@ export function AddressAutocomplete({
 
       case 'Enter':
         e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < predictions.length) {
-          handleSelect(predictions[selectedIndex]);
-        }
+        // Enter with nothing highlighted takes the top suggestion
+        handleSelect(predictions[selectedIndex >= 0 ? selectedIndex : 0]);
         break;
 
       case 'Escape':
@@ -110,11 +117,13 @@ export function AddressAutocomplete({
   };
 
   const handleSelect = (prediction: PlacePrediction) => {
+    settledValueRef.current = prediction.full_address;
     onChange(prediction.full_address);
     onSelect(prediction);
     setIsOpen(false);
     setSelectedIndex(-1);
-    inputRef.current?.blur();
+    // Keep focus here so a second Enter submits the surrounding form
+    inputRef.current?.focus();
   };
 
   const handleInputChange = (newValue: string) => {
@@ -128,7 +137,17 @@ export function AddressAutocomplete({
       <div className="relative">
         <input
           ref={inputRef}
+          id={id}
           type="text"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={isOpen}
+          aria-controls={listboxId}
+          aria-activedescendant={
+            isOpen && selectedIndex >= 0 ? `${listboxId}-${selectedIndex}` : undefined
+          }
+          aria-invalid={invalid || undefined}
+          autoComplete="off"
           value={value}
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -184,11 +203,17 @@ export function AddressAutocomplete({
       {isOpen && (
         <div className="absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-md rounded-xl shadow-xl max-h-60 overflow-y-auto">
           {predictions.length > 0 ? (
-            <ul className="py-2">
+            <ul id={listboxId} role="listbox" className="py-2">
               {predictions.map((prediction, index) => (
-                <li key={prediction.place_id}>
+                <li
+                  key={prediction.place_id}
+                  id={`${listboxId}-${index}`}
+                  role="option"
+                  aria-selected={selectedIndex === index}
+                >
                   <button
                     type="button"
+                    tabIndex={-1}
                     onClick={() => handleSelect(prediction)}
                     className={cn(
                       'w-full px-4 py-2.5 text-left flex items-start gap-3',

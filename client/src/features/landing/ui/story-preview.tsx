@@ -87,11 +87,7 @@ const spots: {
     cy: 118,
     mark: () => (
       <>
-        <path
-          d="M12 2.5 17.2 10h-2.4L19.5 17H4.5l4.7-7H6.8Z"
-          fill="currentColor"
-          stroke="none"
-        />
+        <path d="M12 2.5 17.2 10h-2.4L19.5 17H4.5l4.7-7H6.8Z" fill="currentColor" stroke="none" />
         <path d="M10.4 17h3.2V21.5h-3.2Z" fill="currentColor" stroke="none" />
       </>
     ),

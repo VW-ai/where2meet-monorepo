@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -9,7 +9,7 @@ import catLogo from '@/components/cat/image.png';
 import { HeroInput } from '@/features/landing/ui/hero-input';
 import { ActionButtons } from '@/features/landing/ui/action-buttons';
 import { StoryPreview } from '@/features/landing/ui/story-preview';
-import { eventClient } from '@/features/meeting/api';
+import { eventClient, participantClient } from '@/features/meeting/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { SignInButton } from '@/features/auth/ui/sign-in-button';
 import { UserMenu } from '@/features/auth/ui/user-menu';
@@ -17,17 +17,66 @@ import { analyticsEvents } from '@/lib/analytics/events';
 
 export default function LandingPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [title, setTitle] = useState('');
   const [meetingTime, setMeetingTime] = useState('');
+  const [organizerName, setOrganizerName] = useState('');
+  const [address, setAddress] = useState('');
+  const [placeId, setPlaceId] = useState('');
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Signed-in users start with their profile name and default address
+  useEffect(() => {
+    if (!user) return;
+    if (user.name) setOrganizerName((current) => current || user.name || '');
+    if (user.defaultAddress && user.defaultPlaceId) {
+      setAddress((current) => current || user.defaultAddress || '');
+      setPlaceId((current) => current || user.defaultPlaceId || '');
+    }
+  }, [user]);
+
+  const handleLocationChange = (nextAddress: string, nextPlaceId: string) => {
+    setAddress(nextAddress);
+    setPlaceId(nextPlaceId);
+    setLocationError(null);
+  };
+
+  // The server creates the organizer as a placeholder participant; fill in who they
+  // are and where they start so they land on the map ready to invite people.
+  const saveOrganizerDetails = async (eventId: string, participantId: string, token: string) => {
+    const name = organizerName.trim();
+    try {
+      await participantClient.update(
+        eventId,
+        participantId,
+        placeId ? { name, address: address.trim() } : { name },
+        token
+      );
+      if (placeId) analyticsEvents.addLocation(eventId, address.trim());
+    } catch (error) {
+      console.error('[LandingPage] Could not save organizer details:', error);
+      // The address may not geocode; keep the name at least. The meeting page
+      // then asks for the location again.
+      if (placeId) {
+        await participantClient.update(eventId, participantId, { name }, token).catch(() => {});
+      }
+    }
+  };
+
   const handleCreateEvent = async () => {
-    if (!title || !meetingTime) {
+    if (!title || !meetingTime || !organizerName.trim()) {
+      return;
+    }
+
+    if (address.trim() && !placeId) {
+      setLocationError('Pick an address from the suggestions, or clear it to add it later.');
       return;
     }
 
     setIsLoading(true);
+    setCreateError(null);
 
     try {
       // Calls backend directly, returns event with UUID from backend
@@ -56,6 +105,8 @@ export default function LandingPage() {
           isOrganizerMode: useAuthStore.getState().isOrganizerMode,
           hasOrganizerToken: !!useAuthStore.getState().organizerToken,
         });
+
+        await saveOrganizerDetails(event.id, event.organizerParticipantId, event.participantToken);
 
         // Auto-claim event if user is authenticated
         if (isAuthenticated) {
@@ -100,6 +151,7 @@ export default function LandingPage() {
       router.push(`/meet/${event.id}`);
     } catch (error) {
       console.error('Error creating event:', error);
+      setCreateError('We couldn’t create your meeting. Check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -167,15 +219,27 @@ export default function LandingPage() {
               <HeroInput
                 title={title}
                 meetingTime={meetingTime}
+                organizerName={organizerName}
+                address={address}
+                locationError={locationError}
                 onTitleChange={setTitle}
                 onMeetingTimeChange={setMeetingTime}
+                onOrganizerNameChange={setOrganizerName}
+                onLocationChange={handleLocationChange}
+                onLocationError={setLocationError}
               />
 
               <ActionButtons
                 onCreateEvent={handleCreateEvent}
                 isLoading={isLoading}
-                disabled={!title || !meetingTime}
+                disabled={!title || !meetingTime || !organizerName.trim()}
               />
+
+              {createError && (
+                <p role="alert" className="mt-3 text-sm text-red-600">
+                  {createError}
+                </p>
+              )}
             </div>
           </div>
 

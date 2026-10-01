@@ -11,6 +11,10 @@ interface ParticipantPillProps {
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** The viewer's own participant record */
+  isYou?: boolean;
+  /** Handler for "Add starting location" when there is no address (defaults to onEdit) */
+  onAddLocation?: () => void;
 }
 
 const getInitials = (name: string): string => {
@@ -28,8 +32,11 @@ export function ParticipantPill({
   onClick,
   onEdit,
   onDelete,
+  isYou = false,
+  onAddLocation,
 }: ParticipantPillProps) {
   const initials = getInitials(participant.name);
+  const addLocation = onAddLocation ?? onEdit;
 
   return (
     <div className="relative w-full py-2 pl-6 pr-1 group overflow-visible">
@@ -92,6 +99,11 @@ export function ParticipantPill({
                 <span className="text-sm font-bold text-foreground truncate">
                   {participant.name}
                 </span>
+                {isYou && (
+                  <span className="flex-shrink-0 px-1.5 py-0.5 rounded-full bg-coral-100 text-[10px] font-semibold uppercase tracking-wide text-coral-700">
+                    You
+                  </span>
+                )}
                 {participant.fuzzyLocation && (
                   <span
                     className="inline-flex items-center justify-center bg-muted/50 rounded-full p-0.5 flex-shrink-0"
@@ -101,27 +113,54 @@ export function ParticipantPill({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-                <MapPin className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate font-medium min-w-0">
-                  {participant.fuzzyLocation ? 'Approximate location' : participant.address}
-                </span>
-              </div>
+              {participant.address ? (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate font-medium min-w-0">
+                    {participant.fuzzyLocation ? 'Approximate location' : participant.address}
+                  </span>
+                </div>
+              ) : addLocation ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addLocation();
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-medium text-coral-600 hover:text-coral-700 hover:underline min-w-0 text-left"
+                >
+                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">Add starting location</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs italic text-muted-foreground min-w-0">
+                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">No starting location yet</span>
+                </div>
+              )}
             </div>
 
             {/* Right side - Avatar Head and Actions */}
             <div className="relative flex items-center flex-shrink-0">
-              {/* Edit/Delete Actions - appear on hover, positioned absolutely */}
+              {/* Edit/Delete Actions - always shown on touch screens; on pointer devices they
+                  float over the text and appear on hover or keyboard focus */}
               {(onEdit || onDelete) && (
-                <div className="absolute right-12 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+                <div
+                  className={cn(
+                    'flex items-center gap-1 mr-2 transition-opacity duration-200',
+                    '[@media(hover:hover)]:absolute [@media(hover:hover)]:right-12 [@media(hover:hover)]:mr-0',
+                    '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:pointer-events-none',
+                    '[@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto',
+                    '[@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-focus-within:pointer-events-auto'
+                  )}
+                >
                   {onEdit && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onEdit();
                       }}
-                      className="p-1.5 rounded-lg hover:bg-coral-50 text-muted-foreground hover:text-coral-600 transition-colors bg-white shadow-sm"
-                      aria-label="Edit participant"
+                      className="p-2 [@media(hover:hover)]:p-1.5 rounded-lg hover:bg-coral-50 text-muted-foreground hover:text-coral-600 transition-colors bg-white shadow-sm"
+                      aria-label={`Edit ${participant.name}`}
                       title="Edit participant"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -133,8 +172,8 @@ export function ParticipantPill({
                         e.stopPropagation();
                         onDelete();
                       }}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors bg-white shadow-sm"
-                      aria-label="Delete participant"
+                      className="p-2 [@media(hover:hover)]:p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors bg-white shadow-sm"
+                      aria-label={`Remove ${participant.name}`}
                       title="Delete participant"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
