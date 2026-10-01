@@ -7,6 +7,7 @@
 import { config } from "../config.js";
 import { redis } from "../redis.js";
 import type { TravelMode } from "./types.js";
+import { describeError } from "../log-redaction.js";
 
 /** Cache key prefix for direction routes */
 const DIRECTIONS_CACHE_PREFIX = "directions:";
@@ -66,7 +67,7 @@ export async function getCachedRoute(cacheKey: string): Promise<CachedRouteData 
       return JSON.parse(cached) as CachedRouteData;
     }
   } catch (error) {
-    console.warn("[Directions] Cache read error:", error);
+    console.warn("[Directions] Cache read error:", describeError(error));
   }
   return null;
 }
@@ -82,6 +83,6 @@ export async function cacheRoute(cacheKey: string, data: CachedRouteData): Promi
   try {
     await redis.set(cacheKey, JSON.stringify(data), "EX", config.DIRECTIONS_CACHE_TTL_SECONDS);
   } catch (error) {
-    console.warn("[Directions] Cache write error:", error);
+    console.warn("[Directions] Cache write error:", describeError(error));
   }
 }

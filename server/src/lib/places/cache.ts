@@ -6,6 +6,7 @@
 import { config } from "../config.js";
 import { placesRedis as redis } from "./redis.js";
 import type { PlaceResult, PlaceDetails, GeoPoint } from "./types.js";
+import { describeError } from "../log-redaction.js";
 
 /** Cache key prefixes */
 const PLACES_SEARCH_CACHE_PREFIX = "places:search:";
@@ -80,7 +81,7 @@ export async function getCachedSearch(cacheKey: string): Promise<PlaceResult[] |
       return JSON.parse(cached) as PlaceResult[];
     }
   } catch (error) {
-    console.warn("[Places] Cache read error:", error);
+    console.warn("[Places] Cache read error:", describeError(error));
   }
   return null;
 }
@@ -94,7 +95,7 @@ export async function cacheSearchResults(cacheKey: string, results: PlaceResult[
       redis.set(cacheKey, JSON.stringify(results), "EX", config.PLACES_SEARCH_CACHE_TTL_SECONDS)
     );
   } catch (error) {
-    console.warn("[Places] Cache write error:", error);
+    console.warn("[Places] Cache write error:", describeError(error));
   }
 }
 
@@ -108,7 +109,7 @@ export async function getCachedDetails(placeId: string): Promise<PlaceDetails | 
       return JSON.parse(cached) as PlaceDetails;
     }
   } catch (error) {
-    console.warn("[Places] Cache read error:", error);
+    console.warn("[Places] Cache read error:", describeError(error));
   }
   return null;
 }
@@ -127,6 +128,6 @@ export async function cacheDetails(placeId: string, details: PlaceDetails): Prom
       )
     );
   } catch (error) {
-    console.warn("[Places] Cache write error:", error);
+    console.warn("[Places] Cache write error:", describeError(error));
   }
 }
