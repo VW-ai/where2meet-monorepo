@@ -7,6 +7,7 @@
 
 import pino from "pino";
 import { config } from "./config.js";
+import { serializeError } from "./log-redaction.js";
 
 /**
  * Root Pino logger instance.
@@ -36,6 +37,10 @@ export const logger = pino({
       : undefined,
   base: {
     env: config.NODE_ENV,
+  },
+  // Driver errors can carry credentials (e.g. a Redis AUTH password); never log them
+  serializers: {
+    err: serializeError,
   },
 });
 
