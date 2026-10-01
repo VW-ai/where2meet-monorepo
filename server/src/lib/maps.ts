@@ -8,6 +8,7 @@
 
 import { config } from "./config.js";
 import { redis } from "./redis.js";
+import { describeError } from "./log-redaction.js";
 
 /** Cache key prefix for geocoding results */
 const GEOCODE_CACHE_PREFIX = "geocode:";
@@ -165,7 +166,7 @@ async function getCachedGeocode(address: string): Promise<GeocodeResult | null> 
     }
   } catch (error) {
     // Log but don't fail on cache errors
-    console.warn("[Maps] Cache read error:", error);
+    console.warn("[Maps] Cache read error:", describeError(error));
   }
   return null;
 }
@@ -185,7 +186,7 @@ async function cacheGeocode(address: string, result: GeocodeResult): Promise<voi
     );
   } catch (error) {
     // Log but don't fail on cache errors
-    console.warn("[Maps] Cache write error:", error);
+    console.warn("[Maps] Cache write error:", describeError(error));
   }
 }
 
@@ -240,8 +241,8 @@ export async function geocode(address: string): Promise<GeocodeResult> {
       const response = await fetchFromGoogleApi(address);
       const result = parseGeocodeResponse(response, address);
 
-      // Cache successful result
-      await cacheGeocode(address, result);
+      // Cache in the background; a slow or unavailable cache must not delay the user
+      void cacheGeocode(address, result);
 
       return result;
     } catch (error) {

@@ -73,8 +73,8 @@ export async function calculateRoute(
     return data;
   });
 
-  // Cache the result
-  await cacheRoute(cacheKey, routeData);
+  // Cache in the background; a slow or unavailable cache must not delay the user
+  void cacheRoute(cacheKey, routeData);
 
   return buildRouteResult(routeData, participantId);
 }
