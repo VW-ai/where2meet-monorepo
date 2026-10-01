@@ -21,6 +21,12 @@ function createRedisClient(): Redis {
   const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 
   const client = new Redis(redisUrl, {
+    // Redis only backs caches and the SSE sequence counter. If it is unreachable,
+    // commands would otherwise sit in the offline queue through reconnect retries
+    // and stall user requests (adding a participant, travel times, votes) for many
+    // seconds. Bound every command so callers fall back quickly instead.
+    connectTimeout: 2000,
+    commandTimeout: 500,
     maxRetriesPerRequest: 3,
     retryStrategy(times: number) {
       // Exponential backoff with max 30 seconds
