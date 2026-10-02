@@ -17,7 +17,7 @@ How it works:
 ## Pages
 
 - [Home](https://www.where2meet.org/): Create a meeting and see how planning works.
-- [FAQ](https://www.where2meet.org/faq): Whether you or your group need an account, and how the meeting spot is chosen.
+- [FAQ](https://www.where2meet.org/faq): How group planning works, accounts, hiding your exact address, travel modes, voting and cost.
 - [Contact](https://www.where2meet.org/contact): How to reach the Where2Meet team.
 
 ## Optional
