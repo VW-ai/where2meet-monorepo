@@ -1,0 +1,28 @@
+# Where2Meet
+
+> Where2Meet is a free web app that finds fair meeting spots for groups by comparing real travel times for every participant, instead of picking a geographic midpoint. Add each person's starting point, see routes and travel times on a map, and vote on a venue together. No account is required to create a meeting.
+
+Where2Meet (www.where2meet.org) is not affiliated with When2Meet, the availability-poll scheduling tool. Where2Meet answers "where should we meet?", not "when are we all free?".
+
+## Product
+
+- [Home](https://www.where2meet.org/): Create a meeting, add participant locations, and compare travel times on a map.
+- [How Where2Meet Works](https://www.where2meet.org/how-it-works): How fair meeting locations are calculated from real travel times, with a step-by-step walkthrough.
+- [FAQ](https://www.where2meet.org/faq): Answers about fairness vs. distance, supported transport modes, privacy, and group voting.
+- [Contact](https://www.where2meet.org/contact): How to reach the Where2Meet team.
+
+## Scenario guides
+
+- [All scenarios](https://www.where2meet.org/scenarios): Hub page listing every use case.
+- [Friends group dinner spot](https://www.where2meet.org/scenarios/friends-group-dinner-spot): Pick a restaurant that is fair for friends living in different neighborhoods.
+- [Date night, equal distance](https://www.where2meet.org/scenarios/date-night-equal-distance): Find a date spot with balanced travel for both people.
+- [Coworkers lunch spot](https://www.where2meet.org/scenarios/coworkers-lunch-spot): Choose a lunch place that works for colleagues coming from different offices or homes.
+- [Group weekend hangout](https://www.where2meet.org/scenarios/group-weekend-hangout): Plan a weekend meetup where nobody travels much longer than anyone else.
+- [Family reunion location finder](https://www.where2meet.org/scenarios/family-reunion-location-finder): Find a reunion location that is fair for relatives spread across a region.
+- [Remote team offsite planning](https://www.where2meet.org/scenarios/remote-team-offsite-planning): Pick an offsite location with balanced travel for a distributed team.
+- [Cross-city client meetings](https://www.where2meet.org/scenarios/cross-city-client-meetings): Choose a meeting point between cities that respects both parties' travel time.
+- [Long-distance friends reunion](https://www.where2meet.org/scenarios/long-distance-friends-reunion): Find a fair reunion city for friends living far apart.
+
+## Optional
+
+- [Sitemap](https://www.where2meet.org/sitemap.xml): Machine-readable list of public pages with last-modified dates.

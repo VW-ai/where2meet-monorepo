@@ -3,6 +3,10 @@
  *
  * Central registry for tracking content freshness across all pages.
  * Used by content audit scripts to identify stale content.
+ *
+ * Dates are real, hand-maintained values (first commit / last content
+ * change), NOT build-time timestamps. `lastModified` mirrors the sitemap
+ * dates in `site-pages.ts`; keep the two in sync when content changes.
  */
 
 import type { ContentMetadata } from './types/content';
@@ -13,16 +17,28 @@ import { createContentMetadata } from './types/content';
  */
 export const CONTENT_REGISTRY: Record<string, ContentMetadata> = {
   // Homepage
-  '/': createContentMetadata('landing', 'monthly'),
+  '/': createContentMetadata(
+    'landing',
+    { publishedDate: '2025-11-22', lastModified: '2026-09-04' },
+    'monthly'
+  ),
 
   // Feature pages
-  '/how-it-works': createContentMetadata('feature', 'quarterly'),
-  '/faq': createContentMetadata('faq', 'monthly'),
-  '/contact': createContentMetadata('landing', 'yearly'),
+  '/how-it-works': createContentMetadata(
+    'feature',
+    { publishedDate: '2025-12-30', lastModified: '2025-12-31' },
+    'quarterly'
+  ),
+  '/faq': createContentMetadata(
+    'faq',
+    { publishedDate: '2025-12-30', lastModified: '2026-09-04' },
+    'monthly'
+  ),
+  '/contact': createContentMetadata('landing', { publishedDate: '2025-12-30' }, 'yearly'),
 
-  // Scenario pages will be added here as they're created
-  // Example:
-  // '/scenarios/friends-group-dinner-spot': createContentMetadata('scenario', 'quarterly'),
+  // Scenario hub (individual scenario guides track their own dates in the
+  // scenario content registry: src/app/(landing)/scenarios/data/scenarios.ts)
+  '/scenarios': createContentMetadata('landing', { publishedDate: '2025-12-31' }, 'monthly'),
 };
 
 /**

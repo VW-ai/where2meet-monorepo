@@ -126,7 +126,7 @@ export default function LandingPage() {
                 priority
               />
             </div>
-            <h1 className="sr-only">Where2Meet</h1>
+            <span className="sr-only">Where2Meet</span>
           </div>
 
           {/* Auth components */}
@@ -143,17 +143,6 @@ export default function LandingPage() {
               Find <span className="text-coral-500">Fair Meeting Spots</span> with Equal Travel
               Times
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-4">
-              Stop making one person travel twice as far. Compare real travel times and find
-              equitable locations for everyone.
-            </p>
-            <p className="text-sm md:text-base text-gray-500 italic mb-3">
-              Unlike other planners, Where2Meet optimizes for travel time fairness, not just
-              distance
-            </p>
-            <p className="text-base md:text-lg text-coral-600 font-semibold">
-              ✨ No sign-up required—start planning in seconds
-            </p>
           </div>
 
           <div
@@ -183,7 +172,7 @@ export default function LandingPage() {
               <div className="text-3xl mb-3" aria-hidden="true">
                 📍
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Fair for Everyone</h3>
+              <h2 className="font-semibold text-gray-900 mb-2">Fair for Everyone</h2>
               <p className="text-sm text-gray-600">
                 Compare travel times and find locations that work for all participants
               </p>
@@ -195,7 +184,7 @@ export default function LandingPage() {
               <div className="text-3xl mb-3" aria-hidden="true">
                 🗺️
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Visual Planning</h3>
+              <h2 className="font-semibold text-gray-900 mb-2">Visual Planning</h2>
               <p className="text-sm text-gray-600">
                 See everyone's locations on a map with travel routes and times
               </p>
@@ -207,7 +196,7 @@ export default function LandingPage() {
               <div className="text-3xl mb-3" aria-hidden="true">
                 ⏱️
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Equal Travel Times</h3>
+              <h2 className="font-semibold text-gray-900 mb-2">Equal Travel Times</h2>
               <p className="text-sm text-gray-600">
                 Real-time routing calculates actual commutes—not just distance—so everyone's travel
                 burden is balanced

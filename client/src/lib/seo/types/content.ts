@@ -44,6 +44,38 @@ export interface ContentMetadata {
 }
 
 /**
+ * Explicit dates for a piece of content.
+ *
+ * These MUST be real, hand-maintained dates. Never derive them from
+ * `new Date()` at build time: that stamps every deploy as a content update,
+ * which makes `lastmod` in the sitemap and `dateModified` in structured data
+ * untrustworthy for search engines.
+ */
+export interface ContentDates {
+  /** ISO 8601 date (YYYY-MM-DD) when the content was first published */
+  publishedDate: string;
+
+  /** ISO 8601 date (YYYY-MM-DD) of the last content change. Defaults to publishedDate. */
+  lastModified?: string;
+
+  /** ISO 8601 date (YYYY-MM-DD) of the last accuracy review. Defaults to lastModified. */
+  lastReviewed?: string;
+}
+
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Validate a YYYY-MM-DD date string. Throws at module evaluation time so a
+ * typo fails the build instead of silently shipping a bad `lastmod`.
+ */
+export function assertIsoDate(value: string, label: string): string {
+  if (!ISO_DATE_PATTERN.test(value) || Number.isNaN(Date.parse(value))) {
+    throw new Error(`${label} must be an ISO date (YYYY-MM-DD), received "${value}"`);
+  }
+  return value;
+}
+
+/**
  * Helper to calculate next review date based on update frequency
  */
 export function calculateNextReviewDate(
@@ -104,19 +136,32 @@ export function getContentStatus(metadata: ContentMetadata): ContentStatus {
 }
 
 /**
- * Helper to create initial content metadata
+ * Helper to create content metadata from explicit, hand-maintained dates.
+ *
+ * @param contentType - Type of content
+ * @param dates - Real publish/modify/review dates (YYYY-MM-DD)
+ * @param frequency - How often the content should be reviewed
  */
 export function createContentMetadata(
   contentType: ContentType,
+  dates: ContentDates,
   frequency: UpdateFrequency = 'quarterly'
 ): ContentMetadata {
-  const today = new Date().toISOString().split('T')[0];
+  const publishedDate = assertIsoDate(dates.publishedDate, 'publishedDate');
+  const lastModified = assertIsoDate(dates.lastModified ?? publishedDate, 'lastModified');
+  const lastReviewed = assertIsoDate(dates.lastReviewed ?? lastModified, 'lastReviewed');
+
+  if (lastModified < publishedDate) {
+    throw new Error(
+      `lastModified (${lastModified}) cannot be earlier than publishedDate (${publishedDate})`
+    );
+  }
 
   return {
-    publishedDate: today,
-    lastModified: today,
-    lastReviewed: today,
-    nextReviewDate: calculateNextReviewDate(today, frequency),
+    publishedDate,
+    lastModified,
+    lastReviewed,
+    nextReviewDate: calculateNextReviewDate(lastReviewed, frequency),
     contentType,
     updateFrequency: frequency,
     status: 'current',

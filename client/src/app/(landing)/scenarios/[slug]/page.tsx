@@ -3,7 +3,11 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createArticleMetadata } from '@/lib/seo/metadata';
-import { generateFAQSchema } from '@/lib/seo/structured-data';
+import {
+  generateArticleSchema,
+  generateBreadcrumbSchema,
+  generateFAQSchema,
+} from '@/lib/seo/structured-data';
 import { StructuredData } from '@/components/seo/structured-data';
 import { getScenario, getAllScenarioSlugs } from '../data/scenarios';
 import catLogo from '@/components/cat/image.png';
@@ -52,8 +56,29 @@ export default async function ScenarioPage({ params }: ScenarioPageProps) {
     notFound();
   }
 
+  const scenarioPath = `/scenarios/${slug}`;
+
   return (
     <>
+      {/* Breadcrumb + Article schema (dates come from the hand-maintained content registry) */}
+      <StructuredData
+        data={generateBreadcrumbSchema([
+          { name: 'Home', url: '/' },
+          { name: 'Scenarios', url: '/scenarios' },
+          { name: scenario.hero.h1, url: scenarioPath },
+        ])}
+      />
+      <StructuredData
+        data={generateArticleSchema({
+          headline: scenario.hero.h1,
+          description: scenario.seo.description,
+          url: scenarioPath,
+          datePublished: scenario.contentMetadata.publishedDate,
+          dateModified: scenario.contentMetadata.lastModified,
+          keywords: scenario.seo.tags,
+        })}
+      />
+
       {/* FAQ Schema */}
       {scenario.faq.questions.length > 0 && (
         <StructuredData data={generateFAQSchema(scenario.faq.questions)} />
@@ -283,11 +308,14 @@ export default async function ScenarioPage({ params }: ScenarioPageProps) {
             {/* Last Updated */}
             <footer className="text-sm text-gray-500 border-t border-gray-200 pt-6">
               Last updated:{' '}
-              {new Date(scenario.contentMetadata.lastModified).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              <time dateTime={scenario.contentMetadata.lastModified}>
+                {new Date(scenario.contentMetadata.lastModified).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  timeZone: 'UTC',
+                })}
+              </time>
             </footer>
           </article>
 

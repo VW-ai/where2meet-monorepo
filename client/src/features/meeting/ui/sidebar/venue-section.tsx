@@ -246,7 +246,7 @@ export function VenueSection() {
           {/* Only show search bar for joined participants/organizers and when not published */}
           {hasJoined && !isPublished && (
             <div
-              className="transition-all duration-300 ease-in-out"
+              className="hidden md:block transition-all duration-300 ease-in-out"
               style={{ width: isLikedExpanded ? '60%' : '80%' }}
             >
               <SearchPillBar

@@ -1,0 +1,281 @@
+@media (max-width: 767px) {
+  .meeting-screen {
+    --sheet-height: 43dvh;
+    height: 100dvh;
+    width: 100%;
+  }
+  .meeting-screen[data-expanded='true'] {
+    --sheet-height: 76dvh;
+  }
+  .meeting-map {
+    bottom: calc(43dvh - 24px);
+  }
+  .phone-header {
+    position: absolute;
+    inset: max(12px, env(safe-area-inset-top)) 0 auto;
+    padding: 0 12px;
+    pointer-events: none;
+  }
+  .phone-search {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 8px;
+    background: white;
+    border-radius: 30px;
+    box-shadow: 0 3px 16px #17252d26;
+    pointer-events: auto;
+  }
+  .phone-logo {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+  }
+  .phone-search input {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+    color: #21252b;
+    background: transparent;
+    outline-offset: 2px;
+  }
+  .phone-search button {
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+  }
+  .phone-search button:disabled {
+    color: #757b83;
+  }
+  .phone-categories {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px 0 4px;
+    scrollbar-width: none;
+    pointer-events: auto;
+  }
+  .phone-categories button {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0 16px;
+    background: white;
+    border-radius: 24px;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 2px 8px #17252d20;
+  }
+  .phone-categories button[aria-pressed='true'] {
+    color: #bc3942;
+    background: #fff0ef;
+  }
+  .phone-categories button:disabled {
+    color: #70747b;
+  }
+  .meeting-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--sheet-height);
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -4px 24px #17252d1a;
+    overflow: hidden;
+    transition: height 220ms ease;
+    pointer-events: auto;
+  }
+  .phone-sheet-heading {
+    padding: 0 18px;
+    flex-shrink: 0;
+  }
+  .phone-sheet-handle {
+    width: 100%;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    touch-action: none;
+  }
+  .phone-sheet-handle span {
+    width: 40px;
+    height: 4px;
+    border-radius: 3px;
+    background: #d3d4d6;
+  }
+  .phone-sheet-handle svg {
+    position: absolute;
+    right: 0;
+    color: #72767c;
+  }
+  .phone-meeting-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #666b73;
+    margin-bottom: 6px;
+  }
+  .phone-sheet-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .phone-sheet-title h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+  }
+  .phone-wordmark {
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: -0.4px;
+    white-space: nowrap;
+  }
+  .phone-wordmark span {
+    color: #bd3843;
+  }
+  .phone-sheet-description {
+    color: #666b73;
+    font-size: 13px;
+    margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .phone-sheet-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 10px 0 8px;
+    border-bottom: 1px solid #eee;
+  }
+  .phone-sheet-tabs button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    flex: 1;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #656a73;
+  }
+  .phone-sheet-tabs button[aria-pressed='true'] {
+    background: #fff0ef;
+    color: #b73540;
+  }
+  .meeting-sheet-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .meeting-sheet-content > aside {
+    height: auto;
+    min-height: 100%;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+    background: white;
+    transform: none;
+    overflow: visible;
+  }
+  .phone-share {
+    padding: 8px 18px max(10px, env(safe-area-inset-bottom));
+    border-top: 1px solid #f1f1f1;
+    background: white;
+    flex-shrink: 0;
+  }
+  .phone-share > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 48px;
+    width: 100%;
+    border-radius: 14px;
+    color: white;
+    background: #c83f49;
+    font-size: 15px;
+    font-weight: 650;
+  }
+  .phone-travel-times {
+    display: flex;
+    overflow-x: auto;
+    gap: 16px;
+    padding-top: 10px;
+  }
+  .phone-travel-times > div {
+    display: flex;
+    flex: 1 0 50px;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .phone-avatar {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .phone-map-controls {
+    position: absolute;
+    right: 12px;
+    bottom: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 5;
+  }
+  .phone-map-controls button {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px #0002;
+  }
+  .phone-header :focus-visible,
+  .meeting-sheet :focus-visible,
+  .phone-map-controls :focus-visible {
+    outline: 3px solid #b73540;
+    outline-offset: 2px;
+  }
+  @media (max-height: 550px) {
+    .meeting-screen {
+      --sheet-height: 45dvh;
+    }
+    .phone-sheet-heading {
+      max-height: 90px;
+      overflow-y: auto;
+    }
+    .phone-share {
+      padding-block: 4px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .meeting-sheet {
+      transition: none;
+    }
+  }
+}

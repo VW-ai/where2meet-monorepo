@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createMetadata } from '@/lib/seo/metadata';
+import { generateBreadcrumbSchema } from '@/lib/seo/structured-data';
+import { StructuredData } from '@/components/seo/structured-data';
 import { SCENARIO_METADATA } from './data/scenarios';
 import catLogo from '@/components/cat/image.png';
 
@@ -9,13 +11,17 @@ import catLogo from '@/components/cat/image.png';
  * Generate metadata for scenarios hub page
  */
 export const metadata: Metadata = createMetadata({
-  title: 'Fair Meeting Scenarios - Where2Meet Use Cases',
+  title: 'Fair Meeting Scenarios and Use Cases',
   description:
     'Discover how Where2Meet helps find fair meeting locations for friends, teams, families, and more. Compare travel times and find equitable meeting spots for any scenario.',
   canonical: '/scenarios',
   robots: { index: true, follow: true },
-  keywordsFocus: 'features',
 });
+
+const BREADCRUMBS = [
+  { name: 'Home', url: '/' },
+  { name: 'Scenarios', url: '/scenarios' },
+];
 
 /**
  * Group scenarios by layer for better organization
@@ -50,6 +56,7 @@ const SCENARIO_GROUPS = {
 export default function ScenariosPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-coral-50 via-mint-50 to-lavender-50">
+      <StructuredData data={generateBreadcrumbSchema(BREADCRUMBS)} />
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">

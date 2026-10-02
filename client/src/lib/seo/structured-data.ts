@@ -1,5 +1,14 @@
-import type { Organization, WebSite, Event, FAQPage, WithContext } from 'schema-dts';
-import { SITE_CONFIG } from './metadata';
+import type {
+  Article,
+  BreadcrumbList,
+  Event,
+  FAQPage,
+  Organization,
+  WebApplication,
+  WebSite,
+  WithContext,
+} from 'schema-dts';
+import { SITE_CONFIG, toAbsoluteUrl } from './metadata';
 
 /**
  * Generate Organization schema for root layout
@@ -9,6 +18,7 @@ export function generateOrganizationSchema(): WithContext<Organization> {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': `${SITE_CONFIG.url}/#organization`,
     name: SITE_CONFIG.name,
     url: SITE_CONFIG.url,
     logo: `${SITE_CONFIG.url}/logo.png`,
@@ -30,9 +40,11 @@ export function generateWebSiteSchema(): WithContext<WebSite> {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': `${SITE_CONFIG.url}/#website`,
     name: SITE_CONFIG.name,
     url: SITE_CONFIG.url,
     description: SITE_CONFIG.description,
+    publisher: { '@id': `${SITE_CONFIG.url}/#organization` },
     // Uncomment when search feature is implemented
     // potentialAction: {
     //   '@type': 'SearchAction',
@@ -43,6 +55,119 @@ export function generateWebSiteSchema(): WithContext<WebSite> {
     //   'query-input': 'required name=search_term_string',
     // },
   };
+}
+
+/**
+ * Generate WebApplication schema for the landing page
+ *
+ * Tells search engines and AI crawlers what the product IS (a free web app
+ * for finding fair meeting locations), which the Organization/WebSite
+ * schemas alone do not convey.
+ *
+ * No `aggregateRating` is included on purpose: we have no verified reviews,
+ * and fabricated ratings violate Google's structured data policies.
+ */
+export function generateWebApplicationSchema(): WithContext<WebApplication> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    '@id': `${SITE_CONFIG.url}/#webapplication`,
+    name: SITE_CONFIG.name,
+    url: SITE_CONFIG.url,
+    description: SITE_CONFIG.description,
+    applicationCategory: 'UtilitiesApplication',
+    operatingSystem: 'Web',
+    browserRequirements: 'Requires JavaScript. Requires HTML5.',
+    isAccessibleForFree: true,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    featureList: [
+      'Compare real travel times for every participant',
+      'Find meeting spots with balanced commutes instead of a geographic midpoint',
+      'Visualize participant locations and routes on a map',
+      'Vote on candidate venues as a group',
+      'No account required to create a meeting',
+    ],
+    publisher: { '@id': `${SITE_CONFIG.url}/#organization` },
+  };
+}
+
+/**
+ * Breadcrumb item (name + path or absolute URL)
+ */
+export interface BreadcrumbItem {
+  name: string;
+  /** Relative path ('/scenarios') or absolute URL */
+  url: string;
+}
+
+/**
+ * Generate BreadcrumbList schema
+ *
+ * @param items - Ordered trail from the home page to the current page
+ */
+export function generateBreadcrumbSchema(items: BreadcrumbItem[]): WithContext<BreadcrumbList> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: toAbsoluteUrl(item.url),
+    })),
+  };
+}
+
+/**
+ * Article data for generating Article schema
+ */
+export interface ArticleData {
+  headline: string;
+  description: string;
+  /** Relative path ('/scenarios/foo') or absolute URL of the article */
+  url: string;
+  /** ISO 8601 date (YYYY-MM-DD) */
+  datePublished: string;
+  /** ISO 8601 date (YYYY-MM-DD) */
+  dateModified?: string;
+  /** Relative path or absolute URL of the hero/OG image */
+  image?: string;
+  keywords?: string[];
+}
+
+/**
+ * Generate Article schema for long-form content pages (scenario guides)
+ *
+ * Author and publisher are the Where2Meet organization; we do not fabricate
+ * individual bylines.
+ */
+export function generateArticleSchema(data: ArticleData): WithContext<Article> {
+  const url = toAbsoluteUrl(data.url);
+
+  const schema: WithContext<Article> = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: data.headline,
+    description: data.description,
+    url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    datePublished: data.datePublished,
+    dateModified: data.dateModified ?? data.datePublished,
+    inLanguage: 'en',
+    author: { '@id': `${SITE_CONFIG.url}/#organization` },
+    publisher: { '@id': `${SITE_CONFIG.url}/#organization` },
+    image: toAbsoluteUrl(data.image ?? '/og-image.png'),
+  };
+
+  if (data.keywords && data.keywords.length > 0) {
+    schema.keywords = data.keywords.join(', ');
+  }
+
+  return schema;
 }
 
 /**

@@ -12,7 +12,6 @@ export const metadata: Metadata = createMetadata({
     'Answers to common questions about Where2Meet, including how fair meeting locations are calculated, travel time comparison, privacy, and group planning.',
   canonical: '/faq',
   robots: { index: true, follow: true },
-  keywordsFocus: 'differentiation',
 });
 
 // FAQ Data - organized by category
@@ -41,9 +40,9 @@ const faqData: Array<{ category: string; questions: FAQItem[] }> = [
           "Our algorithm finds meeting locations where the difference in travel times between participants is minimized. We prioritize locations where everyone's commute is roughly equal, rather than optimizing for the shortest total distance. You can see each person's travel time on the map and vote on the fairest option together.",
       },
       {
-        question: 'How is Where2Meet.com different from where2meet.net?',
+        question: 'How is Where2Meet.org different from where2meet.net?',
         answer:
-          "Where2Meet.com (this site) optimizes for travel time fairness by calculating real commute times and balancing everyone's travel burden. Where2meet.net uses geographic midpoint calculation based on straight-line distance. The key difference: we show you actual travel times (accounting for traffic, roads, and transit), while midpoint tools only consider distance. A geographic midpoint can be unfair if one person has highway access and another doesn't—travel time reveals the real story.",
+          "Where2Meet.org (this site) optimizes for travel time fairness by calculating real commute times and balancing everyone's travel burden. Where2meet.net uses geographic midpoint calculation based on straight-line distance. The key difference: we show you actual travel times (accounting for traffic, roads, and transit), while midpoint tools only consider distance. A geographic midpoint can be unfair if one person has highway access and another doesn't—travel time reveals the real story.",
       },
       {
         question: 'Why not just use Google Maps to find a meeting point?',

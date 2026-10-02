@@ -8,12 +8,10 @@ import { SITE_CONFIG } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_CONFIG.url),
-  title: {
-    default: SITE_CONFIG.defaultTitle,
-    template: '%s | Where2Meet – Fair Meeting Planner',
-  },
+  // No `title.template` here on purpose: `createMetadata()` already appends
+  // the "| Where2Meet" suffix. A template would apply it a second time.
+  title: SITE_CONFIG.defaultTitle,
   description: SITE_CONFIG.description,
-  keywords: SITE_CONFIG.allKeywords,
   authors: [{ name: SITE_CONFIG.author }],
   creator: SITE_CONFIG.author,
   openGraph: {
@@ -28,7 +26,7 @@ export const metadata: Metadata = {
         url: new URL('/og-image.png', SITE_CONFIG.url).toString(),
         width: 1200,
         height: 630,
-        alt: 'Where2Meet - Fair Meeting Planner with Travel Time Comparison',
+        alt: 'Where2Meet – fair meeting spot finder with equal travel times',
       },
     ],
   },
@@ -36,7 +34,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: SITE_CONFIG.defaultTitle,
     description: SITE_CONFIG.description,
-    images: [new URL('/twitter-image.png', SITE_CONFIG.url).toString()],
+    images: [new URL('/og-image.png', SITE_CONFIG.url).toString()],
   },
   robots: {
     index: true,

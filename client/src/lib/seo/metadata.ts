@@ -3,67 +3,30 @@ import type { Metadata } from 'next';
 /**
  * Core site configuration with differentiated positioning
  * Focus: Fair Meeting Planning + Travel Time Comparison + Visual Analysis
+ *
+ * `url` is the canonical origin. Production serves the site from the `www`
+ * host (the apex redirects there), so every absolute URL we emit (canonical,
+ * Open Graph, sitemap, robots, JSON-LD) must use the `www` host to avoid
+ * canonical/redirect mismatches.
  */
 export const SITE_CONFIG = {
   name: 'Where2Meet',
-  url: 'https://where2meet.org',
+  url: 'https://www.where2meet.org',
   author: 'Where2Meet Team',
   locale: 'en_US',
   themeColor: '#3b82f6',
 
   // Differentiated positioning - emphasizes fairness and travel time comparison
-  defaultTitle: 'Where2Meet – Fair Meeting Planner with Travel Time Comparison',
+  defaultTitle: 'Where2Meet – Fair Meeting Spot Finder with Equal Travel Times',
   description:
-    "Find fair meeting spots with equal travel time for everyone. Compare commute distances, visualize optimal locations, and plan meetings that respect everyone's time. AI-powered meeting location finder.",
-
-  // Strategic keywords organized by category
-  keywords: {
-    // Core generic keywords
-    core: [
-      'meeting spot finder',
-      'central meeting point',
-      'group meeting planner',
-      'meetup location',
-    ],
-
-    // Differentiation keywords - what makes Where2Meet unique
-    differentiation: [
-      'fair meeting planner',
-      'travel time comparison',
-      'equal commute meeting',
-      'fair travel distance',
-      'equidistant meeting point',
-      'commute fairness',
-    ],
-
-    // AI/Smart features
-    ai: ['AI meeting planner', 'smart meeting location', 'intelligent venue finder'],
-
-    // Feature-specific
-    features: [
-      'visual map meeting planner',
-      'multi-location midpoint',
-      'travel time visualization',
-      'meeting cost calculator',
-    ],
-  },
-
-  // Flattened keywords array for metadata
-  get allKeywords(): string[] {
-    return [
-      ...this.keywords.core,
-      ...this.keywords.differentiation,
-      ...this.keywords.ai,
-      ...this.keywords.features,
-    ];
-  },
+    'Where2Meet finds fair meeting spots by comparing real travel times for everyone in your group. See routes on a map, vote on venues, no sign-up needed.',
 } as const;
 
 /**
  * Options for creating page metadata
  */
 export interface MetadataOptions {
-  /** Page title (will be templated with site name) */
+  /** Page title (site name is appended as a suffix) */
   title?: string;
 
   /** Page description */
@@ -71,15 +34,15 @@ export interface MetadataOptions {
 
   /**
    * Canonical URL - can be:
-   * - Relative path: '/about' -> 'https://where2meet.org/about'
-   * - Absolute URL: 'https://where2meet.org/about'
+   * - Relative path: '/about' -> 'https://www.where2meet.org/about'
+   * - Absolute URL: 'https://www.where2meet.org/about'
    */
   canonical?: string;
 
   /**
    * OpenGraph image - can be:
    * - Relative path: '/og-image.png'
-   * - Absolute URL: 'https://where2meet.org/og-image.png'
+   * - Absolute URL: 'https://www.where2meet.org/og-image.png'
    */
   image?: string;
 
@@ -88,21 +51,6 @@ export interface MetadataOptions {
 
   /** OpenGraph type (default: 'website') */
   ogType?: 'website' | 'article';
-
-  /**
-   * Custom keywords (will be merged with default keywords)
-   * Use this to add page-specific keywords
-   */
-  keywords?: string[];
-
-  /**
-   * Keywords category to emphasize for this page
-   * 'core' - Generic meeting planner keywords
-   * 'differentiation' - Fair travel time keywords
-   * 'ai' - AI-powered keywords
-   * 'features' - Feature-specific keywords
-   */
-  keywordsFocus?: keyof typeof SITE_CONFIG.keywords;
 
   /**
    * Robots configuration
@@ -134,7 +82,7 @@ export interface MetadataOptions {
 /**
  * Generate absolute URL from relative path or return URL if already absolute
  */
-function toAbsoluteUrl(urlOrPath: string): string {
+export function toAbsoluteUrl(urlOrPath: string): string {
   if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
     return urlOrPath;
   }
@@ -142,41 +90,14 @@ function toAbsoluteUrl(urlOrPath: string): string {
 }
 
 /**
- * Get prioritized keywords based on focus area
+ * Build the full <title> for a page.
+ *
+ * The suffix is added here and ONLY here. The root layout intentionally does
+ * not define a `title.template`, otherwise the suffix would be applied twice
+ * ("Page | Where2Meet | Where2Meet ...").
  */
-function getPrioritizedKeywords(
-  focus?: keyof typeof SITE_CONFIG.keywords,
-  customKeywords?: string[]
-): string[] {
-  const keywords: string[] = [];
-
-  // Add focus keywords first (most important for this page)
-  if (focus) {
-    keywords.push(...SITE_CONFIG.keywords[focus]);
-  }
-
-  // Add differentiation keywords (always important)
-  if (focus !== 'differentiation') {
-    keywords.push(...SITE_CONFIG.keywords.differentiation);
-  }
-
-  // Add core keywords
-  if (focus !== 'core') {
-    keywords.push(...SITE_CONFIG.keywords.core);
-  }
-
-  // Add AI keywords
-  if (focus !== 'ai') {
-    keywords.push(...SITE_CONFIG.keywords.ai);
-  }
-
-  // Add custom keywords
-  if (customKeywords && customKeywords.length > 0) {
-    keywords.push(...customKeywords);
-  }
-
-  // Remove duplicates while preserving order
-  return Array.from(new Set(keywords));
+export function buildPageTitle(title?: string): string {
+  return title ? `${title} | ${SITE_CONFIG.name}` : SITE_CONFIG.defaultTitle;
 }
 
 /**
@@ -186,9 +107,11 @@ function getPrioritizedKeywords(
  * - Differentiated positioning (fair travel time comparison)
  * - Absolute URLs for OG/Twitter images
  * - Flexible canonical URL handling
- * - Strategic keyword prioritization
  * - Proper robots configuration
  * - i18n-ready with language alternates
+ *
+ * Note: no `keywords` meta tag is emitted. Search engines ignore it and it
+ * only leaks targeting intent.
  *
  * @param options - Metadata configuration options
  * @returns Next.js Metadata object
@@ -199,10 +122,8 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     description = SITE_CONFIG.description,
     canonical,
     image = '/og-image.png',
-    imageAlt = 'Where2Meet - Fair Meeting Planner with Travel Time Comparison',
+    imageAlt = 'Where2Meet – fair meeting spot finder with equal travel times',
     ogType = 'website',
-    keywords: customKeywords,
-    keywordsFocus,
     robots,
     article,
     languages,
@@ -212,15 +133,12 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
   const absoluteImageUrl = toAbsoluteUrl(image);
 
   // Construct full title
-  const fullTitle = title
-    ? `${title} | ${SITE_CONFIG.name} – Fair Meeting Planner`
-    : SITE_CONFIG.defaultTitle;
+  const fullTitle = buildPageTitle(title);
 
   // Build metadata object
   const metadata: Metadata = {
     title: fullTitle,
     description,
-    keywords: getPrioritizedKeywords(keywordsFocus, customKeywords),
 
     // OpenGraph
     openGraph: {
@@ -253,6 +171,10 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     const canonicalUrl = toAbsoluteUrl(canonical);
     metadata.alternates = {
       canonical: canonicalUrl,
+    };
+    metadata.openGraph = {
+      ...metadata.openGraph,
+      url: canonicalUrl,
     };
   }
 
@@ -320,7 +242,6 @@ export function createMeetingPageMetadata(options: {
       index: false, // Don't index user-generated meeting pages
       follow: true, // Allow link following for internal equity
     },
-    keywordsFocus: 'differentiation', // Emphasize fair travel time
   });
 }
 
@@ -353,7 +274,6 @@ export function createArticleMetadata(options: {
       authors: options.authors,
       tags: options.tags,
     },
-    keywordsFocus: 'core', // Blog posts usually target core keywords
   });
 }
 
@@ -365,7 +285,6 @@ export function createFeaturePageMetadata(options: {
   description: string;
   canonical?: string;
   image?: string;
-  keywords?: string[];
 }): Metadata {
   return createMetadata({
     ...options,
@@ -373,6 +292,5 @@ export function createFeaturePageMetadata(options: {
       index: true,
       follow: true,
     },
-    keywordsFocus: 'features', // Feature pages highlight specific capabilities
   });
 }

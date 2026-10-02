@@ -8,7 +8,19 @@
  */
 
 import type { ScenarioContent, ScenarioMetadata } from './types';
-import { createContentMetadata } from '@/lib/seo/types/content';
+import { createContentMetadata, type ContentDates } from '@/lib/seo/types/content';
+
+/**
+ * Real publication dates for the scenario guides (all eight shipped together).
+ *
+ * Bump `lastModified` on a scenario only when its CONTENT changes. These dates
+ * feed the sitemap `lastmod`, Open Graph article times and Article JSON-LD,
+ * so they must not be generated at build time.
+ */
+const SCENARIO_DATES: ContentDates = {
+  publishedDate: '2025-12-31',
+  lastModified: '2025-12-31',
+};
 
 /**
  * Scenario metadata registry
@@ -299,7 +311,7 @@ export const SCENARIOS: Record<string, ScenarioContent> = {
         'Find fair restaurants in under 3 minutes. Compare travel times, see routes on a map, and let the group vote on where to eat.',
       buttonText: 'Plan Your Group Dinner',
     },
-    contentMetadata: createContentMetadata('scenario', 'quarterly'),
+    contentMetadata: createContentMetadata('scenario', SCENARIO_DATES, 'quarterly'),
     relatedScenarios: [
       'date-night-equal-distance',
       'coworkers-lunch-spot',
@@ -464,7 +476,7 @@ export const SCENARIOS: Record<string, ScenarioContent> = {
         "Show consideration from the first meetup. Find fair date locations where both people's time is respected.",
       buttonText: 'Plan a Fair Date',
     },
-    contentMetadata: createContentMetadata('scenario', 'quarterly'),
+    contentMetadata: createContentMetadata('scenario', SCENARIO_DATES, 'quarterly'),
     relatedScenarios: ['friends-group-dinner-spot', 'long-distance-friends-reunion'],
   },
 
@@ -626,7 +638,7 @@ export const SCENARIOS: Record<string, ScenarioContent> = {
         'Stop excluding remote workers and favoring office proximity. Find lunch spots that work for the whole team.',
       buttonText: 'Plan Your Team Lunch',
     },
-    contentMetadata: createContentMetadata('scenario', 'quarterly'),
+    contentMetadata: createContentMetadata('scenario', SCENARIO_DATES, 'quarterly'),
     relatedScenarios: ['friends-group-dinner-spot', 'remote-team-offsite-planning'],
   },
 
@@ -788,7 +800,7 @@ export const SCENARIOS: Record<string, ScenarioContent> = {
         'Discover new neighborhoods and keep everyone in the group engaged. Find fair hangout locations in minutes.',
       buttonText: 'Plan Your Weekend Hangout',
     },
-    contentMetadata: createContentMetadata('scenario', 'quarterly'),
+    contentMetadata: createContentMetadata('scenario', SCENARIO_DATES, 'quarterly'),
     relatedScenarios: ['friends-group-dinner-spot', 'date-night-equal-distance'],
   },
 
@@ -951,7 +963,7 @@ export const SCENARIOS: Record<string, ScenarioContent> = {
         'Stop making the same relatives travel hours while others barely leave home. Find reunion venues that work for everyone.',
       buttonText: 'Plan Your Family Reunion',
     },
-    contentMetadata: createContentMetadata('scenario', 'quarterly'),
+    contentMetadata: createContentMetadata('scenario', SCENARIO_DATES, 'quarterly'),
     relatedScenarios: ['remote-team-offsite-planning', 'long-distance-friends-reunion'],
   },
 
@@ -1113,7 +1125,7 @@ export const SCENARIOS: Record<string, ScenarioContent> = {
         'Stop excluding remote workers with HQ-centric offsites. Find retreat venues that show you value everyone equally.',
       buttonText: 'Plan Your Team Offsite',
     },
-    contentMetadata: createContentMetadata('scenario', 'quarterly'),
+    contentMetadata: createContentMetadata('scenario', SCENARIO_DATES, 'quarterly'),
     relatedScenarios: ['coworkers-lunch-spot', 'family-reunion-location-finder'],
   },
 
@@ -1274,7 +1286,7 @@ export const SCENARIOS: Record<string, ScenarioContent> = {
         'Stop asking clients to bear the travel burden. Find fair meeting locations that show you value their time.',
       buttonText: 'Plan Your Client Meeting',
     },
-    contentMetadata: createContentMetadata('scenario', 'quarterly'),
+    contentMetadata: createContentMetadata('scenario', SCENARIO_DATES, 'quarterly'),
     relatedScenarios: ['remote-team-offsite-planning', 'date-night-equal-distance'],
   },
 
@@ -1436,7 +1448,7 @@ export const SCENARIOS: Record<string, ScenarioContent> = {
         'Stop letting geography fracture your friend group. Find reunion locations that work for everyone.',
       buttonText: 'Plan Your Friends Reunion',
     },
-    contentMetadata: createContentMetadata('scenario', 'quarterly'),
+    contentMetadata: createContentMetadata('scenario', SCENARIO_DATES, 'quarterly'),
     relatedScenarios: ['family-reunion-location-finder', 'date-night-equal-distance'],
   },
 };

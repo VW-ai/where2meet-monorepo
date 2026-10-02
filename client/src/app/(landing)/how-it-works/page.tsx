@@ -9,12 +9,6 @@ export const metadata: Metadata = createFeaturePageMetadata({
   description:
     'Learn how Where2Meet calculates fair meeting locations by comparing real travel times, balancing commutes, and visualizing group meeting points on a map.',
   canonical: '/how-it-works',
-  keywords: [
-    'how meeting planner works',
-    'fair meeting calculation',
-    'travel time balance',
-    'group meeting optimization',
-  ],
 });
 
 export default function HowItWorksPage() {
