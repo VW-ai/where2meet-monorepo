@@ -22,19 +22,19 @@ export function Header({ eventId }: HeaderProps) {
 
       <div className="h-full w-full bg-transparent flex items-center px-3 sm:px-4 md:px-5 lg:px-6 gap-2 sm:gap-3 md:gap-4">
         {/* Left: PillNav (Logo + View Toggles) */}
-        <div className="flex-shrink-0 pr-2 sm:pr-3 md:pr-4">
+        <div className="portal-left flex-shrink-0 pr-2 sm:pr-3 md:pr-4">
           <PillNav />
         </div>
 
         {/* Right: Filter Pills + Actions - min-w-0 REQUIRED */}
         <div className="flex-1 flex items-center justify-between gap-2 sm:gap-3 md:gap-4 min-w-0">
           {/* Center: Filter Pills - min-w-0 REQUIRED */}
-          <div className="flex-1 flex items-center justify-center overflow-hidden min-w-0">
+          <div className="portal-center flex-1 flex items-center justify-center overflow-hidden min-w-0">
             <FilterPills />
           </div>
 
           {/* Right: Mode Toggle + Settings + Share - min-w-0 REQUIRED */}
-          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0 min-w-0">
+          <div className="portal-right flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0 min-w-0">
             <ModeToggle />
             <TopRightActions eventId={eventId} />
           </div>

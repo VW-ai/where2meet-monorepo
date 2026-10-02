@@ -5,6 +5,7 @@ import { StructuredData } from '@/components/seo/structured-data';
 import { generateOrganizationSchema } from '@/lib/seo/structured-data';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
+import { CatPortal } from '@/features/portal/ui/cat-portal';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_CONFIG.url),
@@ -72,6 +73,7 @@ export default function RootLayout({
         {gaId && <GoogleAnalytics gaId={gaId} />}
         <StructuredData data={generateOrganizationSchema()} />
         <SessionProvider>{children}</SessionProvider>
+        <CatPortal />
       </body>
     </html>
   );

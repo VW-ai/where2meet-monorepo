@@ -22,6 +22,7 @@ import { useTutorialStore } from '@/features/tutorial/model/tutorial-store';
 import { eventClient } from '@/features/meeting/api';
 import { useEventStream } from '@/features/meeting/hooks/useEventStream';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { usePortalStore } from '@/features/portal/model/portal-store';
 
 export default function MeetPage() {
   const [sheetExpanded, setSheetExpanded] = useState(false);
@@ -46,6 +47,8 @@ export default function MeetPage() {
   } = useAuthStore();
   const { setParticipants } = useParticipantStore();
   const { hasSeenOrganizerTutorial, startTutorial } = useTutorialStore();
+  // Arriving from Create Meeting, the tutorial waits for the transition to finish.
+  const arriving = usePortalStore((state) => state.status !== 'idle');
 
   // Get authentication token (prefer organizer token, fallback to participant token)
   const token = organizerToken || participantToken || null;
@@ -156,6 +159,8 @@ export default function MeetPage() {
     // Only for organizers (has organizer token)
     if (!organizerToken) return;
 
+    if (arriving) return;
+
     // Check if first time
     if (!hasSeenOrganizerTutorial) {
       // Small delay to let page render
@@ -171,6 +176,7 @@ export default function MeetPage() {
     hasSeenOrganizerTutorial,
     startTutorial,
     eventId,
+    arriving,
   ]);
 
   // Loading state
@@ -224,7 +230,7 @@ export default function MeetPage() {
         {/* Floating UI Components */}
         <div className="relative z-10 h-full w-full pointer-events-none">
           {/* Header - Floating at top */}
-          <div className="pointer-events-auto hidden md:block">
+          <div className="meeting-header pointer-events-auto hidden md:block">
             <Header eventId={eventId} />
           </div>
 
