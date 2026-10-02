@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 // import { OAuthButton } from '@/features/auth/ui/oauth-button'; // OAuth temporarily disabled
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 
 export default function SignInPage() {
   const router = useRouter();

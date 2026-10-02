@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createMetadata } from '@/lib/seo/metadata';
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 
 export const metadata: Metadata = createMetadata({
   title: 'Contact',

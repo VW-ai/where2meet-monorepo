@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { authClient } from '@/features/auth/api';
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 
 function ResetPasswordForm() {
   const router = useRouter();

@@ -9,7 +9,7 @@ import { userClient } from '@/features/user/api';
 import { EventCard } from '@/features/dashboard/ui/event-card';
 import { ClaimEventsBanner } from '@/features/dashboard/ui/claim-events-banner';
 import { LikedVenuesSection } from '@/features/dashboard/ui/liked-venues-section';
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 
 export default function DashboardPage() {
   const { user, logout } = useAuthStore();

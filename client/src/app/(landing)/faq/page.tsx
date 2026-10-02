@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { createMetadata } from '@/lib/seo/metadata';
 import { generateFAQSchema, type FAQItem } from '@/lib/seo/structured-data';
 import { StructuredData } from '@/components/seo/structured-data';
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 
 export const metadata: Metadata = createMetadata({
   title: 'FAQ',

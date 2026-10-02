@@ -14,7 +14,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 import { useUIStore } from '../../model/ui-store';
 import { useMeetingStore } from '../../model/meeting-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
