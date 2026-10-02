@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { LocationField } from '@/shared/ui/location-field';
+import { participantErrorMessage } from '@/features/meeting/lib/participant-error-message';
 
 export const MY_LOCATION_INPUT_ID = 'my-starting-location';
 
@@ -43,7 +44,7 @@ export function MyLocationPrompt({ askName, onSubmit }: MyLocationPromptProps) {
       await onSubmit({ ...(askName ? { name: name.trim() } : {}), address: address.trim() });
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'We couldn’t save that location. Try another address.'
+        participantErrorMessage(err, 'We couldn’t save that location. Try another address.')
       );
     } finally {
       setIsSaving(false);

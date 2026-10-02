@@ -14,6 +14,7 @@ import { participantClient } from '@/features/meeting/api';
 import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { participantErrorMessage } from '@/features/meeting/lib/participant-error-message';
 
 export function ParticipantSection() {
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
@@ -223,11 +224,12 @@ export function ParticipantSection() {
       setShowAddForm(false);
     } catch (error) {
       console.error('Error saving participant:', error);
-      const errorMsg =
-        error instanceof Error
-          ? error.message
-          : 'Unable to save participant. Please check the address and try again.';
-      setErrorMessage(errorMsg);
+      setErrorMessage(
+        participantErrorMessage(
+          error,
+          'Unable to save participant. Please check the address and try again.'
+        )
+      );
     } finally {
       setIsSubmitting(false);
     }

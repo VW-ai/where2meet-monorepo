@@ -25,6 +25,30 @@ export class APIError extends Error {
 }
 
 /**
+ * Build an APIError from a failed response's JSON body.
+ *
+ * The backend answers `{ error: { code, message, details? } }`. A flat
+ * `{ error: 'CODE', message }` body is accepted too, so a non-standard
+ * response still yields a string code instead of an object.
+ */
+export function apiErrorFromResponse(status: number, body: unknown): APIError {
+  const data = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
+  const nested =
+    data.error && typeof data.error === 'object' ? (data.error as Record<string, unknown>) : {};
+
+  const code = nested.code ?? (typeof data.error === 'string' ? data.error : data.code);
+  const message = nested.message ?? data.message;
+  const details = nested.details ?? data.details;
+
+  return new APIError(
+    status,
+    typeof code === 'string' && code ? code : 'UNKNOWN_ERROR',
+    typeof message === 'string' && message ? message : `Request failed with status ${status}`,
+    details && typeof details === 'object' ? (details as Record<string, unknown>) : undefined
+  );
+}
+
+/**
  * Call backend API directly
  * Used for endpoints that have been migrated to the real backend
  */
@@ -47,12 +71,7 @@ export async function backendCall<T>(endpoint: string, options?: RequestInit): P
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new APIError(
-        response.status,
-        errorData.error || 'UNKNOWN_ERROR',
-        errorData.message || `Request failed with status ${response.status}`,
-        errorData.details
-      );
+      throw apiErrorFromResponse(response.status, errorData);
     }
 
     return response.json();
@@ -88,12 +107,7 @@ export async function apiCall<T>(endpoint: string, options?: RequestInit): Promi
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new APIError(
-        response.status,
-        errorData.error?.code || 'UNKNOWN_ERROR',
-        errorData.error?.message || `Request failed with status ${response.status}`,
-        errorData.error?.details
-      );
+      throw apiErrorFromResponse(response.status, errorData);
     }
 
     return response.json();
