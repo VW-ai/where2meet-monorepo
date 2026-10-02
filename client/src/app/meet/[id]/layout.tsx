@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import type { Event } from '@/entities';
 import { createMeetingPageMetadata } from '@/lib/seo/metadata';
-import { APIError } from '@/lib/api/client';
 import { eventClient } from '@/features/meeting/api';
+import { isMissingEvent } from '@/features/meeting/lib/is-missing-event';
 
 type EventLookup =
   | { status: 'found'; event: Event }
@@ -15,15 +15,15 @@ type EventLookup =
  * Load the event once per request (React `cache` dedupes the call between
  * generateMetadata and the layout render).
  *
- * A 404 from the backend is a definitive "no such event"; any other failure
- * (backend down, 5xx) is reported separately so the page can still render
- * with fallback metadata instead of turning an outage into 404s.
+ * A missing event or a malformed ID is a definitive "no such meeting"; any
+ * other failure (backend down, 5xx) is reported separately so the page can
+ * still render with fallback metadata instead of turning an outage into 404s.
  */
 const lookupEvent = cache(async (id: string): Promise<EventLookup> => {
   try {
     return { status: 'found', event: await eventClient.get(id) };
   } catch (error) {
-    if (error instanceof APIError && error.status === 404) {
+    if (isMissingEvent(error)) {
       return { status: 'not-found' };
     }
     return { status: 'error', error };
