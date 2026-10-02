@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { authClient } from '@/features/auth/api';
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');

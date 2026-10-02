@@ -9,7 +9,7 @@ import { reverseGeocode } from '@/shared/lib/google-maps/geocoding';
 // import { OAuthButton } from '@/features/auth/ui/oauth-button'; // OAuth temporarily disabled
 // import { OAUTH_PROVIDERS } from '@/features/auth/lib/oauth-providers'; // OAuth temporarily disabled
 // import { userClient } from '@/features/user/api'; // OAuth temporarily disabled
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 
 // OAuth temporarily disabled - keeping types for future use
 /*

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Building2, Users, type LucideIcon } from 'lucide-react';
 import { useUIStore, type ActiveView } from '@/features/meeting/model/ui-store';
 import { cn } from '@/shared/lib/cn';
-import catLogo from '@/components/cat/image.png';
+import catLogo from '@/components/cat/logo.svg';
 import { ParticipantIconFlash } from './participant-icon-flash';
 
 // Shared NavButton component
