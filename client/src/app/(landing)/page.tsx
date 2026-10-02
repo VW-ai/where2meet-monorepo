@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Building2, Coffee, Heart, Sun, Users, Utensils, type LucideIcon } from 'lucide-react';
+import { Briefcase, Coffee, Heart, Sun, Users, Utensils, type LucideIcon } from 'lucide-react';
 import catLogo from '@/components/cat/logo.svg';
 import { HeroInput } from '@/features/landing/ui/hero-input';
 import { ActionButtons } from '@/features/landing/ui/action-buttons';
@@ -183,12 +183,12 @@ export default function LandingPage() {
   };
 
   const scenarios: { label: string; icon: LucideIcon }[] = [
-    { label: 'Dinner', icon: Utensils },
-    { label: 'Date', icon: Heart },
-    { label: 'Lunch', icon: Coffee },
-    { label: 'Hangout', icon: Sun },
-    { label: 'Family', icon: Users },
-    { label: 'Offsite', icon: Building2 },
+    { label: 'Date night', icon: Heart },
+    { label: 'Team meeting', icon: Briefcase },
+    { label: 'Group dinner', icon: Utensils },
+    { label: 'Coffee catch-up', icon: Coffee },
+    { label: 'Weekend hangout', icon: Sun },
+    { label: 'Family outing', icon: Users },
   ];
 
   return (
@@ -231,7 +231,7 @@ export default function LandingPage() {
             </h1>
 
             <div
-              className="mb-3 flex flex-wrap justify-center gap-2 lg:mb-6 lg:grid lg:w-full lg:grid-cols-3 lg:gap-2.5"
+              className="mb-3 flex flex-wrap justify-center gap-2 lg:mb-6 lg:grid lg:w-full lg:grid-cols-2 lg:gap-2.5"
               aria-label="Meeting types"
               role="group"
               data-leave="100"
@@ -244,8 +244,10 @@ export default function LandingPage() {
                     type="button"
                     aria-pressed={selected}
                     onClick={() => setTitle(label)}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold shadow-[0_2px_8px_rgba(23,37,45,0.12)] lg:px-3 lg:py-2.5 lg:text-[15px] ${
-                      selected ? 'bg-[#fff0ef] text-[#bc3942]' : 'bg-white text-[#21252b]'
+                    className={`inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold shadow-[0_2px_8px_rgba(23,37,45,0.12)] transition-[background-color,color,box-shadow,translate] duration-150 hover:-translate-y-px hover:shadow-[0_4px_14px_rgba(23,37,45,0.16)] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b73540] active:translate-y-0 motion-reduce:transition-none motion-reduce:hover:translate-y-0 lg:px-3 lg:py-2.5 lg:text-[15px] ${
+                      selected
+                        ? 'bg-[#fff0ef] text-[#bc3942] hover:bg-[#ffe6e4]'
+                        : 'bg-white text-[#21252b] hover:bg-[#fff6f5] hover:text-[#bc3942]'
                     }`}
                   >
                     <Icon size={15} className="lg:h-[18px] lg:w-[18px]" aria-hidden="true" />
