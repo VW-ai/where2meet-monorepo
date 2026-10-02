@@ -12,7 +12,6 @@ export const metadata: Metadata = createMetadata({
     'No account needed. Share a link. Spots are chosen by travel time, then the group votes.',
   canonical: '/faq',
   robots: { index: true, follow: true },
-  keywordsFocus: 'differentiation',
 });
 
 const faqs: FAQItem[] = [
