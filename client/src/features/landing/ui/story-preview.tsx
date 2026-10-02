@@ -17,11 +17,11 @@ const END = 93;
 const STEPS = [0, 20, 36, 52, 68] as const;
 
 const captions = [
-  'Everyone adds where they’re starting',
+  'Everyone adds a location',
   'We find the middle',
   'Nearby spots show up',
   'Travel times are compared',
-  'Coffee is convenient for everyone',
+  'Convenient for everyone',
 ];
 
 const people = [
