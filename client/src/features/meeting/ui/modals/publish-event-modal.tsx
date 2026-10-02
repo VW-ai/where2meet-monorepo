@@ -115,7 +115,8 @@ export function PublishEventModal() {
       if (err instanceof APIError) {
         if (err.code === 'EVENT_ALREADY_PUBLISHED') {
           setError('This event has already been published.');
-        } else if (err.code === 'VENUE_NOT_FOUND') {
+        } else if (err.code === 'VALIDATION_ERROR') {
+          // The backend rejects a venue it can't verify with Google Places as invalid input
           setError('The selected venue could not be verified. Please try another venue.');
         } else {
           setError(err.message);
