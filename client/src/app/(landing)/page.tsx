@@ -227,7 +227,7 @@ export default function LandingPage() {
               data-leave="140"
               className="mb-5 text-center text-2xl font-bold tracking-[-0.6px] lg:mb-6 lg:text-left lg:text-[44px] lg:leading-[1.05]"
             >
-              Meet in the middle
+              Plan where to meet, together
             </h1>
 
             <div

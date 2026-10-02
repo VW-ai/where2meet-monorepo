@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
 import { StructuredData } from '@/components/seo/structured-data';
 import { generateWebApplicationSchema, generateWebSiteSchema } from '@/lib/seo/structured-data';
-import { createMetadata } from '@/lib/seo/metadata';
+import { SITE_CONFIG, createMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = createMetadata({
-  title: 'Fair Meeting Spot Finder: Equal Travel Times',
-  description:
-    'Where2Meet finds fair meeting spots by comparing real travel times for everyone in your group. See routes on a map, vote on venues, no sign-up needed.',
+  title: 'Plan Where to Meet With Your Group',
+  description: SITE_CONFIG.description,
   image: '/og-landing.png',
-  imageAlt: 'Where2Meet – find fair meeting spots with equal travel times for everyone',
+  imageAlt: 'Where2Meet – plan where to meet with your group',
   canonical: '/',
 });
 

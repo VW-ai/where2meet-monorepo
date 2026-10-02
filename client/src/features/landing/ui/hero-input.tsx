@@ -34,7 +34,7 @@ export function HeroInput({
     <div className="space-y-4 text-left">
       <Input
         aria-label="Occasion"
-        placeholder="Dinner, date, lunch..."
+        placeholder="Date night, team meeting..."
         value={title}
         onChange={(e) => onTitleChange(e.target.value)}
         required
@@ -76,7 +76,7 @@ export function HeroInput({
           )}
         />
         <p className={cn('mt-1.5 text-xs', locationError ? 'text-red-500' : 'text-[#666b73]')}>
-          {locationError ?? 'Optional. Your travel time counts toward the fair spot too.'}
+          {locationError ?? 'Optional. Add it so your travel time counts too.'}
         </p>
       </div>
     </div>

@@ -125,7 +125,7 @@ export function PhoneSheetHeading({
         <span className="truncate">{currentEvent?.title || 'Your meeting'}</span>
       </div>
       <div className="phone-sheet-title">
-        <h2>Meet in the middle</h2>
+        <h2>Plan where to meet</h2>
         <span className="phone-wordmark">
           where<span>2</span>meet
         </span>

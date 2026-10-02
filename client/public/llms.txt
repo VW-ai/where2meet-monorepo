@@ -1,10 +1,10 @@
 # Where2Meet
 
-> Where2Meet is a free web app that helps a group pick a fair place to meet. Everyone adds where they are starting from, the group looks for places around the middle of the group, compares each person's real travel time to a place by car, transit, walking or bike, and votes on where to go. No account is needed to create a meeting or join one from a shared link.
+> Where2Meet is a free web app where a group plans where to meet together. Everyone adds where they are starting from, the group looks for places around the group, compares each person's real travel time to a place by car, transit, walking or bike, and votes on a convenient spot. No account is needed to create a meeting or join one from a shared link.
 
 Where2Meet (www.where2meet.org) is not affiliated with When2Meet, the availability-poll scheduling tool. Where2Meet answers "where should we meet?", not "when are we all free?".
 
-Common uses: dinner with friends from different neighborhoods, a date with balanced travel for both people, lunch with coworkers from different offices, weekend hangouts, family get-togethers, and team offsites.
+Common uses: dinner with friends from different neighborhoods, a date with balanced travel for both people, team meetings or lunch with coworkers from different offices, weekend hangouts, family get-togethers, and team offsites.
 
 How it works:
 

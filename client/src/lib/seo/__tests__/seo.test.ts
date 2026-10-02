@@ -19,6 +19,7 @@ import nextConfig from '../../../../next.config.js';
 
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const LLMS_TXT = readFileSync(path.join(__dirname, '../../../../public/llms.txt'), 'utf8');
 
 /** Strip Next.js metadata union types by round-tripping through JSON. */
 function asJson<T>(value: unknown): T {
@@ -188,8 +189,7 @@ describe('next.config redirects and headers', () => {
 });
 
 describe('llms.txt', () => {
-  const llms = readFileSync(path.join(__dirname, '../../../../public/llms.txt'), 'utf8');
-  const links = [...llms.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((match) => match[1]);
+  const links = [...LLMS_TXT.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((match) => match[1]);
 
   it('only links to live pages on the www host', () => {
     const pageUrls = STATIC_PAGES.map((page) =>
@@ -198,6 +198,15 @@ describe('llms.txt', () => {
     expect(links.length).toBeGreaterThan(0);
     for (const link of links) {
       expect([...pageUrls, `${CANONICAL_ORIGIN}/sitemap.xml`]).toContain(link);
+    }
+  });
+});
+
+describe('positioning copy', () => {
+  it('never calls the spot fair or says "meet in the middle"', () => {
+    for (const text of [SITE_CONFIG.defaultTitle, SITE_CONFIG.description, LLMS_TXT]) {
+      expect(text).not.toMatch(/\bfair/i);
+      expect(text).not.toMatch(/meet in the middle/i);
     }
   });
 });

@@ -21,7 +21,7 @@ const captions = [
   'We find the middle',
   'Nearby spots show up',
   'Travel times are compared',
-  'Coffee is fair for everyone',
+  'Coffee is convenient for everyone',
 ];
 
 const people = [
@@ -229,7 +229,7 @@ export function StoryPreview() {
     <div
       className="story flex flex-col overflow-hidden rounded-[28px] bg-white p-3 shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-4 lg:h-full"
       role="img"
-      aria-label="Three friends add where they're starting. Where2Meet finds the middle, shows Coffee, Ramen and Park nearby, and compares everyone's travel time. Coffee wins: 18, 20 and 19 minutes, fair for everyone."
+      aria-label="Three friends add where they're starting. Where2Meet finds the middle, shows Coffee, Ramen and Park nearby, and compares everyone's travel time. Coffee wins: 18, 20 and 19 minutes, convenient for everyone."
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-[#f7f8fa] ring-1 ring-[#e6eaef] lg:aspect-auto lg:min-h-[240px] lg:flex-1">
         <svg

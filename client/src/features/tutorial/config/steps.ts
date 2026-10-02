@@ -39,7 +39,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 'travel-stats',
     title: 'View Travel Times',
     description:
-      'Click this icon to see detailed travel statistics for all participants. This helps you find the fairest meeting spot.',
+      'Click this icon to see detailed travel statistics for all participants. This helps you find the most convenient spot.',
     targetSelector: '[data-tutorial="stats-button"]',
     placement: 'left',
     highlightPadding: 12,
