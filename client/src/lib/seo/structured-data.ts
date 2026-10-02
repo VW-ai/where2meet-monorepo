@@ -59,7 +59,7 @@ export function generateWebSiteSchema(): WithContext<WebSite> {
  * Generate WebApplication schema for the landing page
  *
  * Tells search engines and AI crawlers what the product IS (a free web app
- * for finding fair meeting locations), which the Organization/WebSite
+ * for planning where to meet), which the Organization/WebSite
  * schemas alone do not convey.
  *
  * No `aggregateRating` is included on purpose: we have no verified reviews,

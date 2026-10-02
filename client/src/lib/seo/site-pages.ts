@@ -32,8 +32,8 @@ function assertIsoDate(value: string, label: string): string {
 
 // Update `lastModified` when a page's content changes.
 const pages: StaticPageEntry[] = [
-  { path: '/', lastModified: '2026-10-01', changeFrequency: 'weekly', priority: 1.0 },
-  { path: '/faq', lastModified: '2026-09-29', changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/', lastModified: '2026-10-02', changeFrequency: 'weekly', priority: 1.0 },
+  { path: '/faq', lastModified: '2026-10-02', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/contact', lastModified: '2026-09-29', changeFrequency: 'yearly', priority: 0.5 },
 ];
 

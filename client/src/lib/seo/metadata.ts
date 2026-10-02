@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 /**
  * Core site configuration with differentiated positioning
- * Focus: Fair Meeting Planning + Travel Time Comparison + Visual Analysis
+ * Focus: Planning Where to Meet Together + Travel Time Comparison + Visual Analysis
  *
  * `url` is the canonical origin. Production serves the site from the `www`
  * host (the apex redirects there), so every absolute URL we emit (canonical,
@@ -16,10 +16,10 @@ export const SITE_CONFIG = {
   locale: 'en_US',
   themeColor: '#3b82f6',
 
-  // Differentiated positioning - emphasizes fairness and travel time comparison
-  defaultTitle: 'Where2Meet – Fair Meeting Spot Finder with Equal Travel Times',
+  // Differentiated positioning - emphasizes planning together and travel time comparison
+  defaultTitle: 'Where2Meet – Plan Where to Meet With Your Group',
   description:
-    'Where2Meet finds fair meeting spots by comparing real travel times for everyone in your group. See routes on a map, vote on venues, no sign-up needed.',
+    'Plan where to meet with your group. Everyone adds where they are coming from, you compare travel times on a map, then vote on a convenient spot. No sign-up.',
 } as const;
 
 /**
@@ -104,7 +104,7 @@ export function buildPageTitle(title?: string): string {
  * Create metadata for a page with SEO best practices
  *
  * Features:
- * - Differentiated positioning (fair travel time comparison)
+ * - Differentiated positioning (planning together with travel time comparison)
  * - Absolute URLs for OG/Twitter images
  * - Flexible canonical URL handling
  * - Proper robots configuration
@@ -122,7 +122,7 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     description = SITE_CONFIG.description,
     canonical,
     image = '/og-image.png',
-    imageAlt = 'Where2Meet – fair meeting spot finder with equal travel times',
+    imageAlt = 'Where2Meet – plan where to meet with your group',
     ogType = 'website',
     robots,
     article,

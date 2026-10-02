@@ -27,7 +27,7 @@ export const metadata: Metadata = {
         url: new URL('/og-image.png', SITE_CONFIG.url).toString(),
         width: 1200,
         height: 630,
-        alt: 'Where2Meet – fair meeting spot finder with equal travel times',
+        alt: 'Where2Meet – plan where to meet with your group',
       },
     ],
   },

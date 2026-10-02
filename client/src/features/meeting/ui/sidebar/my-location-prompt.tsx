@@ -67,9 +67,7 @@ export function MyLocationPrompt({ askName, onSubmit }: MyLocationPromptProps) {
           >
             Where are you coming from?
           </label>
-          <p className="text-xs text-muted-foreground">
-            Your travel time counts toward the fair spot too.
-          </p>
+          <p className="text-xs text-muted-foreground">Add it so your travel time counts too.</p>
         </div>
       </div>
 

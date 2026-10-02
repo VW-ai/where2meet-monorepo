@@ -9,25 +9,57 @@ import catLogo from '@/components/cat/logo.svg';
 export const metadata: Metadata = createMetadata({
   title: 'FAQ',
   description:
-    'No account needed. Share a link. Spots are chosen by travel time, then the group votes.',
+    'Answers about planning where to meet with Where2Meet: accounts, sharing a link, hiding your exact address, travel modes, voting and cost.',
   canonical: '/faq',
   robots: { index: true, follow: true },
 });
 
 const faqs: FAQItem[] = [
   {
+    question: 'How do I plan where to meet with a group?',
+    answer:
+      "Create a meeting with a title and a time, then share the link. Everyone adds where they're coming from. Search for places around the group, compare everyone's travel time on the map, and vote for the places you'd go to. The organizer then picks the final spot.",
+  },
+  {
     question: 'Do I need an account?',
     answer:
-      'No. Name the meeting, pick a time, and share the link. An account only saves your events in one place.',
+      'No. Name the meeting, pick a time, and share the link. An account only saves your meetings in one place.',
   },
   {
     question: 'Does everyone else need one?',
-    answer: 'No. People open the link, add where they are, and vote.',
+    answer: "No. People open the link, add where they're coming from, and vote.",
   },
   {
     question: 'How is the spot chosen?',
     answer:
-      'By travel time, not straight-line distance. Routes are compared so nobody gets a much longer trip, then the group votes.',
+      "By travel time, not straight-line distance. Select a place to see each person's route and trip time. Everyone votes for the places that work for them, then the organizer picks the final spot.",
+  },
+  {
+    question: 'Which ways of getting there can we compare?',
+    answer:
+      "Car, transit, walking and bike. Switch between them to see how each person's trip changes.",
+  },
+  {
+    question: 'Do I have to share my exact address?',
+    answer:
+      'No. Turn on "Hide exact address" and others see only an approximate area, about half a mile to a mile around you.',
+  },
+  {
+    question: 'What kinds of places can we search for?',
+    answer: 'Cafes, restaurants, bars or anything else nearby, or a specific place by name.',
+  },
+  {
+    question: 'Is Where2Meet free?',
+    answer: 'Yes. Creating a meeting and joining one are free.',
+  },
+  {
+    question: 'Does it work on my phone?',
+    answer: "Yes. It runs in your phone's browser, so there's nothing to install.",
+  },
+  {
+    question: 'Is Where2Meet the same as When2meet?',
+    answer:
+      "No, and the two aren't affiliated. When2meet helps a group find a time. Where2Meet helps a group pick the place.",
   },
 ];
 
