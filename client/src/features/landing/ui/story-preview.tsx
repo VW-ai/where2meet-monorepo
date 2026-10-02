@@ -1,45 +1,43 @@
 import type { ReactNode } from 'react';
-import { Check, Search } from 'lucide-react';
+import { Check } from 'lucide-react';
+
+/**
+ * Looping "how it works" scene for the landing page.
+ *
+ * Everything animates with opacity/transform/stroke-dashoffset only, so the card
+ * never changes size mid-loop. Base styles are the final frame (the group picks
+ * Coffee); keyframes start from hidden. With reduced motion the animations are
+ * dropped and that final frame is what shows.
+ */
+
+const LOOP_S = 15;
+/** Loop % where everything fades out before restarting. */
+const END = 93;
+/** Loop % where each caption step begins. */
+const STEPS = [0, 20, 36, 52, 68] as const;
+
+const captions = [
+  'Everyone adds where they’re starting',
+  'We find the middle',
+  'Nearby spots show up',
+  'Travel times are compared',
+  'Coffee is fair for everyone',
+];
 
 const people = [
-  {
-    id: 'a',
-    color: '#FF6B6B',
-    time: '18m',
-    cx: 72,
-    cy: 58,
-    labelX: 72,
-    labelY: 36,
-    route: 'M 86 66 C 118 74, 148 84, 168 94',
-  },
-  {
-    id: 'b',
-    color: '#4D96FF',
-    time: '20m',
-    cx: 288,
-    cy: 58,
-    labelX: 288,
-    labelY: 36,
-    route: 'M 274 66 C 242 74, 212 84, 192 94',
-  },
-  {
-    id: 'c',
-    color: '#6BCB77',
-    time: '19m',
-    cx: 180,
-    cy: 148,
-    labelX: 214,
-    labelY: 156,
-    route: 'M 180 134 C 180 126, 180 116, 180 108',
-  },
-];
+  { id: 'a', color: '#FF6B6B', ink: '#d9474a', cx: 48, cy: 44, time: '18 min', chip: [48, 17] },
+  { id: 'b', color: '#4D96FF', ink: '#2f6fd6', cx: 352, cy: 44, time: '20 min', chip: [352, 17] },
+  { id: 'c', color: '#6BCB77', ink: '#3a9447', cx: 200, cy: 214, time: '19 min', chip: [242, 214] },
+] as const;
+
+// Street routes from each person to Coffee at the middle (200, 120).
+const routes = ['M48 44 H124 V120 H200', 'M352 44 H276 V120 H200', 'M200 214 V120'];
 
 const spots: {
   name: string;
   color: string;
   iconColor: string;
-  times: string[];
-  fair: boolean;
+  times: [string, string, string];
   cx: number;
   cy: number;
   mark: () => ReactNode;
@@ -49,9 +47,8 @@ const spots: {
     color: '#FFD93D',
     iconColor: '#3f3420',
     times: ['18m', '20m', '19m'],
-    fair: true,
-    cx: 136,
-    cy: 62,
+    cx: 200,
+    cy: 120,
     mark: () => (
       <>
         <path d="M10 2v2" />
@@ -65,10 +62,9 @@ const spots: {
     name: 'Ramen',
     color: '#FB923C',
     iconColor: '#ffffff',
-    times: ['12m', '35m', '28m'],
-    fair: false,
-    cx: 228,
-    cy: 96,
+    times: ['14m', '27m', '22m'],
+    cx: 146,
+    cy: 76,
     mark: () => (
       <>
         <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
@@ -81,10 +77,9 @@ const spots: {
     name: 'Park',
     color: '#B695C0',
     iconColor: '#ffffff',
-    times: ['8m', '31m', '26m'],
-    fair: false,
-    cx: 148,
-    cy: 118,
+    times: ['25m', '12m', '24m'],
+    cx: 238,
+    cy: 158,
     mark: () => (
       <>
         <path d="M12 2.5 17.2 10h-2.4L19.5 17H4.5l4.7-7H6.8Z" fill="currentColor" stroke="none" />
@@ -94,41 +89,222 @@ const spots: {
   },
 ];
 
+const FADE = 4;
+const PICK = STEPS[4] + 1;
+
+const POP_HIDDEN = 'opacity: 0; transform: scale(0.5);';
+const POP_SHOWN = 'opacity: 1; transform: scale(1);';
+const RISE_HIDDEN = 'opacity: 0; transform: translateY(4px);';
+const RISE_SHOWN = 'opacity: 1; transform: translateY(0);';
+
+/** `.cls` runs keyframes of the same name for the whole loop. */
+function anim(cls: string, frames: string, timing = 'ease') {
+  return `.${cls} { animation: ${cls} ${LOOP_S}s ${timing} infinite; }
+  @keyframes ${cls} { ${frames} }`;
+}
+/** Hidden → shown from `start`% until `end`%, then hidden again. */
+function show(start: number, end: number, hidden: string, shown: string) {
+  return `0%, ${start}% { ${hidden} }
+    ${start + FADE}%, ${end}% { ${shown} }
+    ${Math.min(end + FADE, 100)}%, 100% { ${hidden} }`;
+}
+/** Like `show`, but settles into `after` once Coffee is picked. */
+function showThenPick(start: number, hidden: string, shown: string, after: string) {
+  return `0%, ${start}% { ${hidden} }
+    ${start + FADE}%, ${PICK}% { ${shown} }
+    ${PICK + FADE}%, ${END}% { ${after} }
+    ${END + FADE}%, 100% { ${hidden} }`;
+}
+
+const css = [
+  // Base styles are the final frame.
+  `.story .s-pop { transform-box: fill-box; transform-origin: center; }
+  .s-pulse, .s-pick-ring { opacity: 0; }
+  .s-radius { fill: rgba(200, 63, 73, 0.07); stroke: rgba(200, 63, 73, 0.4); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .s-pulse, .s-pick-ring { fill: none; stroke: #c83f49; stroke-width: 2; }
+  .s-casing, .s-line { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .s-casing { stroke: #fff; stroke-width: 9; }
+  .s-line { stroke-width: 4.5; }
+  .s-venue-1 { transform: scale(1.18); }
+  .s-venue-2, .s-venue-3 { opacity: 0.4; }
+  .s-skeleton { opacity: 0; }
+  .s-row-2, .s-row-3 { opacity: 0.45; }
+  .s-fair { background: #fff0ef; box-shadow: inset 0 0 0 1.5px rgba(200, 63, 73, 0.35); }
+  .s-cap { opacity: 0; }
+  .s-cap-5 { opacity: 1; }
+  .s-seg { transform-origin: left; }`,
+
+  ...people.flatMap((_, i) => [
+    anim(`s-person-${i + 1}`, show(3 + i * 3, END, POP_HIDDEN, POP_SHOWN)),
+    anim(`s-chip-${i + 1}`, show(61 + i, END, RISE_HIDDEN, RISE_SHOWN)),
+    anim(
+      `s-route-${i + 1}`,
+      `0%, ${53 + i * 2}% { stroke-dashoffset: 1; opacity: 0; }
+    ${54 + i * 2}% { opacity: 1; }
+    ${60 + i * 2}%, ${END}% { stroke-dashoffset: 0; opacity: 1; }
+    ${END + FADE}%, 100% { stroke-dashoffset: 0; opacity: 0; }`
+    ),
+  ]),
+
+  anim('s-radius', show(21, END, 'opacity: 0; transform: scale(0.3);', POP_SHOWN)),
+  anim('s-middle', show(22, END, POP_HIDDEN, POP_SHOWN)),
+  anim(
+    's-pulse',
+    `0%, 24% { opacity: 0; transform: scale(0.4); }
+    26% { opacity: 0.7; }
+    34%, 100% { opacity: 0; transform: scale(1.5); }`
+  ),
+
+  anim('s-venue-1', showThenPick(37, POP_HIDDEN, POP_SHOWN, 'opacity: 1; transform: scale(1.18);')),
+  anim('s-venue-2', showThenPick(40, POP_HIDDEN, POP_SHOWN, 'opacity: 0.4; transform: scale(1);')),
+  anim('s-venue-3', showThenPick(43, POP_HIDDEN, POP_SHOWN, 'opacity: 0.4; transform: scale(1);')),
+  anim(
+    's-pick-ring',
+    `0%, ${PICK}% { opacity: 0; transform: scale(0.7); }
+    ${PICK + 2}% { opacity: 0.8; }
+    ${PICK + 12}%, 100% { opacity: 0; transform: scale(2); }`
+  ),
+  anim('s-flag', show(PICK + 2, END, RISE_HIDDEN, RISE_SHOWN)),
+
+  ...spots.flatMap((_, i) => [
+    anim(
+      `s-skeleton-${i + 1}`,
+      `0%, ${38 + i * 3}% { opacity: 1; }
+    ${42 + i * 3}%, ${END}% { opacity: 0; }
+    ${END + FADE}%, 100% { opacity: 1; }`
+    ),
+    anim(
+      `s-row-${i + 1}`,
+      i === 0
+        ? show(38, END, RISE_HIDDEN, RISE_SHOWN)
+        : showThenPick(
+            38 + i * 3,
+            RISE_HIDDEN,
+            RISE_SHOWN,
+            'opacity: 0.45; transform: translateY(0);'
+          )
+    ),
+  ]),
+  anim(
+    's-fair',
+    show(
+      PICK,
+      END,
+      'background: transparent; box-shadow: inset 0 0 0 1.5px transparent;',
+      'background: #fff0ef; box-shadow: inset 0 0 0 1.5px rgba(200, 63, 73, 0.35);'
+    )
+  ),
+  anim('s-badge', show(PICK + 1, END, POP_HIDDEN, POP_SHOWN)),
+
+  ...captions.flatMap((_, i) => {
+    const start = STEPS[i];
+    const end = i < STEPS.length - 1 ? STEPS[i + 1] : END;
+    return [
+      anim(
+        `s-cap-${i + 1}`,
+        i === 0
+          ? // Already showing when the loop starts; fades back in as the last step fades out.
+            `0%, ${end}% { ${RISE_SHOWN} }
+    ${end + FADE}%, ${END}% { ${RISE_HIDDEN} }
+    100% { ${RISE_SHOWN} }`
+          : show(start, end, RISE_HIDDEN, RISE_SHOWN)
+      ),
+      anim(
+        `s-seg-${i + 1}`,
+        `0%, ${start}% { transform: scaleX(0); }
+    ${end}%, ${END}% { transform: scaleX(1); }
+    ${END + FADE}%, 100% { transform: scaleX(0); }`,
+        'linear'
+      ),
+    ];
+  }),
+
+  `@media (prefers-reduced-motion: reduce) {
+    .story * { animation: none !important; }
+  }`,
+].join('\n');
+
 export function StoryPreview() {
   return (
     <div
-      className="story overflow-hidden rounded-[28px] bg-white px-3 py-3 shadow-[0_2px_8px_rgba(23,37,45,0.12)] lg:flex lg:h-full lg:flex-col lg:justify-center lg:px-8 lg:py-8"
+      className="story flex flex-col overflow-hidden rounded-[28px] bg-white p-3 shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-4 lg:h-full"
       role="img"
-      aria-label="Three people meet in about 20 minutes. Coffee, Ramen, and Park appear. The group picks Coffee, which is fair for everyone."
+      aria-label="Three friends add where they're starting. Where2Meet finds the middle, shows Coffee, Ramen and Park nearby, and compares everyone's travel time. Coffee wins: 18, 20 and 19 minutes, fair for everyone."
     >
-      <div className="relative">
-        <svg viewBox="0 0 360 176" className="mx-auto h-auto w-full" aria-hidden="true">
-          <circle className="story-radius" cx="180" cy="90" r="54" />
+      <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-[#f7f8fa] ring-1 ring-[#e6eaef] lg:aspect-auto lg:min-h-[240px] lg:flex-1">
+        <svg
+          viewBox="20 0 360 240"
+          preserveAspectRatio="xMidYMid meet"
+          className="absolute inset-0 h-full w-full"
+          aria-hidden="true"
+        >
+          <defs>
+            <pattern
+              id="story-blocks"
+              width="76"
+              height="76"
+              x="48"
+              y="44"
+              patternUnits="userSpaceOnUse"
+            >
+              <rect x="6" y="6" width="64" height="64" rx="8" fill="#e9edf2" />
+              <path d="M38 6v64" stroke="#f7f8fa" strokeWidth="3" />
+            </pattern>
+            <filter id="story-shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow
+                dx="0"
+                dy="1.5"
+                stdDeviation="1.5"
+                floodColor="#17252d"
+                floodOpacity="0.22"
+              />
+            </filter>
+          </defs>
 
-          {people.map((person, index) => (
-            <path
-              key={person.id}
-              d={person.route}
-              className={`story-route story-route-${index + 1}`}
-              stroke={person.color}
-              pathLength={1}
-            />
+          {/* Map: blocks extend past the viewBox so taller/wider cards still read as a map. */}
+          <rect x="-400" y="-300" width="1200" height="840" fill="url(#story-blocks)" />
+          <rect x="206" y="126" width="64" height="64" rx="8" fill="#d6ecd4" />
+          <circle cx="222" cy="176" r="5" fill="#c2e2bf" />
+          <circle cx="258" cy="136" r="4" fill="#c2e2bf" />
+          <rect x="282" y="-26" width="64" height="64" rx="8" fill="#d6ecd4" />
+          <ellipse cx="34" cy="244" rx="78" ry="46" fill="#d7e7f8" />
+          <ellipse cx="392" cy="232" rx="60" ry="30" fill="#d7e7f8" />
+
+          <circle className="s-radius s-pop" cx="200" cy="120" r="74" />
+          <circle className="s-pulse s-pop" cx="200" cy="120" r="74" />
+
+          {routes.map((d, i) => (
+            <g key={d}>
+              <path d={d} className={`s-casing s-route-${i + 1}`} pathLength={1} />
+              <path
+                d={d}
+                className={`s-line s-route-${i + 1}`}
+                stroke={people[i].color}
+                pathLength={1}
+              />
+            </g>
           ))}
 
-          <g className="story-pin">
-            <path
-              d="M180 102 C180 102 169 88 169 82 a11 11 0 1 1 22 0 C191 88 180 102 180 102Z"
-              fill="#c83f49"
-            />
-            <circle cx="180" cy="82" r="4" fill="white" />
-          </g>
+          <circle
+            className="s-middle s-pop"
+            cx="200"
+            cy="120"
+            r="5"
+            fill="#c83f49"
+            stroke="#fff"
+            strokeWidth="2.5"
+          />
 
-          {spots.map((spot, index) => (
-            <g key={spot.name} className={`story-venue story-venue-${index + 1}`}>
-              {spot.fair && (
-                <circle className="story-venue-ring" cx={spot.cx} cy={spot.cy} r="16" />
-              )}
-              <circle cx={spot.cx} cy={spot.cy} r="12" fill={spot.color} />
+          {spots.map((spot, i) => (
+            <g key={spot.name} className={`s-venue-${i + 1} s-pop`} filter="url(#story-shadow)">
+              <circle
+                cx={spot.cx}
+                cy={spot.cy}
+                r="13"
+                fill={spot.color}
+                stroke="#fff"
+                strokeWidth="2.5"
+              />
               <g
                 transform={`translate(${spot.cx - 7.2} ${spot.cy - 7.2}) scale(0.6)`}
                 fill="none"
@@ -142,291 +318,140 @@ export function StoryPreview() {
               </g>
             </g>
           ))}
+          <circle className="s-pick-ring s-pop" cx="200" cy="120" r="16" />
 
-          {people.map((person, index) => (
-            <g key={person.id} className={`story-person story-person-${index + 1}`}>
-              <circle cx={person.cx} cy={person.cy} r="13" fill={person.color} />
-              <g
-                transform={`translate(${person.cx - 7.2} ${person.cy - 7.8}) scale(0.6)`}
-                fill="none"
-                stroke="white"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="8" r="5" />
-                <path d="M20 21a8 8 0 0 0-16 0" />
-              </g>
-            </g>
-          ))}
-
-          {people.map((person, index) => (
-            <text
-              key={`${person.id}-time`}
-              x={person.labelX}
-              y={person.labelY}
-              textAnchor="middle"
-              className={`story-time story-time-${index + 1}`}
-            >
-              {person.time}
+          <g className="s-flag" filter="url(#story-shadow)">
+            <rect x="164" y="76" width="72" height="22" rx="11" fill="#fff" />
+            <text x="200" y="91" textAnchor="middle" fontSize="11" fontWeight="700" fill="#c83f49">
+              Meet here
             </text>
-          ))}
-        </svg>
+          </g>
 
-        <div className="story-search">
-          <Search size={14} aria-hidden="true" />
-          <span>Places</span>
-        </div>
-      </div>
-
-      <div className="story-list">
-        {spots.map((spot, index) => (
-          <div
-            key={spot.name}
-            className={`story-row story-row-${index + 1} flex items-center justify-between gap-3 overflow-hidden rounded-2xl px-3 ${
-              spot.fair ? 'story-fair' : ''
-            }`}
-          >
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-                style={{ backgroundColor: spot.color }}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="12"
-                  height="12"
-                  aria-hidden="true"
+          {people.map((person, i) => (
+            <g key={person.id}>
+              <g className={`s-person-${i + 1} s-pop`} filter="url(#story-shadow)">
+                <circle
+                  cx={person.cx}
+                  cy={person.cy}
+                  r="13"
+                  fill={person.color}
+                  stroke="#fff"
+                  strokeWidth="3"
+                />
+                <g
+                  transform={`translate(${person.cx - 7.2} ${person.cy - 7.8}) scale(0.6)`}
                   fill="none"
-                  stroke={spot.iconColor}
-                  color={spot.iconColor}
-                  strokeWidth="2.4"
+                  stroke="white"
+                  strokeWidth="2.6"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  {spot.mark()}
-                </svg>
-              </span>
-              <span className="truncate text-sm font-semibold">{spot.name}</span>
+                  <circle cx="12" cy="8" r="5" />
+                  <path d="M20 21a8 8 0 0 0-16 0" />
+                </g>
+              </g>
+              <g className={`s-chip-${i + 1}`} filter="url(#story-shadow)">
+                <rect
+                  x={person.chip[0] - 24}
+                  y={person.chip[1] - 10}
+                  width="48"
+                  height="20"
+                  rx="10"
+                  fill="#fff"
+                />
+                <text
+                  x={person.chip[0]}
+                  y={person.chip[1] + 4}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontWeight="700"
+                  fill={person.ink}
+                >
+                  {person.time}
+                </text>
+              </g>
+            </g>
+          ))}
+        </svg>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3 px-1" aria-hidden="true">
+        <div className="flex shrink-0 gap-1">
+          {captions.map((caption, i) => (
+            <span key={caption} className="h-1 w-4 overflow-hidden rounded-full bg-[#e6eaef]">
+              <span className={`s-seg s-seg-${i + 1} block h-full rounded-full bg-[#c83f49]`} />
+            </span>
+          ))}
+        </div>
+        <div className="grid min-w-0 flex-1">
+          {captions.map((caption, i) => (
+            <span
+              key={caption}
+              className={`s-cap s-cap-${i + 1} col-start-1 row-start-1 truncate text-sm font-semibold text-[#21252b]`}
+            >
+              {caption}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-2 space-y-1" aria-hidden="true">
+        {spots.map((spot, i) => (
+          <div
+            key={spot.name}
+            className={`relative h-10 rounded-2xl px-3 lg:h-11 ${i === 0 ? 's-fair' : ''}`}
+          >
+            <div
+              className={`s-skeleton s-skeleton-${i + 1} absolute inset-x-3 inset-y-0 flex items-center gap-2`}
+            >
+              <span className="h-5 w-5 rounded-full bg-[#eef1f4]" />
+              <span className="h-2.5 w-16 rounded-full bg-[#eef1f4]" />
+              <span className="ml-auto h-2.5 w-20 rounded-full bg-[#eef1f4]" />
             </div>
-            <div className="flex shrink-0 items-center gap-2 text-xs font-semibold tabular-nums">
-              {spot.times.map((time, timeIndex) => (
-                <span key={time} style={{ color: people[timeIndex].color }}>
-                  {time}
+            <div
+              className={`s-row-${i + 1} absolute inset-x-3 inset-y-0 flex items-center justify-between gap-3`}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: spot.color }}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="12"
+                    height="12"
+                    fill="none"
+                    stroke={spot.iconColor}
+                    color={spot.iconColor}
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    {spot.mark()}
+                  </svg>
                 </span>
-              ))}
-              <Check
-                size={15}
-                aria-hidden="true"
-                className={spot.fair ? 'story-check text-[#c83f49]' : 'invisible'}
-              />
+                <span className="truncate text-sm font-semibold">{spot.name}</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2 text-xs font-semibold tabular-nums">
+                {spot.times.map((time, t) => (
+                  <span key={people[t].id} style={{ color: people[t].ink }}>
+                    {time}
+                  </span>
+                ))}
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                    i === 0 ? 's-badge bg-[#c83f49] text-white' : 'invisible'
+                  }`}
+                >
+                  <Check size={12} strokeWidth={3} />
+                </span>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <style>{`
-        .story-route {
-          fill: none;
-          stroke-width: 2.5;
-          stroke-linecap: round;
-          stroke-dasharray: 1;
-          stroke-dashoffset: 1;
-        }
-        .story-person, .story-venue, .story-radius, .story-pin {
-          transform-box: fill-box;
-          transform-origin: center;
-          opacity: 0;
-        }
-        .story-pin { transform-origin: center bottom; }
-        .story-radius {
-          fill: rgba(200, 63, 73, 0.06);
-          stroke: rgba(200, 63, 73, 0.28);
-          stroke-width: 1.5;
-        }
-        .story-venue-ring {
-          fill: none;
-          stroke: #c83f49;
-          stroke-width: 1.5;
-          opacity: 0;
-        }
-        .story-time {
-          font-size: 13px;
-          font-weight: 650;
-          fill: #666b73;
-          opacity: 0;
-        }
-        .story-search {
-          position: absolute;
-          top: 8px;
-          left: 0;
-          right: 0;
-          margin-inline: auto;
-          display: flex;
-          width: fit-content;
-          align-items: center;
-          gap: 6px;
-          min-height: 32px;
-          padding: 0 12px;
-          border-radius: 999px;
-          background: #f6f7f8;
-          color: #21252b;
-          font-size: 13px;
-          font-weight: 650;
-          box-shadow: 0 2px 8px rgba(23, 37, 45, 0.12);
-          opacity: 0;
-        }
-        .story-row { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
-        .story-check { opacity: 0; }
-        .story-person-1 { animation: story-person-a 14s ease infinite; }
-        .story-person-2 { animation: story-person-b 14s ease infinite; }
-        .story-person-3 { animation: story-person-c 14s ease infinite; }
-        .story-pin { animation: story-pin 14s ease infinite; }
-        .story-route-1 { animation: story-draw-a 14s ease infinite; }
-        .story-route-2 { animation: story-draw-b 14s ease infinite; }
-        .story-route-3 { animation: story-draw-c 14s ease infinite; }
-        .story-time { animation: story-time 14s ease infinite; }
-        .story-radius { animation: story-radius 14s ease infinite; }
-        .story-search { animation: story-search 14s ease infinite; }
-        .story-venue-1 { animation: story-venue-a 14s ease infinite; }
-        .story-venue-2 { animation: story-venue-b 14s ease infinite; }
-        .story-venue-3 { animation: story-venue-c 14s ease infinite; }
-        .story-venue-ring { animation: story-ring 14s ease infinite; }
-        .story-row-1 { animation: story-row-a 14s ease infinite; }
-        .story-row-2 { animation: story-row-b 14s ease infinite; }
-        .story-row-3 { animation: story-row-c 14s ease infinite; }
-        .story-fair { animation: story-fair 14s ease infinite; }
-        .story-check { animation: story-check 14s ease infinite; }
-        @keyframes story-person-a {
-          0%, 2% { opacity: 0; transform: scale(0.4); }
-          7%, 90% { opacity: 1; transform: scale(1); }
-          97%, 100% { opacity: 0; transform: scale(0.7); }
-        }
-        @keyframes story-person-b {
-          0%, 4% { opacity: 0; transform: scale(0.4); }
-          9%, 90% { opacity: 1; transform: scale(1); }
-          97%, 100% { opacity: 0; transform: scale(0.7); }
-        }
-        @keyframes story-person-c {
-          0%, 6% { opacity: 0; transform: scale(0.4); }
-          11%, 90% { opacity: 1; transform: scale(1); }
-          97%, 100% { opacity: 0; transform: scale(0.7); }
-        }
-        @keyframes story-pin {
-          0%, 5% { opacity: 0; transform: translateY(-8px); }
-          11%, 90% { opacity: 1; transform: translateY(0); }
-          97%, 100% { opacity: 0; }
-        }
-        @keyframes story-draw-a {
-          0%, 8% { stroke-dashoffset: 1; opacity: 0; }
-          12% { opacity: 1; }
-          20%, 90% { stroke-dashoffset: 0; opacity: 1; }
-          97%, 100% { stroke-dashoffset: 0; opacity: 0; }
-        }
-        @keyframes story-draw-b {
-          0%, 10% { stroke-dashoffset: 1; opacity: 0; }
-          14% { opacity: 1; }
-          22%, 90% { stroke-dashoffset: 0; opacity: 1; }
-          97%, 100% { stroke-dashoffset: 0; opacity: 0; }
-        }
-        @keyframes story-draw-c {
-          0%, 12% { stroke-dashoffset: 1; opacity: 0; }
-          16% { opacity: 1; }
-          24%, 90% { stroke-dashoffset: 0; opacity: 1; }
-          97%, 100% { stroke-dashoffset: 0; opacity: 0; }
-        }
-        @keyframes story-time {
-          0%, 22% { opacity: 0; }
-          28%, 90% { opacity: 1; }
-          97%, 100% { opacity: 0; }
-        }
-        @keyframes story-radius {
-          0%, 40% { opacity: 0; transform: scale(0.35); }
-          48%, 90% { opacity: 1; transform: scale(1); }
-          97%, 100% { opacity: 0; }
-        }
-        @keyframes story-search {
-          0%, 40% { opacity: 0; transform: translateY(4px); }
-          48%, 90% { opacity: 1; transform: translateY(0); }
-          97%, 100% { opacity: 0; }
-        }
-        @keyframes story-venue-a {
-          0%, 44% { opacity: 0; transform: scale(0.4); }
-          50%, 66% { opacity: 1; transform: scale(1); }
-          74%, 90% { opacity: 1; transform: scale(1.35); }
-          97%, 100% { opacity: 0; transform: scale(0.6); }
-        }
-        @keyframes story-venue-b {
-          0%, 48% { opacity: 0; transform: scale(0.4); }
-          56%, 90% { opacity: 1; transform: scale(1); }
-          97%, 100% { opacity: 0; }
-        }
-        @keyframes story-venue-c {
-          0%, 52% { opacity: 0; transform: scale(0.4); }
-          60%, 90% { opacity: 1; transform: scale(1); }
-          97%, 100% { opacity: 0; }
-        }
-        @keyframes story-ring {
-          0%, 68% { opacity: 0; }
-          76%, 90% { opacity: 1; }
-          97%, 100% { opacity: 0; }
-        }
-        @keyframes story-row-a {
-          0%, 46% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-          54%, 90% { opacity: 1; max-height: 44px; padding-top: 8px; padding-bottom: 8px; }
-          97%, 100% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-        }
-        @keyframes story-row-b {
-          0%, 50% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-          58%, 90% { opacity: 1; max-height: 44px; padding-top: 8px; padding-bottom: 8px; }
-          97%, 100% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-        }
-        @keyframes story-row-c {
-          0%, 54% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-          62%, 90% { opacity: 1; max-height: 44px; padding-top: 8px; padding-bottom: 8px; }
-          97%, 100% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-        }
-        @keyframes story-fair {
-          0%, 46% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; background: transparent; box-shadow: none; }
-          54%, 66% { opacity: 1; max-height: 44px; padding-top: 8px; padding-bottom: 8px; background: transparent; box-shadow: none; }
-          76%, 90% { opacity: 1; max-height: 44px; padding-top: 8px; padding-bottom: 8px; background: #fff0ef; box-shadow: inset 0 0 0 1.5px rgba(200, 63, 73, 0.35); }
-          97%, 100% { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; background: transparent; box-shadow: none; }
-        }
-        @keyframes story-check {
-          0%, 68% { opacity: 0; transform: scale(0.6); }
-          78%, 90% { opacity: 1; transform: scale(1); }
-          97%, 100% { opacity: 0; }
-        }
-        @media (min-width: 1024px) {
-          .story-search {
-            top: 20px;
-            min-height: 40px;
-            padding: 0 16px;
-            font-size: 15px;
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .story-person, .story-route, .story-time, .story-pin, .story-radius, .story-venue, .story-search {
-            animation: none;
-            opacity: 1;
-            transform: none;
-          }
-          .story-route { stroke-dashoffset: 0; }
-          .story-row, .story-check, .story-venue-ring {
-            animation: none;
-            opacity: 1;
-            transform: none;
-            max-height: 44px;
-            padding-top: 8px;
-            padding-bottom: 8px;
-          }
-          .story-search { position: static; margin: 4px auto 8px; }
-          .story-fair {
-            background: #fff0ef;
-            box-shadow: inset 0 0 0 1.5px rgba(200, 63, 73, 0.35);
-          }
-        }
-      `}</style>
+      <style>{css}</style>
     </div>
   );
 }

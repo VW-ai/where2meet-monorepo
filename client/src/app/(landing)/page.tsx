@@ -9,6 +9,7 @@ import catLogo from '@/components/cat/image.png';
 import { HeroInput } from '@/features/landing/ui/hero-input';
 import { ActionButtons } from '@/features/landing/ui/action-buttons';
 import { StoryPreview } from '@/features/landing/ui/story-preview';
+import { LandingBackdrop } from '@/features/landing/ui/landing-backdrop';
 import { eventClient, participantClient } from '@/features/meeting/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { SignInButton } from '@/features/auth/ui/sign-in-button';
@@ -167,7 +168,8 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#eef1f4] text-[#21252b]">
+    <div className="flex min-h-screen flex-col text-[#21252b]">
+      <LandingBackdrop />
       <header className="mx-auto flex w-full max-w-xl items-center justify-between px-4 pt-4 sm:pt-5 lg:max-w-5xl lg:px-8 lg:pt-6">
         <div className="rounded-full bg-white p-1.5 shadow-[0_3px_16px_rgba(23,37,45,0.15)]">
           <Image
