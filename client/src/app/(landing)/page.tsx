@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -15,6 +15,7 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { SignInButton } from '@/features/auth/ui/sign-in-button';
 import { UserMenu } from '@/features/auth/ui/user-menu';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { usePortalStore } from '@/features/portal/model/portal-store';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -27,6 +28,9 @@ export default function LandingPage() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const logoRef = useRef<HTMLImageElement>(null);
+  // While the create-meeting transition runs, the page steps aside for the cat.
+  const leaving = usePortalStore((state) => state.status === 'running');
 
   // Signed-in users start with their profile name and default address
   useEffect(() => {
@@ -46,7 +50,12 @@ export default function LandingPage() {
 
   // The server creates the organizer as a placeholder participant; fill in who they
   // are and where they start so they land on the map ready to invite people.
-  const saveOrganizerDetails = async (eventId: string, participantId: string, token: string) => {
+  // Resolves to whether their starting point was saved.
+  const saveOrganizerDetails = async (
+    eventId: string,
+    participantId: string,
+    token: string
+  ): Promise<boolean> => {
     const name = organizerName.trim();
     try {
       await participantClient.update(
@@ -56,6 +65,7 @@ export default function LandingPage() {
         token
       );
       if (placeId) analyticsEvents.addLocation(eventId, address.trim());
+      return !!placeId;
     } catch (error) {
       console.error('[LandingPage] Could not save organizer details:', error);
       // The address may not geocode; keep the name at least. The meeting page
@@ -63,6 +73,7 @@ export default function LandingPage() {
       if (placeId) {
         await participantClient.update(eventId, participantId, { name }, token).catch(() => {});
       }
+      return false;
     }
   };
 
@@ -78,6 +89,13 @@ export default function LandingPage() {
 
     setIsLoading(true);
     setCreateError(null);
+    const logo = logoRef.current?.getBoundingClientRect();
+    usePortalStore
+      .getState()
+      .start(
+        logo ? { left: logo.left, top: logo.top, width: logo.width, height: logo.height } : null
+      );
+    let hasPin = false;
 
     try {
       // Calls backend directly, returns event with UUID from backend
@@ -107,7 +125,11 @@ export default function LandingPage() {
           hasOrganizerToken: !!useAuthStore.getState().organizerToken,
         });
 
-        await saveOrganizerDetails(event.id, event.organizerParticipantId, event.participantToken);
+        hasPin = await saveOrganizerDetails(
+          event.id,
+          event.organizerParticipantId,
+          event.participantToken
+        );
 
         // Auto-claim event if user is authenticated
         if (isAuthenticated) {
@@ -149,9 +171,11 @@ export default function LandingPage() {
       // Track event creation in analytics
       analyticsEvents.createEvent(event.id);
 
+      usePortalStore.getState().created(event.id, hasPin);
       router.push(`/meet/${event.id}`);
     } catch (error) {
       console.error('Error creating event:', error);
+      usePortalStore.getState().fail();
       setCreateError('We couldn’t create your meeting. Check your connection and try again.');
     } finally {
       setIsLoading(false);
@@ -168,20 +192,30 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col text-[#21252b]">
+    <div
+      className="flex min-h-screen flex-col text-[#21252b]"
+      data-portal-leaving={leaving || undefined}
+    >
       <LandingBackdrop />
       <header className="mx-auto flex w-full max-w-xl items-center justify-between px-4 pt-4 sm:pt-5 lg:max-w-5xl lg:px-8 lg:pt-6">
-        <div className="rounded-full bg-white p-1.5 shadow-[0_3px_16px_rgba(23,37,45,0.15)]">
+        <div
+          className="rounded-full bg-white p-1.5 shadow-[0_3px_16px_rgba(23,37,45,0.15)]"
+          data-leave="60"
+        >
           <Image
+            ref={logoRef}
             src={catLogo}
             alt="Where2Meet"
             width={44}
             height={44}
-            className="h-9 w-9 lg:h-11 lg:w-11"
+            className="portal-logo h-9 w-9 lg:h-11 lg:w-11"
             priority
           />
         </div>
-        <div className="rounded-full bg-white shadow-[0_3px_16px_rgba(23,37,45,0.15)]">
+        <div
+          className="rounded-full bg-white shadow-[0_3px_16px_rgba(23,37,45,0.15)]"
+          data-leave="120"
+        >
           {isAuthenticated ? <UserMenu /> : <SignInButton />}
         </div>
       </header>
@@ -189,7 +223,10 @@ export default function LandingPage() {
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-8 lg:max-w-5xl lg:justify-center lg:px-8 lg:py-10">
         <div className="lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-10">
           <div className="flex flex-col">
-            <h1 className="mb-5 text-center text-2xl font-bold tracking-[-0.6px] lg:mb-6 lg:text-left lg:text-[44px] lg:leading-[1.05]">
+            <h1
+              data-leave="140"
+              className="mb-5 text-center text-2xl font-bold tracking-[-0.6px] lg:mb-6 lg:text-left lg:text-[44px] lg:leading-[1.05]"
+            >
               Meet in the middle
             </h1>
 
@@ -197,6 +234,7 @@ export default function LandingPage() {
               className="mb-3 flex flex-wrap justify-center gap-2 lg:mb-6 lg:grid lg:w-full lg:grid-cols-3 lg:gap-2.5"
               aria-label="Meeting types"
               role="group"
+              data-leave="100"
             >
               {scenarios.map(({ label, icon: Icon }) => {
                 const selected = title === label;
@@ -217,7 +255,10 @@ export default function LandingPage() {
               })}
             </div>
 
-            <div className="rounded-[28px] bg-white p-5 shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-6 lg:p-7">
+            <div
+              className="rounded-[28px] bg-white p-5 shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-6 lg:p-7"
+              data-leave="40"
+            >
               <HeroInput
                 title={title}
                 meetingTime={meetingTime}
@@ -245,13 +286,13 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-3 lg:mt-0 lg:h-full">
+          <div className="mt-3 lg:mt-0 lg:h-full" data-leave="0">
             <StoryPreview />
           </div>
         </div>
       </main>
 
-      <footer className="mx-auto w-full max-w-xl px-4 py-6 lg:max-w-5xl lg:px-8">
+      <footer className="mx-auto w-full max-w-xl px-4 py-6 lg:max-w-5xl lg:px-8" data-leave="0">
         <nav className="mb-2 flex justify-center gap-5 text-sm">
           <Link href="/faq" className="font-medium text-[#666b73] hover:text-[#bd3843]">
             FAQ

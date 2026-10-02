@@ -13,6 +13,7 @@ import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { directionsClient } from '@/features/meeting/api';
 import type { TravelMode } from '@/shared/types/map';
 import { MapBlurOverlay } from './map-blur-overlay';
+import { usePortalStore } from '@/features/portal/model/portal-store';
 
 // Convert UI travel mode to Google Maps travel mode
 const UI_TO_GOOGLE_TRAVEL_MODE: Record<UITravelMode, TravelMode> = {
@@ -130,9 +131,13 @@ export function MapArea() {
           center,
           zoom: 12,
           ...mapOptions,
-          ...(window.matchMedia('(max-width: 767px)').matches ? {
-            mapTypeId: 'hybrid', zoomControl: false, fullscreenControl: false,
-          } : {}),
+          ...(window.matchMedia('(max-width: 767px)').matches
+            ? {
+                mapTypeId: 'hybrid',
+                zoomControl: false,
+                fullscreenControl: false,
+              }
+            : {}),
         });
 
         setMap(mapInstance);
@@ -150,6 +155,40 @@ export function MapArea() {
 
     return () => clearTimeout(timeoutId);
   }, []);
+
+  // Tell the create-meeting transition once the map has settled on this meeting:
+  // tiles loaded and no camera movement for a moment (the first view is the
+  // default center, then the map pans to the participants).
+  const eventIdForMap = currentEvent?.id;
+  useEffect(() => {
+    if (!eventIdForMap) return;
+    // Without a map there is nothing to wait for.
+    if (loadError || !GOOGLE_MAPS_API_KEY) {
+      usePortalStore.getState().mapReady(eventIdForMap);
+      return;
+    }
+    if (!map) return;
+    let tilesLoaded = false;
+    let quiet: ReturnType<typeof setTimeout> | undefined;
+    const settle = () => {
+      clearTimeout(quiet);
+      quiet = setTimeout(() => {
+        if (tilesLoaded) usePortalStore.getState().mapReady(eventIdForMap);
+      }, 250);
+    };
+    const listeners = [
+      map.addListener('tilesloaded', () => {
+        tilesLoaded = true;
+        settle();
+      }),
+      map.addListener('idle', settle),
+      map.addListener('bounds_changed', () => clearTimeout(quiet)),
+    ];
+    return () => {
+      clearTimeout(quiet);
+      listeners.forEach((listener) => listener.remove());
+    };
+  }, [map, eventIdForMap, loadError]);
 
   // Default search radius for initial circle
   const DEFAULT_SEARCH_RADIUS = 3000; // 3km default
@@ -849,7 +888,9 @@ export function MapArea() {
         <div className="text-center px-8 pt-28 max-w-sm" role="status">
           <Layers className="mx-auto mb-3 text-stone-400" size={32} />
           <h3 className="font-semibold text-foreground">Map temporarily unavailable</h3>
-          <p className="mt-2 text-sm text-muted-foreground">You can still manage your group below. Try the map again later.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            You can still manage your group below. Try the map again later.
+          </p>
         </div>
       </main>
     );
@@ -879,13 +920,27 @@ export function MapArea() {
       )}
 
       <div className="phone-map-controls hidden max-md:flex">
-        <button aria-label={satellite ? 'Show street map' : 'Show satellite map'} onClick={() => {
-          map?.setMapTypeId(satellite ? 'roadmap' : 'hybrid'); setSatellite(!satellite);
-        }}><Layers size={22} /></button>
-        <button aria-label="Center map on meeting area" onClick={() => {
-          const circle = useMapStore.getState().searchCircle;
-          if (circle) { map?.panTo(circle.center); map?.setZoom(13); }
-        }}><LocateFixed size={22} /></button>
+        <button
+          aria-label={satellite ? 'Show street map' : 'Show satellite map'}
+          onClick={() => {
+            map?.setMapTypeId(satellite ? 'roadmap' : 'hybrid');
+            setSatellite(!satellite);
+          }}
+        >
+          <Layers size={22} />
+        </button>
+        <button
+          aria-label="Center map on meeting area"
+          onClick={() => {
+            const circle = useMapStore.getState().searchCircle;
+            if (circle) {
+              map?.panTo(circle.center);
+              map?.setZoom(13);
+            }
+          }}
+        >
+          <LocateFixed size={22} />
+        </button>
       </div>
 
       {/* Route calculating overlay */}
