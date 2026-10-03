@@ -22,20 +22,11 @@ export const metadata: Metadata = {
     siteName: SITE_CONFIG.name,
     title: SITE_CONFIG.defaultTitle,
     description: SITE_CONFIG.description,
-    images: [
-      {
-        url: new URL('/og-image.png', SITE_CONFIG.url).toString(),
-        width: 1200,
-        height: 630,
-        alt: 'Where2Meet – plan where to meet with your group',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: SITE_CONFIG.defaultTitle,
     description: SITE_CONFIG.description,
-    images: [new URL('/og-image.png', SITE_CONFIG.url).toString()],
   },
   robots: {
     index: true,

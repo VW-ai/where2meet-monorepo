@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ImageResponse } from 'next/og';
-import { SITE_CONFIG } from '@/lib/seo/metadata';
+import { SHARE_IMAGE, SITE_CONFIG } from '@/lib/seo/metadata';
 
-export const alt = `${SITE_CONFIG.name}: ${SITE_CONFIG.tagline}`;
-export const size = { width: 1200, height: 630 };
+export const alt = SHARE_IMAGE.alt;
+export const size = { width: SHARE_IMAGE.width, height: SHARE_IMAGE.height };
 export const contentType = 'image/png';
 
 const INK = '#21252b';
