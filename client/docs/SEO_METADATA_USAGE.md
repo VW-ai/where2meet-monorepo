@@ -8,7 +8,7 @@ The metadata system (`src/lib/seo/metadata.ts`) provides:
 
 1. **Differentiated Positioning**: Emphasizes "Fair Meeting Planning + Travel Time Comparison"
 2. **Strategic Keywords**: Organized by category (core, differentiation, AI, features)
-3. **Absolute URLs**: For OG/Twitter images (better social sharing)
+3. **Share image**: `src/app/opengraph-image.tsx` renders one `og:image` for every page
 4. **Flexible Canonical**: Supports both relative paths and full URLs
 5. **Smart Robots**: GoogleBot-specific settings for better control
 6. **i18n Ready**: Language alternates structure for future internationalization
@@ -74,7 +74,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: meeting.title,
     description: `Join ${meeting.participants.length} participants to find a fair meeting spot. Compare travel times and vote on venues.`,
     canonical: `/meet/${params.id}`,
-    image: `/og/meeting/${params.id}.png`, // Dynamic OG image if available
   });
 }
 
@@ -120,7 +119,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: post.title,
     description: post.excerpt,
     canonical: `/blog/${params.slug}`,
-    image: post.featuredImage,
     publishedTime: post.publishedAt,
     modifiedTime: post.updatedAt,
     authors: [post.author.name],
@@ -166,7 +164,6 @@ export const metadata: Metadata = createMetadata({
   title: 'About Us',
   description: 'Learn about Where2Meet and our mission to make meeting planning fair for everyone.',
   canonical: '/about',
-  image: '/images/about-og.png',
 
   // Custom keyword prioritization
   keywordsFocus: 'ai', // Emphasize AI keywords
@@ -186,22 +183,11 @@ export const metadata: Metadata = createMetadata({
 });
 ```
 
-### 6. Dynamic OG Images
+### 6. Share Image
 
-For pages with dynamic Open Graph images:
-
-```typescript
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return createMetadata({
-    title: 'Meeting Results',
-    description: 'View the optimal meeting location based on fair travel times.',
-
-    // Relative path - automatically converted to absolute URL
-    image: `/api/og?eventId=${params.id}`,
-    imageAlt: 'Meeting location map with travel time visualization',
-  });
-}
-```
+`src/app/opengraph-image.tsx` renders the share image at build time from `SITE_CONFIG`.
+`createMetadata` links it on every page through `SHARE_IMAGE`, and Next.js copies `og:image`
+into the Twitter card.
 
 ## Canonical URL Handling
 
@@ -215,10 +201,6 @@ canonical: '/about';
 // Full URL - used as-is
 canonical: 'https://where2meet.org/about';
 // → https://where2meet.org/about
-
-// Also works for OG images
-image: '/og-image.png';
-// → https://where2meet.org/og-image.png
 ```
 
 ## Keyword Strategy

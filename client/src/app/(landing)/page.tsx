@@ -15,6 +15,7 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { SignInButton } from '@/features/auth/ui/sign-in-button';
 import { UserMenu } from '@/features/auth/ui/user-menu';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 
 export default function LandingPage() {
@@ -227,7 +228,7 @@ export default function LandingPage() {
               data-leave="140"
               className="mb-5 text-center text-2xl font-bold tracking-[-0.6px] lg:mb-6 lg:text-left lg:text-[44px] lg:leading-[1.05]"
             >
-              Plan where to meet, together
+              {SITE_CONFIG.tagline}
             </h1>
 
             <div

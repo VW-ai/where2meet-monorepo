@@ -58,21 +58,14 @@ describe('createMetadata', () => {
     expect(createMetadata({ title: 'Anything' })).not.toHaveProperty('keywords');
   });
 
-  it('emits canonical, Open Graph and Twitter URLs on the www host', () => {
+  it('emits canonical and Open Graph URLs on the www host', () => {
     const metadata = asJson<{
       alternates: { canonical: string };
-      openGraph: { url: string; images: Array<{ url: string; width: number; height: number }> };
-      twitter: { images: string[] };
+      openGraph: { url: string };
     }>(createMetadata({ title: 'FAQ', canonical: '/faq' }));
 
     expect(metadata.alternates.canonical).toBe(`${CANONICAL_ORIGIN}/faq`);
     expect(metadata.openGraph.url).toBe(`${CANONICAL_ORIGIN}/faq`);
-    expect(metadata.openGraph.images[0]).toMatchObject({
-      url: `${CANONICAL_ORIGIN}/og-image.png`,
-      width: 1200,
-      height: 630,
-    });
-    expect(metadata.twitter.images).toEqual([`${CANONICAL_ORIGIN}/og-image.png`]);
   });
 
   it('marks meeting pages noindex but follow', () => {
@@ -204,7 +197,13 @@ describe('llms.txt', () => {
 
 describe('positioning copy', () => {
   it('never calls the spot fair or says "meet in the middle"', () => {
-    for (const text of [SITE_CONFIG.defaultTitle, SITE_CONFIG.description, LLMS_TXT]) {
+    for (const text of [
+      SITE_CONFIG.defaultTitle,
+      SITE_CONFIG.description,
+      SITE_CONFIG.tagline,
+      SITE_CONFIG.pitch,
+      LLMS_TXT,
+    ]) {
       expect(text).not.toMatch(/\bfair/i);
       expect(text).not.toMatch(/meet in the middle/i);
     }

@@ -20,6 +20,22 @@ export const SITE_CONFIG = {
   defaultTitle: 'Where2Meet – Plan Where to Meet With Your Group',
   description:
     'Plan where to meet with your group. Everyone adds where they are coming from, you compare travel times on a map, then vote on a convenient spot. No sign-up.',
+  tagline: 'Plan where to meet, together',
+  pitch: "Share a link, compare everyone's travel time, and vote on a convenient spot.",
+} as const;
+
+/**
+ * The share image `src/app/opengraph-image.tsx` renders at build time.
+ *
+ * Next.js adds a file-based image only to the segment that holds the file, and
+ * a page that sets `openGraph` replaces its parent's, image included. Every
+ * page built with `createMetadata` sets `openGraph`, so it links the image itself.
+ */
+export const SHARE_IMAGE = {
+  url: '/opengraph-image',
+  width: 1200,
+  height: 630,
+  alt: `${SITE_CONFIG.name}: ${SITE_CONFIG.tagline}`,
 } as const;
 
 /**
@@ -38,16 +54,6 @@ export interface MetadataOptions {
    * - Absolute URL: 'https://www.where2meet.org/about'
    */
   canonical?: string;
-
-  /**
-   * OpenGraph image - can be:
-   * - Relative path: '/og-image.png'
-   * - Absolute URL: 'https://www.where2meet.org/og-image.png'
-   */
-  image?: string;
-
-  /** Alt text for OG image */
-  imageAlt?: string;
 
   /** OpenGraph type (default: 'website') */
   ogType?: 'website' | 'article';
@@ -105,7 +111,6 @@ export function buildPageTitle(title?: string): string {
  *
  * Features:
  * - Differentiated positioning (planning together with travel time comparison)
- * - Absolute URLs for OG/Twitter images
  * - Flexible canonical URL handling
  * - Proper robots configuration
  * - i18n-ready with language alternates
@@ -121,16 +126,11 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     title,
     description = SITE_CONFIG.description,
     canonical,
-    image = '/og-image.png',
-    imageAlt = 'Where2Meet – plan where to meet with your group',
     ogType = 'website',
     robots,
     article,
     languages,
   } = options;
-
-  // Generate absolute image URL
-  const absoluteImageUrl = toAbsoluteUrl(image);
 
   // Construct full title
   const fullTitle = buildPageTitle(title);
@@ -147,14 +147,7 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
       siteName: SITE_CONFIG.name,
       title: fullTitle,
       description,
-      images: [
-        {
-          url: absoluteImageUrl,
-          width: 1200,
-          height: 630,
-          alt: imageAlt,
-        },
-      ],
+      images: [SHARE_IMAGE],
     },
 
     // Twitter
@@ -162,7 +155,6 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
       card: 'summary_large_image',
       title: fullTitle,
       description,
-      images: [absoluteImageUrl],
     },
   };
 
@@ -234,7 +226,6 @@ export function createMeetingPageMetadata(options: {
   title: string;
   description: string;
   canonical?: string;
-  image?: string;
 }): Metadata {
   return createMetadata({
     ...options,
@@ -252,7 +243,6 @@ export function createArticleMetadata(options: {
   title: string;
   description: string;
   canonical?: string;
-  image?: string;
   publishedTime: string;
   modifiedTime?: string;
   authors?: string[];
@@ -262,7 +252,6 @@ export function createArticleMetadata(options: {
     title: options.title,
     description: options.description,
     canonical: options.canonical,
-    image: options.image,
     ogType: 'article',
     robots: {
       index: true,
@@ -284,7 +273,6 @@ export function createFeaturePageMetadata(options: {
   title: string;
   description: string;
   canonical?: string;
-  image?: string;
 }): Metadata {
   return createMetadata({
     ...options,

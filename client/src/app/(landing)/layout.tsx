@@ -6,8 +6,6 @@ import { SITE_CONFIG, createMetadata } from '@/lib/seo/metadata';
 export const metadata: Metadata = createMetadata({
   title: 'Plan Where to Meet With Your Group',
   description: SITE_CONFIG.description,
-  image: '/og-landing.png',
-  imageAlt: 'Where2Meet – plan where to meet with your group',
   canonical: '/',
 });
 

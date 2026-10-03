@@ -149,7 +149,6 @@ export const metadata: Metadata = {
 
 - Keyword-optimized metadata
 - WebSite schema (JSON-LD)
-- Landing-specific Open Graph image
 
 **SEO Content:**
 
@@ -161,7 +160,6 @@ export const metadata: Metadata = createMetadata({
   keywords: [
     /* expanded keyword list */
   ],
-  image: '/og-landing.png',
   canonical: '/',
 });
 ```
@@ -399,21 +397,10 @@ analyticsEvents.shareEvent(eventId, 'link' | 'social');
 
 ### Social Sharing Images
 
-Create these images for optimal social sharing:
-
-| File                        | Size       | Purpose                  |
-| --------------------------- | ---------- | ------------------------ |
-| `/public/og-image.png`      | 1200×630px | Default Open Graph image |
-| `/public/og-landing.png`    | 1200×630px | Landing page specific    |
-| `/public/twitter-image.png` | 1200×600px | Twitter Card image       |
-
-**Design Guidelines:**
-
-- Include Where2Meet logo + cat mascot
-- Tagline: "Find the Perfect Meeting Spot"
-- Visual: Map with location pins
-- Brand color: Coral (#FF6B6B)
-- High contrast text for readability
+`src/app/opengraph-image.tsx` renders the 1200×630px share image at build time. Its text
+comes from `SITE_CONFIG.tagline` and `SITE_CONFIG.pitch`, so a copy change reaches link
+previews on the next deploy. `createMetadata` links it on every page as `og:image` through
+`SHARE_IMAGE`, and Next.js copies it into `twitter:image`.
 
 ### App Icons
 
@@ -435,9 +422,7 @@ Create these images for optimal social sharing:
   - [ ] `NEXT_PUBLIC_GA_MEASUREMENT_ID` configured (if using analytics)
 
 - [ ] **Visual Assets Created**
-  - [ ] `/public/og-image.png`
-  - [ ] `/public/og-landing.png`
-  - [ ] `/public/twitter-image.png`
+  - [ ] `/opengraph-image` renders a 1200×630 PNG
   - [ ] `/public/favicon.ico`
   - [ ] `/public/apple-touch-icon.png`
   - [ ] `/public/icon-192.png` & `/public/icon-512.png`
@@ -788,7 +773,7 @@ keywords: [
 
 **Check:**
 
-1. Image files exist in `/public/` directory
+1. `/opengraph-image` renders (see `src/app/opengraph-image.tsx`)
 2. Image URLs are absolute (include domain)
 3. Images are the correct size (1200×630 for OG)
 4. Images are publicly accessible
@@ -796,7 +781,7 @@ keywords: [
 **Debug:**
 
 ```bash
-curl -I https://where2meet.com/og-image.png
+curl -I https://www.where2meet.org/opengraph-image
 ```
 
 Should return `200 OK`.

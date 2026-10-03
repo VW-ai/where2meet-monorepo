@@ -26,8 +26,7 @@ where2meet-v1.0-client/
 ├── public/                     # Static assets
 │   ├── images/
 │   │   ├── cat-mascot/         # Cat mascot SVGs and PNGs
-│   │   ├── avatars/            # Cat avatar variations
-│   │   └── og-image.png        # Open Graph image
+│   │   └── avatars/            # Cat avatar variations
 │   ├── icons/                  # App icons, favicon
 │   └── fonts/                  # Custom fonts (if any)
 │
@@ -65,6 +64,7 @@ where2meet-v1.0-client/
 │   │   │       └── loading.tsx # Loading state
 │   │   │
 │   │   ├── layout.tsx          # Root layout
+│   │   ├── opengraph-image.tsx # Share image (1200x630), rendered at build time
 │   │   ├── globals.css         # Global styles, Tailwind imports
 │   │   ├── error.tsx           # Global error boundary
 │   │   └── not-found.tsx       # 404 page
@@ -229,15 +229,13 @@ public/
 │   │   ├── logo-light.svg        # Light theme variant
 │   │   └── logo-icon.svg         # Icon only
 │   │
-│   ├── avatars/
-│   │   ├── cat-happy.svg
-│   │   ├── cat-excited.svg
-│   │   ├── cat-sleepy.svg
-│   │   ├── cat-surprised.svg
-│   │   ├── cat-cool.svg
-│   │   └── ...                   # 10-12 cat variations
-│   │
-│   └── og-image.png              # Social media preview (1200x630)
+│   └── avatars/
+│       ├── cat-happy.svg
+│       ├── cat-excited.svg
+│       ├── cat-sleepy.svg
+│       ├── cat-surprised.svg
+│       ├── cat-cool.svg
+│       └── ...                   # 10-12 cat variations
 │
 ├── icons/
 │   ├── favicon.ico
