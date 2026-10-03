@@ -204,7 +204,13 @@ describe('llms.txt', () => {
 
 describe('positioning copy', () => {
   it('never calls the spot fair or says "meet in the middle"', () => {
-    for (const text of [SITE_CONFIG.defaultTitle, SITE_CONFIG.description, LLMS_TXT]) {
+    for (const text of [
+      SITE_CONFIG.defaultTitle,
+      SITE_CONFIG.description,
+      SITE_CONFIG.tagline,
+      SITE_CONFIG.pitch,
+      LLMS_TXT,
+    ]) {
       expect(text).not.toMatch(/\bfair/i);
       expect(text).not.toMatch(/meet in the middle/i);
     }

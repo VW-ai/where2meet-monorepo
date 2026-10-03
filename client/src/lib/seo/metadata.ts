@@ -20,6 +20,8 @@ export const SITE_CONFIG = {
   defaultTitle: 'Where2Meet – Plan Where to Meet With Your Group',
   description:
     'Plan where to meet with your group. Everyone adds where they are coming from, you compare travel times on a map, then vote on a convenient spot. No sign-up.',
+  tagline: 'Plan where to meet, together',
+  pitch: "Share a link, compare everyone's travel time, and vote on a convenient spot.",
 } as const;
 
 /**
