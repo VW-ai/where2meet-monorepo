@@ -29,6 +29,7 @@
   },
   "homepage": "https://github.com/V1ctor2182/where2meet-monorepo/tree/main/client#readme",
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
     "@googlemaps/js-api-loader": "^2.0.2",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-scroll-area": "^1.2.10",
@@ -55,7 +56,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
-    "@fontsource/inter": "^5.3.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/google.maps": "^3.58.1",
     "@types/react": "^19.2.6",
