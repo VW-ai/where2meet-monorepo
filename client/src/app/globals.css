@@ -196,3 +196,17 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
+
+/* Skeleton highlight that sweeps across a loading card. */
+@theme {
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+
+  @keyframes shimmer {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 100% 0;
+    }
+  }
+}
