@@ -41,9 +41,11 @@ The separate `ppe-recovery` run deliberately used an unavailable local SSH ident
 
 ## Persistent checks
 
-The verification helper has 11 credential-free boundary and ownership tests. They reject wrong environments, source/target inconsistencies, deployment or resource drift, unowned mutations, and secret-bearing manifests. CI runs these tests before the existing local browser compatibility flow. Domain behavior continues to use the existing real PostgreSQL HTTP integration tests. Invalid-create rejection stays in disposable local tests; the remote driver exercises invalid edits against an owned UI-created event.
+The verification helper has 11 credential-free PPE boundary tests and five local listener tests. They reject wrong environments, source/target inconsistencies, deployment or resource drift, unowned mutations, and secret-bearing manifests. The listener tests use real subprocesses and sockets, including an owned child, a foreign process, a stale identity, and Linux's Next process name. CI runs these tests before the existing local browser compatibility flow. Domain behavior continues to use the existing real PostgreSQL HTTP integration tests. Invalid-create rejection stays in disposable local tests; the remote driver exercises invalid edits against an owned UI-created event.
 
 The backend browser workflow previously failed before scheduling a job because job-level `env` used the unavailable `runner` context. Its first step now writes the runner directory to `GITHUB_ENV`. A separate workflow runs actionlint, ShellCheck, and Pyflakes so an invalid browser workflow can still receive a failing check. All seven workflow files passed local validation with these integrations enabled.
+
+The hosted browser run then exposed a Linux listener inspection defect. In [the diagnostic run](https://github.com/VW-ai/where2meet-monorepo/actions/runs/37242807965), Next still returned HTTP 200 and its child belonged to the recorded process group. `ss` found the listener, while ordinary and privileged `lsof 4.95` omitted it. Linux verification now uses `ss` and rejects any listener without a visible PID in the owned group. macOS retains `lsof`. CI keeps service logs and sanitized run metadata when launch fails.
 
 ## Limits
 

@@ -385,7 +385,7 @@ def verify(args):
     require(subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip() == target["source"]["revision"], "Backend checkout differs from the source revision")
     require(not subprocess.check_output(["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=all", "--", "server"], text=True).strip(), "Backend contains uncommitted server changes")
     require(control.fingerprint(repo, ("server",)) == target["source"]["server_tree_digest"], "Backend source digest differs from deployment input")
-    for name in ("node", "npm", "railway", "ssh", "lsof"):
+    for name in ("node", "npm", "railway", "ssh", control.LISTENER_TOOL):
         require(shutil.which(name), f"Missing prerequisite {name}")
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 4317))

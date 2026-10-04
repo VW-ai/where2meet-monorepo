@@ -10,7 +10,7 @@ The verifier accepts only the recorded project and independent PPE environment. 
 
 PPE database reads use authenticated native SSH to the verified PostgreSQL service instance. Supply a registered private key through `PPE_SSH_KEY` and an established known-host file through `PPE_SSH_KNOWN_HOSTS`. Keep both outside the repository. The verifier requires host verification and sends only its fixed read-only SQL projection. It does not open database ports, register keys, accept new host keys, or write rows through SQL. Remove a temporary verification key after the run and any cleanup retries complete.
 
-Prerequisites are Python 3, Node LTS, npm, Git, Railway CLI with read access to the target, OpenSSH, lsof, and Google Chrome. No local PostgreSQL or Redis server is needed. Use a clean frontend checkout and leave `http://127.0.0.1:4317` free. Its CORS origin must already be configured in PPE.
+Prerequisites are Python 3, Node LTS, npm, Git, Railway CLI with read access to the target, OpenSSH, and Google Chrome. Port ownership checks use `ss` on Linux and `lsof` on macOS. No local PostgreSQL or Redis server is needed. Use a clean frontend checkout and leave `http://127.0.0.1:4317` free. Its CORS origin must already be configured in PPE.
 
 ## Run and keep evidence
 

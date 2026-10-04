@@ -21,7 +21,7 @@ This launcher targets the current Next.js and Fastify monorepo. [verification-st
 
 ## Launch
 
-Prerequisites on PATH: Python 3, Node 20/22/24 LTS, npm, Git, `initdb`, `postgres`, `pg_isready`, `createdb`, `psql`, `redis-server`, `redis-cli`, and `lsof`. Google Chrome must be installed. The helper uses its own pinned Playwright dependency. It does not use an existing Chrome profile or install a browser.
+Prerequisites on PATH: Python 3, Node 20/22/24 LTS, npm, Git, `initdb`, `postgres`, `pg_isready`, `createdb`, `psql`, `redis-server`, and `redis-cli`. Port ownership checks use `ss` on Linux and `lsof` on macOS. Google Chrome must be installed. The helper uses its own pinned Playwright dependency. It does not use an existing Chrome profile or install a browser.
 
 Run from the monorepo root. Keep `VERIFY_RUN` for all commands in this run.
 

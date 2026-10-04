@@ -27,19 +27,19 @@ jobs:
       - name: Set browser run directory
         run: echo "RUN_DIR=$RUNNER_TEMP/where2meet-browser" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
-      - name: Test PPE target and cleanup boundaries
-        run: python3 -m unittest discover -s .agents/skills/verify-where2meet/helpers -p 'test_ppe.py' -v
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Install local database and browser dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-16 redis-server lsof
+          sudo apt-get install -y postgresql-16 redis-server iproute2
           echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
           npm ci --prefix .agents/skills/verify-where2meet/helpers
           cd .agents/skills/verify-where2meet/helpers
           npx --no-install playwright install --with-deps chrome
+      - name: Test local and PPE ownership boundaries
+        run: python3 -m unittest discover -s .agents/skills/verify-where2meet/helpers -p 'test_*.py' -v
       - name: Run real frontend against compiled backend and migrated database
         run: |
           python3 .agents/skills/verify-where2meet/helpers/control.py launch --repo "$GITHUB_WORKSPACE" --frontend-repo "$GITHUB_WORKSPACE" --run "$RUN_DIR"
