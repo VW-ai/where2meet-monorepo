@@ -198,12 +198,35 @@ def doctor(run):
               "frontend_status": state["frontend_status"], "frontend_fingerprint": state["frontend_fingerprint"],
               "source_fingerprint": state["source_fingerprint"], "client_url": state["client_url"],
               "backend_url": state["backend_url"], "health": ready,
-              "anonymous_session_status": status, "mocks": "off", "process_ownership": "verified"}
+              "anonymous_session_status": status, "mocks": "off", "process_ownership": "verified",
+              "schema_mode": state.get("schema_mode", "push"),
+              "backend_mode": state.get("backend_mode", "source")}
     write_json(run / "evidence" / "doctor.json", result)
     print(json.dumps(result, indent=2))
 
 
-def launch(run, repo, frontend_repo):
+def restart_backend(run):
+    doctor(run)
+    state = load(run)
+    record = state["processes"]["backend"]
+    os.killpg(record["pid"], signal.SIGTERM)
+    wait_for(lambda: not group_members(record["pid"]), "backend shutdown", timeout=15)
+    env = {**clean_environment(), "DATABASE_URL": state["database_url"],
+           "REDIS_URL": f"redis://127.0.0.1:{state['ports']['redis']}",
+           "HOST": "127.0.0.1", "PORT": str(state["ports"]["backend"]),
+           "NODE_ENV": "development", "CORS_ORIGINS": state["client_url"],
+           "GOOGLE_MAPS_API_KEY": os.environ.get("GOOGLE_MAPS_API_KEY", "")}
+    start(run, state, "backend", record["command"], Path(state["source_copy"]) / "server", env)
+    wait_for(lambda: json.loads(response(state["backend_url"] + "/health/ready")[1])["status"] == "ok", "restarted backend")
+    doctor(run)
+    write_json(run / "evidence" / "backend-restart.json", {
+        "status": "PASS", "previous_pid": record["pid"],
+        "current_pid": state["processes"]["backend"]["pid"],
+        "database_reused": True, "source_fingerprint": state["source_fingerprint"],
+    })
+
+
+def launch(run, repo, frontend_repo, schema_mode, backend_mode):
     if (run / "run.json").exists():
         raise RuntimeError("Run already exists. Use a new run directory, or doctor/cleanup the existing run")
     for name in ("node", "npm", "initdb", "postgres", "pg_isready", "createdb", "psql", "redis-server", "redis-cli", "lsof", "git"):
@@ -230,7 +253,7 @@ def launch(run, repo, frontend_repo):
              "ports": {"backend": api_port, "frontend": web_port, "postgres": pg_port, "redis": redis_port},
              "backend_url": f"http://127.0.0.1:{api_port}", "client_url": f"http://127.0.0.1:{web_port}",
              "database_url": f"postgresql://verify@127.0.0.1:{pg_port}/where2meet_verify",
-             "processes": {}}
+             "schema_mode": schema_mode, "backend_mode": backend_mode, "processes": {}}
     save(run, state)
     try:
         for name in ("client", "server"):
@@ -267,8 +290,12 @@ def launch(run, repo, frontend_repo):
         server = runtime / "app" / "server"
         command(["npm", "run", "db:generate"], server, server_env, log)
         require_owned_listener(state, "postgres")
-        command(["npm", "run", "db:push"], server, server_env, log)
-        start(run, state, "backend", ["node", "--import", "tsx", "src/index.ts"], server, server_env)
+        schema_command = ["npx", "--no-install", "prisma", "migrate", "deploy"] if schema_mode == "migrations" else ["npm", "run", "db:push"]
+        command(schema_command, server, server_env, log)
+        if backend_mode == "compiled":
+            command(["npm", "run", "build"], server, server_env, log)
+        backend_command = ["node", "dist/index.js"] if backend_mode == "compiled" else ["node", "--import", "tsx", "src/index.ts"]
+        start(run, state, "backend", backend_command, server, server_env)
         wait_for(lambda: json.loads(response(state["backend_url"] + "/health/ready")[1])["status"] == "ok", "backend")
         client_env = {**env, "NODE_ENV": "development", "NEXT_PUBLIC_MOCK_MODE": "off", "MOCK_MODE": "off",
                       "NEXT_PUBLIC_MOCK_DOMAINS": "", "MOCK_DOMAINS": "", "NEXT_PUBLIC_USE_MOCK_API": "false",
@@ -293,21 +320,26 @@ def launch(run, repo, frontend_repo):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("launch", "doctor", "drive", "cleanup"))
+    parser.add_argument("operation", choices=("launch", "doctor", "drive", "cleanup", "restart-backend"))
     parser.add_argument("--run", type=Path, required=True)
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--frontend-repo", type=Path, help="Pinned original frontend checkout during backend migration")
+    parser.add_argument("--schema-mode", choices=("migrations", "push"), default="migrations",
+                        help="Use push only to reproduce the legacy schema baseline")
+    parser.add_argument("--backend-mode", choices=("compiled", "source"), default="compiled")
     args = parser.parse_args()
     run = args.run.resolve()
     if args.operation == "launch":
         if args.frontend_repo and subprocess.check_output(
                 ["git", "-C", str(args.frontend_repo.resolve()), "status", "--short", "--", "client"], text=True).strip():
             raise RuntimeError("The explicitly pinned frontend has uncommitted changes; use a clean baseline checkout")
-        launch(run, args.repo.resolve(), (args.frontend_repo or args.repo).resolve())
+        launch(run, args.repo.resolve(), (args.frontend_repo or args.repo).resolve(), args.schema_mode, args.backend_mode)
     elif args.operation == "doctor":
         doctor(run)
     elif args.operation == "cleanup":
         cleanup(run)
+    elif args.operation == "restart-backend":
+        restart_backend(run)
     else:
         try:
             doctor(run)

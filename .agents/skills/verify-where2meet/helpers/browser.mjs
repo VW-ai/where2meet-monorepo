@@ -67,29 +67,38 @@ function stored(eventId) {
 }
 
 let result = { status: 'FAIL', feature: 'event-lifecycle', source_commit: run.source_commit,
-  scope: ['create without location', 'organizer name', 'reload identity', 'edit title', 'shared read-only view', 'delete'],
-  not_verified: ['Google Maps', 'participant location', 'routes', 'votes and publishing', 'accounts', 'data import', 'production build'],
+  scope: ['create without location', 'organizer name', 'reload identity', 'token-only identity recovery', 'edit title', 'shared read-only view', 'delete'],
+  backend_mode: run.backend_mode ?? 'source', frontend_mode: 'development',
+  not_verified: ['Google Maps', 'participant location', 'routes', 'votes and publishing', 'accounts', 'data import', 'production frontend serving'],
   external_boundary: run.google_keys };
 
 try {
   const title = `Verification meeting ${run.run_id.slice(0, 8)}`;
   const editedTitle = `${title} edited`;
-  await page.goto(run.client_url, { waitUntil: 'domcontentloaded' });
+  const [initialSession] = await Promise.all([
+    page.waitForResponse(res => res.url() === `${run.client_url}/api/auth/session`),
+    page.goto(run.client_url, { waitUntil: 'domcontentloaded' }),
+  ]);
+  assert.equal(initialSession.status(), 401);
+  await initialSession.finished();
   action('Open landing page', { url: run.client_url });
   await page.getByRole('textbox', { name: 'Occasion', exact: true }).fill(title);
   await page.getByRole('textbox', { name: 'Your name', exact: true }).fill('Verification organizer');
   await page.getByRole('button', { name: 'Pick a date and time', exact: true }).click();
   await page.getByRole('button', { name: '09:00', exact: true }).click();
   await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('textbox', { name: 'Occasion', exact: true }).inputValue(), title);
+  assert.equal(await page.getByRole('textbox', { name: 'Your name', exact: true }).inputValue(), 'Verification organizer');
   await capture('01-create-form');
   action('Enter title, organizer name and selected date/time; leave optional location empty');
-  const createdResponse = page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events` && res.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Create Meeting', exact: true }).click();
-  const created = await createdResponse;
+  const [created] = await Promise.all([
+    page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events` && res.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Create Meeting', exact: true }).click(),
+  ]);
   assert.equal(created.status(), 201);
-  const eventId = (await created.json()).id;
+  await page.waitForURL(url => url.origin === run.client_url && /^\/meet\/evt_[A-Za-z0-9_]+$/.test(url.pathname), { timeout: 120000 });
+  const eventId = new URL(page.url()).pathname.split('/').at(-1);
   assert.match(eventId, /^evt_[A-Za-z0-9_]+$/);
-  await page.waitForURL(`${run.client_url}/meet/${eventId}`, { timeout: 120000 });
   await page.getByRole('button', { name: 'Settings', exact: true }).waitFor();
   await page.locator('.cat-portal').waitFor({ state: 'detached' });
   await dismissTutorial();
@@ -105,22 +114,44 @@ try {
   action('Create Meeting returns 201; transition completes; persisted event and organizer confirmed', { eventId });
   await capture('02-created');
 
-  const meResponse = page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}/me`);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  assert.equal((await meResponse).status(), 200);
+  const [meResponse] = await Promise.all([
+    page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}/me`),
+    page.reload({ waitUntil: 'domcontentloaded' }),
+  ]);
+  assert.equal(meResponse.status(), 200);
   await page.getByRole('button', { name: 'Settings', exact: true }).waitFor();
   await dismissTutorial();
   action('Reload restores organizer identity via /me with 200');
   await capture('03-reloaded');
+
+  const retainedToken = await page.evaluate((id) => {
+    localStorage.removeItem(`organizer_participant_id_${id}`);
+    localStorage.removeItem(`participant_id_${id}`);
+    return Boolean(localStorage.getItem(`organizer_token_${id}`));
+  }, eventId);
+  assert.equal(retainedToken, true, 'Use only the token created by the UI; never inject a replacement');
+  const [recoveredMe] = await Promise.all([
+    page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}/me`),
+    page.reload({ waitUntil: 'domcontentloaded' }),
+  ]);
+  assert.equal(recoveredMe.status(), 200);
+  await page.getByRole('button', { name: 'Settings', exact: true }).waitFor();
+  await dismissTutorial();
+  const recoveredId = await page.evaluate((id) => localStorage.getItem(`organizer_participant_id_${id}`), eventId);
+  assert.equal(recoveredId, afterCreate.participants[0].id);
+  action('Remove cached participant IDs while retaining the UI-issued token; reload repairs the ID from /me');
+  await capture('03b-token-only-recovery');
 
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Edit Event', exact: true }).click();
   await page.getByRole('textbox', { name: 'Event Title', exact: true }).fill(editedTitle);
   await capture('04-edit-form');
   action('Edit Event form receives changed title');
-  const editResponse = page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}` && res.request().method() === 'PATCH');
-  await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
-  assert.equal((await editResponse).status(), 200);
+  const [editResponse] = await Promise.all([
+    page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}` && res.request().method() === 'PATCH'),
+    page.getByRole('button', { name: 'Save Changes', exact: true }).click(),
+  ]);
+  assert.equal(editResponse.status(), 200);
   await page.getByRole('heading', { name: 'Edit Event', exact: true }).waitFor({ state: 'hidden' });
   const edited = await eventRead(eventId);
   assert.equal(edited.title, editedTitle);
@@ -144,9 +175,11 @@ try {
   await page.getByPlaceholder('Type DELETE', { exact: true }).fill('DELETE');
   await capture('06-delete-confirmation');
   action('Confirm deletion of this run’s synthetic event');
-  const deletedResponse = page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}` && res.request().method() === 'DELETE');
-  await page.getByRole('button', { name: 'Delete Event', exact: true }).click();
-  assert.equal((await deletedResponse).status(), 200);
+  const [deletedResponse] = await Promise.all([
+    page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}` && res.request().method() === 'DELETE'),
+    page.getByRole('button', { name: 'Delete Event', exact: true }).click(),
+  ]);
+  assert.equal(deletedResponse.status(), 200);
   await page.waitForURL(run.client_url + '/');
   const removed = await fetch(`${run.backend_url}/api/events/${eventId}`);
   assert.equal(removed.status, 404);
