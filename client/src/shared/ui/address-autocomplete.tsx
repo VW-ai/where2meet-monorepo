@@ -54,9 +54,7 @@ export function AddressAutocomplete({
     const timeoutId = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const results = await searchPlacesAutocomplete(value, {
-          types: ['geocode', 'establishment'],
-        });
+        const results = await searchPlacesAutocomplete(value);
         setPredictions(results);
         // Only pop the list open while the user is still in the field
         setIsOpen(results.length > 0 && document.activeElement === inputRef.current);
