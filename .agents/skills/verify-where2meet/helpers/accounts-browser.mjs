@@ -35,6 +35,9 @@ const result = {
   status: 'FAIL',
   feature: 'accounts-claims-baseline',
   source_commit: run.source_commit,
+  frontend_commit: run.frontend_commit,
+  backend_mode: run.backend_mode,
+  schema_mode: run.schema_mode,
   checks: [],
   observations: [],
   scope: [],
@@ -257,19 +260,12 @@ try {
     await capture('03-created-event');
   });
 
-  let identity;
   await check('Anonymous reload retains cached organizer controls', async () => {
     const me = responseFor(page, `/api/events/${result.event_id}/me`, 'GET');
-    const consumer = page.waitForEvent('console', {
-      predicate: message => message.text().startsWith('[MeetPage] Restored participant identity:'),
-    });
-    consumer.catch(() => {});
     await navigate(page, `/meet/${result.event_id}`, 401);
     const response = await me;
     assert.equal(response.status(), 200);
     const data = await response.json();
-    const message = await consumer;
-    const consumed = await message.args()[1].jsonValue();
     await page.getByRole('button', { name: 'Settings', exact: true }).click({ trial: true });
     const cached = await page.evaluate(eventId => ({
       organizer_participant_id: localStorage.getItem(`organizer_participant_id_${eventId}`),
@@ -277,12 +273,11 @@ try {
       has_organizer_credential: Boolean(localStorage.getItem(`organizer_token_${eventId}`)),
       has_participant_credential: Boolean(localStorage.getItem(`participant_token_${eventId}`)),
     }), result.event_id);
-    identity = {
+    const identity = {
       api_status: response.status(), response_has_id: Object.hasOwn(data, 'id'),
       response_participant_id: data.participantId ?? null,
       response_is_organizer: data.isOrganizer,
-      consumer_has_id: typeof consumed.id === 'string', consumer_id: consumed.id ?? null,
-      consumer_is_organizer: consumed.isOrganizer, cached,
+      cached,
       organizer_settings_visible: await page.getByRole('button', { name: 'Settings', exact: true }).isVisible(),
     };
     await save('me-identity-observation', identity);
@@ -292,9 +287,49 @@ try {
     assert.equal(identity.organizer_settings_visible, true);
     await capture('04-reloaded-event');
   });
-  await check('Event me response matches the frontend consumer identity contract', async () => {
-    assert.equal(identity.consumer_id, result.participant_id,
-      'The API returns participantId while MeetPage consumes id; cached organizer controls are checked separately');
+  await check('Event me response restores organizer identity from the UI-issued token alone', async () => {
+    const before = await page.evaluate(eventId => {
+      localStorage.removeItem(`organizer_participant_id_${eventId}`);
+      localStorage.removeItem(`participant_id_${eventId}`);
+      return {
+        organizer_participant_id: localStorage.getItem(`organizer_participant_id_${eventId}`),
+        participant_id: localStorage.getItem(`participant_id_${eventId}`),
+        has_organizer_credential: Boolean(localStorage.getItem(`organizer_token_${eventId}`)),
+        has_participant_credential: Boolean(localStorage.getItem(`participant_token_${eventId}`)),
+      };
+    }, result.event_id);
+    await save('token-only-before-reload', before);
+    assert.equal(before.organizer_participant_id, null);
+    assert.equal(before.participant_id, null);
+    assert.equal(before.has_organizer_credential, true, 'Retain the organizer token created through the UI');
+    assert.equal(before.has_participant_credential, false);
+    const me = responseFor(page, `/api/events/${result.event_id}/me`, 'GET');
+    await navigate(page, `/meet/${result.event_id}`, 401);
+    const response = await me;
+    assert.equal(response.status(), 200);
+    const data = await response.json();
+    assert.equal(data.participantId, result.participant_id);
+    assert.equal(data.isOrganizer, true);
+    await page.waitForFunction(({ eventId, participantId }) =>
+      localStorage.getItem(`organizer_participant_id_${eventId}`) === participantId,
+    { eventId: result.event_id, participantId: result.participant_id });
+    await page.getByRole('button', { name: 'Settings', exact: true }).click({ trial: true });
+    const restored = await page.evaluate(eventId => ({
+      organizer_participant_id: localStorage.getItem(`organizer_participant_id_${eventId}`),
+      has_organizer_credential: Boolean(localStorage.getItem(`organizer_token_${eventId}`)),
+      has_participant_credential: Boolean(localStorage.getItem(`participant_token_${eventId}`)),
+    }), result.event_id);
+    assert.equal(restored.organizer_participant_id, result.participant_id);
+    assert.equal(restored.has_organizer_credential, true);
+    assert.equal(restored.has_participant_credential, false);
+    const identity = {
+      api_status: response.status(), response_participant_id: data.participantId,
+      response_is_organizer: data.isOrganizer, before, restored,
+      organizer_settings_visible: await page.getByRole('button', { name: 'Settings', exact: true }).isVisible(),
+    };
+    assert.equal(identity.organizer_settings_visible, true);
+    await save('token-only-identity-recovery', identity);
+    await capture('04b-token-only-recovery');
   }, { fatal: false });
 
   let userId;

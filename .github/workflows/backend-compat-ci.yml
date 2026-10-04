@@ -1,0 +1,60 @@
+name: Backend browser compatibility
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'client/**'
+      - 'server/**'
+      - '.agents/skills/verify-where2meet/**'
+      - '.github/workflows/backend-compat-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'client/**'
+      - 'server/**'
+      - '.agents/skills/verify-where2meet/**'
+      - '.github/workflows/backend-compat-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RUN_DIR: ${{ runner.temp }}/where2meet-browser
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install local database and browser dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16 redis-server
+          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
+          npm ci --prefix .agents/skills/verify-where2meet/helpers
+          cd .agents/skills/verify-where2meet/helpers
+          npx --no-install playwright install --with-deps chrome
+      - name: Run real frontend against compiled backend and migrated database
+        run: |
+          python3 .agents/skills/verify-where2meet/helpers/control.py launch --repo "$GITHUB_WORKSPACE" --frontend-repo "$GITHUB_WORKSPACE" --run "$RUN_DIR"
+          python3 .agents/skills/verify-where2meet/helpers/control.py drive --run "$RUN_DIR"
+      - name: Stop owned processes
+        if: always()
+        run: |
+          if [ -f "$RUN_DIR/run.json" ]; then
+            python3 .agents/skills/verify-where2meet/helpers/control.py cleanup --run "$RUN_DIR"
+          fi
+      - name: Save browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-browser-compatibility
+          path: |
+            ${{ env.RUN_DIR }}/evidence/*.json
+            ${{ env.RUN_DIR }}/evidence/*.png
+            ${{ env.RUN_DIR }}/evidence/*.aria.txt
+          if-no-files-found: ignore

@@ -2,6 +2,8 @@
 
 Rules for Claude when working on this project.
 
+The rewrite branch's current runtime and commands are described in [README.md](README.md) and [src/META.md](src/META.md). `META/ARCHITECTURE` is historical. The first lifecycle is incomplete as a production replacement; keep its unimplemented operations explicit and follow the scoped PPE acceptance plan.
+
 ---
 
 ## Before Every Commit

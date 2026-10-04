@@ -22,9 +22,9 @@ VERIFY_RUN="$(mktemp -d "${TMPDIR:-/tmp}/where2meet-verify.XXXXXX")"
 python3 "$VERIFY_SKILL/helpers/control.py" launch --repo "$VERIFY_REPO" --run "$VERIFY_RUN"
 ```
 
-The launcher installs each application's locked dependencies, creates a private PostgreSQL cluster and Redis instance, generates Prisma, and applies `db:push` only to its empty owned database. It starts the same Fastify entrypoint as `npm run dev:server`, without the file watcher, and Next's existing dev entrypoint with isolated ports. It then prints `RUN_DIR` and a doctor result. Require `status: PASS`, both dependencies `ok`, and an anonymous session response of 401. Read URLs and process identities from `run.json`; do not assume ports 3000/3001.
+The launcher installs each application's locked dependencies, creates a private PostgreSQL cluster and Redis instance, generates Prisma, and applies the checked-in migrations with `prisma migrate deploy` to its empty owned database. It builds and starts the compiled Fastify entrypoint and Next's existing dev entrypoint with isolated ports. It then prints `RUN_DIR` and a doctor result. Require `status: PASS`, both dependencies `ok`, and an anonymous session response of 401. Read URLs and process identities from `run.json`; do not assume ports 3000/3001.
 
-`db:push` bootstraps this disposable current-schema verification only. It does not validate a production database migration or historical-data import. The launcher records actual Node, PostgreSQL, and Redis versions. Match production versions separately before migration acceptance.
+The default launch uses `--schema-mode migrations --backend-mode compiled`. Use `--schema-mode push --backend-mode source` only to reproduce the old baseline, and retain those mode labels in its evidence. A successful empty-database migration does not validate upgrading a populated production database or importing historical data. The launcher records actual Node, PostgreSQL, and Redis versions. Match production versions separately before migration acceptance.
 
 Mock settings are explicitly off for both frontend routes and direct backend calls. Browser API, Next proxy, metadata lookup, and SSE use the same local backend. The launcher ignores ambient database URLs and application `.env` files. It forwards only the two explicitly supplied Google key variables, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` and `GOOGLE_MAPS_API_KEY`. Without them, location, map, venue, route, and publication success remain unverified. The no-address activity lifecycle still runs against the real backend.
 
@@ -70,9 +70,9 @@ Run the scripted desktop lifecycle:
 python3 "$VERIFY_SKILL/helpers/control.py" drive --run "$VERIFY_RUN"
 ```
 
-The script uses the actual `Occasion`, `Your name`, date/time picker, and `Create Meeting` controls. It creates an event without an optional location, checks the saved organizer, reloads to restore identity through `/me`, edits the title, opens the meeting in a separate anonymous browser, and deletes only that synthetic event. It checks backend reads and actual database rows after the UI mutations. It never calls Zustand setters, writes tokens into localStorage, or inserts fixtures into the database.
+The script uses the actual `Occasion`, `Your name`, date/time picker, and `Create Meeting` controls. It creates an event without an optional location, checks the saved organizer, reloads to restore identity through `/me`, edits the title, opens the meeting in a separate anonymous browser, and deletes only that synthetic event. It checks backend reads and actual database rows after the UI mutations. It also removes only the cached participant ID and reloads with the original UI-issued token, then requires `/me` to restore the correct ID and organizer controls. It never calls Zustand setters, writes tokens into localStorage, or inserts fixtures into the database.
 
-The script does not prove every entry in [event lifecycle](features/event-lifecycle.md). In particular, phone entry points, clipboard copying, date editing, presets, tutorial completion, and dashboard creation need their own mapped runs. Nor does it prove location, votes, realtime recovery, accounts, old-data import, or production performance. `result.json` names the exercised scope and exclusions. Organizer controls after reload can come from cached credentials. The accounts driver separately checks the known `/me` response-field mismatch; a successful HTTP response alone does not prove the page consumed the participant ID.
+The script does not prove every entry in [event lifecycle](features/event-lifecycle.md). In particular, phone entry points, clipboard copying, date editing, presets, tutorial completion, and dashboard creation need their own mapped runs. Nor does it prove location, votes, realtime recovery, accounts, old-data import, or production performance. `result.json` names the exercised scope and exclusions. Ordinary reload can pass using cached credentials. The token-only step additionally requires the page to consume `/me` and repair the missing participant ID. It fails on the historical response-field mismatch. This is a stricter assertion than the historical M0 lifecycle evidence.
 
 The real-Google desktop flow is supplied by [helpers/google-browser.mjs](helpers/google-browser.mjs). It creates two participants through separate browsers, verifies actual autocomplete and stored coordinates, searches real venues, checks driving and walking routes against displayed times, and exercises card voting, publishing, and reopening. Run it only after a successful doctor and with the Doppler launch above. It records failures per behavior; a known last-vote synchronization failure remains a failing result even when later publication checks succeed.
 
@@ -86,7 +86,7 @@ test "$VERIFY_GOOGLE_STATUS" -eq 0
 
 Always execute cleanup even after a failing driver. If your shell exits on the first failure, run cleanup in a `finally` step in your orchestration instead. Evidence uses the `google-` prefix and `google-result.json`; the ordinary `result.json` belongs to the separate no-location lifecycle driver. Review [current verification coverage](verification-status.md) before interpreting a feature's status.
 
-The [accounts driver](helpers/accounts-browser.mjs) covers registration, sign-in, logout, settings, organizer claims, and separate-browser dashboard access. It retains failing assertions for the known `/me` mismatch and missing anonymous-organizer auto-claim, then continues independent account checks. Require every selected check to pass before accepting an account migration. A FAIL result with passing individual checks remains FAIL overall.
+The [accounts driver](helpers/accounts-browser.mjs) covers registration, sign-in, logout, settings, organizer claims, and separate-browser dashboard access. Token-only `/me` recovery passes with the M1 frontend correction; anonymous-organizer auto-claim remains a failing assertion. Run this full account flow against the old backend while M1 account writes are unavailable. Require every selected check to pass before accepting an account migration. A FAIL result with passing individual checks remains FAIL overall.
 
 ```sh
 python3 "$VERIFY_SKILL/helpers/control.py" doctor --run "$VERIFY_RUN"
@@ -137,7 +137,28 @@ Capture both the action and resulting state. A screenshot, toast, optimistic cou
 
 Keep `FAILED`, `UNVERIFIED`, and `PASS` distinct. Missing keys, skipped entry points, browser errors affecting the selected path, or absent evidence cannot count as success. The automated scenario records Google-related page errors and excludes Google behavior; inspect these alongside its result. Do not normalize new failures into an allowlist simply to keep the migration green.
 
-The existing `server/tests/setup.ts` hardcodes ordinary local database and Redis ports. Do not run its test command against this run assuming these isolated URLs will be honored. Fix or explicitly isolate that test configuration before including it in this verification.
+The legacy server test setup hardcodes ordinary local ports. Candidate tests must accept the isolated URLs and create their own schema. Do not run legacy tests assuming these URLs will be honored.
+
+## Migration fixture and restart
+
+Migration fixtures are separate from the UI lifecycle. [helpers/legacy-fixture.mjs](helpers/legacy-fixture.mjs) calls the old backend's real HTTP create/register/login/claim operations in an owned run. It exports only that synthetic event and account, plus their related rows. Its second session was issued by the old API, then deliberately expired in the local database. It saves rows and credentials privately, outside the repository, and records only provenance, counts, and a content hash in shareable evidence. This is not a production export.
+
+```sh
+LEGACY_REPO="/absolute/path/to/pinned-legacy-monorepo"
+LEGACY_RUN="$(mktemp -d "${TMPDIR:-/tmp}/where2meet-legacy.XXXXXX")"
+FIXTURE_PARENT="$(mktemp -d "${TMPDIR:-/tmp}/where2meet-fixture.XXXXXX")"
+PRIVATE_FIXTURE_DIR="$FIXTURE_PARENT/rows"
+python3 "$VERIFY_SKILL/helpers/control.py" launch --repo "$LEGACY_REPO" --run "$LEGACY_RUN" --schema-mode push --backend-mode source
+node "$VERIFY_SKILL/helpers/legacy-fixture.mjs" "$LEGACY_RUN" "$PRIVATE_FIXTURE_DIR"
+```
+
+The private output directory must not already exist. Use the candidate's `server/scripts/import-cli.ts` with the candidate run's database URL to import `rows.json`. Compare all imported fields before authentication can alter a session. Repeat the import and require no changes. Never print or commit `credentials.json` or credential hashes.
+
+```sh
+python3 "$VERIFY_SKILL/helpers/control.py" restart-backend --run "$VERIFY_RUN"
+```
+
+Restart checks ownership before stopping only that run's backend, preserves its database, and records the old and new process IDs. Run `node "$VERIFY_SKILL/helpers/migration-proof.mjs" "$VERIFY_RUN" "$PRIVATE_FIXTURE_DIR"` to import twice, compare every selected row including the password hash, and verify the old participant token, valid session cookie, and expired cookie before and after restart. It also opens the original event ID in an anonymous browser. Copying a hash is not sufficient proof that the old credential works. Keep the UI lifecycle evidence separate from this fixture-based credential proof. Remove private fixture files after completing the rehearsal.
 
 ## Cleanup
 

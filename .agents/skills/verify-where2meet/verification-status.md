@@ -1,5 +1,28 @@
 # Recorded verification coverage
 
+## M1 replacement backend, 2026-10-04
+
+Backend revision `a60984a9c93c179e27877174d322d85fae94185c` ran with the clean, fixed frontend `05e6daa2245e31dfd142768b545b74cdb9a51476`. Local runtime versions were Node.js 24.19.0, PostgreSQL 14.17, and Redis 8.2.3. The backend ran its compiled entrypoint after all six checked-in migrations initialized an empty, owned database. The frontend ran in development mode with mocks off.
+
+| Run | Observed result | Evidence files |
+| --- | --- | --- |
+| Candidate C, no-location lifecycle | PASS. Create, organizer name, reload, recovery with only the original token, title edit, anonymous share view, and delete. API and stored rows corroborate the browser actions. | `2026-10-04-m1-candidate-c/evidence/result.json`, `actions.json`, `created-state.json`, `edited-state.json`, `deleted-state.json` |
+| Candidate D, final driver | PASS. Repeat the same lifecycle with the reviewed driver, deriving the created event ID from its share URL after checking HTTP 201. This avoids reading a discarded response body after navigation. | `2026-10-04-m1-candidate-d/evidence/result.json`, `actions.json` |
+| Candidate C, old-data import and restart | PASS. Preserve every exported field, retry without changes, accept old participant and valid session credentials, reject the deliberately expired session, repeat after restart, and open the original share link. | `2026-10-04-m1-candidate-c/evidence/migration-result.json`, `backend-restart.json`, `imported-share-link.png` |
+| Fixed frontend against old backend `5a158d8` | FAIL overall, with 15 of 16 account checks passing. Token-only `/me` recovery now passes. Anonymous organizer auto-claim still fails. | `2026-10-04-m1-accounts-oldbackend/evidence/accounts-result.json`, `accounts-token-only-identity-recovery.json` |
+
+The private import sample came from real create/register/login/claim requests to an isolated old backend. It contains one event, participant, user, identity, and account link, plus two sessions. One session was deliberately expired in that owned database. The old backend was stopped before candidate checks. Venue and Vote are empty in this sample; all eight model shapes, including populated votes and venues, have separate database integration tests. This is not a production export or historical-data audit.
+
+Server validation passed 21 tests, type checking, lint, formatting, module ownership checks, and compilation. The tests use real PostgreSQL transactions and Redis, and include import rollback/retry, permissions, stored votes, session expiration, SSE, degraded notifications, and negative architecture examples. Client validation passed 73 tests, type checking, and a production build; lint had zero errors and 52 existing warnings. The frontend build used the repository CI configuration, separate from the real-backend browser runs. Logs are in `2026-10-04-m1-checks/`.
+
+The first candidate's credential check had a fetch transport failure after restart despite a healthy restarted service. Later diagnostic requests did not reproduce it. The driver now opens fresh HTTP connections for restart checks; candidate B and C passed. Candidate B's lifecycle attempt lost its form title before submission during page initialization. The driver now waits for the initial session response and verifies inputs before submitting; candidate C passed. Failed evidence remains retained.
+
+M1 does **not** implement location/join, account writes, venue search/details, routes, vote writes, or publication. Those operations return 501. M0 Google results below do not verify this new backend. Password hashes are preserved, but new login is not implemented. Lost SSE broadcasts remain best effort, without replay.
+
+Railway PPE, the Node.js 20 Docker image, production frontend serving, and production cutover remain unverified. The local Docker engine was not running. The new CI includes an image build and browser compatibility job, but those remote results are not part of this local report. Follow [the PPE recipe](../../../server/docs/railway-ppe.md) before accepting a Railway deployment. No merge or deployment was performed.
+
+## Historical M0 baseline
+
 Original frontend and backend: `8f8535a17109b6e71f2106361d6685a5641d980e`.
 Compatible frontend: `d7a8bcd9238b9e20260f091c41e3de5e822da2ac`. Its server tree is unchanged from the original. This is a verified candidate for the listed paths, not approval to migrate or deploy.
 
@@ -14,11 +37,11 @@ All browser runs used disposable local PostgreSQL and Redis, fresh Chrome contex
 
 Evidence is retained locally under `/Users/waynewang/Documents/ChatGPT/where2meet/verification-evidence/`. Runtime directories were cleaned. Raw browser traces, credentials and evidence databases are not checked in. Rerun the shipped helpers to reproduce the assertions.
 
-## Account results
+### M0 account results
 
 Passed protected-route redirects, anonymous creation, cached organizer controls after reload, registration with a server session, signed-in creation with a persisted organizer claim, dashboard reload, name and fuzzy preference persistence, canceling unsaved settings, logout with session invalidation, signing in again, separate-browser anonymity, separate-browser sign-in and claimed dashboard card, opening that card, and no uncaught browser errors.
 
-The two failures remain acceptance failures:
+The M0 run recorded two acceptance failures. M1 resolves the first through the frontend correction above; the second remains open:
 
 - `/me` returns `participantId`; the page reads `id` and observes no participant ID. Existing local credentials still restore the organizer controls. Evidence: `accounts-me-identity-observation.json`.
 - Registering after anonymous organizer creation does not claim that event. No successful claim request was observed, and the database has no account link. Creating while signed in uses a separate claim path and passes. Evidence: `accounts-anonymous-claim-state.json`, `accounts-signed-in-creation-state.json`.
@@ -29,7 +52,7 @@ Cookie metadata and database checks record attributes, original expiration times
 
 Earlier account runs a-d contain a response-envelope mistake and navigation-related response-body capture failures in the draft driver. They are preserved as failed attempts. The final driver verifies the UI and corroborates state with read-only requests sharing the browser session.
 
-## Automated checks
+### M0 automated checks
 
 The initial five regression tests reported `Tests 3 failed | 2 passed (5)`. After the fix, eight SSE tests and all 59 client tests passed. TypeScript checking passed. ESLint had zero errors and 54 existing console warnings. The production bundle built with the repository CI configuration; that mock-enabled build is separate from the real-backend browser proof.
 

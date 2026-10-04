@@ -1,6 +1,8 @@
 # Where2Meet verification map
 
-This directory is the maintained map for Where2Meet's browser behavior, based on `8f8535a` with the compatible SSE consumer at `d7a8bcd`. Read this index before driving a feature. A recipe is not proof that its entry points work. See [recorded verification coverage](../verification-status.md) for each run's revision and scope.
+This directory maps the existing Where2Meet product behavior. Read this index before driving a feature. A recipe is not proof that its entry points work. See [recorded verification coverage](../verification-status.md) for each run's revision and scope.
+
+The M1 replacement backend currently supports only no-location event creation/read/edit/delete, organizer name and identity, stored vote reads, session reads, and authenticated SSE. Other operations explicitly return 501. Run account-write and Google recipes against the old backend until their replacement modules exist. The fixed M1 frontend is `05e6daa`; historical M0 Google proof uses `d7a8bcd` and the old backend.
 
 ## Baseline preconditions
 
@@ -28,13 +30,13 @@ This directory is the maintained map for Where2Meet's browser behavior, based on
 
 ## Features
 
-| Feature | Entry coverage | Recorded proof status |
-| --- | --- | --- |
-| [Event lifecycle](./event-lifecycle.md) | Landing creation, presets, dashboard creation, edit, share, delete, tutorial, help | PARTIAL: basic lifecycle verified; other entries unverified |
-| [Participants](./participants.md) | Organizer location, add, guest join, edit, privacy, remove, leave, phone People | PARTIAL: inline organizer location and guest join verified |
-| [Places and routes](./places-routes.md) | Desktop and phone search, categories, suggestions, cards, markers, travel modes, details, statistics | PARTIAL: map, text search, details, driving and walking verified |
-| [Voting and publishing](./voting-publishing.md) | Card vote, detail vote/save, shortlist, live updates, publish, unpublish | PARTIAL: card voting, last-vote removal, publish and unpublish verified at d7a8bcd; other entries unverified |
-| [Accounts and claims](./accounts-claims.md) | Register, sign in/out, protected dashboard, profile, default address, claims, recovery limits | PARTIAL: 14 selected checks pass; /me consumption and anonymous organizer auto-claim fail; other entries unverified |
+| Feature | Entry coverage | Old backend proof | M1 backend proof |
+| --- | --- | --- | --- |
+| [Event lifecycle](./event-lifecycle.md) | Landing creation, presets, dashboard creation, edit, share, delete, tutorial, help | Basic lifecycle verified | Basic no-location lifecycle and token-only identity recovery verified; other entries unverified |
+| [Participants](./participants.md) | Organizer location, add, guest join, edit, privacy, remove, leave, phone People | Inline organizer location and guest join verified | Organizer name and identity verified; location/join unavailable |
+| [Places and routes](./places-routes.md) | Search, suggestions, cards, markers, modes, details, statistics | Map, text search, details, driving and walking verified | Search and routing unavailable |
+| [Voting and publishing](./voting-publishing.md) | Vote, shortlist, live updates, publish, unpublish | Card voting, last-vote removal, publish and unpublish verified at d7a8bcd | Stored vote reads tested through HTTP; writes and publication unavailable |
+| [Accounts and claims](./accounts-claims.md) | Register, sign in/out, dashboard, profile, claims | 15 checks pass with fixed frontend; anonymous organizer auto-claim fails | Imported session validity and expiry verified; account writes unavailable |
 
 ## Current source changes and hazards
 
