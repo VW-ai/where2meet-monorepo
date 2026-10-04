@@ -6,7 +6,7 @@ The M1 replacement backend currently supports only no-location event creation/re
 
 ## Baseline preconditions
 
-- Follow the parent skill's launch and doctor instructions. Use only its disposable source copy, PostgreSQL database, Redis instance, browser profile, and owned ports.
+- Follow the parent skill's selected local or PPE recipe. Local runs own their database, Redis, browser profile, and ports. PPE runs use the explicitly identified remote resources and own only their local frontend, browser profile, and recorded synthetic events.
 - Read `client_url` and `backend_url` from that run's `run.json`; never assume the ordinary development ports are available.
 - Keep frontend and backend mocks off. The event lifecycle can run without Google credentials by leaving the organizer's optional address blank. Location, venue, route, and publication success need real browser and server Google credentials.
 - These baseline recipes use no fixtures. A separately labeled provider diagnostic may substitute responses only at an existing external-provider boundary; its result must not be reported as real-provider proof.

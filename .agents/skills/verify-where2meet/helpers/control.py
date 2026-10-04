@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import signal
 import socket
@@ -18,6 +19,7 @@ import uuid
 
 
 HELPERS = Path(__file__).resolve().parent
+LISTENER_TOOL = "ss" if sys.platform.startswith("linux") else "lsof"
 EXCLUDED = {"node_modules", ".next", ".git", "dist", "coverage", ".turbo", "next-env.d.ts"}
 
 
@@ -42,9 +44,20 @@ def require_owned_listener(state, name):
     record = state["processes"][name]
     if process_identity(record["pid"]) != record["identity"]:
         raise RuntimeError(f"{name} process identity does not match this run")
-    listeners = subprocess.check_output(
-        ["lsof", "-t", "-nP", f"-iTCP:{state['ports'][name]}", "-sTCP:LISTEN"], text=True)
-    if not listeners.strip() or any(os.getpgid(int(pid)) != record["pid"] for pid in listeners.split()):
+    if LISTENER_TOOL == "ss":
+        output = subprocess.check_output(
+            ["ss", "-H", "-ltnp", f"sport = :{state['ports'][name]}"], text=True)
+        listeners = []
+        for row in output.splitlines():
+            pids = re.findall(r"\bpid=(\d+)\b", row)
+            if not pids:
+                raise RuntimeError(f"{name} listener ownership is unavailable")
+            listeners.extend(int(pid) for pid in pids)
+    else:
+        output = subprocess.check_output(
+            ["lsof", "-t", "-nP", f"-iTCP:{state['ports'][name]}", "-sTCP:LISTEN"], text=True)
+        listeners = [int(pid) for pid in output.split()]
+    if not listeners or any(os.getpgid(pid) != record["pid"] for pid in listeners):
         raise RuntimeError(f"{name} port is not owned by this run")
 
 
@@ -229,7 +242,7 @@ def restart_backend(run):
 def launch(run, repo, frontend_repo, schema_mode, backend_mode):
     if (run / "run.json").exists():
         raise RuntimeError("Run already exists. Use a new run directory, or doctor/cleanup the existing run")
-    for name in ("node", "npm", "initdb", "postgres", "pg_isready", "createdb", "psql", "redis-server", "redis-cli", "lsof", "git"):
+    for name in ("node", "npm", "initdb", "postgres", "pg_isready", "createdb", "psql", "redis-server", "redis-cli", LISTENER_TOOL, "git"):
         if not shutil.which(name):
             raise RuntimeError(f"Missing prerequisite: {name}")
     major = int(subprocess.check_output(["node", "-p", "process.versions.node.split('.')[0]"], text=True))

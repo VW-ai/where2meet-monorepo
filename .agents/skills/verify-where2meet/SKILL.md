@@ -1,17 +1,27 @@
 ---
 name: verify-where2meet
-description: Launch an isolated Where2Meet web app and verify real browser behavior, persistence, and permissions. Use during feature development, regression investigation, or backend migration with a fixed original frontend.
+description: Verify Where2Meet browser behavior, persistence, and permissions locally or against an identified Railway PPE deployment. Use during feature development, regression investigation, and backend migration with a fixed frontend.
 ---
 
 # Verify Where2Meet
 
 Read [the feature map](features/README.md), then select the affected entries. The primary surface is the Next.js web UI. Fastify HTTP responses and read-only PostgreSQL queries corroborate browser actions. Existing Vitest tests do not replace these flows.
 
+## Backend change acceptance
+
+For backend behavior, persistence, or deployment changes, run the affected domain boundary tests and verify the deployed candidate in PPE. When the frontend is unchanged, keep its checkout fixed and clean. A local frontend connected to the identified PPE backend provides integration evidence without frontend hosting access. Follow [PPE verification](ppe.md); the local launcher below cannot target a remote database.
+
+During exploration, turn each new or changed behavior into a repeatable boundary assertion. Call the public HTTP operation or domain operation and assert its result, stored state, and relevant failure behavior. For example, a rejected cross-event credential must leave the event unchanged. Do not substitute assertions about repository method calls for that outcome. Keep useful pure-rule tests where they catch separate errors; avoid duplicating every internal function with a test.
+
+Run persistent assertions in CI. AI may discover a flow and improve its driver, but a release check uses fixed expectations and preserves failures. Record the frontend revision, backend source and deployment, exercised actions, boundary results, and cleanup evidence. A local PASS does not satisfy PPE acceptance. A PPE PASS covers only the listed behavior; production frontend hosting and historical-data migration need their own proof. This requirement does not authorize a production deployment or a merge.
+
+## Local verification
+
 This launcher targets the current Next.js and Fastify monorepo. [verification-status.md](verification-status.md) records the original and compatible frontend revisions. It copies the working tree, including local edits, into an isolated directory and excludes dependencies, generated output, and `.env*` files. Each run owns its database, Redis, ports, and fresh browser contexts.
 
 ## Launch
 
-Prerequisites on PATH: Python 3, Node 20/22/24 LTS, npm, Git, `initdb`, `postgres`, `pg_isready`, `createdb`, `psql`, `redis-server`, `redis-cli`, and `lsof`. Google Chrome must be installed. The helper uses its own pinned Playwright dependency. It does not use an existing Chrome profile or install a browser.
+Prerequisites on PATH: Python 3, Node 20/22/24 LTS, npm, Git, `initdb`, `postgres`, `pg_isready`, `createdb`, `psql`, `redis-server`, and `redis-cli`. Port ownership checks use `ss` on Linux and `lsof` on macOS. Google Chrome must be installed. The helper uses its own pinned Playwright dependency. It does not use an existing Chrome profile or install a browser.
 
 Run from the monorepo root. Keep `VERIFY_RUN` for all commands in this run.
 

@@ -1,5 +1,15 @@
 # Recorded verification coverage
 
+## Railway PPE, 2026-10-04
+
+PASS for the M1 no-location lifecycle against deployment `c49fa4e7-f179-42fd-9103-9586e6b2d486`, backend source `9850114`, and clean local frontend `05e6daa`. The final fixed-verifier run is `2026-10-04-ppe-d`. It verified UI creation, organizer identity and token-only recovery, title editing, anonymous sharing, and deletion with read-only remote database corroboration. Public HTTP checks covered missing/invalid credentials, invalid title edits with unchanged state, empty vote reads and unauthorized sessions. The authenticated stream supplied a heartbeat and the title-update notice. Cleanup removed the synthetic event and local processes.
+
+[Hosted browser CI](https://github.com/VW-ai/where2meet-monorepo/actions/runs/37243295396) passed on Linux with verifier revision `3516fa5`. All 16 boundary and listener tests passed without skips, followed by the complete local browser lifecycle and successful cleanup. Server CI also passed the 21 backend tests, type and module checks, lint, formatting, and Docker image build. Remote PPE acceptance remains an explicit separate run.
+
+See [the complete PPE record](../../../server/docs/ppe-verification-2026-10-04.md) for identities, evidence files, earlier attempts and limitations. Node.js 20.20.2, PostgreSQL 18.6 and Redis 8.2.10 ran in PPE; Next ran locally in development mode with mocks off. Existing production PostgreSQL uses version 17, so this is not version-parity or database-upgrade proof. Google behavior, unimplemented operations, historical import and production frontend hosting remain unverified for PPE.
+
+The deployment and browser evidence supersede the PPE-unverified status in the earlier local report below. No migration PR was merged and staging/production were not deployed by this setup.
+
 ## M1 replacement backend, 2026-10-04
 
 Backend revision `a60984a9c93c179e27877174d322d85fae94185c` ran with the clean, fixed frontend `05e6daa2245e31dfd142768b545b74cdb9a51476`. Local runtime versions were Node.js 24.19.0, PostgreSQL 14.17, and Redis 8.2.3. The backend ran its compiled entrypoint after all six checked-in migrations initialized an empty, owned database. The frontend ran in development mode with mocks off.
