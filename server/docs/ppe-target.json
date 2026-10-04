@@ -1,0 +1,22 @@
+{
+  "kind": "where2meet-ppe-target-v1",
+  "railway": {
+    "project_id": "848dc1e0-d9c2-4571-b542-73a1efdc5848",
+    "environment_id": "b4f01e02-40e8-406d-94a7-3797b3db4eea",
+    "environment_name": "ppe",
+    "backend_service_id": "27346658-ce2f-4da5-a999-7c4cb549f9a0",
+    "postgres_service_id": "d1eaf58e-bcdf-4717-8a67-33874c907739",
+    "redis_service_id": "6e5789ef-1f5d-4084-bcf4-24bb8591f94d",
+    "deployment_id": "c49fa4e7-f179-42fd-9103-9586e6b2d486",
+    "backend_origin": "https://ppe-backend-ppe.up.railway.app"
+  },
+  "frontend": {
+    "revision": "05e6daa2245e31dfd142768b545b74cdb9a51476",
+    "origin": "http://127.0.0.1:4317"
+  },
+  "source": {
+    "revision": "985011495ad98a4bfecbcf6eb8a97fc93d550955",
+    "server_tree_digest": "23ddbd58df6e215c621fccec864a67fe76d141ec20ce1055a58bc21c79aa2009",
+    "uploaded_artifact_digest": "0d01221db62a33a6333cb098c58e0b1f87c835b6a7f6fbc75775ea473ff53f79"
+  }
+}

@@ -23,17 +23,19 @@ jobs:
   lifecycle:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      RUN_DIR: ${{ runner.temp }}/where2meet-browser
     steps:
+      - name: Set browser run directory
+        run: echo "RUN_DIR=$RUNNER_TEMP/where2meet-browser" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
+      - name: Test PPE target and cleanup boundaries
+        run: python3 -m unittest discover -s .agents/skills/verify-where2meet/helpers -p 'test_ppe.py' -v
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Install local database and browser dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-16 redis-server
+          sudo apt-get install -y postgresql-16 redis-server lsof
           echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
           npm ci --prefix .agents/skills/verify-where2meet/helpers
           cd .agents/skills/verify-where2meet/helpers
