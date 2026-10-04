@@ -6,9 +6,10 @@ import { OCCASIONS, type Occasion } from '@/content/blog/posts';
 import { findCity, searchPlaces } from '@/features/blog/lib/google-places';
 import { createIntents } from '@/features/blog/lib/latest-intent';
 import {
+  dataProviders,
   describeResults,
   formatRating,
-  type PhotoCredit,
+  type Credit,
   type PlaceSummary,
   type SearchArea,
 } from '@/features/blog/lib/places';
@@ -175,6 +176,8 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
         ? LOAD_FAILED
         : '';
 
+  const providers = view.status === 'ready' ? dataProviders(view.places) : [];
+
   function closeCityForm() {
     setCityForm('closed');
     setNotice(null);
@@ -259,12 +262,16 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
 
       <Results view={view} onRetry={retry} />
 
-      <p
-        translate="no"
-        className="mt-4 text-right font-[Roboto,Arial,sans-serif] text-xs text-[#5e5e5e]"
-      >
-        Google Maps
-      </p>
+      <div className="mt-4 flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1 text-xs text-[#5e5e5e]">
+        {providers.length > 0 && (
+          <p>
+            Data from <CreditLinks credits={providers} />
+          </p>
+        )}
+        <p translate="no" className="font-[Roboto,Arial,sans-serif]">
+          Google Maps
+        </p>
+      </div>
     </section>
   );
 }
@@ -370,29 +377,32 @@ function PlaceCard({ place }: { place: PlaceSummary }) {
   );
 }
 
-function PhotoCredits({ credits }: { credits: PhotoCredit[] }) {
+function PhotoCredits({ credits }: { credits: Credit[] }) {
   return (
-    <p className="absolute bottom-2 left-2 z-10 max-w-[calc(100%-1rem)] truncate rounded-full bg-black/55 px-2 py-0.5 text-[11px] leading-4 text-white">
-      Photo:{' '}
-      {credits.map((credit, index) => (
-        <span key={`${credit.name}-${index}`}>
-          {index > 0 && ', '}
-          {credit.url ? (
-            <a
-              href={credit.url}
-              target="_blank"
-              rel="noopener"
-              className="underline-offset-2 hover:underline focus:outline-none focus-visible:underline"
-            >
-              {credit.name}
-            </a>
-          ) : (
-            credit.name
-          )}
-        </span>
-      ))}
+    <p className="absolute bottom-2 left-2 z-10 max-w-[calc(100%-1rem)] whitespace-normal rounded-lg bg-black/55 px-2 py-0.5 text-[11px] leading-4 text-white">
+      Photo: <CreditLinks credits={credits} />
     </p>
   );
+}
+
+function CreditLinks({ credits }: { credits: Credit[] }) {
+  return credits.map((credit, index) => (
+    <span key={`${credit.name}-${index}`}>
+      {index > 0 && ', '}
+      {credit.url ? (
+        <a
+          href={credit.url}
+          target="_blank"
+          rel="noopener"
+          className="underline decoration-current/40 underline-offset-2 hover:decoration-current focus:outline-none focus-visible:decoration-current"
+        >
+          {credit.name}
+        </a>
+      ) : (
+        credit.name
+      )}
+    </span>
+  ));
 }
 
 function SkeletonCard() {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  dataProviders,
   describeResults,
   formatRating,
   pickPlaces,
@@ -7,7 +8,11 @@ import {
   type PlaceSummary,
 } from '../places';
 
-function place(id: string, hasPhoto = true): PlaceSummary {
+function place(
+  id: string,
+  hasPhoto = true,
+  providers: PlaceSummary['providers'] = []
+): PlaceSummary {
   return {
     id,
     name: id,
@@ -16,6 +21,7 @@ function place(id: string, hasPhoto = true): PlaceSummary {
     address: null,
     rating: null,
     photo: hasPhoto ? { url: `https://example.com/${id}.jpg`, credits: [] } : null,
+    providers,
   };
 }
 
@@ -65,5 +71,19 @@ describe('describeResults', () => {
     [0, 'No places came up near Chicago.'],
   ])('describes %i results', (count, expected) => {
     expect(describeResults(count, 'Chicago')).toBe(expected);
+  });
+});
+
+describe('dataProviders', () => {
+  it('lists each provider once, in order of first appearance', () => {
+    const yelp = { name: 'Yelp', url: 'https://www.yelp.com/' };
+    const local = { name: 'Local Guide Co', url: null };
+
+    expect(
+      dataProviders([place('a', true, [yelp]), place('b'), place('c', true, [local, yelp])])
+    ).toEqual([
+      { name: 'Yelp', url: 'https://www.yelp.com/' },
+      { name: 'Local Guide Co', url: null },
+    ]);
   });
 });

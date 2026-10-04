@@ -16,6 +16,7 @@ const CARD_FIELDS = [
   'formattedAddress',
   'googleMapsURI',
   'primaryTypeDisplayName',
+  'attributions',
 ];
 
 export async function searchPlaces(
@@ -77,6 +78,9 @@ function toPlaceSummary(place: google.maps.places.Place): PlaceSummary[] {
             })),
           }
         : null,
+      providers: (place.attributions ?? []).flatMap(({ provider, providerURI }) =>
+        provider ? [{ name: provider, url: providerURI }] : []
+      ),
     },
   ];
 }

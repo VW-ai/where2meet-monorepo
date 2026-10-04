@@ -6,7 +6,8 @@ export interface SearchArea {
   center: Location;
 }
 
-export interface PhotoCredit {
+/** A photo author or a data provider that Google asks us to credit, linked when it has a page. */
+export interface Credit {
   name: string;
   url: string | null;
 }
@@ -19,7 +20,9 @@ export interface PlaceSummary {
   type: string | null;
   address: string | null;
   rating: { value: number; count: number } | null;
-  photo: { url: string; credits: PhotoCredit[] } | null;
+  photo: { url: string; credits: Credit[] } | null;
+  /** Third parties Google got some of this place's details from. */
+  providers: Credit[];
 }
 
 /**
@@ -62,4 +65,13 @@ export function shortAddress(formattedAddress: string): string {
 export function describeResults(count: number, near: string): string {
   if (count === 0) return `No places came up near ${near}.`;
   return `Showing ${count} ${count === 1 ? 'place' : 'places'} near ${near}.`;
+}
+
+/** Every data provider behind the shown places, once each. */
+export function dataProviders(places: readonly PlaceSummary[]): Credit[] {
+  const byName = new Map<string, Credit>();
+  for (const provider of places.flatMap((place) => place.providers)) {
+    if (!byName.has(provider.name)) byName.set(provider.name, provider);
+  }
+  return [...byName.values()];
 }
