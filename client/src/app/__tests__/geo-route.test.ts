@@ -5,33 +5,17 @@ function requestGeo(headers: Record<string, string>) {
   return GET(new Request('http://localhost/api/geo', { headers }));
 }
 
-const SAN_FRANCISCO = {
-  city: 'San Francisco',
-  region: 'CA',
-  country: 'US',
-  lat: 37.7749,
-  lng: -122.4194,
-  source: 'default',
-};
+const SAN_FRANCISCO = { city: 'San Francisco', lat: 37.7749, lng: -122.4194 };
 
 describe('GET /api/geo', () => {
   it("returns the reader's city from Vercel's headers, decoded", async () => {
     const response = requestGeo({
       'x-vercel-ip-city': 'S%C3%A3o%20Paulo',
-      'x-vercel-ip-country-region': 'SP',
-      'x-vercel-ip-country': 'BR',
       'x-vercel-ip-latitude': '-23.5475',
       'x-vercel-ip-longitude': '-46.6361',
     });
 
-    expect(await response.json()).toEqual({
-      city: 'São Paulo',
-      region: 'SP',
-      country: 'BR',
-      lat: -23.5475,
-      lng: -46.6361,
-      source: 'ip',
-    });
+    expect(await response.json()).toEqual({ city: 'São Paulo', lat: -23.5475, lng: -46.6361 });
     expect(response.headers.get('cache-control')).toBe('private, no-store');
   });
 

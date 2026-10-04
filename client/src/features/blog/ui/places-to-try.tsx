@@ -10,7 +10,7 @@ import {
   type PlaceSummary,
   type SearchArea,
 } from '@/features/blog/lib/places';
-import type { VisitorGeo } from '@/shared/lib/visitor-geo';
+import { parseVisitorGeo } from '@/shared/lib/visitor-geo';
 import type { Location } from '@/shared/types/map';
 
 type View =
@@ -40,8 +40,8 @@ const cardItem = `relative w-[80%] shrink-0 snap-start overflow-hidden rounded-[
 async function fetchVisitorArea(): Promise<SearchArea> {
   const response = await fetch('/api/geo');
   if (!response.ok) throw new Error(`GET /api/geo returned ${response.status}`);
-  const geo: VisitorGeo = await response.json();
-  return { near: geo.city, center: { lat: geo.lat, lng: geo.lng } };
+  const { city, lat, lng } = parseVisitorGeo(await response.json());
+  return { near: city, center: { lat, lng } };
 }
 
 function currentPosition(): Promise<Location> {
