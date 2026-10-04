@@ -17,7 +17,7 @@ The backend source came from a clean Git archive. Its recorded SHA-256 describes
 
 ## Browser and domain boundary results
 
-The final run is `2026-10-04-ppe-c` under the local `verification-evidence/` directory. `result.json` is PASS and `cleanup.json` is cleaned. The verifier checked that its source fingerprint did not change during the proof.
+The final run is `2026-10-04-ppe-d` under the local `verification-evidence/` directory. `result.json` is PASS and `cleanup.json` is cleaned. The verifier fingerprint is `5efbb81cf2e05cd660ba85698ebd0a9a352f4b71d5381628bbcd3cee10b50436`, unchanged between verification and cleanup. The run repeated the earlier successful C proof after the Linux listener-check fix. Both temporary verification SSH identities were revoked and their private files deleted after cleanup.
 
 | Operation | Observed result | Evidence in `evidence/` |
 | --- | --- | --- |
@@ -46,6 +46,8 @@ The verification helper has 11 credential-free PPE boundary tests and five local
 The backend browser workflow previously failed before scheduling a job because job-level `env` used the unavailable `runner` context. Its first step now writes the runner directory to `GITHUB_ENV`. A separate workflow runs actionlint, ShellCheck, and Pyflakes so an invalid browser workflow can still receive a failing check. All seven workflow files passed local validation with these integrations enabled.
 
 The hosted browser run then exposed a Linux listener inspection defect. In [the diagnostic run](https://github.com/VW-ai/where2meet-monorepo/actions/runs/37242807965), Next still returned HTTP 200 and its child belonged to the recorded process group. `ss` found the listener, while ordinary and privileged `lsof 4.95` omitted it. Linux verification now uses `ss` and rejects any listener without a visible PID in the owned group. macOS retains `lsof`. CI keeps service logs and sanitized run metadata when launch fails.
+
+[The corrected hosted run](https://github.com/VW-ai/where2meet-monorepo/actions/runs/37243295396) passed all 16 tests on Linux without skips, including the Next process-name regression. The browser result and process ownership checks passed, deletion returned 404 with no remaining event or participant rows, and cleanup reported no issues. The run tested PR merge commit `1c39b9a`, containing verifier revision `3516fa5` on backend revision `9850114`. This local CI proof is separate from the Railway PPE D proof above.
 
 ## Limits
 
