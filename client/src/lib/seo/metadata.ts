@@ -55,6 +55,9 @@ export interface MetadataOptions {
    */
   canonical?: string;
 
+  /** Open Graph image, drawn at 1200x630 (default: the site share image) */
+  image?: { url: string; alt: string };
+
   /** OpenGraph type (default: 'website') */
   ogType?: 'website' | 'article';
 
@@ -126,6 +129,7 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
     title,
     description = SITE_CONFIG.description,
     canonical,
+    image = SHARE_IMAGE,
     ogType = 'website',
     robots,
     article,
@@ -147,7 +151,9 @@ export function createMetadata(options: MetadataOptions = {}): Metadata {
       siteName: SITE_CONFIG.name,
       title: fullTitle,
       description,
-      images: [SHARE_IMAGE],
+      images: [
+        { url: image.url, alt: image.alt, width: SHARE_IMAGE.width, height: SHARE_IMAGE.height },
+      ],
     },
 
     // Twitter
@@ -243,6 +249,7 @@ export function createArticleMetadata(options: {
   title: string;
   description: string;
   canonical?: string;
+  image?: MetadataOptions['image'];
   publishedTime: string;
   modifiedTime?: string;
   authors?: string[];
@@ -252,6 +259,7 @@ export function createArticleMetadata(options: {
     title: options.title,
     description: options.description,
     canonical: options.canonical,
+    image: options.image,
     ogType: 'article',
     robots: {
       index: true,

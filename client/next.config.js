@@ -1,3 +1,5 @@
+const createMDX = require('@next/mdx');
+
 /** @type {import('next').NextConfig} */
 
 /** Canonical production origin. Keep in sync with SITE_CONFIG.url in src/lib/seo/metadata.ts. */
@@ -78,4 +80,5 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Blog post bodies in src/content/blog are MDX, styled by src/mdx-components.tsx.
+module.exports = createMDX()(nextConfig);

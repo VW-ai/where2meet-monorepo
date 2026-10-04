@@ -4,14 +4,18 @@ import { describe, expect, it } from 'vitest';
 import {
   SITE_CONFIG,
   buildPageTitle,
+  createArticleMetadata,
   createMeetingPageMetadata,
   createMetadata,
   toAbsoluteUrl,
 } from '@/lib/seo/metadata';
 import {
+  generateBlogPostingSchema,
+  generateBreadcrumbSchema,
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
+import { getPost } from '@/content/blog/posts';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
@@ -66,6 +70,43 @@ describe('createMetadata', () => {
 
     expect(metadata.alternates.canonical).toBe(`${CANONICAL_ORIGIN}/faq`);
     expect(metadata.openGraph.url).toBe(`${CANONICAL_ORIGIN}/faq`);
+  });
+
+  it('links the site share image by default', () => {
+    const metadata = asJson<{ openGraph: { images: unknown[] } }>(createMetadata({ title: 'FAQ' }));
+    expect(metadata.openGraph.images).toEqual([
+      {
+        url: '/opengraph-image',
+        alt: 'Where2Meet: Plan where to meet, together',
+        width: 1200,
+        height: 630,
+      },
+    ]);
+  });
+
+  it('builds article metadata with its own share image and dates', () => {
+    const metadata = asJson<{
+      title: string;
+      alternates: { canonical: string };
+      openGraph: { type: string; publishedTime: string; modifiedTime: string; images: unknown[] };
+    }>(
+      createArticleMetadata({
+        title: 'A post',
+        description: 'About a post',
+        canonical: '/blog/a-post',
+        image: { url: '/blog/a-post/cover.png', alt: 'The cover' },
+        publishedTime: '2026-10-04',
+        modifiedTime: '2026-10-05',
+      })
+    );
+    expect(metadata.title).toBe('A post | Where2Meet');
+    expect(metadata.alternates.canonical).toBe(`${CANONICAL_ORIGIN}/blog/a-post`);
+    expect(metadata.openGraph).toMatchObject({
+      type: 'article',
+      publishedTime: '2026-10-04',
+      modifiedTime: '2026-10-05',
+      images: [{ url: '/blog/a-post/cover.png', alt: 'The cover', width: 1200, height: 630 }],
+    });
   });
 
   it('marks meeting pages noindex but follow', () => {
@@ -143,6 +184,43 @@ describe('structured data', () => {
     const organization = generateOrganizationSchema();
     expect(organization.url).toBe(CANONICAL_ORIGIN);
     expect(organization.logo).toBe(`${CANONICAL_ORIGIN}/logo.png`);
+  });
+
+  it('describes a blog post as a BlogPosting by the Where2Meet team', () => {
+    const post = getPost('how-to-choose-a-team-meeting-location');
+    expect(post).toBeDefined();
+    expect(generateBlogPostingSchema(post!)).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: 'How to choose a team meeting location everyone can reach',
+      description:
+        'Your team is spread across town. Compare travel times, pick a venue that suits the meeting, and settle on a place without a week of back-and-forth.',
+      image: `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location/cover.png`,
+      datePublished: '2026-10-04',
+      dateModified: '2026-10-04',
+      author: { '@type': 'Organization', name: 'The Where2Meet team', url: CANONICAL_ORIGIN },
+      publisher: { '@id': `${CANONICAL_ORIGIN}/#organization` },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
+      },
+    });
+  });
+
+  it('numbers breadcrumbs from 1 with absolute www URLs', () => {
+    expect(
+      generateBreadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: 'Blog', path: '/blog' },
+      ])
+    ).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${CANONICAL_ORIGIN}/` },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${CANONICAL_ORIGIN}/blog` },
+      ],
+    });
   });
 
   it('describes a free web application without fabricated ratings', () => {
