@@ -31,7 +31,6 @@
 src/
 ├── app/api/           # API route handlers (mock implementation)
 ├── lib/
-│   ├── api/mock/      # Mock autocomplete data
 │   └── google-maps/   # Google Maps API wrappers
 ├── mock-server/       # Mock data store & persistence
 ├── store/             # Zustand stores (frontend state)
@@ -62,34 +61,7 @@ Used for venue search results when Google Places API is not available.
 }
 ```
 
-### 2. Mock Address Autocomplete (52 NYC addresses)
-
-**File:** `src/lib/api/mock/places-autocomplete.ts`
-
-Exported as `NYC_ADDRESSES` - used for participant address input.
-
-```typescript
-{
-  place_id: 'mock_empire_state',
-  main_text: '350 5th Ave',
-  secondary_text: 'New York, NY',
-  full_address: '350 5th Ave, New York, NY 10118'
-}
-```
-
-### 3. Mock Venue Autocomplete (90+ NYC venues)
-
-**File:** `src/lib/api/mock/venue-autocomplete.ts`
-
-Categories: Gyms (25), Bars (30), Cafes (25), Things To Do (20)
-
-### 4. Mock Geocoding
-
-**File:** `src/lib/api/mock/geocoding.ts`
-
-Falls back to random NYC coordinates when Google API key is missing.
-
-### 5. Mock Data Store (Persistence)
+### 2. Mock Data Store (Persistence)
 
 **File:** `src/mock-server/store.ts`
 
@@ -696,15 +668,15 @@ POST /api/events/[id]/publish        # Publish final venue
 
 ### File Locations Summary
 
-| What             | Where                                        |
-| ---------------- | -------------------------------------------- |
-| API Routes       | `src/app/api/`                               |
-| Type Definitions | `src/types/`                                 |
-| Mock Data        | `src/mock-server/data/`, `src/lib/api/mock/` |
-| Mock Store       | `src/mock-server/store.ts`                   |
-| Persistence      | `src/mock-server/services/persistence.ts`    |
-| Google Maps      | `src/lib/google-maps/`                       |
-| Frontend State   | `src/store/`                                 |
+| What             | Where                                     |
+| ---------------- | ----------------------------------------- |
+| API Routes       | `src/app/api/`                            |
+| Type Definitions | `src/types/`                              |
+| Mock Data        | `src/mock-server/data/`                   |
+| Mock Store       | `src/mock-server/store.ts`                |
+| Persistence      | `src/mock-server/services/persistence.ts` |
+| Google Maps      | `src/lib/google-maps/`                    |
+| Frontend State   | `src/store/`                              |
 
 ### Environment Variables
 
