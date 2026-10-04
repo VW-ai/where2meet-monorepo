@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 
 import { LocateFixed, MapPin, RotateCw, Search, Star, X } from 'lucide-react';
 import { OCCASIONS, type Occasion } from '@/content/blog/posts';
 import { findCity, searchPlaces } from '@/features/blog/lib/google-places';
+import { createIntents } from '@/features/blog/lib/latest-intent';
 import {
   formatRating,
   type PhotoCredit,
@@ -29,8 +30,8 @@ const SKELETON_COUNT = 6;
 
 const focusRing =
   'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b73540]';
-const pillButton = `inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-white px-4 text-sm font-medium text-[#21252b] shadow-[0_2px_10px_rgba(23,37,45,0.08)] transition-colors hover:text-[#bc3942] disabled:opacity-60 ${focusRing}`;
-const accentButton = `inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-[#c83f49] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#b73540] disabled:opacity-60 ${focusRing}`;
+const pillButton = `inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-white px-4 text-sm font-medium text-[#21252b] shadow-[0_2px_10px_rgba(23,37,45,0.08)] transition-colors hover:text-[#bc3942] aria-disabled:opacity-60 ${focusRing}`;
+const accentButton = `inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-[#c83f49] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#b73540] aria-disabled:opacity-60 ${focusRing}`;
 const cardShadow = 'shadow-[0_2px_14px_rgba(23,37,45,0.09)]';
 /** Phones scroll sideways through ~80%-wide cards; wider screens get a 3-column grid. */
 const cardList =
@@ -44,12 +45,16 @@ async function fetchVisitorArea(): Promise<SearchArea> {
   return { near: city, center: { lat, lng } };
 }
 
+/** Covers time the browser's permission prompt stays open, which `timeout` doesn't count. */
+const LOCATION_DEADLINE_MS = 20_000;
+
 function currentPosition(): Promise<Location> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is unavailable'));
       return;
     }
+    setTimeout(() => reject(new Error('Timed out waiting for a location')), LOCATION_DEADLINE_MS);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
       reject,
@@ -67,7 +72,10 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
   const headingId = useId();
   const cityInputId = useId();
   const sectionRef = useRef<HTMLElement>(null);
-  const latestSearch = useRef(0);
+  /** The newest reader action owns `pending` and `notice`, and may start a search. */
+  const [claimAction] = useState(createIntents);
+  /** The newest search owns `view`; an action that ends without one leaves it alone. */
+  const [claimSearch] = useState(createIntents);
   const [view, setView] = useState<View>({ status: 'waiting' });
   const [cityForm, setCityForm] = useState<CityForm>('unused');
   const [pending, setPending] = useState<Pending>(null);
@@ -75,21 +83,21 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
 
   const show = useCallback(
     async (area: SearchArea | null) => {
-      const search = ++latestSearch.current;
-      const isLatest = () => search === latestSearch.current;
+      const isCurrent = claimSearch();
       let resolved = area;
       setView({ status: 'loading', area });
       try {
         resolved ??= await fetchVisitorArea();
-        if (isLatest()) setView({ status: 'loading', area: resolved });
+        if (!isCurrent()) return;
+        setView({ status: 'loading', area: resolved });
         const places = await searchPlaces(resolved, placeQueries);
-        if (isLatest()) setView({ status: 'ready', area: resolved, places });
+        if (isCurrent()) setView({ status: 'ready', area: resolved, places });
       } catch (error) {
         console.error('[PlacesToTry] Search failed:', error);
-        if (isLatest()) setView({ status: 'failed', area: resolved });
+        if (isCurrent()) setView({ status: 'failed', area: resolved });
       }
     },
-    [placeQueries]
+    [claimSearch, placeQueries]
   );
 
   useEffect(() => {
@@ -107,14 +115,21 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
     return () => observer.disconnect();
   }, [show]);
 
+  function beginAction(busy: Pending) {
+    const isCurrent = claimAction();
+    setPending(busy);
+    setNotice(null);
+    return isCurrent;
+  }
+
   async function submitCity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const query = String(new FormData(event.currentTarget).get('city') ?? '').trim();
-    if (!query) return;
-    setPending('city');
-    setNotice(null);
+    if (!query || pending === 'city') return;
+    const isCurrent = beginAction('city');
     try {
       const area = await findCity(query);
+      if (!isCurrent()) return;
       if (area) {
         setCityForm('closed');
         void show(area);
@@ -123,31 +138,36 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
       }
     } catch (error) {
       console.error('[PlacesToTry] City lookup failed:', error);
-      setNotice("We couldn't look up that city. Try again.");
+      if (isCurrent()) setNotice("We couldn't look up that city. Try again.");
     } finally {
-      setPending(null);
+      if (isCurrent()) setPending(null);
     }
   }
 
   async function showNearReader() {
-    setPending('location');
-    setNotice(null);
+    if (pending === 'location') return;
+    const isCurrent = beginAction('location');
     try {
       const center = await currentPosition();
-      void show({ near: 'you', center });
+      if (isCurrent()) void show({ near: 'you', center });
     } catch {
-      setNotice("We couldn't get your location. You can change the city instead.");
+      if (isCurrent()) setNotice("We couldn't get your location. You can change the city instead.");
     } finally {
-      setPending(null);
+      if (isCurrent()) setPending(null);
     }
+  }
+
+  const area = view.status === 'waiting' ? null : view.area;
+
+  function retry() {
+    beginAction(null);
+    void show(area);
   }
 
   function closeCityForm() {
     setCityForm('closed');
     setNotice(null);
   }
-
-  const area = view.status === 'waiting' ? null : view.area;
 
   return (
     // Bleeds to the edges of the post's card, which pads its body with p-5 sm:p-8.
@@ -182,7 +202,7 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
             onKeyDown={(event) => event.key === 'Escape' && closeCityForm()}
             className={`min-h-10 min-w-0 flex-1 rounded-full bg-white px-4 text-base text-[#21252b] shadow-[0_2px_10px_rgba(23,37,45,0.08)] placeholder:text-[#8a9099] sm:text-sm ${focusRing}`}
           />
-          <button type="submit" disabled={pending === 'city'} className={accentButton}>
+          <button type="submit" aria-disabled={pending === 'city'} className={accentButton}>
             {pending === 'city' ? 'Searching…' : 'Search'}
           </button>
           <button
@@ -208,7 +228,7 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
           <button
             type="button"
             onClick={showNearReader}
-            disabled={pending === 'location'}
+            aria-disabled={pending === 'location'}
             className={pillButton}
           >
             <LocateFixed size={15} aria-hidden="true" />
@@ -220,7 +240,7 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
         {notice}
       </p>
 
-      <Results view={view} onRetry={() => show(area)} />
+      <Results view={view} onRetry={retry} />
 
       <p
         translate="no"
