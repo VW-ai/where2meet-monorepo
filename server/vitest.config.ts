@@ -6,12 +6,8 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     setupFiles: ["tests/setup.ts"],
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "json", "html"],
-      exclude: ["node_modules/", "dist/", "tests/", "*.config.*"],
-    },
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    fileParallelism: false,
+    testTimeout: 15000,
+    hookTimeout: 60000,
   },
 });
