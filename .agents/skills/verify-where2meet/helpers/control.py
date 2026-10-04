@@ -3,6 +3,7 @@
 
 import argparse
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
@@ -42,10 +43,63 @@ def require_owned_listener(state, name):
     record = state["processes"][name]
     if process_identity(record["pid"]) != record["identity"]:
         raise RuntimeError(f"{name} process identity does not match this run")
-    listeners = subprocess.check_output(
-        ["lsof", "-t", "-nP", f"-iTCP:{state['ports'][name]}", "-sTCP:LISTEN"], text=True)
+    try:
+        listeners = subprocess.check_output(
+            ["lsof", "-t", "-nP", f"-iTCP:{state['ports'][name]}", "-sTCP:LISTEN"], text=True)
+    except subprocess.CalledProcessError:
+        try:
+            record_listener_failure(state, name)
+        except Exception as error:
+            print(f"Listener diagnostics failed: {type(error).__name__}", file=sys.stderr)
+        raise
     if not listeners.strip() or any(os.getpgid(int(pid)) != record["pid"] for pid in listeners.split()):
         raise RuntimeError(f"{name} port is not owned by this run")
+
+
+def record_listener_failure(state, name):
+    port = state["ports"][name]
+    group = state["processes"][name]["pid"]
+    report = {"name": name, "port": port, "expected_process_group": group, "processes": [], "commands": {}}
+    ps = subprocess.run(["ps", "-axo", "pid=,ppid=,pgid=,uid=,stat=,comm="], capture_output=True, text=True, timeout=5)
+    for line in ps.stdout.splitlines():
+        fields = line.split(maxsplit=5)
+        if len(fields) != 6 or int(fields[2]) != group:
+            continue
+        report["processes"].append(dict(zip(("pid", "ppid", "pgid", "uid", "stat", "comm"), fields)))
+    commands = {"lsof": ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN"]}
+    if sys.platform.startswith("linux"):
+        commands["ss"] = ["ss", "-ltnp", f"sport = :{port}"]
+        if os.environ.get("CI") == "true" and shutil.which("sudo"):
+            commands["sudo_lsof"] = ["sudo", "-n", *commands["lsof"]]
+    for label, args in commands.items():
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, timeout=5)
+            report["commands"][label] = {"returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
+        except (OSError, subprocess.TimeoutExpired) as error:
+            report["commands"][label] = {"error": type(error).__name__}
+    if sys.platform.startswith("linux"):
+        for process in report["processes"]:
+            process["sockets"] = []
+            process["fd_errors"] = []
+            try:
+                for fd in (Path("/proc") / process["pid"] / "fd").iterdir():
+                    try:
+                        target = os.readlink(fd)
+                        if target.startswith("socket:["):
+                            process["sockets"].append({"fd": fd.name, "target": target})
+                    except OSError as error:
+                        process["fd_errors"].append({"fd": fd.name, "error": error.strerror})
+            except OSError as error:
+                process["fd_errors"].append({"error": error.strerror})
+    connection = http.client.HTTPConnection("127.0.0.1", state["ports"]["frontend"], timeout=5)
+    try:
+        connection.request("GET", "/")
+        report["frontend_http"] = {"status": connection.getresponse().status}
+    except (OSError, http.client.HTTPException) as error:
+        report["frontend_http"] = {"error": type(error).__name__}
+    finally:
+        connection.close()
+    write_json(Path(state["run_dir"]) / "evidence" / "listener-failure.json", report)
 
 
 def group_members(group):
