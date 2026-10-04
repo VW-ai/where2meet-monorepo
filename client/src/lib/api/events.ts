@@ -6,8 +6,17 @@
  */
 
 import { Event, CreateEventDTO, UpdateEventDTO } from '@/entities';
-import { ParticipantResponse } from '@/entities/participant/types';
 import { backendCall } from './client';
+
+export interface ParticipantMeResponse {
+  participantId: string;
+  name: string;
+  isOrganizer: boolean;
+  color: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+}
 
 export const eventsApi = {
   create: (data: CreateEventDTO) =>
@@ -56,7 +65,7 @@ export const eventsApi = {
    * Returns participant details with isOrganizer flag for role detection
    */
   getMe: (id: string, token: string) =>
-    backendCall<ParticipantResponse>(`/api/events/${id}/me`, {
+    backendCall<ParticipantMeResponse>(`/api/events/${id}/me`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
 };

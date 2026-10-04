@@ -23,6 +23,7 @@ import { eventClient } from '@/features/meeting/api';
 import { useEventStream } from '@/features/meeting/hooks/useEventStream';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { usePortalStore } from '@/features/portal/model/portal-store';
+import { restoreMeetingIdentity } from '@/features/meeting/lib/restore-identity';
 
 export default function MeetPage() {
   const [sheetExpanded, setSheetExpanded] = useState(false);
@@ -61,13 +62,8 @@ export default function MeetPage() {
     }
   }, [eventId, initializeOrganizerMode, initializeParticipantMode]);
 
-  // Set participant ID for voting (organizer's participant ID takes precedence)
   useEffect(() => {
-    const participantId = organizerParticipantId || currentParticipantId;
-    if (participantId) {
-      console.log('[MeetPage] Setting myParticipantId for voting:', participantId);
-      setMyParticipantId(participantId);
-    }
+    setMyParticipantId(organizerParticipantId || currentParticipantId || null);
   }, [organizerParticipantId, currentParticipantId, setMyParticipantId]);
 
   // Restore user identity using /me endpoint after page refresh
@@ -76,27 +72,14 @@ export default function MeetPage() {
       if (!eventId || !token) return;
 
       try {
-        const participant = await eventClient.getMe(eventId, token);
-        console.log('[MeetPage] Restored participant identity:', {
-          id: participant.id,
-          name: participant.name,
-          isOrganizer: participant.isOrganizer,
-        });
-
-        // Update auth store with participant info if needed
-        // This ensures the participant ID is available for voting operations
-        const { setParticipantInfo } = useAuthStore.getState();
-        if (!participantToken && participant.participantToken) {
-          setParticipantInfo(eventId, participant.id, participant.participantToken);
-        }
+        await restoreMeetingIdentity(eventId, token);
       } catch (error) {
         console.error('[MeetPage] Failed to restore identity:', error);
-        // Silently fail - user may not have a token or it may be invalid
       }
     }
 
     restoreIdentity();
-  }, [eventId, token, participantToken]);
+  }, [eventId, token]);
 
   // Connect to SSE stream for real-time updates
   // Trigger snapshot reconciliation on (re)connect to prevent drift

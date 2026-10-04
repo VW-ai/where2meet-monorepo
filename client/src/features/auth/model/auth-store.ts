@@ -41,11 +41,18 @@ interface AuthState {
   initializeParticipantMode: (eventId: string) => void;
   setParticipantInfo: (eventId: string, participantId: string, token: string) => void;
   clearParticipantInfo: (eventId: string) => void;
+  confirmMeetingParticipant: (
+    eventId: string,
+    token: string,
+    participantId: string,
+    isOrganizer: boolean
+  ) => boolean;
+  rejectMeetingToken: (eventId: string, token: string) => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // User authentication state
       user: null,
       isAuthenticated: false,
@@ -168,30 +175,12 @@ export const useAuthStore = create<AuthState>()(
       initializeOrganizerMode: (eventId: string) => {
         if (typeof window === 'undefined') return;
         const token = localStorage.getItem(`organizer_token_${eventId}`);
-        const participantId = localStorage.getItem(`organizer_participant_id_${eventId}`);
-        console.warn('[AuthStore] initializeOrganizerMode:', {
-          eventId,
-          hasToken: !!token,
-          hasParticipantId: !!participantId,
-          tokenPreview: token ? `${token.substring(0, 10)}...` : null,
+        set({
+          isOrganizerMode: false,
+          organizerToken: token,
+          organizerParticipantId: null,
+          isAuthInitialized: true,
         });
-        if (token && participantId) {
-          set({
-            isOrganizerMode: true,
-            organizerToken: token,
-            organizerParticipantId: participantId,
-            isAuthInitialized: true,
-          });
-          console.warn('[AuthStore] Set isOrganizerMode to TRUE');
-        } else {
-          set({
-            isOrganizerMode: false,
-            organizerToken: null,
-            organizerParticipantId: null,
-            isAuthInitialized: true,
-          });
-          console.warn('[AuthStore] Set isOrganizerMode to FALSE (missing credentials)');
-        }
       },
 
       setOrganizerInfo: (eventId: string, token: string, participantId: string) => {
@@ -223,23 +212,13 @@ export const useAuthStore = create<AuthState>()(
       // Event token management - Participant mode
       initializeParticipantMode: (eventId: string) => {
         if (typeof window === 'undefined') return;
-        const participantId = localStorage.getItem(`participant_id_${eventId}`);
         const token = localStorage.getItem(`participant_token_${eventId}`);
-        if (participantId && token) {
-          set({
-            isParticipantMode: true,
-            participantToken: token,
-            currentParticipantId: participantId,
-            isAuthInitialized: true,
-          });
-        } else {
-          set({
-            isParticipantMode: false,
-            participantToken: null,
-            currentParticipantId: null,
-            isAuthInitialized: true,
-          });
-        }
+        set({
+          isParticipantMode: false,
+          participantToken: token,
+          currentParticipantId: null,
+          isAuthInitialized: true,
+        });
       },
 
       setParticipantInfo: (eventId: string, participantId: string, token: string) => {
@@ -260,6 +239,72 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem(`participant_token_${eventId}`);
         }
         set({ isParticipantMode: false, participantToken: null, currentParticipantId: null });
+      },
+
+      confirmMeetingParticipant: (eventId, token, participantId, isOrganizer) => {
+        if (get().organizerToken !== token && get().participantToken !== token) return false;
+        if (typeof window !== 'undefined') {
+          const organizerKey = `organizer_token_${eventId}`;
+          const participantKey = `participant_token_${eventId}`;
+          const sourceIsOrganizer = localStorage.getItem(organizerKey) === token;
+          const sourceKey = sourceIsOrganizer
+            ? organizerKey
+            : localStorage.getItem(participantKey) === token ? participantKey : null;
+          if (!sourceKey) return false;
+          const sourceIdKey = `${sourceIsOrganizer ? 'organizer_participant_id' : 'participant_id'}_${eventId}`;
+          const targetKey = isOrganizer ? organizerKey : participantKey;
+          const targetIdKey = `${isOrganizer ? 'organizer_participant_id' : 'participant_id'}_${eventId}`;
+          const otherToken = localStorage.getItem(targetKey);
+
+          if (otherToken && otherToken !== token) {
+            localStorage.setItem(sourceIdKey, participantId);
+          } else {
+            localStorage.setItem(targetKey, token);
+            localStorage.setItem(targetIdKey, participantId);
+            if (sourceKey !== targetKey && localStorage.getItem(sourceKey) === token) {
+              localStorage.removeItem(sourceKey);
+              localStorage.removeItem(sourceIdKey);
+            }
+          }
+        }
+        set({
+          isOrganizerMode: isOrganizer,
+          organizerToken: isOrganizer ? token : null,
+          organizerParticipantId: isOrganizer ? participantId : null,
+          isParticipantMode: !isOrganizer,
+          participantToken: isOrganizer ? null : token,
+          currentParticipantId: isOrganizer ? null : participantId,
+        });
+        return true;
+      },
+
+      rejectMeetingToken: (eventId, token) => {
+        const organizerRejected = get().organizerToken === token;
+        const participantRejected = get().participantToken === token;
+        if (!organizerRejected && !participantRejected) return false;
+        if (typeof window !== 'undefined') {
+          if (organizerRejected && localStorage.getItem(`organizer_token_${eventId}`) === token) {
+            localStorage.removeItem(`organizer_token_${eventId}`);
+            localStorage.removeItem(`organizer_participant_id_${eventId}`);
+          }
+          if (participantRejected && localStorage.getItem(`participant_token_${eventId}`) === token) {
+            localStorage.removeItem(`participant_token_${eventId}`);
+            localStorage.removeItem(`participant_id_${eventId}`);
+          }
+        }
+        set({
+          ...(organizerRejected && {
+            isOrganizerMode: false,
+            organizerToken: null,
+            organizerParticipantId: null,
+          }),
+          ...(participantRejected && {
+            isParticipantMode: false,
+            participantToken: null,
+            currentParticipantId: null,
+          }),
+        });
+        return true;
       },
     }),
     {
