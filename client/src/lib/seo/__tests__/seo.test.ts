@@ -15,7 +15,7 @@ import {
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
-import { getPost } from '@/content/blog/posts';
+import { BLOG_POSTS, getPost, postPath } from '@/content/blog/posts';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
@@ -24,6 +24,14 @@ import nextConfig from '../../../../next.config.js';
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const LLMS_TXT = readFileSync(path.join(__dirname, '../../../../public/llms.txt'), 'utf8');
+const BLOG_URLS = [
+  `${CANONICAL_ORIGIN}/blog`,
+  ...BLOG_POSTS.map((post) => `${CANONICAL_ORIGIN}${postPath(post.slug)}`),
+];
+
+function readPostBody(slug: string) {
+  return readFileSync(path.join(__dirname, `../../../content/blog/${slug}.mdx`), 'utf8');
+}
 
 /** Strip Next.js metadata union types by round-tripping through JSON. */
 function asJson<T>(value: unknown): T {
@@ -127,7 +135,14 @@ describe('sitemap', () => {
       CANONICAL_ORIGIN,
       `${CANONICAL_ORIGIN}/faq`,
       `${CANONICAL_ORIGIN}/contact`,
+      `${CANONICAL_ORIGIN}/blog`,
+      `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
     ]);
+  });
+
+  it('dates each post by its update and the blog by its newest post', () => {
+    const blogEntries = entries.filter((entry) => entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`));
+    expect(blogEntries.map((entry) => entry.lastModified)).toEqual(['2026-10-04', '2026-10-04']);
   });
 
   it('uses fixed ISO content dates for lastModified, never the build time', () => {
@@ -243,8 +258,13 @@ describe('next.config redirects and headers', () => {
         permanent: true,
       });
     }
-    for (const source of ['/how-it-works', '/scenarios', '/scenarios/:slug']) {
-      expect(redirects).toContainEqual({ source, destination: '/', permanent: true });
+    expect(redirects).toContainEqual({
+      source: '/how-it-works',
+      destination: '/',
+      permanent: true,
+    });
+    for (const source of ['/scenarios', '/scenarios/:slug']) {
+      expect(redirects).toContainEqual({ source, destination: '/blog', permanent: true });
     }
   });
 
@@ -268,8 +288,12 @@ describe('llms.txt', () => {
     );
     expect(links.length).toBeGreaterThan(0);
     for (const link of links) {
-      expect([...pageUrls, `${CANONICAL_ORIGIN}/sitemap.xml`]).toContain(link);
+      expect([...pageUrls, ...BLOG_URLS, `${CANONICAL_ORIGIN}/sitemap.xml`]).toContain(link);
     }
+  });
+
+  it('links the blog and every post', () => {
+    expect(links).toEqual(expect.arrayContaining(BLOG_URLS));
   });
 });
 
@@ -281,6 +305,7 @@ describe('positioning copy', () => {
       SITE_CONFIG.tagline,
       SITE_CONFIG.pitch,
       LLMS_TXT,
+      ...BLOG_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
     ]) {
       expect(text).not.toMatch(/\bfair/i);
       expect(text).not.toMatch(/meet in the middle/i);

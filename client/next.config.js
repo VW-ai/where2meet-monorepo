@@ -68,10 +68,10 @@ const nextConfig = {
         destination: `${CANONICAL_ORIGIN}/:path*`,
         permanent: true,
       })),
-      // Pages retired by the visual-story landing
+      // Pages retired by the visual-story landing. The blog replaced the scenario pages.
       { source: '/how-it-works', destination: '/', permanent: true },
-      { source: '/scenarios', destination: '/', permanent: true },
-      { source: '/scenarios/:slug', destination: '/', permanent: true },
+      { source: '/scenarios', destination: '/blog', permanent: true },
+      { source: '/scenarios/:slug', destination: '/blog', permanent: true },
     ];
   },
   reactStrictMode: true,

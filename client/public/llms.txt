@@ -18,6 +18,8 @@ How it works:
 
 - [Home](https://www.where2meet.org/): Create a meeting and see how planning works.
 - [FAQ](https://www.where2meet.org/faq): How group planning works, accounts, hiding your exact address, travel modes, voting and cost.
+- [Blog](https://www.where2meet.org/blog): Guides to planning where to meet with friends, family and coworkers.
+- [How to choose a team meeting location everyone can reach](https://www.where2meet.org/blog/how-to-choose-a-team-meeting-location): Compare travel times, pick a venue that suits the meeting, and settle on a place without a week of back-and-forth.
 - [Contact](https://www.where2meet.org/contact): How to reach the Where2Meet team.
 
 ## Optional
