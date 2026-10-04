@@ -523,7 +523,7 @@ export function TravelTimeVsDistance() {
 
       <figcaption className="mt-3 px-1 text-sm leading-relaxed text-[#666b73]">
         <strong className="font-semibold text-[#21252b]">Example.</strong> A looks closest, but Cy
-        is across the river from it and the only bridge is far away, so Cy&rsquo;s trip takes{' '}
+        is across the river from it and the only bridge is far away, so Cy&apos;s trip takes{' '}
         {VENUES.closest.trips.cy.minutes} minutes.
       </figcaption>
     </figure>
