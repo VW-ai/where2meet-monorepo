@@ -57,3 +57,9 @@ export function shortAddress(formattedAddress: string): string {
   const parts = formattedAddress.split(', ');
   return (parts.length > 1 ? parts.slice(0, -1) : parts).slice(0, 2).join(', ');
 }
+
+/** What the status region announces once a search finishes. */
+export function describeResults(count: number, near: string): string {
+  if (count === 0) return `No places came up near ${near}.`;
+  return `Showing ${count} ${count === 1 ? 'place' : 'places'} near ${near}.`;
+}

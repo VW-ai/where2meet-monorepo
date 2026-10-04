@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatRating, pickPlaces, shortAddress, type PlaceSummary } from '../places';
+import {
+  describeResults,
+  formatRating,
+  pickPlaces,
+  shortAddress,
+  type PlaceSummary,
+} from '../places';
 
 function place(id: string, hasPhoto = true): PlaceSummary {
   return {
@@ -49,5 +55,15 @@ describe('shortAddress', () => {
     ['Somewhere', 'Somewhere'],
   ])('shortens %s', (formattedAddress, expected) => {
     expect(shortAddress(formattedAddress)).toBe(expected);
+  });
+});
+
+describe('describeResults', () => {
+  it.each([
+    [6, 'Showing 6 places near Chicago.'],
+    [1, 'Showing 1 place near Chicago.'],
+    [0, 'No places came up near Chicago.'],
+  ])('describes %i results', (count, expected) => {
+    expect(describeResults(count, 'Chicago')).toBe(expected);
   });
 });

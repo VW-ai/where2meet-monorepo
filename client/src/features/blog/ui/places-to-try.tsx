@@ -6,6 +6,7 @@ import { OCCASIONS, type Occasion } from '@/content/blog/posts';
 import { findCity, searchPlaces } from '@/features/blog/lib/google-places';
 import { createIntents } from '@/features/blog/lib/latest-intent';
 import {
+  describeResults,
   formatRating,
   type PhotoCredit,
   type PlaceSummary,
@@ -27,6 +28,7 @@ type Pending = 'city' | 'location' | null;
 type CityForm = 'unused' | 'open' | 'closed';
 
 const SKELETON_COUNT = 6;
+const LOAD_FAILED = "We couldn't load places right now.";
 
 const focusRing =
   'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b73540]';
@@ -72,6 +74,7 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
   const headingId = useId();
   const cityInputId = useId();
   const sectionRef = useRef<HTMLElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   /** The newest reader action owns `pending` and `notice`, and may start a search. */
   const [claimAction] = useState(createIntents);
   /** The newest search owns `view`; an action that ends without one leaves it alone. */
@@ -160,9 +163,17 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
   const area = view.status === 'waiting' ? null : view.area;
 
   function retry() {
+    headingRef.current?.focus();
     beginAction(null);
     void show(area);
   }
+
+  const announcement =
+    view.status === 'ready'
+      ? describeResults(view.places.length, view.area.near)
+      : view.status === 'failed'
+        ? LOAD_FAILED
+        : '';
 
   function closeCityForm() {
     setCityForm('closed');
@@ -177,8 +188,10 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
       className="-mx-5 my-8 bg-[#f4f6f8] px-5 py-6 sm:-mx-8 sm:px-8 sm:py-7"
     >
       <h3
+        ref={headingRef}
         id={headingId}
-        className="text-lg font-bold leading-snug tracking-[-0.3px] text-[#21252b] sm:text-xl"
+        tabIndex={-1}
+        className="text-lg font-bold leading-snug tracking-[-0.3px] text-[#21252b] outline-none sm:text-xl"
       >
         {area ? `Places to try near ${area.near}` : 'Places to try'}
       </h3>
@@ -236,8 +249,12 @@ export function PlacesToTry({ occasion }: { occasion: Occasion }) {
           </button>
         </div>
       )}
-      <p role="status" className="mt-2 text-sm text-[#666b73] empty:mt-0">
-        {notice}
+      <p role="status" className="text-sm text-[#666b73]">
+        {notice ? (
+          <span className="mt-2 block">{notice}</span>
+        ) : (
+          <span className="sr-only">{announcement}</span>
+        )}
       </p>
 
       <Results view={view} onRetry={retry} />
@@ -266,7 +283,7 @@ function Results({ view, onRetry }: { view: View; onRetry: () => void }) {
     case 'failed':
       return (
         <Message>
-          <p>We couldn&apos;t load places right now.</p>
+          <p>{LOAD_FAILED}</p>
           <button type="button" onClick={onRetry} className={`${accentButton} mt-3`}>
             <RotateCw size={15} aria-hidden="true" />
             Try again
@@ -282,7 +299,7 @@ function Results({ view, onRetry }: { view: View; onRetry: () => void }) {
         </ul>
       ) : (
         <Message>
-          <p>No places came up near {view.area.near}. Try another city.</p>
+          <p>{describeResults(0, view.area.near)} Try another city.</p>
         </Message>
       );
   }
