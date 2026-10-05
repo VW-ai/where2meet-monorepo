@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SITE_CONFIG,
   buildPageTitle,
@@ -16,14 +16,25 @@ import {
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
 import { BLOG_POSTS, coverPath, getPost, postPath } from '@/content/blog/posts';
+import fixture from '@/features/guides/__fixtures__/published.json';
+import { listPages, pagePath } from '@/features/guides/lib/catalog';
+import { parsePublished } from '@/features/guides/lib/parse';
+import { buildLlmsTxt } from '@/lib/seo/llms-txt';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
+import { GET as getLlmsTxt } from '@/app/llms.txt/route';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
 import nextConfig from '../../../../next.config.js';
 
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const LLMS_TXT = readFileSync(path.join(__dirname, '../../../../public/llms.txt'), 'utf8');
+const FIXTURE_PATH = path.join(__dirname, '../../../features/guides/__fixtures__/published.json');
+const FIXTURE_GUIDE_URLS = [
+  `${CANONICAL_ORIGIN}/where-to-meet`,
+  ...listPages(parsePublished(fixture).catalog).map(
+    (page) => `${CANONICAL_ORIGIN}${pagePath(page)}`
+  ),
+];
 const BLOG_URLS = [
   `${CANONICAL_ORIGIN}/blog`,
   ...BLOG_POSTS.map((post) => `${CANONICAL_ORIGIN}${postPath(post.slug)}`),
@@ -32,6 +43,32 @@ const BLOG_URLS = [
 function readPostBody(slug: string) {
   return readFileSync(path.join(__dirname, `../../../content/blog/${slug}.mdx`), 'utf8');
 }
+
+async function llmsTxt() {
+  return (await getLlmsTxt()).text();
+}
+
+function linksIn(text: string) {
+  return [...text.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((match) => match[1]);
+}
+
+/** Every string in a JSON value, for scanning copy. */
+function strings(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
+  return [];
+}
+
+/** No published guides unless a test points the loader at the fixture. */
+beforeEach(() => {
+  vi.stubEnv('CONTROL_PLANE_FIXTURE', '');
+  vi.stubEnv('CONTROL_PLANE_URL', '');
+  vi.stubEnv('CONTROL_PLANE_READ_TOKEN', '');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 /** Strip Next.js metadata union types by round-tripping through JSON. */
 function asJson<T>(value: unknown): T {
@@ -126,10 +163,8 @@ describe('createMetadata', () => {
 });
 
 describe('sitemap', () => {
-  const entries = sitemap();
-
-  it('lists every public page exactly once', () => {
-    const urls = entries.map((entry) => entry.url);
+  it('lists every public page exactly once', async () => {
+    const urls = (await sitemap()).map((entry) => entry.url);
     expect(new Set(urls).size).toBe(urls.length);
     expect(urls).toEqual([
       CANONICAL_ORIGIN,
@@ -141,8 +176,10 @@ describe('sitemap', () => {
     ]);
   });
 
-  it('dates each post by its update and the blog by its newest post', () => {
-    const blogEntries = entries.filter((entry) => entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`));
+  it('dates each post by its update and the blog by its newest post', async () => {
+    const blogEntries = (await sitemap()).filter((entry) =>
+      entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`)
+    );
     expect(blogEntries.map((entry) => entry.lastModified)).toEqual([
       '2026-10-05',
       '2026-10-05',
@@ -150,16 +187,42 @@ describe('sitemap', () => {
     ]);
   });
 
-  it('uses fixed ISO content dates for lastModified, never the build time', () => {
+  it('lists the guides index, every hub and every guide by its update date', async () => {
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    const guideEntries = (await sitemap()).filter((entry) =>
+      entry.url.startsWith(`${CANONICAL_ORIGIN}/where-to-meet`)
+    );
+    expect(
+      guideEntries.map((entry) => [entry.url.slice(CANONICAL_ORIGIN.length), entry.lastModified])
+    ).toEqual([
+      ['/where-to-meet', '2026-10-05'],
+      ['/where-to-meet/new-york', '2026-10-05'],
+      ['/where-to-meet/new-york/team-meeting', '2026-10-05'],
+      ['/where-to-meet/new-york/coffee-catch-up', '2026-10-03'],
+      ['/where-to-meet/new-york/williamsburg', '2026-10-04'],
+      ['/where-to-meet/new-york/williamsburg/date-night', '2026-10-04'],
+      ['/where-to-meet/new-york/williamsburg/weekend-hangout', '2026-10-02'],
+      ['/where-to-meet/ann-arbor', '2026-10-05'],
+      ['/where-to-meet/ann-arbor/group-dinner', '2026-10-05'],
+      ['/where-to-meet/ann-arbor/coffee-catch-up', '2026-10-01'],
+      ['/where-to-meet/ann-arbor/kerrytown', '2026-10-03'],
+      ['/where-to-meet/ann-arbor/kerrytown/weekend-hangout', '2026-10-03'],
+    ]);
+  });
+
+  it('uses fixed ISO content dates for lastModified, never the build time', async () => {
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    const entries = await sitemap();
     for (const entry of entries) {
       expect(typeof entry.lastModified).toBe('string');
       expect(entry.lastModified).toMatch(ISO_DATE);
     }
-    expect(sitemap()).toEqual(entries);
+    expect(await sitemap()).toEqual(entries);
   });
 
-  it('never exposes meeting, dashboard or auth pages', () => {
-    for (const entry of entries) {
+  it('never exposes meeting, dashboard or auth pages', async () => {
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    for (const entry of await sitemap()) {
       expect(entry.url).not.toMatch(/\/(meet|dashboard|auth|api)\b/);
     }
   });
@@ -290,32 +353,68 @@ describe('next.config redirects and headers', () => {
 });
 
 describe('llms.txt', () => {
-  const links = [...LLMS_TXT.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((match) => match[1]);
+  const pageUrls = STATIC_PAGES.map((page) =>
+    page.path === '/' ? `${CANONICAL_ORIGIN}/` : `${CANONICAL_ORIGIN}${page.path}`
+  );
 
-  it('only links to live pages on the www host', () => {
-    const pageUrls = STATIC_PAGES.map((page) =>
-      page.path === '/' ? `${CANONICAL_ORIGIN}/` : `${CANONICAL_ORIGIN}${page.path}`
-    );
+  it('is served as UTF-8 plain text', async () => {
+    expect((await getLlmsTxt()).headers.get('content-type')).toBe('text/plain; charset=utf-8');
+  });
+
+  it('only links to live pages on the www host', async () => {
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    const links = linksIn(await llmsTxt());
     expect(links.length).toBeGreaterThan(0);
     for (const link of links) {
-      expect([...pageUrls, ...BLOG_URLS, `${CANONICAL_ORIGIN}/sitemap.xml`]).toContain(link);
+      expect([
+        ...pageUrls,
+        ...BLOG_URLS,
+        ...FIXTURE_GUIDE_URLS,
+        `${CANONICAL_ORIGIN}/sitemap.xml`,
+      ]).toContain(link);
     }
   });
 
-  it('links the blog and every post', () => {
-    expect(links).toEqual(expect.arrayContaining(BLOG_URLS));
+  it('links the blog and every post', async () => {
+    expect(linksIn(await llmsTxt())).toEqual(expect.arrayContaining(BLOG_URLS));
+  });
+
+  it('keeps control plane copy on one list line with its link intact', () => {
+    const seo = { title: 'Where to meet [beta]', description: 'Two lines\nof copy.' };
+    const { catalog } = parsePublished({
+      version: 1,
+      cities: [{ slug: 'testville', name: 'Testville', updated_at: '2026-10-05', seo }],
+    });
+    expect(buildLlmsTxt(catalog)).toContain(
+      `- [Where to meet \\[beta\\]](${CANONICAL_ORIGIN}/where-to-meet/testville): Two lines of copy.\n`
+    );
+  });
+
+  it('lists every published guide between the pages and the sitemap', async () => {
+    const withoutGuides = await llmsTxt();
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    const withGuides = await llmsTxt();
+
+    expect(withoutGuides).not.toContain('## Local guides');
+    const [pages, optional] = withoutGuides.split('\n## Optional\n');
+    const [before, guides] = withGuides.split('\n## Local guides\n');
+    expect(before).toBe(pages);
+    expect(guides.endsWith(`\n## Optional\n${optional}`)).toBe(true);
+    expect(linksIn(guides).slice(0, -1)).toEqual(FIXTURE_GUIDE_URLS);
   });
 });
 
 describe('positioning copy', () => {
-  it('never calls the spot fair or says "meet in the middle"', () => {
+  it('never calls the spot fair or says "meet in the middle"', async () => {
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
     for (const text of [
       SITE_CONFIG.defaultTitle,
       SITE_CONFIG.description,
       SITE_CONFIG.tagline,
       SITE_CONFIG.pitch,
-      LLMS_TXT,
+      await llmsTxt(),
       ...BLOG_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
+      ...strings(fixture),
     ]) {
       expect(text).not.toMatch(/\bfair/i);
       expect(text).not.toMatch(/meet in the middle/i);
