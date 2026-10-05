@@ -6,4 +6,5 @@ export type {
   ParticipantLocationEdit,
   AccountClaim,
   AccountMeeting,
+  MeetingDirections,
 } from "./types.js";

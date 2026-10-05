@@ -1,4 +1,12 @@
 import type { PlaceSummary } from "../places/index.js";
+import type { RouteOutcome, TravelMode } from "../routing/index.js";
+
+export type ParticipantRoute = { participantId: string } & (RouteOutcome | { kind: "no-location" });
+export interface MeetingDirections {
+  venueId: string;
+  mode: TravelMode;
+  outcomes: ParticipantRoute[];
+}
 
 export interface ParticipantSnapshot {
   id: string;
@@ -64,6 +72,9 @@ export interface AccountMeeting extends Omit<AccountClaim, "eventId"> {
 }
 
 export interface Meetings {
+  directions(
+    input: Access & { venueId: string; mode: TravelMode; participantId?: string }
+  ): Promise<MeetingDirections>;
   claim(input: Access & { userId: string }): Promise<AccountClaim>;
   listForAccount(userId: string): Promise<AccountMeeting[]>;
   create(input: { title: string; meetingTime: Date | null }): Promise<{

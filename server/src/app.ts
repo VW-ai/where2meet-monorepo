@@ -8,6 +8,8 @@ import { createNotifications } from "./runtime/notifications.js";
 import { createMeetings } from "./modules/meetings/store.js";
 import { createAccounts } from "./modules/accounts/store.js";
 import { createPlaces } from "./modules/places/store.js";
+import { createRouting } from "./modules/routing/provider.js";
+import { createProviderCache } from "./runtime/cache.js";
 import { registerRoutes } from "./http/routes.js";
 import { registerErrors } from "./http/errors.js";
 import { encodeNotice, registerSSE } from "./http/sse.js";
@@ -46,6 +48,7 @@ export async function makeApp(overrides: Partial<AppConfig> = {}) {
     disableRequestLogging: config.environment === "test",
   });
   const database = createDatabase(config.databaseUrl);
+  const cache = createProviderCache(config.redisUrl);
   const notifications = await createNotifications({
     url: config.redisUrl,
     timeoutMs: config.redisTimeoutMs,
@@ -55,6 +58,7 @@ export async function makeApp(overrides: Partial<AppConfig> = {}) {
   });
   app.addHook("onClose", async () => {
     notifications.close();
+    cache.close();
     await database.$disconnect();
   });
   registerErrors(app);
@@ -74,19 +78,54 @@ export async function makeApp(overrides: Partial<AppConfig> = {}) {
       max: config.rateLimitMax,
       timeWindow: config.rateLimitWindowMs,
     });
-  const meetings = createMeetings({
+  const places = createPlaces(
     database,
-    places: createPlaces(database, {
+    {
       apiKey: config.googleMapsApiKey,
       timeoutMs: config.geocodeTimeoutMs,
       endpoint: config.geocodeEndpoint,
+    },
+    {
+      apiKey: config.googleMapsApiKey,
+      endpoint: config.placesEndpoint,
+      cache,
+      timeoutMs: config.placesTimeoutMs,
+      searchTimeoutMs: config.searchTimeoutMs,
+      photoTimeoutMs: config.photoTimeoutMs,
+      searchTtlSeconds: config.searchTtlSeconds,
+      detailsTtlSeconds: config.detailsTtlSeconds,
+    }
+  );
+  const meetings = createMeetings({
+    database,
+    places,
+    routing: createRouting({
+      apiKey: config.googleMapsApiKey,
+      endpoint: config.directionsEndpoint,
+      cache,
+      timeoutMs: config.routeTimeoutMs,
+      ttlSeconds: config.routeTtlSeconds,
     }),
     publish: (eventId, notice) => notifications.publish(eventId, encodeNotice(eventId, notice)),
     publicationFailed: (eventId) => {
       app.log.warn({ eventId }, "Committed meeting update could not be broadcast");
     },
   });
-  registerRoutes(app, meetings, createAccounts(database), config.environment === "production");
+  registerRoutes(
+    app,
+    meetings,
+    createAccounts(database),
+    config.environment === "production",
+    places,
+    () => {
+      if (config.publicApiOrigin) return config.publicApiOrigin;
+      const address = app.server.address();
+      const port = address && typeof address !== "string" ? address.port : config.port;
+      if (!port)
+        throw new Error("A listening port or explicit public API origin is required for photos");
+      return `http://127.0.0.1:${String(port)}`;
+    }
+  );
   registerSSE(app, meetings, notifications, config);
   app.get("/health", () => ({ status: "ok" }));
   app.get("/health/ready", async (_request, reply) => {

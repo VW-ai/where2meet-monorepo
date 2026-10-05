@@ -6,6 +6,8 @@ import type {
   AccountClaim,
 } from "../modules/meetings/index.js";
 import type { Accounts, AccountProfile } from "../modules/accounts/index.js";
+import type { Places } from "../modules/places/index.js";
+import { directionsWire, photoWire } from "./places.js";
 import { AppError } from "../errors.js";
 import { bearer } from "./sse.js";
 import {
@@ -30,6 +32,13 @@ import {
   claimBody,
   claimResponse,
   accountEventsResponse,
+  venueParams,
+  directionsParams,
+  directionsQuery,
+  searchBody,
+  detailsResponse,
+  searchResponse,
+  directionsResponse,
 } from "./schemas.js";
 
 function eventWire(meeting: MeetingSnapshot) {
@@ -66,7 +75,9 @@ export function registerRoutes(
   app: FastifyInstance,
   meetings: Meetings,
   accounts: Accounts,
-  secureCookies: boolean
+  secureCookies: boolean,
+  places: Places,
+  publicApiOrigin: () => string
 ): void {
   app.post("/api/events", async (request, reply) => {
     const body = createEventBody.parse(request.body);
@@ -170,7 +181,51 @@ export function registerRoutes(
   });
   app.get("/api/events/:id/votes", async (request) => {
     const { id } = eventParams.parse(request.params);
-    return response(votesResponse, await meetings.votes(id));
+    const votes = await meetings.votes(id);
+    return response(votesResponse, {
+      ...votes,
+      venues: votes.venues.map((place) => photoWire(place, publicApiOrigin)),
+    });
+  });
+  app.post("/api/venues/search", async (request) => {
+    const input = searchBody.parse(request.body);
+    const result = await places.search(input);
+    if (result.kind === "unavailable")
+      throw new AppError("EXTERNAL_SERVICE_ERROR", "Venue search is temporarily unavailable");
+    return response(searchResponse, {
+      venues: result.venues.map((place) => photoWire(place, publicApiOrigin)),
+      totalResults: result.venues.length,
+      searchCenter: input.center,
+    });
+  });
+  app.get("/api/venues/:id", async (request) => {
+    const { id } = venueParams.parse(request.params);
+    const result = await places.details(id);
+    if (result.kind !== "found")
+      throw new AppError("EXTERNAL_SERVICE_ERROR", "Venue details are temporarily unavailable");
+    return response(detailsResponse, photoWire(result.value, publicApiOrigin));
+  });
+  app.get("/api/venues/:id/photo", async (request, reply) => {
+    const { id } = venueParams.parse(request.params);
+    const result = await places.photo(id);
+    reply.header("Cache-Control", "no-store");
+    if (result.kind === "not-found") throw new AppError("NOT_FOUND", "Venue photo not found");
+    if (result.kind === "unavailable")
+      throw new AppError("EXTERNAL_SERVICE_ERROR", "Venue photo is temporarily unavailable");
+    return reply.redirect(result.value, 302);
+  });
+  app.get("/api/events/:id/venues/:venueId/directions", async (request) => {
+    const credential = bearer(request.headers.authorization);
+    const { id, venueId } = directionsParams.parse(request.params);
+    const query = directionsQuery.parse(request.query);
+    const result = await meetings.directions({
+      eventId: id,
+      credential,
+      venueId,
+      mode: query.travelMode,
+      participantId: query.participantId,
+    });
+    return response(directionsResponse, directionsWire(result));
   });
   app.get("/api/auth/session", async (request) => {
     const session = await accounts.session(requiredSessionCookie(request));
@@ -251,9 +306,6 @@ export function registerRoutes(
     ["POST", "/api/events/:id/participants/:participantId/votes"],
     ["DELETE", "/api/events/:id/participants/:participantId/votes/:venueId"],
     ["GET", "/api/events/:id/votes/statistics"],
-    ["GET", "/api/events/:id/venues/:venueId/directions"],
-    ["POST", "/api/venues/search"],
-    ["GET", "/api/venues/:id"],
   ];
   for (const [method, url] of unavailable) {
     app.route({
