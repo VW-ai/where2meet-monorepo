@@ -7,13 +7,15 @@ import { execFileSync } from 'node:child_process';
 import { createPpeDriver } from './ppe-browser.mjs';
 import { runParticipantsScenario } from './participants-browser.mjs';
 import { runPlacesScenario, scrubPlacesError } from './places-browser.mjs';
+import { runVotingScenario } from './voting-browser.mjs';
 
 const runDir = path.resolve(process.argv[2]);
 const run = JSON.parse(await readFile(path.join(runDir, 'run.json'), 'utf8'));
 const isPpe = run.kind === 'where2meet-ppe-run-v1';
 const cleanupOnly = isPpe && process.argv[3] === '--cleanup';
 const scenario = run.scenario ?? 'event-lifecycle';
-assert(['event-lifecycle', 'participants', 'places-routes'].includes(scenario), 'Unknown verification scenario');
+const placesGuard = ['places-routes', 'voting-publication'].includes(scenario);
+assert(['event-lifecycle', 'participants', 'places-routes', 'voting-publication'].includes(scenario), 'Unknown verification scenario');
 assert(['where2meet-verification-v1', 'where2meet-ppe-run-v1'].includes(run.kind));
 assert.equal(run.run_dir, runDir);
 if (!cleanupOnly) assert.equal(run.status, 'ready');
@@ -29,7 +31,7 @@ const context = await browser.newContext({ viewport: { width: 1440, height: 1000
 const ppe = isPpe ? await createPpeDriver(runDir, run, context, { phase: cleanupOnly ? 'cleanup' : 'verification' }) : null;
 const page = await context.newPage();
 page.setDefaultTimeout(45000);
-if (scenario !== 'places-routes' || cleanupOnly) await page.addLocatorHandler(page.getByText('Skip tutorial', { exact: true }), async () => {
+if (!placesGuard || cleanupOnly) await page.addLocatorHandler(page.getByText('Skip tutorial', { exact: true }), async () => {
   await page.getByText('Skip tutorial', { exact: true }).click();
   action('Dismiss visible tutorial using Skip tutorial');
 });
@@ -46,7 +48,7 @@ function action(name, details = {}) {
 }
 
 async function settleRequests() {
-  if (ppe && scenario === 'places-routes') await ppe.settleRequests();
+  if (ppe && placesGuard) await ppe.settleRequests();
 }
 
 async function capture(name, activePage = page) {
@@ -61,9 +63,9 @@ async function dismissTutorial(activePage = page) {
 }
 
 async function eventRead(eventId) {
-  const res = await fetch(`${run.backend_url}/api/events/${eventId}`);
+  const res = ppe ? await ppe.read(`/api/events/${eventId}`) : await fetch(`${run.backend_url}/api/events/${eventId}`, { redirect: 'error' });
   assert.equal(res.status, 200);
-  const event = await res.json();
+  const event = ppe ? res.body : await res.json();
   return { id: event.id, title: event.title, meetingTime: event.meetingTime,
     publishedVenueId: event.publishedVenueId, publishedAt: event.publishedAt,
     participants: event.participants.map(({ id, name, isOrganizer }) => ({ id, name, isOrganizer })) };
@@ -72,12 +74,15 @@ async function eventRead(eventId) {
 async function stored(eventId) {
   if (ppe) return ppe.bridge({ operation: 'stored', event_id: eventId });
   assert.match(eventId, /^[A-Za-z0-9_-]+$/);
-  const locationColumns = ['participants', 'places-routes'].includes(scenario) ? ', address, formatted_address, lat, lng, fuzzy_location, color' : '';
+  const locationColumns = ['participants', 'places-routes', 'voting-publication'].includes(scenario) ? ', address, formatted_address, lat, lng, fuzzy_location, color' : '';
+  const publication = scenario === 'voting-publication' ? ', published_venue_id' : '';
+  const votes = scenario === 'voting-publication' ? `, 'votes', (SELECT coalesce(json_agg(v), '[]'::json) FROM
+    (SELECT id, event_id, participant_id, venue_id FROM vote WHERE event_id = '${eventId}' ORDER BY id) v)` : '';
   const sql = `SELECT json_build_object(
-    'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at FROM event WHERE id = '${eventId}') e),
+    'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at${publication} FROM event WHERE id = '${eventId}') e),
     'participants', (SELECT coalesce(json_agg(p), '[]'::json) FROM
       (SELECT id, event_id, name, is_organizer, token_hash IS NOT NULL AS has_credential${locationColumns}
-       FROM participant WHERE event_id = '${eventId}' ORDER BY id) p));`;
+       FROM participant WHERE event_id = '${eventId}' ORDER BY id) p)${votes});`;
   return JSON.parse(execFileSync('psql', [run.database_url, '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', sql], { encoding: 'utf8' }).trim());
 }
 
@@ -135,7 +140,7 @@ try {
   assert.match(eventId, /^evt_[A-Za-z0-9_]+$/);
   await page.getByRole('button', { name: 'Settings', exact: true }).waitFor();
   await page.locator('.cat-portal').waitFor({ state: 'detached' });
-  if (scenario === 'places-routes') {
+  if (placesGuard) {
     const skip = page.getByText('Skip tutorial', { exact: true });
     await skip.click();
     await skip.waitFor({ state: 'hidden' });
@@ -221,10 +226,11 @@ try {
   await settleRequests();
   await guestContext.close();
 
-  if (['participants', 'places-routes'].includes(scenario)) {
+  if (['participants', 'places-routes', 'voting-publication'].includes(scenario)) {
     const scenarioDriver = scenario === 'participants' ? runParticipantsScenario : runPlacesScenario;
     const proof = await scenarioDriver({ page, browser, run, eventId,
       organizerId: afterCreate.participants[0].id, evidence, capture, action,
+      ...(scenario === 'voting-publication' ? { continueWith: runVotingScenario } : {}),
       adapter: {
         settleRequests,
         guardContext: activeContext => ppe ? ppe.guardContext(activeContext) : Promise.resolve(),
@@ -266,11 +272,12 @@ try {
   ]);
   assert.equal(deletedResponse.status(), 200);
   await page.waitForURL(run.client_url + '/');
-  const removed = await fetch(`${run.backend_url}/api/events/${eventId}`);
+  const removed = ppe ? await ppe.read(`/api/events/${eventId}`) : await fetch(`${run.backend_url}/api/events/${eventId}`, { redirect: 'error' });
   assert.equal(removed.status, 404);
   const deletedDatabase = await stored(eventId);
   assert.equal(deletedDatabase.event, null);
   assert.deepEqual(deletedDatabase.participants, []);
+  if (scenario === 'voting-publication') assert.deepEqual(deletedDatabase.votes, []);
   if (ppe) await ppe.bridge({ operation: 'closed', event_id: eventId });
   await writeFile(path.join(evidence, 'deleted-state.json'), JSON.stringify({ api_status: 404, database: deletedDatabase }, null, 2));
   await capture('07-deleted');
@@ -298,7 +305,10 @@ try {
     result.shared_provider_cache = placesProof.shared_provider_cache;
     result.external_boundary = 'real Google Maps, Places and Directions; no provider fixture';
     if (ppe) result.streaming_api_policy = 'Owned SSE continues without buffering; observed redirects or invalid response headers fail. Confirmed cancelled attempts require a later validated same-page/event replacement. Finite API redirects are blocked before forwarding, except validated photos.';
-    result.synthetic_cleanup = 'exact UI-created event and participant rows absent; shared provider cache rows are separate';
+    result.synthetic_cleanup = scenario === 'voting-publication'
+      ? 'exact UI-created event, participant and vote rows absent; shared provider cache rows are separate'
+      : 'exact UI-created event and participant rows absent; shared provider cache rows are separate';
+    if (placesProof.setup) result.setup = placesProof.setup;
   }
   result = { ...result, status: 'PASS', event_id: eventId };
 } catch (error) {

@@ -33,6 +33,7 @@ export function validatePhotoRedirect(status, headers) {
 }
 
 export async function createPpeDriver(runDir, run, context, dependencies = {}) {
+  const placesGuard = ['places-routes', 'voting-publication'].includes(run.scenario);
   const checks = [];
   const failures = [];
   const pendingStreams = new Set();
@@ -64,7 +65,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
       let finish;
       const pending = new Promise(resolve => { finish = resolve; });
       pendingRequests.add(pending);
-      const streamCandidate = run.scenario === 'places-routes' && url.origin === run.backend_url &&
+      const streamCandidate = placesGuard && url.origin === run.backend_url &&
         request.method() === 'GET' && /^\/api\/events\/evt_[A-Za-z0-9_]+\/stream$/.test(url.pathname);
       if (streamCandidate) pendingStreams.add(request);
       let continued = false;
@@ -75,7 +76,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
         if (url.origin === run.client_url) {
           assert.equal(url.pathname, '/api/auth/session', 'Only the fixed Next session proxy is permitted');
           assert.equal(request.method(), 'GET');
-          if (run.scenario === 'places-routes') {
+          if (placesGuard) {
             phase = 'fetch';
             const response = await route.fetch({ maxRedirects: 0, timeout: 45000 });
             responseStatus = response.status();
@@ -88,7 +89,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
         }
         assert.equal(url.origin, run.backend_url, 'API destination differs from confirmed PPE');
         const read = ['GET', 'HEAD', 'OPTIONS'].includes(request.method());
-        if (read && run.scenario !== 'places-routes') return await route.continue();
+        if (read && !placesGuard) return await route.continue();
         const body = read ? undefined : request.postDataJSON();
         phase = 'guard';
         await bridge({ operation: 'guard', method: request.method(), url: request.url(), body });
@@ -121,7 +122,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
         const response = await route.fetch({ maxRedirects: 0, timeout: 45000 });
         responseStatus = response.status();
         phase = 'response-check';
-        const photo = run.scenario === 'places-routes' && read && /^\/api\/venues\/[^/]+\/photo$/.test(url.pathname);
+        const photo = placesGuard && read && /^\/api\/venues\/[^/]+\/photo$/.test(url.pathname);
         if (response.status() >= 300 && response.status() < 400) {
           assert(photo, 'Only an observed venue photo may redirect');
           validatePhotoRedirect(response.status(), response.headers());
@@ -134,11 +135,11 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
         const participantCollection = url.pathname.match(/^\/api\/events\/(evt_[A-Za-z0-9_]+)\/participants$/);
         if (request.method() === 'POST' && participantCollection && response.status() === 201) {
           phase = 'record-participant';
-          assert(['participants', 'places-routes'].includes(run.scenario));
+          assert(['participants', 'places-routes', 'voting-publication'].includes(run.scenario));
           const participant = await response.json();
           await bridge({ operation: 'record-participant', event_id: participantCollection[1], participant_id: participant.id });
         }
-        if (run.scenario === 'places-routes' && request.method() === 'POST' && url.pathname === '/api/venues/search' && response.status() === 200) {
+        if (placesGuard && request.method() === 'POST' && url.pathname === '/api/venues/search' && response.status() === 200) {
           phase = 'record-places';
           await bridge({ operation: 'record-places', body: await response.json() });
         }
@@ -157,7 +158,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
         failures.push({ request_id: requestId, at: new Date().toISOString(), phase, response_status: responseStatus,
           request_failure: failure === 'net::ERR_ABORTED' ? 'aborted' : failure ? 'transport-failure' : null,
           method: request.method(), origin: [run.client_url, run.backend_url].includes(url.origin) ? url.origin : '[outside-target]',
-          path: run.scenario === 'places-routes' ? safePath : url.pathname });
+          path: placesGuard ? safePath : url.pathname });
         if (!continued) await route.abort('blockedbyclient');
       } finally {
         if (streamCandidate) pendingStreams.delete(request);
@@ -324,7 +325,8 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
       assert.equal((await request('GET', `/api/events/${entry.event_id}`)).status, 404);
       await bridge({ operation: 'closed', event_id: entry.event_id });
     }
-    await writeFile(path.join(runDir, 'evidence', 'ppe-ui-cleanup.json'), JSON.stringify({ status: 'PASS', scope: 'exact UI-created event IDs only' }, null, 2));
+    await writeFile(path.join(runDir, 'evidence', 'ppe-ui-cleanup.json'), JSON.stringify({ status: 'PASS',
+      scope: run.scenario === 'voting-publication' ? 'exact UI-created event, participant and vote rows absent; Venue rows retained' : 'exact UI-created event IDs only' }, null, 2));
   }
 
   function assertGuard() {
@@ -353,7 +355,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
   return { bridge, guardContext, saveSession, negativeChecks, watchTitle, cleanupOwned, settleRequests,
     read(route, options) { return request('GET', route, options); },
     async openParticipantStream(eventId, token, signal) {
-      assert.equal(run.scenario, 'participants');
+      assert(['participants', 'voting-publication'].includes(run.scenario));
       const url = `${run.backend_url}/api/events/${eventId}/stream`;
       await bridge({ operation: 'guard', method: 'GET', url });
       const response = await fetch(url, { headers: { authorization: `Bearer ${token}`, origin: run.client_url },
@@ -365,7 +367,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
     async evidence() {
       const filename = dependencies.phase === 'cleanup' ? 'ppe-request-guards-cleanup.json' : 'ppe-request-guards.json';
       await writeFile(path.join(runDir, 'evidence', filename), JSON.stringify({ blocked: failures, pending_requests: pendingRequests.size,
-        ...(run.scenario === 'places-routes' ? { streaming_api: {
+        ...(placesGuard ? { streaming_api: {
           policy: 'Owned SSE continues without buffering. Invalid observed headers or redirects fail. A browser-confirmed pre-response cancellation requires a later validated replacement on the same page and event.',
           pending: pendingStreams.size, responses: streamResponses,
           cancelled_attempts: cancelledStreams.map(attempt => ({ request_id: attempt.requestId,

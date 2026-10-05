@@ -1,6 +1,12 @@
 # Voting and publishing
 
-Participants shortlist venues with votes, see other people's votes, and the organizer publishes a final meeting place or reopens voting. See [recorded coverage](../verification-status.md) for the original failures and the compatible frontend's passing last-vote and unpublish checks. Unlisted entry points remain UNVERIFIED.
+Participants shortlist venues with votes, see other people's votes, and the organizer publishes a final meeting place or reopens voting. See [recorded coverage](../verification-status.md) for M4's bounded local and Railway PPE acceptance, plus the historical frontend results. Unlisted entry points remain UNVERIFIED.
+
+The M4 `voting-publication` scenario passes all 16 observations in local run `2026-10-05-m4-google-e` and PPE run `2026-10-05-m4-ppe-a`. Both use backend `99bebef771d3ae2af8ce7e553d9dd8cb05cb4b55`, fixed frontend `b960f605d4a6015f7d389cc8d1bf0bb528e8773e`, and verifier `871171727105a6a1055419b57757879314f2cc5b`. PPE deployment is `62c6348f-9bb7-4224-bbe5-18ae7071489a`. The client and schema are unchanged.
+
+[The bounded driver](../helpers/voting-browser.mjs) continues the completed real Google M3 setup. Verified entries include organizer card and guest detail-heart votes, both removal cases, empty live shortlists and reload persistence, automatic voting during publication, the published-heart DELETE allowance and POST 409 rollback, published reload, anonymous disabled joining, and live reopening followed by a persisted guest vote. A second publication preserves both existing vote IDs without another vote request, then reopens again. Exact HTTP bodies, public reads, stored membership, complete SSE snapshots, and the untouched observer corroborate these UI actions. Final UI deletion leaves no event, participant, or vote rows. Shared Venue cache rows and Redis diagnostic sequence keys are outside that cleanup.
+
+Local A-D remain failed verifier attempts, with their evidence and cleanup retained. Phone layouts, the ordinary detail counter as its own entry, no-selection and cancellation variants, concurrent snapshot ordering/reconnect recovery, historical import, and production frontend serving remain outside M4 acceptance. Local and PPE PASS do not establish completed CI or enforced required checks.
 
 ## Sub-features
 
@@ -59,7 +65,7 @@ Preconditions: unpublished event with organizer `page`, a separately joined `gue
   await guest.getByRole('button', { name: 'Voting disabled after publish', exact: true }).first().waitFor();
   assert(await guest.getByRole('button', { name: 'Voting disabled after publish', exact: true }).first().isDisabled());
   ```
-  Capture the selected venue's `Published` badge, reload both browsers, and require the same published state. In a third fresh context open the URL and assert `Event Published` plus disabled `Join Event`. The success text saying participants were notified requires proof from the existing guest, not an assumption of email delivery.
+  Capture the selected venue's `Published` badge, reload both browsers, and require the same published state. In a third fresh context open the URL, wait for the `Event Published` heading, then assert `Join Event` is disabled. The success text saying participants were notified requires proof from the existing guest, not an assumption of email delivery.
 - **Reopen.** The organizer uses Settings again.
   ```js
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
@@ -76,6 +82,7 @@ Preconditions: unpublished event with organizer `page`, a separately joined `gue
 
 - Publishing verifies the selected place through Google. Real backend credentials remain required even if the card was already visible.
 - Publishing may first add the organizer's vote. Measure the actual final counts rather than assuming publishing has no voting side effect.
-- The current detail `Save venue`/`Remove from saved` heart lacks the ordinary vote button's published disable guard. Treat this as an explicit hazard: record the response and persisted effect of any attempted mutation. The DELETE path has no published-state guard in the inspected source, so do not assume rejection or call all voting locked based only on disabled card buttons.
+- The detail `Save venue`/`Remove from saved` heart remains actionable after publication. M4 verifies DELETE 200 and removal, followed by POST 409 and visible rollback with unchanged publication. Disabled ordinary vote buttons do not imply that all voting actions are locked.
 - Published mode forces the shortlist filter open and disables its toggle. A selected venue and a voted venue are different states.
+- The Published badge is inside the selected card's heading, so its exact accessible name becomes `venueName + 'Published'`. Wait for the loaded event before checking publication locks and for the browser's own vote response before accepting an empty reloaded shortlist.
 - The publish success modal closes after two seconds. Capture durable published badges and the second browser as well as the transient success heading.

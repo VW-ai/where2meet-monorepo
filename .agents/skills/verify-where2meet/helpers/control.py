@@ -357,7 +357,7 @@ def main():
     parser.add_argument("--schema-mode", choices=("migrations", "push"), default="migrations",
                         help="Use push only to reproduce the legacy schema baseline")
     parser.add_argument("--backend-mode", choices=("compiled", "source"), default="compiled")
-    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "places-routes", "accounts"), default="event-lifecycle")
+    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "places-routes", "voting-publication", "accounts"), default="event-lifecycle")
     args = parser.parse_args()
     run = args.run.resolve()
     if args.operation == "launch":
@@ -375,7 +375,7 @@ def main():
         try:
             doctor(run)
             state = load(run)
-            if args.scenario in ("participants", "places-routes") and not all(state.get("google_keys", {}).get(key) for key in ("GOOGLE_MAPS_API_KEY", "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")):
+            if args.scenario in ("participants", "places-routes", "voting-publication") and not all(state.get("google_keys", {}).get(key) for key in ("GOOGLE_MAPS_API_KEY", "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")):
                 raise RuntimeError("This scenario requires real backend and browser Google Maps keys at launch")
             state["scenario"] = args.scenario
             save(run, state)

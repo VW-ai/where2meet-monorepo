@@ -1,6 +1,6 @@
 # Railway PPE rehearsal
 
-This branch is an incomplete replacement backend. The recorded initial PPE deployment validates the first meeting lifecycle. The participant migration adds a named scenario that needs its own new deployment and evidence. Keep the migration PRs unmerged until the user requests a merge. [The verification skill](../../.agents/skills/verify-where2meet/ppe.md) runs the selected local frontend against PPE and records browser, HTTP, and database evidence.
+This branch is a replacement backend under migration. The initial PPE deployment validates the first meeting lifecycle, and later runs add bounded account, places, routes, voting, and publication acceptance. [Recorded coverage](../../.agents/skills/verify-where2meet/verification-status.md) identifies each tested revision and its limits. Keep the migration PRs unmerged until the user requests a merge. [The verification skill](../../.agents/skills/verify-where2meet/ppe.md) runs the selected local frontend against PPE and records browser, HTTP, and database evidence.
 
 ## Current PPE
 
@@ -57,7 +57,9 @@ Run the importer from a checkout with development dependencies installed, using 
 
 Fixture files and plaintext test credentials stay private and outside the repository. The importer is a rehearsal tool, not evidence that historical production data has already been audited. Real migration still requires an export audit, rehearsal, and write cutoff plan.
 
-The M2 source additionally supports joining, organizer additions, participant location/privacy edits, removal and leaving, email accounts and meeting claims. See [the participant migration](m2-participants.md) and [account migration](m2-accounts.md) for contracts and limits. M3 adds [place search, details, photos and meeting directions](m3-places-routes.md), with its own `places-routes` verification scenario and explicit public API origin. A source change does not update the deployed target manifest or establish PPE acceptance. Voting writes and publication remain unavailable. Do not count untested paths as passed or production ready.
+The M2 source additionally supports joining, organizer additions, participant location/privacy edits, removal and leaving, email accounts and meeting claims. See [the participant migration](m2-participants.md) and [account migration](m2-accounts.md) for contracts and limits. M3 adds [place search, details, photos and meeting directions](m3-places-routes.md), with its own `places-routes` verification scenario and explicit public API origin. M4 adds [vote writes and publication](m4-voting-publication.md). A source change does not update the deployed target manifest or establish PPE acceptance.
+
+M4 PPE run `2026-10-05-m4-ppe-a` passes all 16 bounded voting/publication observations against backend `99bebef771d3ae2af8ce7e553d9dd8cb05cb4b55` and fixed frontend `b960f605d4a6015f7d389cc8d1bf0bb528e8773e`. Deployment `62c6348f-9bb7-4224-bbe5-18ae7071489a` used real Google services, with no client or schema change. The exact UI-created event, participant, and vote rows were deleted, and the temporary SSH key was revoked after cleanup. Shared Venue cache rows and Redis diagnostic sequence keys remain outside fixture cleanup. [The M4 record](../../.agents/skills/verify-where2meet/verification-status.md) retains verifier identities, failed local attempts, evidence paths, and exclusions. CI remains incomplete, and main has no effective required-check rule. Do not count untested paths as passed or production ready.
 
 ## Stop and retry
 
