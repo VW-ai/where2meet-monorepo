@@ -1,4 +1,6 @@
 import type {
+  BlogPosting,
+  BreadcrumbList,
   Event,
   FAQPage,
   Organization,
@@ -6,7 +8,8 @@ import type {
   WebSite,
   WithContext,
 } from 'schema-dts';
-import { SITE_CONFIG } from './metadata';
+import { BLOG_AUTHOR, coverPath, postPath, type BlogPost } from '@/content/blog/posts';
+import { SITE_CONFIG, toAbsoluteUrl } from './metadata';
 
 /**
  * Generate Organization schema for root layout
@@ -201,6 +204,39 @@ export function generateFAQSchema(faqs: FAQItem[]): WithContext<FAQPage> {
         '@type': 'Answer',
         text: faq.answer,
       },
+    })),
+  };
+}
+
+export function generateBlogPostingSchema(post: BlogPost): WithContext<BlogPosting> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.description,
+    image: toAbsoluteUrl(coverPath(post.slug)),
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt,
+    author: { '@type': 'Organization', name: BLOG_AUTHOR, url: SITE_CONFIG.url },
+    publisher: { '@id': `${SITE_CONFIG.url}/#organization` },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': toAbsoluteUrl(postPath(post.slug)) },
+  };
+}
+
+export interface BreadcrumbItem {
+  name: string;
+  path: string;
+}
+
+export function generateBreadcrumbSchema(items: BreadcrumbItem[]): WithContext<BreadcrumbList> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: toAbsoluteUrl(item.path),
     })),
   };
 }

@@ -1,3 +1,5 @@
+const createMDX = require('@next/mdx');
+
 /** @type {import('next').NextConfig} */
 
 /** Canonical production origin. Keep in sync with SITE_CONFIG.url in src/lib/seo/metadata.ts. */
@@ -66,10 +68,10 @@ const nextConfig = {
         destination: `${CANONICAL_ORIGIN}/:path*`,
         permanent: true,
       })),
-      // Pages retired by the visual-story landing
+      // Pages retired by the visual-story landing. The blog replaced the scenario pages.
       { source: '/how-it-works', destination: '/', permanent: true },
-      { source: '/scenarios', destination: '/', permanent: true },
-      { source: '/scenarios/:slug', destination: '/', permanent: true },
+      { source: '/scenarios', destination: '/blog', permanent: true },
+      { source: '/scenarios/:slug', destination: '/blog', permanent: true },
     ];
   },
   reactStrictMode: true,
@@ -78,4 +80,5 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Blog post bodies in src/content/blog are MDX, styled by src/mdx-components.tsx.
+module.exports = createMDX()(nextConfig);

@@ -4,14 +4,18 @@ import { describe, expect, it } from 'vitest';
 import {
   SITE_CONFIG,
   buildPageTitle,
+  createArticleMetadata,
   createMeetingPageMetadata,
   createMetadata,
   toAbsoluteUrl,
 } from '@/lib/seo/metadata';
 import {
+  generateBlogPostingSchema,
+  generateBreadcrumbSchema,
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
+import { BLOG_POSTS, getPost, postPath } from '@/content/blog/posts';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
@@ -20,6 +24,14 @@ import nextConfig from '../../../../next.config.js';
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const LLMS_TXT = readFileSync(path.join(__dirname, '../../../../public/llms.txt'), 'utf8');
+const BLOG_URLS = [
+  `${CANONICAL_ORIGIN}/blog`,
+  ...BLOG_POSTS.map((post) => `${CANONICAL_ORIGIN}${postPath(post.slug)}`),
+];
+
+function readPostBody(slug: string) {
+  return readFileSync(path.join(__dirname, `../../../content/blog/${slug}.mdx`), 'utf8');
+}
 
 /** Strip Next.js metadata union types by round-tripping through JSON. */
 function asJson<T>(value: unknown): T {
@@ -68,6 +80,43 @@ describe('createMetadata', () => {
     expect(metadata.openGraph.url).toBe(`${CANONICAL_ORIGIN}/faq`);
   });
 
+  it('links the site share image by default', () => {
+    const metadata = asJson<{ openGraph: { images: unknown[] } }>(createMetadata({ title: 'FAQ' }));
+    expect(metadata.openGraph.images).toEqual([
+      {
+        url: '/opengraph-image',
+        alt: 'Where2Meet: Plan where to meet, together',
+        width: 1200,
+        height: 630,
+      },
+    ]);
+  });
+
+  it('builds article metadata with its own share image and dates', () => {
+    const metadata = asJson<{
+      title: string;
+      alternates: { canonical: string };
+      openGraph: { type: string; publishedTime: string; modifiedTime: string; images: unknown[] };
+    }>(
+      createArticleMetadata({
+        title: 'A post',
+        description: 'About a post',
+        canonical: '/blog/a-post',
+        image: { url: '/blog/a-post/cover.png', alt: 'The cover' },
+        publishedTime: '2026-10-04',
+        modifiedTime: '2026-10-05',
+      })
+    );
+    expect(metadata.title).toBe('A post | Where2Meet');
+    expect(metadata.alternates.canonical).toBe(`${CANONICAL_ORIGIN}/blog/a-post`);
+    expect(metadata.openGraph).toMatchObject({
+      type: 'article',
+      publishedTime: '2026-10-04',
+      modifiedTime: '2026-10-05',
+      images: [{ url: '/blog/a-post/cover.png', alt: 'The cover', width: 1200, height: 630 }],
+    });
+  });
+
   it('marks meeting pages noindex but follow', () => {
     const metadata = asJson<{ robots: { index: boolean; follow: boolean } }>(
       createMeetingPageMetadata({ title: 'Team lunch', description: 'Vote on a spot' })
@@ -86,7 +135,14 @@ describe('sitemap', () => {
       CANONICAL_ORIGIN,
       `${CANONICAL_ORIGIN}/faq`,
       `${CANONICAL_ORIGIN}/contact`,
+      `${CANONICAL_ORIGIN}/blog`,
+      `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
     ]);
+  });
+
+  it('dates each post by its update and the blog by its newest post', () => {
+    const blogEntries = entries.filter((entry) => entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`));
+    expect(blogEntries.map((entry) => entry.lastModified)).toEqual(['2026-10-04', '2026-10-04']);
   });
 
   it('uses fixed ISO content dates for lastModified, never the build time', () => {
@@ -145,6 +201,43 @@ describe('structured data', () => {
     expect(organization.logo).toBe(`${CANONICAL_ORIGIN}/logo.png`);
   });
 
+  it('describes a blog post as a BlogPosting by the Where2Meet team', () => {
+    const post = getPost('how-to-choose-a-team-meeting-location');
+    expect(post).toBeDefined();
+    expect(generateBlogPostingSchema(post!)).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: 'How to choose a team meeting location everyone can reach',
+      description:
+        'Your team is spread across town. Compare travel times, pick a venue that suits the meeting, and settle on a place without a week of back-and-forth.',
+      image: `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location/cover.png`,
+      datePublished: '2026-10-04',
+      dateModified: '2026-10-04',
+      author: { '@type': 'Organization', name: 'The Where2Meet team', url: CANONICAL_ORIGIN },
+      publisher: { '@id': `${CANONICAL_ORIGIN}/#organization` },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
+      },
+    });
+  });
+
+  it('numbers breadcrumbs from 1 with absolute www URLs', () => {
+    expect(
+      generateBreadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: 'Blog', path: '/blog' },
+      ])
+    ).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${CANONICAL_ORIGIN}/` },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${CANONICAL_ORIGIN}/blog` },
+      ],
+    });
+  });
+
   it('describes a free web application without fabricated ratings', () => {
     const app = asJson<{ offers: { price: string }; aggregateRating?: unknown }>(
       generateWebApplicationSchema()
@@ -165,8 +258,13 @@ describe('next.config redirects and headers', () => {
         permanent: true,
       });
     }
-    for (const source of ['/how-it-works', '/scenarios', '/scenarios/:slug']) {
-      expect(redirects).toContainEqual({ source, destination: '/', permanent: true });
+    expect(redirects).toContainEqual({
+      source: '/how-it-works',
+      destination: '/',
+      permanent: true,
+    });
+    for (const source of ['/scenarios', '/scenarios/:slug']) {
+      expect(redirects).toContainEqual({ source, destination: '/blog', permanent: true });
     }
   });
 
@@ -190,8 +288,12 @@ describe('llms.txt', () => {
     );
     expect(links.length).toBeGreaterThan(0);
     for (const link of links) {
-      expect([...pageUrls, `${CANONICAL_ORIGIN}/sitemap.xml`]).toContain(link);
+      expect([...pageUrls, ...BLOG_URLS, `${CANONICAL_ORIGIN}/sitemap.xml`]).toContain(link);
     }
+  });
+
+  it('links the blog and every post', () => {
+    expect(links).toEqual(expect.arrayContaining(BLOG_URLS));
   });
 });
 
@@ -203,6 +305,7 @@ describe('positioning copy', () => {
       SITE_CONFIG.tagline,
       SITE_CONFIG.pitch,
       LLMS_TXT,
+      ...BLOG_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
     ]) {
       expect(text).not.toMatch(/\bfair/i);
       expect(text).not.toMatch(/meet in the middle/i);

@@ -297,6 +297,9 @@ export default function LandingPage() {
 
       <footer className="mx-auto w-full max-w-xl px-4 py-6 lg:max-w-5xl lg:px-8" data-leave="0">
         <nav className="mb-2 flex justify-center gap-5 text-sm">
+          <Link href="/blog" className="font-medium text-[#666b73] hover:text-[#bd3843]">
+            Blog
+          </Link>
           <Link href="/faq" className="font-medium text-[#666b73] hover:text-[#bd3843]">
             FAQ
           </Link>
