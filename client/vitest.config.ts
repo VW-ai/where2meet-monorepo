@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Next resolves this marker itself; tests run outside its bundler.
+      'server-only': 'next/dist/compiled/server-only/empty.js',
     },
   },
 });

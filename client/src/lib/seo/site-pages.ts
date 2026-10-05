@@ -22,9 +22,15 @@ export interface StaticPageEntry {
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+export type IsoDate = `${number}-${number}-${number}`;
+
+export function isIsoDate(value: string): value is IsoDate {
+  return ISO_DATE_PATTERN.test(value) && !Number.isNaN(Date.parse(value));
+}
+
 /** Fails at module load so a typo breaks the build instead of shipping a bad lastmod. */
 export function assertIsoDate<T extends string>(value: T, label: string): T {
-  if (!ISO_DATE_PATTERN.test(value) || Number.isNaN(Date.parse(value))) {
+  if (!isIsoDate(value)) {
     throw new Error(`${label} must be an ISO date (YYYY-MM-DD), received "${value}"`);
   }
   return value;
