@@ -1,9 +1,6 @@
 import { loadGoogleMaps } from '@/shared/lib/google-maps/loader';
-import { pickPlaces, shortAddress, type PlaceSummary, type SearchArea } from './places';
+import { shortAddress, type PlaceSummary } from './places';
 
-const MAX_PLACES = 6;
-const RESULTS_PER_QUERY = 6;
-const SEARCH_RADIUS_METERS = 8000;
 const PHOTO_MAX_WIDTH = 640;
 
 /** Only what a card shows, since Google bills by field. */
@@ -19,32 +16,6 @@ const CARD_FIELDS = [
   'attributions',
 ];
 
-export async function searchPlaces(
-  area: SearchArea,
-  queries: readonly string[]
-): Promise<PlaceSummary[]> {
-  const { places } = await loadGoogleMaps();
-  const responses = await Promise.all(
-    queries.map((textQuery) =>
-      places.Place.searchByText({
-        textQuery,
-        fields: CARD_FIELDS,
-        locationBias: { center: area.center, radius: SEARCH_RADIUS_METERS },
-        maxResultCount: RESULTS_PER_QUERY,
-      })
-    )
-  );
-  return pickPlaces(
-    responses.map((response) => response.places.flatMap(toPlaceSummary)),
-    MAX_PLACES
-  );
-}
-
-/**
- * Card details for known place IDs, keyed by the ID asked for (Google may answer with a
- * newer one). A place Google can't return is left out, so its card can still show the
- * editor's words.
- */
 export async function fetchPlaces(ids: readonly string[]): Promise<Map<string, PlaceSummary>> {
   const { places } = await loadGoogleMaps();
   const found = await Promise.all(
@@ -60,20 +31,6 @@ export async function fetchPlaces(ids: readonly string[]): Promise<Map<string, P
     })
   );
   return new Map(found.flat());
-}
-
-/** The best match for a typed city name, or null when Google finds nothing. */
-export async function findCity(query: string): Promise<SearchArea | null> {
-  const { places } = await loadGoogleMaps();
-  const {
-    places: [city],
-  } = await places.Place.searchByText({
-    textQuery: query,
-    fields: ['displayName', 'location'],
-    maxResultCount: 1,
-  });
-  if (!city?.location) return null;
-  return { near: city.displayName ?? query, center: city.location.toJSON() };
 }
 
 /** A card needs a name and a Maps link, so places without them are dropped. */
