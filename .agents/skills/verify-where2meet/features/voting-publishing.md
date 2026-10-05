@@ -2,6 +2,8 @@
 
 Participants shortlist venues with votes, see other people's votes, and the organizer publishes a final meeting place or reopens voting. See [recorded coverage](../verification-status.md) for the original failures and the compatible frontend's passing last-vote and unpublish checks. Unlisted entry points remain UNVERIFIED.
 
+The M4 `voting-publication` scenario uses [the bounded driver](../helpers/voting-browser.mjs) with fixed frontend `b960f605d4a6015f7d389cc8d1bf0bb528e8773e`. It continues the completed M3 setup and adds card and guest-heart votes, both removal cases, empty live shortlists, auto-vote publication, the published-heart DELETE allowance and POST rollback, persisted publication, anonymous join lock and live reopening followed by a persisted guest vote. A second publication starts with both participants already voted and must preserve both vote IDs without another vote request. It requires exact HTTP bodies, public reads, stored membership and complete SSE snapshots. Source coverage does not mark these paths verified against the M4 backend. Phone layouts, the ordinary detail counter as its own entry, and cancellation variants remain outside this scenario.
+
 ## Sub-features
 
 - `vote-card` adds or removes a vote on a venue card.

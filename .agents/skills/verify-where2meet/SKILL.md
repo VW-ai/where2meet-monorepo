@@ -98,6 +98,10 @@ This reuses the event lifecycle and exact cleanup, then adds two public-landmark
 
 The M3 result is `evidence/result.json`, with intermediate and failed steps in `places-state.json`. Shared provider-cache place IDs are separate from exact synthetic event/participant cleanup. The verifier never deletes or restores Venue rows. A fixture test of the verifier is not live Google evidence, and no Google browser scenario runs in CI without credentials.
 
+For M4, use the same fixed frontend and real Google launch, then select `--scenario voting-publication`. The [voting driver](helpers/voting-browser.mjs) runs as a continuation after every M3 assertion, while both UI-created participants remain open. `places-state.json` records the completed setup. `voting-state.json` records the separate voting checks and any partial failure. An overall PASS also requires exact event, participant and vote cleanup.
+
+The continuation checks organizer card voting, guest detail-heart voting, non-final and last-vote removal, complete SSE snapshots and the untouched observer's counts and empty shortlist. It observes publication's automatic organizer vote, the full Event response, persisted publication, disabled ordinary controls and anonymous joining. The published detail heart must allow DELETE and reject POST with rollback. Reopening must send explicit null publication fields, restore the observer's controls and permit a guest vote that survives reload. A second publication with both participants already voted must preserve their vote IDs and issue no extra vote request. HTTP bodies, public vote/statistics reads and read-only SQL corroborate these actions. See [voting and publishing](features/voting-publishing.md) for entry coverage and [PPE verification](ppe.md) for the bounded remote policy. These source assertions are not live-provider acceptance evidence.
+
 ```sh
 python3 "$VERIFY_SKILL/helpers/control.py" doctor --run "$VERIFY_RUN" && \
   node "$VERIFY_SKILL/helpers/google-browser.mjs" "$VERIFY_RUN"

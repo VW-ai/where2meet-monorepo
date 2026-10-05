@@ -66,7 +66,7 @@ export function placesStoredProjection(stored) {
       ({ id, event_id, name, is_organizer, has_credential, lat, lng, fuzzy_location })) };
 }
 
-export async function runPlacesScenario({ page, browser, run, eventId, organizerId, evidence, capture, action, adapter }) {
+export async function runPlacesScenario({ page, browser, run, eventId, organizerId, evidence, capture, action, adapter, continueWith }) {
   const observations = [];
   const network = [];
   const errors = [];
@@ -252,16 +252,29 @@ export async function runPlacesScenario({ page, browser, run, eventId, organizer
     status = 'PASS';
     stage = 'complete';
     action('Real coffee search, complete selected details, optional photo and both participants driving/walking values verified');
-    return { scope: ['real Google map and public-landmark autocomplete', 'two persisted participant origins', 'coffee text search',
+    const proof = { scope: ['real Google map and public-landmark autocomplete', 'two persisted participant origins', 'coffee text search',
       'selected-ID full venue details', ...(detail.photoUrl ? ['owned photo redirect and loaded image'] : []),
       'driving and walking with exact participant outcomes and visible distance/duration', 'unpublished meeting with no vote writes'],
     not_verified: ['phone layouts', 'venue suggestion selection', 'category-only search', 'transit and bicycle routes', 'travel statistics',
       'vote writes and publication', 'account writes', 'historical import', 'production frontend serving'],
     shared_provider_cache: { touched_place_ids: [...touchedPlaces], touched_place_count: touchedPlaces.size,
       policy: 'trusted provider cache rows may remain; exact synthetic cleanup is separate', exact_retained_row_count: 'not asserted' } };
+    await save();
+    page.off('response', observeResponse);
+    page.off('pageerror', observeError);
+    guest.off('response', observeResponse);
+    guest.off('pageerror', observeError);
+    if (continueWith) {
+      const continuation = await continueWith({ page, guest, browser, run, eventId, organizerId, guestId: joined.id,
+        venue: detail, evidence, capture, action, adapter });
+      return { ...continuation, setup: proof, shared_provider_cache: proof.shared_provider_cache };
+    }
+    return proof;
   } catch (error) {
-    observations.push({ label: 'failure', stage, error: scrubPlacesError(error) });
-    try { await capture('places-failure', page); } catch {}
+    if (status !== 'PASS') {
+      observations.push({ label: 'failure', stage, error: scrubPlacesError(error) });
+      try { await capture('places-failure', page); } catch {}
+    }
     throw error;
   } finally {
     page.off('response', observeResponse);

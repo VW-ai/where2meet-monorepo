@@ -1,5 +1,11 @@
 # Recorded verification coverage
 
+## M4 verifier source coverage, 2026-10-05
+
+The `voting-publication` scenario extends the completed M3 setup with organizer card and guest detail-heart votes, both removal cases, empty live shortlists, automatic voting during publication, published-heart DELETE allowance and POST rollback, published reload, anonymous join lock, and reopening followed by a persisted guest vote, and publication with an existing organizer vote that preserves both vote IDs without another vote request. Its assertions compare safe HTTP bodies, public vote/statistics reads, exact SQL membership, full SSE snapshots and an untouched observer. Cleanup checks event, participant and vote absence while retaining trusted provider cache rows.
+
+This entry describes verifier source coverage. It does not claim a local or PPE PASS for M4. Guard and contract fixtures do not prove real Google integration. Live-run identities and acceptance results must be recorded separately. The scenario excludes phone layouts, the ordinary detail counter as a separate entry, modal cancellation variants, concurrent snapshot ordering, historical migration and production frontend hosting.
+
 ## M3 places and routes, 2026-10-05
 
 Backend `1efb5d36ac3217b65391cd6a2aa053c8746b0684` passes 136 server tests, type/lint/format/module checks and compilation. These tests use isolated PostgreSQL/Redis and provider HTTP fixtures. The clean fixed frontend is `b960f605d4a6015f7d389cc8d1bf0bb528e8773e`, combining PR29 with main `665e93d536ee128119caf034f288f57e7673d905`. M3 changes no frontend or schema. Places now supplies search, details and checked photo redirects; Meetings authorizes route origins and Routing returns explicit per-person outcomes. Vote writes and publication remain for the next slice.

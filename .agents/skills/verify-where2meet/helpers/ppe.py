@@ -45,7 +45,7 @@ def digest(value):
 
 
 def verifier_fingerprint():
-    return hashlib.sha256(b"".join((HELPERS / name).read_bytes() for name in ("control.py", "ppe.py", "ppe_accounts.py", "browser.mjs", "ppe-browser.mjs", "participants-browser.mjs", "places-browser.mjs", "accounts-browser.mjs", "ppe-accounts-browser.mjs"))).hexdigest()
+    return hashlib.sha256(b"".join((HELPERS / name).read_bytes() for name in ("control.py", "ppe.py", "ppe_accounts.py", "browser.mjs", "ppe-browser.mjs", "participants-browser.mjs", "places-browser.mjs", "voting-browser.mjs", "accounts-browser.mjs", "ppe-accounts-browser.mjs"))).hexdigest()
 
 
 def private_environment():
@@ -194,7 +194,7 @@ def assert_frontend(state):
 def doctor(run, frontend=True):
     state = read_run(run)
     evidence, _ = inspect_target(state["target"])
-    if state.get("scenario") == "places-routes":
+    if state.get("scenario") in ("places-routes", "voting-publication"):
         require(evidence["public_api_origin"] == state["backend_url"], "PPE photo origin must match the verified backend origin")
     if frontend:
         assert_frontend(state)
@@ -236,7 +236,7 @@ def pending_places_event(state):
 
 
 def record_provider_places(state, body):
-    require(state.get("scenario") == "places-routes", "Provider places are outside this scenario")
+    require(state.get("scenario") in ("places-routes", "voting-publication"), "Provider places are outside this scenario")
     pending_places_event(state)
     require(isinstance(body, dict) and isinstance(body.get("venues"), list)
             and type(body.get("totalResults")) is int and body["totalResults"] == len(body["venues"])
@@ -295,10 +295,54 @@ def authorize_places_request(state, method, parsed, body, purpose):
     return False
 
 
+def authorize_voting_request(state, method, parsed, body, purpose):
+    match = re.fullmatch(r"/api/events/(evt_[A-Za-z0-9_]+)/(publish|votes/statistics|participants/([0-9a-f-]{36})/votes(?:/([^/]+))?)", parsed.path)
+    if not match:
+        return False
+    pending_places_event(state)
+    entry = owned_event(state, match[1])
+    require(entry["cleanup_state"] == "pending" and not parsed.query, "Voting requires the exact pending owned event")
+    if match[2] == "votes/statistics":
+        require(method in ("GET", "HEAD", "OPTIONS") and body is None, "Statistics are read-only")
+        return True
+    require(purpose == "ui", "Only the browser UI may mutate voting and publication")
+    if match[3]:
+        require(match[3] in [entry["organizer_id"], *entry.get("participant_ids", [])], "Vote participant is not owned by this run")
+    place_id = urllib.parse.unquote(match[4]) if match[4] else None
+    if place_id is not None:
+        require(place_id in state.get("provider_place_ids", []), "Vote venue was not observed in this run")
+        require(method in ("DELETE", "OPTIONS") and body is None, "Vote removal must have no body")
+        return True
+    if method == "OPTIONS":
+        require(body is None, "Preflight must have no body")
+        return True
+    if match[2] == "publish" and method == "DELETE":
+        require(body is None, "Reopening must have no body")
+        return True
+    require(method == "POST" and isinstance(body, dict), "Unexpected voting or publication operation")
+    require(body.get("venueId") in state.get("provider_place_ids", []), "Venue was not observed in this run")
+    if match[2] == "publish":
+        require(set(body) == {"venueId"}, "Publication accepts only the observed venue ID")
+        return True
+    require(set(body) == {"venueId", "venueData"} and isinstance(body["venueData"], dict), "Vote body differs from the frontend contract")
+    venue = body["venueData"]
+    require({"name", "lat", "lng"} <= set(venue) <= {"name", "lat", "lng", "address", "category", "rating", "priceLevel", "photoUrl"}, "Vote metadata has unsupported fields")
+    require(isinstance(venue["name"], str) and 0 < len(venue["name"]) <= 255
+            and finite_number(venue["lat"], -90, 90) and finite_number(venue["lng"], -180, 180), "Vote metadata requires a bounded name and coordinates")
+    for field, limit in (("address", 255), ("category", 50)):
+        require(venue.get(field) is None or isinstance(venue[field], str) and len(venue[field]) <= limit, "Vote text metadata exceeds the bounded contract")
+    require(venue.get("rating") is None or finite_number(venue["rating"], 0, 5), "Vote rating is invalid")
+    require(venue.get("priceLevel") is None or type(venue["priceLevel"]) is int and 0 <= venue["priceLevel"] <= 4, "Vote price level is invalid")
+    require(venue.get("photoUrl") is None or venue["photoUrl"] == state["backend_url"] + "/api/venues/" + urllib.parse.quote(body["venueId"], safe="") + "/photo", "Vote photo must be the exact owned backend endpoint")
+    return True
+
+
 def authorize_request(state, method, url, body, purpose):
     parsed = urllib.parse.urlsplit(url)
     require(f"{parsed.scheme}://{parsed.netloc}" == state["backend_url"] and not parsed.fragment, "API request origin or URL is outside PPE")
-    if state.get("scenario") == "places-routes":
+    if state.get("scenario") in ("places-routes", "voting-publication"):
+        if state.get("scenario") == "voting-publication" and authorize_voting_request(state, method, parsed, body, purpose):
+            return
         if authorize_places_request(state, method, parsed, body, purpose) is not False:
             return
     else:
@@ -318,8 +362,8 @@ def authorize_request(state, method, url, body, purpose):
     require(entry["cleanup_state"] == "pending", "Event was already cleaned")
     if not suffix and method in ("PATCH", "DELETE"):
         return
-    if state.get("scenario") in ("participants", "places-routes"):
-        if state.get("scenario") == "places-routes":
+    if state.get("scenario") in ("participants", "places-routes", "voting-publication"):
+        if state.get("scenario") in ("places-routes", "voting-publication"):
             require(purpose == "ui", "Only the browser UI may prepare places participants")
         if method in ("POST", "PATCH"):
             require(isinstance(body, dict) and bool(body) and set(body) <= {"name", "address", "fuzzyLocation"}, "Participant request contains unsupported fields")
@@ -330,10 +374,10 @@ def authorize_request(state, method, url, body, purpose):
         if suffix == "/participants" and method == "POST":
             require(purpose == "ui", "Only the browser UI may add synthetic participants")
             require({"name", "address"} <= set(body), "Participant creation requires a name and address")
-            if state.get("scenario") == "places-routes":
+            if state.get("scenario") in ("places-routes", "voting-publication"):
                 require(not entry.get("participant_ids"), "Places verification creates exactly one guest")
             return
-        if state.get("scenario") == "places-routes":
+        if state.get("scenario") in ("places-routes", "voting-publication"):
             require(suffix == "/participants/" + entry["organizer_id"] and method == "PATCH", "Places setup can only edit its recorded organizer")
             return
         participant_match = re.fullmatch(r"/participants/([0-9a-f-]{36})", suffix)
@@ -380,13 +424,15 @@ def run_database(run, state, sql, readonly=True, mutation_identity=None):
 
 def observe_event(run, state, event_id):
     owned_event(state, event_id)
+    publication = ", published_venue_id" if state.get("scenario") == "voting-publication" else ""
+    votes = f", 'votes', (SELECT coalesce(json_agg(v), '[]'::json) FROM (SELECT id, event_id, participant_id, venue_id FROM vote WHERE event_id = '{event_id}' ORDER BY id) v)" if state.get("scenario") == "voting-publication" else ""
     sql = f"""BEGIN READ ONLY;
 SELECT json_build_object(
- 'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at FROM event WHERE id = '{event_id}') e),
+ 'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at{publication} FROM event WHERE id = '{event_id}') e),
  'participants', (SELECT coalesce(json_agg(p), '[]'::json) FROM
  (SELECT id, event_id, name, is_organizer, token_hash IS NOT NULL AS has_credential,
  address, formatted_address, lat, lng, fuzzy_location, color
- FROM participant WHERE event_id = '{event_id}' ORDER BY id) p));
+ FROM participant WHERE event_id = '{event_id}' ORDER BY id) p){votes});
 COMMIT;
 """
     return run_database(run, state, sql)
@@ -418,14 +464,14 @@ def bridge(run, payload):
         control.save(run, state)
         return {"recorded": payload["event_id"]}
     if operation == "record-participant":
-        require(state.get("scenario") in ("participants", "places-routes"), "Participant creation is outside this run's scenario")
+        require(state.get("scenario") in ("participants", "places-routes", "voting-publication"), "Participant creation is outside this run's scenario")
         entry = owned_event(state, payload.get("event_id"))
         require(entry["cleanup_state"] == "pending", "Event was already cleaned")
         participant_id = payload.get("participant_id", "")
         require(isinstance(participant_id, str) and re.fullmatch(r"[0-9a-f-]{36}", participant_id), "Invalid created participant ID")
         require(participant_id != entry["organizer_id"], "Participant creation cannot replace the organizer")
         participants = entry.setdefault("participant_ids", [])
-        if state.get("scenario") == "places-routes":
+        if state.get("scenario") in ("places-routes", "voting-publication"):
             require(not participants or participants == [participant_id], "Places verification records exactly one guest")
         if participant_id not in participants:
             participants.append(participant_id)
@@ -440,7 +486,10 @@ def bridge(run, payload):
     if operation == "closed":
         entry = owned_event(state, payload["event_id"])
         snapshot = observe_event(run, state, payload["event_id"])
-        require(snapshot == {"event": None, "participants": []}, "Deleted event still exists in PPE")
+        expected = {"event": None, "participants": []}
+        if state.get("scenario") == "voting-publication":
+            expected["votes"] = []
+        require(snapshot == expected, "Deleted event or its exact participant/vote rows still exist in PPE")
         entry["cleanup_state"] = "deleted"
         control.save(run, state)
         return {"deleted": payload["event_id"]}
@@ -514,7 +563,7 @@ def launch_frontend(run, state, env):
                         "NEXT_TELEMETRY_DISABLED": "1", "BACKEND_URL": state["backend_url"],
                         "NEXT_PUBLIC_BACKEND_URL": state["backend_url"], "NEXT_PUBLIC_API_URL": state["backend_url"],
                         "NEXT_PUBLIC_APP_URL": CLIENT_ORIGIN,
-                        "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "") if state.get("scenario") in ("participants", "places-routes") else "",
+                        "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "") if state.get("scenario") in ("participants", "places-routes", "voting-publication") else "",
                         "NEXT_PUBLIC_GA_MEASUREMENT_ID": ""})
     control.start(run, state, "frontend", ["node", "node_modules/next/dist/bin/next", "dev", "-p", "4317", "-H", "127.0.0.1"], Path(state["source_copy"]) / "client", frontend_env)
     def responding():
@@ -527,7 +576,7 @@ def launch_frontend(run, state, env):
 
 def verify(args):
     run = args.run.resolve()
-    require(args.scenario not in ("participants", "places-routes") or bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")), "This scenario requires a real browser Google Maps key")
+    require(args.scenario not in ("participants", "places-routes", "voting-publication") or bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")), "This scenario requires a real browser Google Maps key")
     require(not (run / "run.json").exists(), "Run already exists; use a fresh directory")
     target = canonical_target(json.loads(args.target.read_text()))
     frontend = args.frontend_repo.resolve()
@@ -557,7 +606,7 @@ def verify(args):
              "frontend_status": "", "frontend_fingerprint": frontend_digest, "source_copy": str(runtime / "app"),
              "frontend_repo": str(frontend), "client_url": CLIENT_ORIGIN, "backend_url": target["railway"]["backend_origin"],
              "backend_mode": "railway-ppe", "scenario": args.scenario,
-             "google_keys": {"NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")) if args.scenario in ("participants", "places-routes") else False},
+             "google_keys": {"NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")) if args.scenario in ("participants", "places-routes", "voting-publication") else False},
              "ports": {"frontend": 4317}, "processes": {}, "owned_events": [],
              "verifier_fingerprint": verifier_fingerprint()}
     control.save(run, state)
@@ -595,7 +644,7 @@ def verify(args):
         try:
             cleanup(run)
         except Exception as error:
-            if args.scenario == "places-routes":
+            if args.scenario in ("places-routes", "voting-publication"):
                 failure = str(error) if isinstance(error, RuntimeError) else type(error).__name__
                 control.write_failure_result(run, args.scenario, failure, failure_field="cleanup_error")
             raise
@@ -612,7 +661,7 @@ def main():
     parser.add_argument("--target", type=Path)
     parser.add_argument("--frontend-repo", type=Path)
     parser.add_argument("--repo", type=Path)
-    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "places-routes", "accounts"), default="event-lifecycle")
+    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "places-routes", "voting-publication", "accounts"), default="event-lifecycle")
     args = parser.parse_args()
     require(args.operation != "verify" or (args.target and args.frontend_repo and args.repo), "verify requires --target, --repo, and --frontend-repo")
     if args.operation == "verify":
