@@ -7,7 +7,8 @@ import { useMapStore } from '@/features/meeting/model/map-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { Users, Plus, BarChart3, UserPlus } from 'lucide-react';
-import { AddParticipant, type ParticipantFormData } from './add-participant';
+import { AddParticipant } from './add-participant';
+import type { ParticipantFormData } from '@/features/meeting/lib/participant-form';
 import { MyLocationPrompt, MY_LOCATION_INPUT_ID } from './my-location-prompt';
 import { ParticipantPill } from './participant-pill';
 import { participantClient } from '@/features/meeting/api';
@@ -52,8 +53,9 @@ export function ParticipantSection() {
 
   // The viewer's own participant record, if they have one in this event
   const myParticipantId = organizerParticipantId || currentParticipantId;
+  const myToken = organizerToken || participantToken;
   const me = currentEvent?.participants?.find((p) => p.id === myParticipantId);
-  const iNeedLocation = !!me && !me.address && !isPublished;
+  const iNeedLocation = !!me && !me.location && !isPublished;
 
   // Save the viewer's own starting point from the inline prompt
   const handleSaveMyLocation = async (data: { name?: string; address: string }) => {
@@ -116,7 +118,8 @@ export function ParticipantSection() {
     setErrorMessage(null);
 
     try {
-      if (editingParticipant) {
+      if (data.mode === 'edit') {
+        if (!editingParticipant) return;
         // Update existing participant via API
         const token = isOrganizerMode ? organizerToken : participantToken;
         if (!token) {
@@ -128,7 +131,7 @@ export function ParticipantSection() {
           editingParticipant.id,
           {
             name: data.name,
-            address: data.address,
+            ...(data.address !== undefined ? { address: data.address } : {}),
             fuzzyLocation: data.fuzzyLocation,
           },
           token
@@ -373,6 +376,17 @@ export function ParticipantSection() {
               }
               cancelLabel={lastAddedName ? 'Done' : 'Cancel'}
               mode={editingParticipant ? 'edit' : 'add'}
+              ownIdentity={
+                editingParticipant?.id === myParticipantId &&
+                currentEvent &&
+                myToken
+                  ? {
+                      eventId: currentEvent.id,
+                      participantId: editingParticipant.id,
+                      token: myToken,
+                    }
+                  : undefined
+              }
               initialData={
                 editingParticipant
                   ? {

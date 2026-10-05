@@ -1,6 +1,6 @@
 # Railway PPE rehearsal
 
-This branch is an incomplete replacement backend. PPE validates the first meeting lifecycle only. Keep the migration PRs unmerged until the user requests a merge. [The verification skill](../../.agents/skills/verify-where2meet/ppe.md) runs the fixed local frontend against PPE and records browser, HTTP, and database evidence.
+This branch is an incomplete replacement backend. The recorded initial PPE deployment validates the first meeting lifecycle. The participant migration adds a named scenario that needs its own new deployment and evidence. Keep the migration PRs unmerged until the user requests a merge. [The verification skill](../../.agents/skills/verify-where2meet/ppe.md) runs the selected local frontend against PPE and records browser, HTTP, and database evidence.
 
 ## Current PPE
 
@@ -57,7 +57,7 @@ Run the importer from a checkout with development dependencies installed, using 
 
 Fixture files and plaintext test credentials stay private and outside the repository. The importer is a rehearsal tool, not evidence that historical production data has already been audited. Real migration still requires an export audit, rehearsal, and write cutoff plan.
 
-The current backend supports meeting creation/read, participant identity, name updates, event edits/deletion, vote reads, session reads, and authenticated SSE. Participant location/join, account writes, venue search, routing, voting writes, and publication are not implemented in this batch. They must return an explicit unavailable response. Do not count those paths as passed or production ready.
+The M2 source additionally supports joining, organizer additions, participant location/privacy edits, removal and leaving. See [the participant migration](m2-participants.md) for contracts and limits. A source change does not update the initial deployed target manifest. Account writes, venue search, routing, voting writes, and publication remain unavailable. Do not count those paths as passed or production ready.
 
 ## Stop and retry
 

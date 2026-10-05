@@ -23,7 +23,25 @@ export interface MeetingSnapshot {
 
 export type MeetingNotice =
   | { kind: "meeting-updated"; meeting: MeetingSnapshot }
-  | { kind: "participant-updated"; participant: ParticipantSnapshot };
+  | { kind: "participant-added" | "participant-updated"; participant: ParticipantSnapshot }
+  | { kind: "participant-removed"; participantId: string }
+  | { kind: "votes-updated"; votes: VoteSnapshot };
+
+export interface VoteSnapshot {
+  venues: { id: string; voters: string[] }[];
+  totalVotes: number;
+}
+
+export interface NewParticipant {
+  name: string;
+  address: string;
+  fuzzyLocation: boolean;
+}
+
+export type ParticipantLocationEdit =
+  | { kind: "retain" }
+  | { kind: "replace"; address: string; fuzzyLocation?: boolean }
+  | { kind: "visibility"; fuzzyLocation: boolean };
 
 export interface Access {
   eventId: string;
@@ -37,13 +55,25 @@ export interface Meetings {
     organizerParticipantId: string;
   }>;
   get(eventId: string): Promise<MeetingSnapshot>;
-  identify(input: Access): Promise<ParticipantSnapshot>;
+  identify(
+    input: Access
+  ): Promise<{ participant: ParticipantSnapshot; privateAddress: string | null }>;
   update(
     input: Access & { patch: { title?: string; meetingTime?: Date | null } }
   ): Promise<MeetingSnapshot>;
-  renameParticipant(
-    input: Access & { participantId: string; name: string }
+  join(input: { eventId: string; participant: NewParticipant }): Promise<{
+    participant: ParticipantSnapshot;
+    participantToken: string;
+  }>;
+  addParticipant(input: Access & { participant: NewParticipant }): Promise<ParticipantSnapshot>;
+  updateParticipant(
+    input: Access & {
+      participantId: string;
+      name?: string;
+      location: ParticipantLocationEdit;
+    }
   ): Promise<ParticipantSnapshot>;
+  removeParticipant(input: Access & { participantId: string }): Promise<void>;
   remove(input: Access): Promise<void>;
   votes(eventId: string): Promise<{
     venues: (PlaceSummary & { voteCount: number; voters: string[] })[];
