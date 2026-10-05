@@ -1,6 +1,6 @@
 # Where2Meet backend rewrite
 
-This branch implements anonymous meetings and the participant lifecycle. It is not a complete production replacement. Unmigrated operations return `501 FEATURE_NOT_AVAILABLE`; see [the PPE scope](docs/railway-ppe.md).
+This branch implements anonymous meetings, the participant lifecycle, email accounts and meeting claims. It is not a complete production replacement. Unmigrated operations return `501 FEATURE_NOT_AVAILABLE`; see [the PPE scope](docs/railway-ppe.md).
 
 The service uses Fastify, PostgreSQL through Prisma, and Redis notifications. [Source ownership](src/META.md) describes the current modules. Documents under `META/ARCHITECTURE` describe the previous implementation and are not the new module contract.
 
@@ -11,6 +11,8 @@ Use a Node.js LTS version supported by the lockfile. Railway and CI currently us
 Participant addresses require `GOOGLE_MAPS_API_KEY` with access to the Google Geocoding API. `GEOCODE_TIMEOUT_MS` defaults to 5000 and bounds the entire lookup, including up to three transient-error attempts. Unconfigured or unavailable geocoding returns `502 EXTERNAL_SERVICE_ERROR` without changing participant data. Name-only updates do not require Google.
 
 Fuzzy participant addresses are null in public event responses, mutation responses, and SSE. Authenticated `/me` returns that participant's original address. The existing organizer permission remains in effect, including location and privacy edits for any participant in the event. The frontend must hydrate private self-editor state from `/me`, omit unchanged addresses, and detect saved locations from `location`.
+
+Email accounts use bcrypt-compatible password hashes and seven-day sessions. Claims add meetings to the account dashboard while existing participant credentials continue to authorize meeting edits. Account cookies alone do not restore organizer controls on another device. See [account and claim contracts](docs/m2-accounts.md).
 
 ```sh
 npm ci
@@ -32,7 +34,7 @@ For the complete isolated frontend and backend setup, use [the project verificat
 npm run verify
 ```
 
-The separate browser compatibility CI runs the real frontend against the compiled backend and checks creation, identity recovery, title changes, anonymous sharing, and deletion. It runs on backend changes and pull requests targeting development branches. CI does not deploy the branch.
+The browser compatibility CI runs the real frontend against the compiled backend. It checks the no-location event lifecycle with both the candidate and fixed frontend, and the account lifecycle with the corrected candidate frontend. It runs on backend changes and pull requests targeting development branches. CI does not deploy the branch.
 
 ## Rehearse an import
 
@@ -44,4 +46,4 @@ npm run import:data -- /private/path/rows.json
 
 The command uses `DATABASE_URL`; check its environment before running it. Keep exports and plaintext test credentials outside Git. [The verification skill](../.agents/skills/verify-where2meet/SKILL.md#migration-fixture-and-restart) generates a synthetic old-server fixture and checks import plus restart in isolated local runs. The production image does not ship this development tool.
 
-No merge or deployment is part of this development batch. [Railway PPE instructions](docs/railway-ppe.md) separate the pending remote rehearsal from local verification.
+Keep migration PRs unmerged. [Railway PPE instructions](docs/railway-ppe.md) separate dedicated PPE acceptance from staging and production release.

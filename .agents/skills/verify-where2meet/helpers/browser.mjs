@@ -77,6 +77,7 @@ async function stored(eventId) {
 }
 
 let result = { status: 'FAIL', feature: scenario, source_commit: run.source_commit,
+  frontend_commit: run.frontend_commit,
   scope: ['create without location', 'organizer name', 'reload identity', 'token-only identity recovery', 'edit title', 'shared read-only view', 'delete'],
   backend_mode: run.backend_mode ?? 'source', frontend_mode: 'development',
   not_verified: ['Google Maps', 'participant location', 'routes', 'votes and publishing', 'accounts', 'data import', 'production frontend serving'],

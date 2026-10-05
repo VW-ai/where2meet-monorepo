@@ -44,7 +44,7 @@ def digest(value):
 
 
 def verifier_fingerprint():
-    return hashlib.sha256(b"".join((HELPERS / name).read_bytes() for name in ("control.py", "ppe.py", "browser.mjs", "ppe-browser.mjs", "participants-browser.mjs"))).hexdigest()
+    return hashlib.sha256(b"".join((HELPERS / name).read_bytes() for name in ("control.py", "ppe.py", "ppe_accounts.py", "browser.mjs", "ppe-browser.mjs", "participants-browser.mjs", "accounts-browser.mjs", "ppe-accounts-browser.mjs"))).hexdigest()
 
 
 def private_environment():
@@ -254,13 +254,42 @@ def authorize_request(state, method, url, body, purpose):
     require(suffix == "/participants/" + entry["organizer_id"] and method == "PATCH", "Mutation does not address the UI-created organizer")
 
 
-def observe_event(run, state, event_id):
-    owned_event(state, event_id)
-    before, _ = inspect_target(state["target"])
+def run_database(run, state, sql, readonly=True, mutation_identity=None):
+    if mutation_identity is None:
+        before, _ = inspect_target(state["target"])
+    else:
+        require(readonly and state.get("scenario") == "accounts", "Only an accounts mutation can reuse its database identity for read-only checks")
+        require(all(mutation_identity.get(key) == value for key, value in state["target"]["railway"].items()), "Mutation database identity differs from the selected target")
+        require(re.fullmatch(r"[0-9a-f-]{36}", mutation_identity.get("postgres_service_instance_id", "")), "Mutation database instance is missing")
+        before = mutation_identity
     key = Path(os.environ.get("PPE_SSH_KEY", ""))
     require(key.is_file() and key.stat().st_mode & 0o077 == 0, "PPE_SSH_KEY must name a private mode-0600 SSH identity file")
     known_hosts = Path(os.environ.get("PPE_SSH_KNOWN_HOSTS", ""))
     require(known_hosts.is_file(), "PPE_SSH_KNOWN_HOSTS must name the independently verified Railway host keys")
+    require(readonly or state.get("scenario") == "accounts", "Database writes are limited to owned account cleanup")
+    transaction_mode = "on" if readonly else "off"
+    remote_command = f'PGOPTIONS="-c default_transaction_read_only={transaction_mode} -c statement_timeout=10000" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X -q -A -t -v ON_ERROR_STOP=1'
+    result = subprocess.run(["ssh", "-T", "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
+                             "-o", "ConnectTimeout=15", "-o", "UserKnownHostsFile=" + str(known_hosts), "-i", str(key),
+                             before["postgres_service_instance_id"] + "@ssh.railway.com", remote_command],
+                            input=sql, capture_output=True, text=True, env=private_environment(), timeout=45)
+    require(result.returncode == 0, "PPE database operation failed; connection and row details withheld")
+    try:
+        projection = json.loads(result.stdout.strip())
+    except ValueError:
+        raise RuntimeError("PPE database projection was invalid; raw output withheld") from None
+    after = None
+    if mutation_identity is None:
+        after, _ = inspect_target(state["target"])
+    control.write_json(run / "evidence" / ("database-identity.json" if readonly else "account-cleanup-identity.json"), {
+        "before": before, "after": after, "transaction": "read-only" if readonly else "fixed owned-account cleanup",
+        "postflight": "mutation response owns the fresh check" if mutation_identity else "completed",
+        "role_write_privileges": "not asserted"})
+    return projection
+
+
+def observe_event(run, state, event_id):
+    owned_event(state, event_id)
     sql = f"""BEGIN READ ONLY;
 SELECT json_build_object(
  'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at FROM event WHERE id = '{event_id}') e),
@@ -270,23 +299,14 @@ SELECT json_build_object(
  FROM participant WHERE event_id = '{event_id}' ORDER BY id) p));
 COMMIT;
 """
-    remote_command = 'PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=10000" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X -q -A -t -v ON_ERROR_STOP=1'
-    result = subprocess.run(["ssh", "-T", "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
-                             "-o", "ConnectTimeout=15", "-o", "UserKnownHostsFile=" + str(known_hosts), "-i", str(key),
-                             before["postgres_service_instance_id"] + "@ssh.railway.com", remote_command],
-                            input=sql, capture_output=True, text=True, env=private_environment(), timeout=45)
-    require(result.returncode == 0, "Read-only PPE database corroboration failed; connection details withheld")
-    try:
-        projection = json.loads(result.stdout.strip())
-    except ValueError:
-        raise RuntimeError("PPE database projection was invalid; raw output withheld") from None
-    after, _ = inspect_target(state["target"])
-    control.write_json(run / "evidence" / "database-identity.json", {"before": before, "after": after, "transaction": "read-only", "role_write_privileges": "not asserted"})
-    return projection
+    return run_database(run, state, sql)
 
 
 def bridge(run, payload):
     state = read_run(run)
+    if state.get("scenario") == "accounts":
+        import ppe_accounts
+        return ppe_accounts.bridge(run, payload, sys.modules[__name__])
     operation = payload.get("operation")
     if operation == "guard":
         assert_frontend(state)
@@ -356,6 +376,9 @@ def stop_local(run, names=None):
 
 def cleanup(run):
     state = read_run(run)
+    if state.get("scenario") == "accounts":
+        import ppe_accounts
+        return ppe_accounts.cleanup(run, sys.modules[__name__])
     issues = stop_local(run, {"browser"})
     pending = [item for item in state["owned_events"] if item["cleanup_state"] == "pending"]
     if pending:
@@ -442,6 +465,9 @@ def verify(args):
              "ports": {"frontend": 4317}, "processes": {}, "owned_events": [],
              "verifier_fingerprint": verifier_fingerprint()}
     control.save(run, state)
+    if args.scenario == "accounts":
+        import ppe_accounts
+        ppe_accounts.initialize(run, state)
     passed = False
     try:
         env = control.clean_environment()
@@ -458,7 +484,8 @@ def verify(args):
         control.save(run, state)
         doctor(run)
         require(verifier_fingerprint() == state["verifier_fingerprint"], "Verifier helpers changed during startup; use a fresh run")
-        driver = control.start(run, state, "browser", ["node", str(HELPERS / "browser.mjs"), str(run)], HELPERS, private_environment())
+        driver_name = "accounts-browser.mjs" if args.scenario == "accounts" else "browser.mjs"
+        driver = control.start(run, state, "browser", ["node", str(HELPERS / driver_name), str(run)], HELPERS, private_environment())
         require(driver.wait(timeout=1200) == 0, "PPE browser proof failed; inspect result.json")
         require(verifier_fingerprint() == state["verifier_fingerprint"], "Verifier helpers changed during the browser proof; use a fresh run")
         doctor(run)
@@ -486,7 +513,7 @@ def main():
     parser.add_argument("--target", type=Path)
     parser.add_argument("--frontend-repo", type=Path)
     parser.add_argument("--repo", type=Path)
-    parser.add_argument("--scenario", choices=("event-lifecycle", "participants"), default="event-lifecycle")
+    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "accounts"), default="event-lifecycle")
     args = parser.parse_args()
     require(args.operation != "verify" or (args.target and args.frontend_repo and args.repo), "verify requires --target, --repo, and --frontend-repo")
     if args.operation == "verify":

@@ -2,11 +2,11 @@
 
 This directory maps the existing Where2Meet product behavior. Read this index before driving a feature. A recipe is not proof that its entry points work. See [recorded verification coverage](../verification-status.md) for each run's revision and scope.
 
-The M1 replacement backend currently supports only no-location event creation/read/edit/delete, organizer name and identity, stored vote reads, session reads, and authenticated SSE. Other operations explicitly return 501. Run account-write and Google recipes against the old backend until their replacement modules exist. The fixed M1 frontend is `05e6daa`; historical M0 Google proof uses `d7a8bcd` and the old backend.
+The M2 replacement source supports the participant lifecycle, email accounts, profile updates and meeting claims in addition to M1's no-location meeting lifecycle, stored vote reads and authenticated SSE. Places currently geocodes participant addresses. Venue search, routes, vote writes and publication still return 501. Use the corrected M2 frontend for participant and account scenarios. The fixed M1 frontend `05e6daa` remains the no-location compatibility baseline. Source support is separate from the executed evidence in [recorded coverage](../verification-status.md).
 
 ## Baseline preconditions
 
-- Follow the parent skill's selected local or PPE recipe. Local runs own their database, Redis, browser profile, and ports. PPE runs use the explicitly identified remote resources and own only their local frontend, browser profile, and recorded synthetic events.
+- Follow the parent skill's selected local or PPE recipe. Local runs own their database, Redis, browser profile, and ports. PPE runs use the explicitly identified remote resources and own their local frontend, browser profile, recorded synthetic events and, in the accounts scenario, one synthetic account.
 - Read `client_url` and `backend_url` from that run's `run.json`; never assume the ordinary development ports are available.
 - Keep frontend and backend mocks off. The event lifecycle can run without Google credentials by leaving the organizer's optional address blank. Location, venue, route, and publication success need real browser and server Google credentials.
 - These baseline recipes use no fixtures. A separately labeled provider diagnostic may substitute responses only at an existing external-provider boundary; its result must not be reported as real-provider proof.
