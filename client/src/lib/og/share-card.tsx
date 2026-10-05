@@ -205,6 +205,61 @@ function MapCard({ pin }: { pin: MapPin }) {
 }
 
 /**
+ * An article's cover: a pill badge, the title and a site address under the logo, with
+ * `icon` on the badge and at the map's meeting point.
+ */
+export function renderArticleCover({
+  icon,
+  badge,
+  title,
+  address,
+}: {
+  icon: IconNode;
+  badge: string;
+  title: string;
+  /** Shown under the title, like `www.where2meet.org/blog`. */
+  address: string;
+}) {
+  return renderShareCard({
+    pin: { icon },
+    text: (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginTop: 28,
+            padding: '8px 20px 8px 10px',
+            borderRadius: 30,
+            backgroundColor: '#fff',
+            boxShadow: '0 3px 16px rgba(23, 37, 45, 0.12)',
+            fontSize: 24,
+            fontWeight: 600,
+            color: ACCENT,
+          }}
+        >
+          <img src={iconDataUri(icon, ACCENT, 2.4)} width={28} height={28} alt="" />
+          <div style={{ marginLeft: 10 }}>{badge}</div>
+        </div>
+        <div
+          style={{
+            marginTop: 24,
+            fontSize: 54,
+            fontWeight: 700,
+            lineHeight: 1.08,
+            letterSpacing: -1.5,
+            textWrap: 'balance',
+          }}
+        >
+          {title}
+        </div>
+        <div style={{ marginTop: 28, fontSize: 26, fontWeight: 600, color: ACCENT }}>{address}</div>
+      </div>
+    ),
+  });
+}
+
+/**
  * Draws a 1200x630 share card: the landing backdrop, the cat logo above `text`
  * on the left, and the map card with `pin` at the meeting point on the right.
  */
