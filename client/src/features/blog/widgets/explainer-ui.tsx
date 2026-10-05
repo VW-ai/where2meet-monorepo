@@ -222,19 +222,44 @@ export function Station({ at }: { at: Point }) {
   return <circle cx={at.x} cy={at.y} r="4.5" fill="#fff" stroke="#5f6974" strokeWidth="2" />;
 }
 
-/** A 24-unit lucide icon, centered on a 12-unit pin. */
-export function PinIcon({ at, icon }: { at: Point; icon: IconNode }) {
+/** A 24-unit lucide icon drawn in outline, scaled from its top-left corner `at`. */
+export function Icon({
+  icon,
+  at,
+  scale,
+  color,
+  strokeWidth,
+}: {
+  icon: IconNode;
+  at: Point;
+  scale: number;
+  color: string;
+  strokeWidth: number;
+}) {
   return (
     <g
-      transform={`translate(${at.x - 6.6} ${at.y - 7.2}) scale(0.55)`}
+      transform={`translate(${at.x} ${at.y}) scale(${scale})`}
       fill="none"
-      stroke="white"
-      strokeWidth="2.6"
+      stroke={color}
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
       {icon.map(([tag, attrs], i) => createElement(tag, { key: i, ...attrs }))}
     </g>
+  );
+}
+
+/** A white icon centered on a 12-unit pin. */
+export function PinIcon({ at, icon }: { at: Point; icon: IconNode }) {
+  return (
+    <Icon
+      icon={icon}
+      at={{ x: at.x - 6.6, y: at.y - 7.2 }}
+      scale={0.55}
+      color="white"
+      strokeWidth={2.6}
+    />
   );
 }
 
@@ -301,6 +326,16 @@ export function Ring({ at }: { at: Point }) {
 
 export interface BarSegment {
   minutes: number;
+  /** Time spent waiting rather than moving, drawn hatched. */
+  waiting?: boolean;
+}
+
+/** The hatched fill for time spent waiting. */
+export function waitingFill(color: string): CSSProperties {
+  return {
+    backgroundColor: `color-mix(in srgb, ${color} 22%, white)`,
+    backgroundImage: `repeating-linear-gradient(-45deg, ${color} 0 1.5px, transparent 1.5px 4.5px)`,
+  };
 }
 
 export interface BarRow {
@@ -372,7 +407,9 @@ export function TripBars({
                     style={{
                       left: percent(left),
                       width: percent(segment.minutes),
-                      backgroundColor: row.color,
+                      ...(segment.waiting
+                        ? waitingFill(row.color)
+                        : { backgroundColor: row.color }),
                     }}
                   />
                 );
