@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { createPpeAccountsDriver, safeAccountRequest } from './ppe-accounts-browser.mjs';
+import { createPpeAccountsDriver, safeAccountRequest, sessionCookiesForOrigin } from './ppe-accounts-browser.mjs';
 
 assert(process.argv[2], 'Supply the absolute verification run directory');
 const runDir = path.resolve(process.argv[2]);
@@ -146,7 +146,7 @@ async function navigate(current, pathname, sessionStatus) {
 }
 
 async function cookieMetadata(current) {
-  return (await current.context().cookies(run.client_url)).map(cookie => ({
+  return (await sessionCookiesForOrigin(current.context(), run.client_url)).map(cookie => ({
     name: cookie.name, httpOnly: cookie.httpOnly, sameSite: cookie.sameSite,
     secure: cookie.secure, path: cookie.path, expires: cookie.expires,
   }));
@@ -418,6 +418,7 @@ try {
     const sessionCookie = cookies.find(cookie => cookie.name === 'session_token');
     assert(sessionCookie);
     assert.equal(sessionCookie.httpOnly, true);
+    if (ppe) assert.equal(sessionCookie.secure, true);
     assert.equal(sessionCookie.sameSite, 'Lax');
     assert.equal(sessionCookie.path, '/');
     assert(sessionCookie.expires > Date.now() / 1000);
