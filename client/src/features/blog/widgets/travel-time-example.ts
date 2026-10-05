@@ -1,18 +1,15 @@
+import { PEOPLE, tripStats, type Point } from './explainer-model';
+
 /**
  * The made-up example behind the "travel time, not distance" widget: three
  * teammates, a river with one bridge, a train line, and two candidate venues.
  * Coordinates are in the widget's SVG units (viewBox 0 0 360 225).
  */
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
 export const TEAM = [
-  { id: 'ana', name: 'Ana', color: '#FF6B6B', ink: '#d9474a', at: { x: 120, y: 38 } },
-  { id: 'ben', name: 'Ben', color: '#4D96FF', ink: '#2f6fd6', at: { x: 30, y: 80 } },
-  { id: 'cy', name: 'Cy', color: '#6BCB77', ink: '#3a9447', at: { x: 165, y: 200 } },
+  { ...PEOPLE.ana, at: { x: 120, y: 38 } },
+  { ...PEOPLE.ben, at: { x: 30, y: 80 } },
+  { ...PEOPLE.cy, at: { x: 165, y: 200 } },
 ] as const;
 
 export type TeammateId = (typeof TEAM)[number]['id'];
@@ -64,11 +61,6 @@ export const MIDDLE: Point = {
 };
 
 const UNITS_PER_MILE = 100;
-
-export function tripStats(minutes: readonly number[]) {
-  const longest = Math.max(...minutes);
-  return { longest, spread: longest - Math.min(...minutes) };
-}
 
 /** As the crow flies, rounded to a tenth of a mile. */
 export function straightLineMiles(from: Point, to: Point) {

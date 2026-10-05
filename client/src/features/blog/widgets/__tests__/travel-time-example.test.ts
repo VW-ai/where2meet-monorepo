@@ -4,16 +4,8 @@ import {
   describeVenue,
   straightLineMiles,
   summarize,
-  tripStats,
   type Venue,
 } from '../travel-time-example';
-
-describe('tripStats', () => {
-  it('finds the longest trip and the spread for the trips in the post', () => {
-    expect(tripStats([5, 10, 55])).toEqual({ longest: 55, spread: 50 });
-    expect(tripStats([25, 20, 30])).toEqual({ longest: 30, spread: 10 });
-  });
-});
 
 describe('straightLineMiles', () => {
   it('measures as the crow flies at 100 map units per mile', () => {
