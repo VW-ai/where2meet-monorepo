@@ -1,6 +1,6 @@
 # Where2Meet backend rewrite
 
-This branch implements anonymous meetings, the participant lifecycle, email accounts and meeting claims. It is not a complete production replacement. Unmigrated operations return `501 FEATURE_NOT_AVAILABLE`; see [the PPE scope](docs/railway-ppe.md).
+This branch implements anonymous meetings, the participant lifecycle, email accounts, meeting claims, trusted places, routing, voting, and publication. It is not a complete production replacement. MEC returns `501 FEATURE_NOT_AVAILABLE`; see [the PPE scope](docs/railway-ppe.md).
 
 The service uses Fastify, PostgreSQL through Prisma, and Redis notifications. [Source ownership](src/META.md) describes the current modules. Documents under `META/ARCHITECTURE` describe the previous implementation and are not the new module contract.
 
@@ -47,3 +47,5 @@ npm run import:data -- /private/path/rows.json
 The command uses `DATABASE_URL`; check its environment before running it. Keep exports and plaintext test credentials outside Git. [The verification skill](../.agents/skills/verify-where2meet/SKILL.md#migration-fixture-and-restart) generates a synthetic old-server fixture and checks import plus restart in isolated local runs. The production image does not ship this development tool.
 
 Keep migration PRs unmerged. [Railway PPE instructions](docs/railway-ppe.md) separate dedicated PPE acceptance from staging and production release.
+
+M4 vote and publication behavior, trust boundaries, and notification limits are described in [the M4 reference](docs/m4-voting-publication.md).

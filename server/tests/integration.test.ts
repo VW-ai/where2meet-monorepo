@@ -525,24 +525,9 @@ describe("HTTP contracts against imported PostgreSQL records", () => {
 
   it("returns explicit unsupported errors and leaves data unchanged", async () => {
     const snapshot = json(await allRows());
-    const voting = await app.inject({
-      method: "POST",
-      url: `/api/events/${eventId}/participants/${participantId}/votes`,
-      headers: authorization(),
-      payload: { venueId: "fixture_place" },
-    });
-    expect(voting.statusCode).toBe(501);
-    expect(voting.json<unknown>()).toMatchObject({ error: { code: "FEATURE_NOT_AVAILABLE" } });
-    expect(
-      (
-        await app.inject({
-          method: "POST",
-          url: `/api/events/${eventId}/publish`,
-          headers: authorization(),
-          payload: { venueId: "fixture_place" },
-        })
-      ).statusCode
-    ).toBe(501);
+    const mec = await app.inject(`/api/events/${eventId}/mec`);
+    expect(mec.statusCode).toBe(501);
+    expect(mec.json<unknown>()).toMatchObject({ error: { code: "FEATURE_NOT_AVAILABLE" } });
     expect((await app.inject("/api/unknown")).statusCode).toBe(404);
     expect(json(await allRows())).toEqual(snapshot);
   });

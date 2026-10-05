@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { MeetingNotice, Meetings } from "../modules/meetings/index.js";
+import type { MeetingNotice, Meetings, VoteSnapshot } from "../modules/meetings/index.js";
 import type { Notifications } from "../runtime/notifications.js";
 import type { AppConfig } from "../runtime/config.js";
 import { eventParams } from "./schemas.js";
@@ -15,7 +15,40 @@ function frame(type: string, data: unknown): string {
   return `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-export function encodeNotice(eventId: string, notice: MeetingNotice): string {
+export function voteStatisticsWire(eventId: string, votes: VoteSnapshot, seq: number) {
+  return {
+    eventId,
+    seq,
+    venues: votes.venues.map((venue) => ({
+      venueId: venue.id,
+      voteCount: venue.voters.length,
+      voterIds: venue.voters,
+    })),
+    totalVotes: votes.totalVotes,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function encodeNotice(eventId: string, notice: MeetingNotice, seq: number): string {
+  if (notice.kind === "meeting-published") {
+    const { meeting, venue } = notice;
+    return frame("event:published", {
+      event: {
+        id: meeting.id,
+        title: meeting.title,
+        meetingTime: meeting.meetingTime?.toISOString() ?? null,
+        publishedAt: meeting.publishedAt.toISOString(),
+        publishedVenueId: meeting.publishedVenueId,
+      },
+      venue: {
+        id: venue.id,
+        name: venue.name,
+        address: venue.address,
+        lat: venue.location.lat,
+        lng: venue.location.lng,
+      },
+    });
+  }
   if (notice.kind === "meeting-updated") {
     const meeting = notice.meeting;
     return frame("event:updated", {
@@ -30,17 +63,13 @@ export function encodeNotice(eventId: string, notice: MeetingNotice): string {
   }
   if (notice.kind === "participant-removed")
     return frame("participant:removed", { participantId: notice.participantId });
-  if (notice.kind === "votes-updated")
+  if (notice.kind === "votes-updated") {
+    const statistics = voteStatisticsWire(eventId, notice.votes, seq);
     return frame("vote:statistics", {
-      eventId,
-      venues: notice.votes.venues.map((venue) => ({
-        venueId: venue.id,
-        voteCount: venue.voters.length,
-        voterIds: venue.voters,
-      })),
-      totalVotes: notice.votes.totalVotes,
-      updatedAt: new Date().toISOString(),
+      ...statistics,
+      venues: statistics.venues.map((venue) => ({ ...venue, voterNames: venue.voterIds })),
     });
+  }
   const participant = notice.participant;
   return frame(notice.kind === "participant-added" ? "participant:added" : "participant:updated", {
     participant: {

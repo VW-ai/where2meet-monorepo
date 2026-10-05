@@ -3,6 +3,8 @@ import { Redis } from "ioredis";
 type Listener = (frame: string) => void;
 
 export interface Notifications {
+  currentSequence(eventId: string): Promise<number>;
+  advanceSequence(eventId: string): Promise<number>;
   publish(eventId: string, frame: string): Promise<void>;
   subscribe(eventId: string, listener: Listener): () => void;
   ready(): Promise<boolean>;
@@ -51,7 +53,35 @@ export async function createNotifications(options: {
       options.reportFailure();
     }
   }
+  function sequence(value: string | number | null): number {
+    const parsed = Number(value);
+    if (
+      (typeof value === "string" && !/^\d+$/.test(value)) ||
+      !Number.isSafeInteger(parsed) ||
+      parsed < 0
+    ) {
+      options.reportFailure();
+      return 0;
+    }
+    return parsed;
+  }
   return {
+    async currentSequence(eventId) {
+      try {
+        return sequence(await publisher.get(`sse:seq:${eventId}`));
+      } catch {
+        options.reportFailure();
+        return 0;
+      }
+    },
+    async advanceSequence(eventId) {
+      try {
+        return sequence(await publisher.incr(`sse:seq:${eventId}`));
+      } catch {
+        options.reportFailure();
+        return 0;
+      }
+    },
     async publish(eventId, frame) {
       try {
         await publisher.publish(`${prefix}${eventId}`, frame);
