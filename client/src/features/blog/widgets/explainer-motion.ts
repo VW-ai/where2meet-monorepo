@@ -6,7 +6,7 @@ export const COUNT_DELAY_MS = 150;
 export const COUNT_MS = 700;
 export const OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-export function prefersReducedMotion() {
+function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 

@@ -1,6 +1,7 @@
 import { Fragment, createElement, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { UserRound, type IconNode } from 'lucide';
-import type { Point } from './explainer-model';
+import { cn } from '@/shared/lib/cn';
+import { tripStats, type Point } from './explainer-model';
 import { COUNT_DELAY_MS, COUNT_MS, OUT } from './explainer-motion';
 
 /**
@@ -67,7 +68,7 @@ export function ExplainerFigure({
 }: {
   figureRef: RefObject<HTMLElement | null>;
   armed: boolean;
-  /** Rules for the explainer's own pieces, scoped under `.explainer`. */
+  /** Rules for this explainer's own pieces. They apply to the whole page, so prefix their classes. */
   css: string;
   /** Read out politely after every switch. */
   live: string;
@@ -95,7 +96,7 @@ export function ExampleLabel() {
   return <strong className="font-semibold text-[#21252b]">Example.</strong>;
 }
 
-export interface ToggleOption<Id extends string> {
+interface ToggleOption<Id extends string> {
   id: Id;
   label: string;
   badge: string;
@@ -263,7 +264,7 @@ export function PinIcon({ at, icon }: { at: Point; icon: IconNode }) {
   );
 }
 
-export interface Person {
+interface Person {
   name: string;
   color: string;
   ink: string;
@@ -324,7 +325,7 @@ export function Ring({ at }: { at: Point }) {
   return <circle className="explainer-ring" cx={at.x} cy={at.y} r="15" />;
 }
 
-export interface BarSegment {
+interface BarSegment {
   minutes: number;
   /** Time spent waiting rather than moving, drawn hatched. */
   waiting?: boolean;
@@ -338,7 +339,7 @@ export function waitingFill(color: string): CSSProperties {
   };
 }
 
-export interface BarRow {
+interface BarRow {
   id: string;
   name: string;
   color: string;
@@ -352,18 +353,11 @@ export interface BarRow {
  * A bar per friend on one shared scale, under a band from the shortest trip to
  * the longest. Widths are targets: CSS tweens them, in step with the counts.
  */
-export function TripBars({
-  scale,
-  rows,
-  longest,
-  spread,
-}: {
-  scale: number;
-  rows: readonly BarRow[];
-  longest: number;
-  spread: number;
-}) {
+export function TripBars({ scale, rows }: { scale: number; rows: readonly BarRow[] }) {
   const percent = (minutes: number) => `${(minutes / scale) * 100}%`;
+  const { longest, spread } = tripStats(
+    rows.map((row) => row.segments.reduce((sum, segment) => sum + segment.minutes, 0))
+  );
   return (
     <div
       aria-hidden="true"
@@ -401,9 +395,11 @@ export function TripBars({
                 return (
                   <span
                     key={j}
-                    className={`explainer-bar absolute inset-y-0 ${j === 0 ? 'rounded-l-full' : ''} ${
-                      j === row.segments.length - 1 ? 'rounded-r-full' : ''
-                    }`}
+                    className={cn(
+                      'explainer-bar absolute inset-y-0',
+                      j === 0 && 'rounded-l-full',
+                      j === row.segments.length - 1 && 'rounded-r-full'
+                    )}
                     style={{
                       left: percent(left),
                       width: percent(segment.minutes),
@@ -428,7 +424,7 @@ export function TripBars({
   );
 }
 
-export interface Stat {
+interface Stat {
   label: string;
   value: ReactNode;
   unit: string;

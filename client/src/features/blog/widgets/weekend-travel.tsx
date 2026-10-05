@@ -249,8 +249,6 @@ export function WeekendTravel() {
 
       <TripBars
         scale={SCALE_MINUTES}
-        longest={target[LONGEST]}
-        spread={target[SPREAD]}
         rows={FRIENDS.map((friend, i) => ({
           ...friend,
           segments: day.trips[friend.id].map(({ kind, minutes }) => ({

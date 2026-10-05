@@ -173,8 +173,6 @@ export function TravelTimeVsDistance() {
 
       <TripBars
         scale={SCALE_MINUTES}
-        longest={target[LONGEST]}
-        spread={target[SPREAD]}
         rows={TEAM.map((person, i) => ({
           ...person,
           segments: [{ minutes: target[i] }],
