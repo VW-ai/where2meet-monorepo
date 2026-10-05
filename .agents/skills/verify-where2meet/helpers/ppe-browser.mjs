@@ -20,11 +20,32 @@ export function ppeBridge(runDir, payload) {
   });
 }
 
-export async function createPpeDriver(runDir, run, context) {
+export function validatePhotoRedirect(status, headers) {
+  assert.equal(status, 302, 'The owned photo endpoint must return 302');
+  const target = new URL(headers.location);
+  let decoded = headers.location;
+  for (let attempt = 0; attempt < 4 && /%[0-9a-f]{2}/i.test(decoded); attempt++) decoded = decodeURIComponent(decoded);
+  assert(target.protocol === 'https:' && target.hostname === 'lh3.googleusercontent.com' && !target.port &&
+    !target.username && !target.password && !target.search && !target.hash &&
+    !/[?#]/.test(decoded) && !/AIza|pt_|(?:api[_-]?key|key|token|credential|password)=|%[0-9a-f]{2}/i.test(decoded), 'Photo redirect is outside the allowed public image origin');
+  assert(headers['cache-control']?.split(',').map(value => value.trim()).includes('no-store'), 'Photo redirect must not be cached');
+  return target;
+}
+
+export async function createPpeDriver(runDir, run, context, dependencies = {}) {
   const checks = [];
   const failures = [];
+  const pendingStreams = new Set();
+  const streamResponses = [];
   const snapshotPath = path.join(runDir, 'runtime', 'browser-state.json');
-  const bridge = payload => ppeBridge(runDir, payload);
+  let mutationTail = Promise.resolve();
+  const bridge = payload => {
+    const invoke = () => dependencies.bridge ? dependencies.bridge(payload) : ppeBridge(runDir, payload);
+    if (!['record', 'record-participant', 'record-places', 'closed'].includes(payload.operation)) return invoke();
+    const result = mutationTail.then(invoke);
+    mutationTail = result.catch(() => {});
+    return result;
+  };
   const freshRun = async () => JSON.parse(await readFile(path.join(runDir, 'run.json'), 'utf8'));
   const saveSession = async () => {
     await context.storageState({ path: snapshotPath });
@@ -35,34 +56,68 @@ export async function createPpeDriver(runDir, run, context) {
     await activeContext.route(url => url.pathname === '/api' || url.pathname.startsWith('/api/'), async route => {
       const request = route.request();
       const url = new URL(request.url());
+      const streamCandidate = run.scenario === 'places-routes' && url.origin === run.backend_url &&
+        request.method() === 'GET' && /^\/api\/events\/evt_[A-Za-z0-9_]+\/stream$/.test(url.pathname);
+      if (streamCandidate) pendingStreams.add(request);
+      let continued = false;
       try {
         assert.equal(request.redirectedFrom(), null, 'API redirects are not accepted');
         if (url.origin === run.client_url) {
           assert.equal(url.pathname, '/api/auth/session', 'Only the fixed Next session proxy is permitted');
           assert.equal(request.method(), 'GET');
+          if (run.scenario === 'places-routes') {
+            const response = await route.fetch({ maxRedirects: 0, timeout: 45000 });
+            assert(response.status() < 300 || response.status() >= 400, 'The fixed session proxy cannot redirect');
+            return await route.fulfill({ response });
+          }
           return await route.continue();
         }
         assert.equal(url.origin, run.backend_url, 'API destination differs from confirmed PPE');
-        if (['GET', 'HEAD', 'OPTIONS'].includes(request.method())) return await route.continue();
-        const body = request.postDataJSON();
+        const read = ['GET', 'HEAD', 'OPTIONS'].includes(request.method());
+        if (read && run.scenario !== 'places-routes') return await route.continue();
+        const body = read ? undefined : request.postDataJSON();
         await bridge({ operation: 'guard', method: request.method(), url: request.url(), body });
+        if (streamCandidate) {
+          continued = true;
+          await route.continue();
+          const response = await request.response();
+          const status = response?.status() ?? null;
+          const validType = /^text\/event-stream(?:\s*;|$)/i.test(response?.headers()['content-type'] ?? '');
+          streamResponses.push({ status, content_type_valid: validType });
+          assert(status === 200 && validType, 'The continued owned SSE response must be 200 text/event-stream without redirects');
+          await bridge({ operation: 'postflight' });
+          return;
+        }
         const response = await route.fetch({ maxRedirects: 0, timeout: 45000 });
-        assert(response.status() < 300 || response.status() >= 400, 'Mutation returned a redirect');
+        const photo = run.scenario === 'places-routes' && read && /^\/api\/venues\/[^/]+\/photo$/.test(url.pathname);
+        if (response.status() >= 300 && response.status() < 400) {
+          assert(photo, 'Only an observed venue photo may redirect');
+          validatePhotoRedirect(response.status(), response.headers());
+        }
         if (request.method() === 'POST' && url.pathname === '/api/events' && response.status() === 201) {
           const created = await response.json();
           await bridge({ operation: 'record', event_id: created.id, organizer_id: created.organizerParticipantId, title: created.title });
         }
         const participantCollection = url.pathname.match(/^\/api\/events\/(evt_[A-Za-z0-9_]+)\/participants$/);
         if (request.method() === 'POST' && participantCollection && response.status() === 201) {
-          assert.equal(run.scenario, 'participants');
+          assert(['participants', 'places-routes'].includes(run.scenario));
           const participant = await response.json();
           await bridge({ operation: 'record-participant', event_id: participantCollection[1], participant_id: participant.id });
+        }
+        if (run.scenario === 'places-routes' && request.method() === 'POST' && url.pathname === '/api/venues/search' && response.status() === 200) {
+          await bridge({ operation: 'record-places', body: await response.json() });
         }
         await bridge({ operation: 'postflight' });
         await route.fulfill({ response });
       } catch {
-        failures.push({ method: request.method(), origin: url.origin, path: url.pathname });
-        await route.abort('blockedbyclient');
+        const safePath = url.pathname === '/api/venues/search' ? url.pathname : /^\/api\/venues\/[^/]+\/photo$/.test(url.pathname)
+          ? '/api/venues/:placeId/photo' : /^\/api\/venues\/[^/]+$/.test(url.pathname) ? '/api/venues/:placeId'
+            : /\/directions$/.test(url.pathname) ? '/api/events/:eventId/venues/:placeId/directions' : '/api/[blocked]';
+        failures.push({ method: request.method(), origin: [run.client_url, run.backend_url].includes(url.origin) ? url.origin : '[outside-target]',
+          path: run.scenario === 'places-routes' ? safePath : url.pathname });
+        if (!continued) await route.abort('blockedbyclient');
+      } finally {
+        if (streamCandidate) pendingStreams.delete(request);
       }
     });
   }
@@ -236,9 +291,17 @@ export async function createPpeDriver(runDir, run, context) {
       await bridge({ operation: 'postflight' });
       return response;
     },
-    assertGuard() { assert.deepEqual(failures, [], 'A PPE API request was blocked by target checks'); },
+    assertGuard() {
+      assert.deepEqual(failures, [], 'A PPE API request was blocked by target checks');
+      assert.equal(pendingStreams.size, 0, 'Owned SSE response validation has not completed');
+    },
     async evidence() {
-      await writeFile(path.join(runDir, 'evidence', 'ppe-request-guards.json'), JSON.stringify({ blocked: failures }, null, 2));
+      const filename = dependencies.phase === 'cleanup' ? 'ppe-request-guards-cleanup.json' : 'ppe-request-guards.json';
+      await writeFile(path.join(runDir, 'evidence', filename), JSON.stringify({ blocked: failures,
+        ...(run.scenario === 'places-routes' ? { streaming_api: {
+          policy: 'Owned SSE continues without buffering. A redirect or invalid response header invalidates proof after observation.',
+          pending: pendingStreams.size, responses: streamResponses,
+        } } : {}) }, null, 2));
     },
   };
 }

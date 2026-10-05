@@ -27,6 +27,19 @@ def write_json(path, value):
     path.write_text(json.dumps(value, indent=2) + "\n")
 
 
+def write_failure_result(run, scenario, error, failure_field="verification_error"):
+    destination = run / "evidence" / "result.json"
+    result = json.loads(destination.read_text()) if destination.exists() else {
+        "status": "FAIL", "feature": scenario, "scope": [],
+        "not_verified": ["Selected scenario did not complete"],
+    }
+    message = re.sub(r"AIza[\w-]+|\bpt_[a-zA-Z0-9.]+", "[credential redacted]", str(error))
+    message = re.sub(r"https?://\S+", "[url removed]", message)
+    result.update({"status": "FAIL", "feature": scenario, failure_field: message})
+    write_json(destination, result)
+    return result
+
+
 def save(run, state):
     temporary = run / "run.json.tmp"
     write_json(temporary, state)
@@ -231,7 +244,7 @@ def restart_backend(run):
     env = {**clean_environment(), "DATABASE_URL": state["database_url"],
            "REDIS_URL": f"redis://127.0.0.1:{state['ports']['redis']}",
            "HOST": "127.0.0.1", "PORT": str(state["ports"]["backend"]),
-           "NODE_ENV": "development", "CORS_ORIGINS": state["client_url"],
+           "NODE_ENV": "development", "CORS_ORIGINS": state["client_url"], "PUBLIC_API_ORIGIN": state["backend_url"],
            "GOOGLE_MAPS_API_KEY": os.environ.get("GOOGLE_MAPS_API_KEY", "")}
     start(run, state, "backend", record["command"], Path(state["source_copy"]) / "server", env)
     wait_for(lambda: json.loads(response(state["backend_url"] + "/health/ready")[1])["status"] == "ok", "restarted backend")
@@ -302,7 +315,7 @@ def launch(run, repo, frontend_repo, schema_mode, backend_mode):
         wait_for(lambda: subprocess.run(["redis-cli", "-h", "127.0.0.1", "-p", str(redis_port), "ping"], capture_output=True).stdout.strip() == b"PONG", "Redis")
         require_owned_listener(state, "redis")
         server_env = {**env, "DATABASE_URL": state["database_url"], "REDIS_URL": f"redis://127.0.0.1:{redis_port}",
-                      "HOST": "127.0.0.1", "PORT": str(api_port), "NODE_ENV": "development", "CORS_ORIGINS": state["client_url"],
+                      "HOST": "127.0.0.1", "PORT": str(api_port), "NODE_ENV": "development", "CORS_ORIGINS": state["client_url"], "PUBLIC_API_ORIGIN": state["backend_url"],
                       "GOOGLE_MAPS_API_KEY": os.environ.get("GOOGLE_MAPS_API_KEY", "")}
         server = runtime / "app" / "server"
         command(["npm", "run", "db:generate"], server, server_env, log)
@@ -344,7 +357,7 @@ def main():
     parser.add_argument("--schema-mode", choices=("migrations", "push"), default="migrations",
                         help="Use push only to reproduce the legacy schema baseline")
     parser.add_argument("--backend-mode", choices=("compiled", "source"), default="compiled")
-    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "accounts"), default="event-lifecycle")
+    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "places-routes", "accounts"), default="event-lifecycle")
     args = parser.parse_args()
     run = args.run.resolve()
     if args.operation == "launch":
@@ -362,8 +375,8 @@ def main():
         try:
             doctor(run)
             state = load(run)
-            if args.scenario == "participants" and not all(state.get("google_keys", {}).get(key) for key in ("GOOGLE_MAPS_API_KEY", "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")):
-                raise RuntimeError("The participant scenario requires real backend and browser Google Maps keys at launch")
+            if args.scenario in ("participants", "places-routes") and not all(state.get("google_keys", {}).get(key) for key in ("GOOGLE_MAPS_API_KEY", "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")):
+                raise RuntimeError("This scenario requires real backend and browser Google Maps keys at launch")
             state["scenario"] = args.scenario
             save(run, state)
             driver = "accounts-browser.mjs" if args.scenario == "accounts" else "browser.mjs"
@@ -374,6 +387,7 @@ def main():
             print((run / "evidence" / "result.json").read_text())
         except BaseException as error:
             write_json(run / "evidence" / "drive-failure.json", {"error": str(error)})
+            write_failure_result(run, args.scenario, error)
             try:
                 cleanup(run)
             except Exception as cleanup_error:

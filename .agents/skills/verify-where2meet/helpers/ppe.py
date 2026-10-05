@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -44,7 +45,7 @@ def digest(value):
 
 
 def verifier_fingerprint():
-    return hashlib.sha256(b"".join((HELPERS / name).read_bytes() for name in ("control.py", "ppe.py", "ppe_accounts.py", "browser.mjs", "ppe-browser.mjs", "participants-browser.mjs", "accounts-browser.mjs", "ppe-accounts-browser.mjs"))).hexdigest()
+    return hashlib.sha256(b"".join((HELPERS / name).read_bytes() for name in ("control.py", "ppe.py", "ppe_accounts.py", "browser.mjs", "ppe-browser.mjs", "participants-browser.mjs", "places-browser.mjs", "accounts-browser.mjs", "ppe-accounts-browser.mjs"))).hexdigest()
 
 
 def private_environment():
@@ -150,6 +151,7 @@ def verify_identity(target, status, deployments, backend, postgres, redis):
     postgres_instance = instances[expected["postgres_service_id"]].get("id", "")
     require(re.fullmatch(r"[0-9a-f-]{36}", postgres_instance), "PPE PostgreSQL service instance is missing")
     return {"status": "PASS", "at": now(), **expected, "source_revision": target["source"]["revision"],
+            "public_api_origin": expected["backend_origin"] if (backend.get("PUBLIC_API_ORIGIN") or "https://" + backend.get("RAILWAY_PUBLIC_DOMAIN", "")) == expected["backend_origin"] else None,
             "postgres_service_instance_id": postgres_instance,
             "rate_limit": {"maximum": backend.get("RATE_LIMIT_MAX", "100"), "window_ms": backend.get("RATE_LIMIT_WINDOW_MS", "900000")},
             "source_provenance": "setup-attested upload; not independent runtime source identity",
@@ -192,6 +194,8 @@ def assert_frontend(state):
 def doctor(run, frontend=True):
     state = read_run(run)
     evidence, _ = inspect_target(state["target"])
+    if state.get("scenario") == "places-routes":
+        require(evidence["public_api_origin"] == state["backend_url"], "PPE photo origin must match the verified backend origin")
     if frontend:
         assert_frontend(state)
     status, _, body = http(state["backend_url"] + "/health/ready")
@@ -217,9 +221,88 @@ def owned_event(state, event_id):
     return entries[0]
 
 
+def finite_number(value, minimum, maximum):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and minimum <= value <= maximum and math.isfinite(value)
+
+
+def valid_center(value):
+    return isinstance(value, dict) and set(value) == {"lat", "lng"} and finite_number(value["lat"], -90, 90) and finite_number(value["lng"], -180, 180)
+
+
+def pending_places_event(state):
+    entries = [item for item in state["owned_events"] if item["cleanup_state"] == "pending"]
+    require(len(entries) == 1, "Places verification requires one pending owned event")
+    return entries[0]
+
+
+def record_provider_places(state, body):
+    require(state.get("scenario") == "places-routes", "Provider places are outside this scenario")
+    pending_places_event(state)
+    require(isinstance(body, dict) and isinstance(body.get("venues"), list)
+            and type(body.get("totalResults")) is int and body["totalResults"] == len(body["venues"])
+            and valid_center(body.get("searchCenter")), "Search response is not a complete venue envelope")
+    ids = []
+    for venue in body["venues"]:
+        place_id = venue.get("id") if isinstance(venue, dict) else None
+        require(isinstance(place_id, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,512}", place_id)
+                and not re.search(r"AIza|pt_", place_id), "Search response contains an unsafe place ID")
+        if place_id not in ids:
+            ids.append(place_id)
+    state["provider_place_ids"] = list(dict.fromkeys([*state.get("provider_place_ids", []), *ids]))
+    return ids
+
+
+def authorize_places_request(state, method, parsed, body, purpose):
+    path = parsed.path
+    if path == "/api/venues/search":
+        pending_places_event(state)
+        require(not parsed.query and method in ("POST", "OPTIONS"), "Only the venue search operation is allowed")
+        if method == "OPTIONS":
+            return
+        require(purpose == "ui" and isinstance(body, dict) and set(body) == {"center", "searchRadius", "query"}
+                and body["query"] == "coffee" and valid_center(body["center"])
+                and finite_number(body["searchRadius"], 100, 50000), "Search body differs from the bounded coffee scenario")
+        return
+    venue = re.fullmatch(r"/api/venues/([^/]+)(/photo)?", path)
+    if venue:
+        pending_places_event(state)
+        place_id = urllib.parse.unquote(venue[1])
+        require(method in ("GET", "HEAD", "OPTIONS") and not parsed.query
+                and place_id in state.get("provider_place_ids", []), "Venue was not observed in this run's provider search")
+        return
+    directions = re.fullmatch(r"/api/events/(evt_[A-Za-z0-9_]+)/venues/([^/]+)/directions", path)
+    if directions:
+        pending_places_event(state)
+        entry = owned_event(state, directions[1])
+        query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+        require(entry["cleanup_state"] == "pending" and method in ("GET", "HEAD", "OPTIONS")
+                and urllib.parse.unquote(directions[2]) in state.get("provider_place_ids", [])
+                and query in ([('travelMode', 'driving')], [('travelMode', 'walking')]), "Directions differ from the owned event, place, or allowed mode")
+        return
+    require(not parsed.query, "Unexpected query in the places scenario")
+    if method in ("GET", "HEAD", "OPTIONS"):
+        if path == "/api/auth/session" or path == "/api/events" and method == "OPTIONS":
+            return
+        participant = re.fullmatch(r"/api/events/(evt_[A-Za-z0-9_]+)/participants(?:/([0-9a-f-]{36}))?", path)
+        if method == "OPTIONS" and participant:
+            entry = owned_event(state, participant[1])
+            require(entry["cleanup_state"] == "pending" and (participant[2] is None or participant[2] == entry["organizer_id"]), "Participant preflight is outside the places setup")
+            return
+        event = re.fullmatch(r"/api/events/(evt_[A-Za-z0-9_]+)(?:/(me|stream|votes))?", path)
+        require(bool(event), "Read is outside the places scenario")
+        owned_event(state, event[1])
+        return
+    return False
+
+
 def authorize_request(state, method, url, body, purpose):
     parsed = urllib.parse.urlsplit(url)
-    require(f"{parsed.scheme}://{parsed.netloc}" == state["backend_url"] and not parsed.query and not parsed.fragment, "API request origin or URL is outside PPE")
+    require(f"{parsed.scheme}://{parsed.netloc}" == state["backend_url"] and not parsed.fragment, "API request origin or URL is outside PPE")
+    if state.get("scenario") == "places-routes":
+        if authorize_places_request(state, method, parsed, body, purpose) is not False:
+            return
+    else:
+        require(not parsed.query, "API request origin or URL is outside PPE")
     path = parsed.path
     if method in ("GET", "HEAD", "OPTIONS"):
         return
@@ -235,7 +318,9 @@ def authorize_request(state, method, url, body, purpose):
     require(entry["cleanup_state"] == "pending", "Event was already cleaned")
     if not suffix and method in ("PATCH", "DELETE"):
         return
-    if state.get("scenario") == "participants":
+    if state.get("scenario") in ("participants", "places-routes"):
+        if state.get("scenario") == "places-routes":
+            require(purpose == "ui", "Only the browser UI may prepare places participants")
         if method in ("POST", "PATCH"):
             require(isinstance(body, dict) and bool(body) and set(body) <= {"name", "address", "fuzzyLocation"}, "Participant request contains unsupported fields")
             for field, limit in (("name", 50), ("address", 255)):
@@ -245,6 +330,11 @@ def authorize_request(state, method, url, body, purpose):
         if suffix == "/participants" and method == "POST":
             require(purpose == "ui", "Only the browser UI may add synthetic participants")
             require({"name", "address"} <= set(body), "Participant creation requires a name and address")
+            if state.get("scenario") == "places-routes":
+                require(not entry.get("participant_ids"), "Places verification creates exactly one guest")
+            return
+        if state.get("scenario") == "places-routes":
+            require(suffix == "/participants/" + entry["organizer_id"] and method == "PATCH", "Places setup can only edit its recorded organizer")
             return
         participant_match = re.fullmatch(r"/participants/([0-9a-f-]{36})", suffix)
         require(bool(participant_match), "Mutation is outside the participant lifecycle")
@@ -328,17 +418,23 @@ def bridge(run, payload):
         control.save(run, state)
         return {"recorded": payload["event_id"]}
     if operation == "record-participant":
-        require(state.get("scenario") == "participants", "Participant creation is outside this run's scenario")
+        require(state.get("scenario") in ("participants", "places-routes"), "Participant creation is outside this run's scenario")
         entry = owned_event(state, payload.get("event_id"))
         require(entry["cleanup_state"] == "pending", "Event was already cleaned")
         participant_id = payload.get("participant_id", "")
         require(isinstance(participant_id, str) and re.fullmatch(r"[0-9a-f-]{36}", participant_id), "Invalid created participant ID")
         require(participant_id != entry["organizer_id"], "Participant creation cannot replace the organizer")
         participants = entry.setdefault("participant_ids", [])
+        if state.get("scenario") == "places-routes":
+            require(not participants or participants == [participant_id], "Places verification records exactly one guest")
         if participant_id not in participants:
             participants.append(participant_id)
         control.save(run, state)
         return {"recorded": participant_id}
+    if operation == "record-places":
+        ids = record_provider_places(state, payload.get("body"))
+        control.save(run, state)
+        return {"recorded": ids}
     if operation == "stored":
         return observe_event(run, state, payload["event_id"])
     if operation == "closed":
@@ -418,7 +514,7 @@ def launch_frontend(run, state, env):
                         "NEXT_TELEMETRY_DISABLED": "1", "BACKEND_URL": state["backend_url"],
                         "NEXT_PUBLIC_BACKEND_URL": state["backend_url"], "NEXT_PUBLIC_API_URL": state["backend_url"],
                         "NEXT_PUBLIC_APP_URL": CLIENT_ORIGIN,
-                        "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "") if state.get("scenario") == "participants" else "",
+                        "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "") if state.get("scenario") in ("participants", "places-routes") else "",
                         "NEXT_PUBLIC_GA_MEASUREMENT_ID": ""})
     control.start(run, state, "frontend", ["node", "node_modules/next/dist/bin/next", "dev", "-p", "4317", "-H", "127.0.0.1"], Path(state["source_copy"]) / "client", frontend_env)
     def responding():
@@ -431,7 +527,7 @@ def launch_frontend(run, state, env):
 
 def verify(args):
     run = args.run.resolve()
-    require(args.scenario != "participants" or bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")), "The participant scenario requires a real browser Google Maps key")
+    require(args.scenario not in ("participants", "places-routes") or bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")), "This scenario requires a real browser Google Maps key")
     require(not (run / "run.json").exists(), "Run already exists; use a fresh directory")
     target = canonical_target(json.loads(args.target.read_text()))
     frontend = args.frontend_repo.resolve()
@@ -461,7 +557,7 @@ def verify(args):
              "frontend_status": "", "frontend_fingerprint": frontend_digest, "source_copy": str(runtime / "app"),
              "frontend_repo": str(frontend), "client_url": CLIENT_ORIGIN, "backend_url": target["railway"]["backend_origin"],
              "backend_mode": "railway-ppe", "scenario": args.scenario,
-             "google_keys": {"NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")) if args.scenario == "participants" else False},
+             "google_keys": {"NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")) if args.scenario in ("participants", "places-routes") else False},
              "ports": {"frontend": 4317}, "processes": {}, "owned_events": [],
              "verifier_fingerprint": verifier_fingerprint()}
     control.save(run, state)
@@ -493,13 +589,16 @@ def verify(args):
     except Exception as error:
         failure = str(error) if isinstance(error, RuntimeError) else type(error).__name__
         control.write_json(run / "evidence" / "verification-failure.json", {"error": failure})
-        if (run / "evidence" / "result.json").exists():
-            result = json.loads((run / "evidence" / "result.json").read_text())
-            result.update({"status": "FAIL", "verification_error": failure})
-            control.write_json(run / "evidence" / "result.json", result)
+        control.write_failure_result(run, args.scenario, failure)
         raise
     finally:
-        cleanup(run)
+        try:
+            cleanup(run)
+        except Exception as error:
+            if args.scenario == "places-routes":
+                failure = str(error) if isinstance(error, RuntimeError) else type(error).__name__
+                control.write_failure_result(run, args.scenario, failure, failure_field="cleanup_error")
+            raise
         if passed:
             result = json.loads((run / "evidence" / "result.json").read_text())
             require(result["status"] == "PASS", "PPE result did not pass")
@@ -513,7 +612,7 @@ def main():
     parser.add_argument("--target", type=Path)
     parser.add_argument("--frontend-repo", type=Path)
     parser.add_argument("--repo", type=Path)
-    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "accounts"), default="event-lifecycle")
+    parser.add_argument("--scenario", choices=("event-lifecycle", "participants", "places-routes", "accounts"), default="event-lifecycle")
     args = parser.parse_args()
     require(args.operation != "verify" or (args.target and args.frontend_repo and args.repo), "verify requires --target, --repo, and --frontend-repo")
     if args.operation == "verify":

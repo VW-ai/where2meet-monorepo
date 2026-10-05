@@ -6,13 +6,14 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createPpeDriver } from './ppe-browser.mjs';
 import { runParticipantsScenario } from './participants-browser.mjs';
+import { runPlacesScenario, scrubPlacesError } from './places-browser.mjs';
 
 const runDir = path.resolve(process.argv[2]);
 const run = JSON.parse(await readFile(path.join(runDir, 'run.json'), 'utf8'));
 const isPpe = run.kind === 'where2meet-ppe-run-v1';
 const cleanupOnly = isPpe && process.argv[3] === '--cleanup';
 const scenario = run.scenario ?? 'event-lifecycle';
-assert(['event-lifecycle', 'participants'].includes(scenario), 'Unknown verification scenario');
+assert(['event-lifecycle', 'participants', 'places-routes'].includes(scenario), 'Unknown verification scenario');
 assert(['where2meet-verification-v1', 'where2meet-ppe-run-v1'].includes(run.kind));
 assert.equal(run.run_dir, runDir);
 if (!cleanupOnly) assert.equal(run.status, 'ready');
@@ -25,7 +26,7 @@ const errors = [];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce',
   ...(cleanupOnly ? { storageState: path.join(runDir, 'runtime/browser-state.json') } : {}) });
-const ppe = isPpe ? await createPpeDriver(runDir, run, context) : null;
+const ppe = isPpe ? await createPpeDriver(runDir, run, context, { phase: cleanupOnly ? 'cleanup' : 'verification' }) : null;
 const page = await context.newPage();
 page.setDefaultTimeout(45000);
 await page.addLocatorHandler(page.getByText('Skip tutorial', { exact: true }), async () => {
@@ -38,7 +39,7 @@ page.on('response', (res) => {
     network.push({ method: res.request().method(), origin: url.origin, path: url.pathname, status: res.status() });
   }
 });
-page.on('pageerror', (error) => errors.push(error.message.replace(/https?:\/\/\S+/g, '[url removed]')));
+page.on('pageerror', (error) => errors.push(scrubPlacesError(error.message)));
 
 function action(name, details = {}) {
   actions.push({ at: new Date().toISOString(), name, ...details });
@@ -67,7 +68,7 @@ async function eventRead(eventId) {
 async function stored(eventId) {
   if (ppe) return ppe.bridge({ operation: 'stored', event_id: eventId });
   assert.match(eventId, /^[A-Za-z0-9_-]+$/);
-  const locationColumns = scenario === 'participants' ? ', address, formatted_address, lat, lng, fuzzy_location, color' : '';
+  const locationColumns = ['participants', 'places-routes'].includes(scenario) ? ', address, formatted_address, lat, lng, fuzzy_location, color' : '';
   const sql = `SELECT json_build_object(
     'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at FROM event WHERE id = '${eventId}') e),
     'participants', (SELECT coalesce(json_agg(p), '[]'::json) FROM
@@ -98,6 +99,7 @@ if (cleanupOnly) {
 
 let stream;
 let participantProof;
+let placesProof;
 
 try {
   const title = `Verification meeting ${run.run_id.slice(0, 8)}`;
@@ -205,8 +207,9 @@ try {
   action('Open shared link in a fresh browser context; updated title visible and organizer Settings absent');
   await guestContext.close();
 
-  if (scenario === 'participants') {
-    participantProof = await runParticipantsScenario({ page, browser, run, eventId,
+  if (['participants', 'places-routes'].includes(scenario)) {
+    const scenarioDriver = scenario === 'participants' ? runParticipantsScenario : runPlacesScenario;
+    const proof = await scenarioDriver({ page, browser, run, eventId,
       organizerId: afterCreate.participants[0].id, evidence, capture, action,
       adapter: {
         guardContext: activeContext => ppe ? ppe.guardContext(activeContext) : Promise.resolve(),
@@ -231,6 +234,8 @@ try {
         },
       },
     });
+    if (scenario === 'participants') participantProof = proof;
+    else placesProof = proof;
   }
 
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
@@ -269,9 +274,17 @@ try {
     result.scope.push(...participantProof.scope);
     result.not_verified = participantProof.not_verified;
   }
+  if (placesProof) {
+    result.scope.push(...placesProof.scope);
+    result.not_verified = placesProof.not_verified;
+    result.shared_provider_cache = placesProof.shared_provider_cache;
+    result.external_boundary = 'real Google Maps, Places and Directions; no provider fixture';
+    if (ppe) result.streaming_api_policy = 'Owned SSE continues without buffering; observed redirects or invalid response headers invalidate proof. Finite API redirects are blocked before forwarding, except validated photos.';
+    result.synthetic_cleanup = 'exact UI-created event and participant rows absent; shared provider cache rows are separate';
+  }
   result = { ...result, status: 'PASS', event_id: eventId };
 } catch (error) {
-  result.error = String(error).replace(/https?:\/\/\S+/g, '[url removed]');
+  result.error = scrubPlacesError(error);
   try { await capture('failure'); } catch {}
   process.exitCode = 1;
 } finally {
@@ -300,7 +313,7 @@ try {
     await browser.close();
   } catch (error) {
     result.status = 'FAIL';
-    result.error = `Browser teardown failed: ${String(error)}`;
+    result.error = `Browser teardown failed: ${scrubPlacesError(error)}`;
     process.exitCode = 1;
   }
   await writeFile(path.join(evidence, 'result.json'), JSON.stringify(result, null, 2));
