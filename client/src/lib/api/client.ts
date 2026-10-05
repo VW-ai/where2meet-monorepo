@@ -76,6 +76,7 @@ export async function backendCall<T>(endpoint: string, options?: RequestInit): P
 
     return response.json();
   } catch (error) {
+    if (options?.signal?.aborted) throw options.signal.reason;
     if (error instanceof APIError) throw error;
 
     console.error('[Backend API] Network error:', error);
@@ -112,6 +113,7 @@ export async function apiCall<T>(endpoint: string, options?: RequestInit): Promi
 
     return response.json();
   } catch (error) {
+    if (options?.signal?.aborted) throw options.signal.reason;
     if (error instanceof APIError) throw error;
 
     console.error('[API] Network error:', error);

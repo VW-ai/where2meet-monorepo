@@ -1,26 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { useTokenClaimer } from '@/features/auth/hooks/useTokenClaimer';
+import type { UnclaimedToken } from '@/lib/utils/token-claimer';
 
-export function ClaimEventsBanner() {
-  const { unclaimedEvents, isScanning, claimAllEvents } = useTokenClaimer();
-  const [isClaiming, setIsClaiming] = useState(false);
-
-  if (isScanning || unclaimedEvents.length === 0) {
-    return null;
-  }
-
-  const handleClaimAll = async () => {
-    setIsClaiming(true);
-    try {
-      await claimAllEvents();
-    } catch (error) {
-      console.error('Error claiming events:', error);
-    } finally {
-      setIsClaiming(false);
-    }
-  };
+export function ClaimEventsBanner({
+  unclaimedEvents,
+  isClaiming,
+  onClaim,
+}: {
+  unclaimedEvents: UnclaimedToken[];
+  isClaiming: boolean;
+  onClaim: () => Promise<void>;
+}) {
+  if (unclaimedEvents.length === 0) return null;
 
   const organizerCount = unclaimedEvents.filter((e) => e.tokenType === 'organizer').length;
   const participantCount = unclaimedEvents.filter((e) => e.tokenType === 'participant').length;
@@ -57,7 +48,7 @@ export function ClaimEventsBanner() {
           </p>
 
           <button
-            onClick={handleClaimAll}
+            onClick={onClaim}
             disabled={isClaiming}
             className="px-4 py-2 bg-mint-600 text-white rounded-full text-sm font-medium hover:bg-mint-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >

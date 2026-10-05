@@ -103,7 +103,16 @@ export interface UserEventResponse {
   id: string;
   role: 'organizer' | 'participant';
   participantId: string | null;
-  event: import('@/entities').Event;
+  createdAt: string;
+  event: {
+    id: string;
+    title: string;
+    meetingTime: string | null;
+    publishedAt: string | null;
+    createdAt: string;
+    participantCount: number;
+    participants: Array<{ id: string; name: string; color: string; isOrganizer: boolean }>;
+  };
 }
 
 export interface OAuthStatesData {

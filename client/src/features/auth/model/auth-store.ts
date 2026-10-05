@@ -3,11 +3,13 @@ import { persist } from 'zustand/middleware';
 import { User, RegisterDTO, UpdateUserDTO } from '@/features/auth/types';
 import { authClient } from '@/features/auth/api';
 import { userClient } from '@/features/user/api';
-import { scanLocalStorageForTokens, claimAllTokens } from '@/lib/utils/token-claimer';
+import { claimAfterAuthentication, type ClaimScope } from '@/lib/utils/token-claimer';
 
 interface AuthState {
   // User authentication state
   user: User | null;
+  accountGeneration: number;
+  captureAccount: () => ClaimScope & { userId: string | null };
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -52,261 +54,262 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
-      // User authentication state
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-
-      // Event access tokens (initially null)
-      isOrganizerMode: false,
-      organizerToken: null,
-      organizerParticipantId: null,
-      isParticipantMode: false,
-      participantToken: null,
-      currentParticipantId: null,
-
-      // Auth initialization state
-      isAuthInitialized: false,
-
-      // Set user (internal helper)
-      setUser: (user) =>
-        set({
-          user,
-          isAuthenticated: !!user,
-          error: null,
-        }),
-
-      // Register new account
-      register: async (data) => {
+    (set, get) => {
+      let controller = new AbortController();
+      const beginAccountChange = () => {
+        controller.abort();
+        controller = new AbortController();
+        const generation = get().accountGeneration + 1;
+        set({ accountGeneration: generation });
+        return { generation, signal: controller.signal };
+      };
+      const captureAccount = () => {
+        const { accountGeneration, user } = get();
+        const signal = controller.signal;
+        const userId = user?.id ?? null;
+        return {
+          userId,
+          signal,
+          isCurrent: () =>
+            !signal.aborted &&
+            get().accountGeneration === accountGeneration &&
+            (get().user?.id ?? null) === userId,
+        };
+      };
+      const authenticate = async (request: (signal: AbortSignal) => Promise<{ user: User }>) => {
+        const operation = beginAccountChange();
+        const current = () =>
+          get().accountGeneration === operation.generation && !operation.signal.aborted;
+        set({ user: null, isAuthenticated: false, isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
-          const response = await authClient.register(data);
-          // Backend sets session cookie, returns user
-          set({ user: response.user, isAuthenticated: true });
-
-          // Auto-claim tokens in background (fire-and-forget)
-          if (typeof window !== 'undefined') {
-            const tokens = scanLocalStorageForTokens();
-            if (tokens.length > 0) {
-              claimAllTokens(tokens)
-                .then((result) => {
-                  console.warn(`Auto-claimed ${result.claimed} events`);
-                  if (result.failed > 0) {
-                    console.warn('Some claims failed:', result.errors);
-                  }
-                })
-                .catch((err) => console.error('Auto-claim error:', err));
-            }
-          }
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : 'Operation failed' });
-          throw error;
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-
-      // Log in
-      login: async (email, password) => {
-        try {
-          set({ isLoading: true, error: null });
-          const response = await authClient.login({ email, password });
-          // Backend sets session cookie, returns user
-          set({ user: response.user, isAuthenticated: true });
-
-          // Auto-claim tokens in background (fire-and-forget)
-          if (typeof window !== 'undefined') {
-            const tokens = scanLocalStorageForTokens();
-            if (tokens.length > 0) {
-              claimAllTokens(tokens)
-                .then((result) => {
-                  console.warn(`Auto-claimed ${result.claimed} events`);
-                  if (result.failed > 0) {
-                    console.warn('Some claims failed:', result.errors);
-                  }
-                })
-                .catch((err) => console.error('Auto-claim error:', err));
-            }
-          }
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : 'Operation failed' });
-          throw error;
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-
-      // Log out
-      logout: async () => {
-        try {
-          await authClient.logout();
-          // Backend clears session cookie
-        } finally {
-          set({ user: null, isAuthenticated: false });
-        }
-      },
-
-      // Check if session is valid (called once on app load)
-      checkSession: async () => {
-        try {
-          set({ isLoading: true });
-          const response = await authClient.getSession();
+          const response = await request(operation.signal);
+          if (!current()) throw new DOMException('Account changed', 'AbortError');
           set({ user: response.user, isAuthenticated: true, isAuthInitialized: true });
+          await claimAfterAuthentication(captureAccount());
+          if (!current()) throw new DOMException('Account changed', 'AbortError');
         } catch (error) {
-          // Session expired or invalid
-          set({ user: null, isAuthenticated: false, isAuthInitialized: true });
+          if (current())
+            set({ error: error instanceof Error ? error.message : 'Operation failed' });
+          throw error;
         } finally {
-          set({ isLoading: false });
+          if (current()) set({ isLoading: false });
         }
-      },
+      };
+      return {
+        user: null,
+        accountGeneration: 0,
+        captureAccount,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+        isOrganizerMode: false,
+        organizerToken: null,
+        organizerParticipantId: null,
+        isParticipantMode: false,
+        participantToken: null,
+        currentParticipantId: null,
+        isAuthInitialized: false,
 
-      // Update user profile
-      updateProfile: async (data) => {
-        const updated = await userClient.updateProfile(data);
-        set({ user: updated });
-      },
-
-      // Clear error message
-      clearError: () => set({ error: null }),
-
-      // Event token management - Organizer mode
-      initializeOrganizerMode: (eventId: string) => {
-        if (typeof window === 'undefined') return;
-        const token = localStorage.getItem(`organizer_token_${eventId}`);
-        set({
-          isOrganizerMode: false,
-          organizerToken: token,
-          organizerParticipantId: null,
-          isAuthInitialized: true,
-        });
-      },
-
-      setOrganizerInfo: (eventId: string, token: string, participantId: string) => {
-        console.warn('[AuthStore] setOrganizerInfo called:', {
-          eventId,
-          tokenLength: token.length,
-          participantId,
-        });
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(`organizer_token_${eventId}`, token);
-          localStorage.setItem(`organizer_participant_id_${eventId}`, participantId);
-          console.warn('[AuthStore] Stored in localStorage:', {
-            tokenKey: `organizer_token_${eventId}`,
-            participantIdKey: `organizer_participant_id_${eventId}`,
+        setUser: (user) => {
+          beginAccountChange();
+          set({
+            user,
+            isAuthenticated: !!user,
+            isAuthInitialized: true,
+            isLoading: false,
+            error: null,
           });
-        }
-        set({
-          isOrganizerMode: true,
-          organizerToken: token,
-          organizerParticipantId: participantId,
-        });
-        console.warn('[AuthStore] State updated - isOrganizerMode: true');
-      },
+        },
+        register: (data) => authenticate((signal) => authClient.register(data, signal)),
+        login: (email, password) =>
+          authenticate((signal) => authClient.login({ email, password }, signal)),
+        logout: async () => {
+          const operation = beginAccountChange();
+          set({ error: null });
+          try {
+            await authClient.logout(operation.signal);
+            if (get().accountGeneration !== operation.generation) {
+              throw new DOMException('Account changed', 'AbortError');
+            }
+            set({ user: null, isAuthenticated: false, error: null, isLoading: false });
+          } catch (error) {
+            if (get().accountGeneration === operation.generation) {
+              set({ error: 'Failed to sign out. Please try again.' });
+            }
+            throw error;
+          }
+        },
+        checkSession: async () => {
+          const scope = captureAccount();
+          try {
+            const response = await authClient.getSession(scope.signal);
+            if (!scope.isCurrent()) return;
+            if (response.user.id !== scope.userId) beginAccountChange();
+            set({
+              user: response.user,
+              isAuthenticated: true,
+              isAuthInitialized: true,
+              isLoading: false,
+            });
+          } catch {
+            if (!scope.isCurrent()) return;
+            if (scope.userId !== null) beginAccountChange();
+            set({ user: null, isAuthenticated: false, isAuthInitialized: true, isLoading: false });
+          }
+        },
+        updateProfile: async (data) => {
+          const scope = captureAccount();
+          try {
+            const updated = await userClient.updateProfile(data, scope.signal);
+            if (scope.isCurrent() && updated.id === scope.userId) set({ user: updated });
+          } catch (error) {
+            if (scope.isCurrent()) throw error;
+          }
+        },
+        clearError: () => set({ error: null }),
 
-      clearOrganizerToken: () => {
-        set({ isOrganizerMode: false, organizerToken: null, organizerParticipantId: null });
-      },
+        // Event token management - Organizer mode
+        initializeOrganizerMode: (eventId: string) => {
+          if (typeof window === 'undefined') return;
+          const token = localStorage.getItem(`organizer_token_${eventId}`);
+          set({
+            isOrganizerMode: false,
+            organizerToken: token,
+            organizerParticipantId: null,
+            isAuthInitialized: true,
+          });
+        },
 
-      // Event token management - Participant mode
-      initializeParticipantMode: (eventId: string) => {
-        if (typeof window === 'undefined') return;
-        const token = localStorage.getItem(`participant_token_${eventId}`);
-        set({
-          isParticipantMode: false,
-          participantToken: token,
-          currentParticipantId: null,
-          isAuthInitialized: true,
-        });
-      },
+        setOrganizerInfo: (eventId: string, token: string, participantId: string) => {
+          console.warn('[AuthStore] setOrganizerInfo called:', {
+            eventId,
+            tokenLength: token.length,
+            participantId,
+          });
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(`organizer_token_${eventId}`, token);
+            localStorage.setItem(`organizer_participant_id_${eventId}`, participantId);
+            console.warn('[AuthStore] Stored in localStorage:', {
+              tokenKey: `organizer_token_${eventId}`,
+              participantIdKey: `organizer_participant_id_${eventId}`,
+            });
+          }
+          set({
+            isOrganizerMode: true,
+            organizerToken: token,
+            organizerParticipantId: participantId,
+          });
+          console.warn('[AuthStore] State updated - isOrganizerMode: true');
+        },
 
-      setParticipantInfo: (eventId: string, participantId: string, token: string) => {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(`participant_id_${eventId}`, participantId);
-          localStorage.setItem(`participant_token_${eventId}`, token);
-        }
-        set({
-          isParticipantMode: true,
-          participantToken: token,
-          currentParticipantId: participantId,
-        });
-      },
+        clearOrganizerToken: () => {
+          set({ isOrganizerMode: false, organizerToken: null, organizerParticipantId: null });
+        },
 
-      clearParticipantInfo: (eventId: string) => {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(`participant_id_${eventId}`);
-          localStorage.removeItem(`participant_token_${eventId}`);
-        }
-        set({ isParticipantMode: false, participantToken: null, currentParticipantId: null });
-      },
+        // Event token management - Participant mode
+        initializeParticipantMode: (eventId: string) => {
+          if (typeof window === 'undefined') return;
+          const token = localStorage.getItem(`participant_token_${eventId}`);
+          set({
+            isParticipantMode: false,
+            participantToken: token,
+            currentParticipantId: null,
+            isAuthInitialized: true,
+          });
+        },
 
-      confirmMeetingParticipant: (eventId, token, participantId, isOrganizer) => {
-        if (get().organizerToken !== token && get().participantToken !== token) return false;
-        if (typeof window !== 'undefined') {
-          const organizerKey = `organizer_token_${eventId}`;
-          const participantKey = `participant_token_${eventId}`;
-          const sourceIsOrganizer = localStorage.getItem(organizerKey) === token;
-          const sourceKey = sourceIsOrganizer
-            ? organizerKey
-            : localStorage.getItem(participantKey) === token ? participantKey : null;
-          if (!sourceKey) return false;
-          const sourceIdKey = `${sourceIsOrganizer ? 'organizer_participant_id' : 'participant_id'}_${eventId}`;
-          const targetKey = isOrganizer ? organizerKey : participantKey;
-          const targetIdKey = `${isOrganizer ? 'organizer_participant_id' : 'participant_id'}_${eventId}`;
-          const otherToken = localStorage.getItem(targetKey);
+        setParticipantInfo: (eventId: string, participantId: string, token: string) => {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(`participant_id_${eventId}`, participantId);
+            localStorage.setItem(`participant_token_${eventId}`, token);
+          }
+          set({
+            isParticipantMode: true,
+            participantToken: token,
+            currentParticipantId: participantId,
+          });
+        },
 
-          if (otherToken && otherToken !== token) {
-            localStorage.setItem(sourceIdKey, participantId);
-          } else {
-            localStorage.setItem(targetKey, token);
-            localStorage.setItem(targetIdKey, participantId);
-            if (sourceKey !== targetKey && localStorage.getItem(sourceKey) === token) {
-              localStorage.removeItem(sourceKey);
-              localStorage.removeItem(sourceIdKey);
+        clearParticipantInfo: (eventId: string) => {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(`participant_id_${eventId}`);
+            localStorage.removeItem(`participant_token_${eventId}`);
+          }
+          set({ isParticipantMode: false, participantToken: null, currentParticipantId: null });
+        },
+
+        confirmMeetingParticipant: (eventId, token, participantId, isOrganizer) => {
+          if (get().organizerToken !== token && get().participantToken !== token) return false;
+          if (typeof window !== 'undefined') {
+            const organizerKey = `organizer_token_${eventId}`;
+            const participantKey = `participant_token_${eventId}`;
+            const sourceIsOrganizer = localStorage.getItem(organizerKey) === token;
+            const sourceKey = sourceIsOrganizer
+              ? organizerKey
+              : localStorage.getItem(participantKey) === token
+                ? participantKey
+                : null;
+            if (!sourceKey) return false;
+            const sourceIdKey = `${sourceIsOrganizer ? 'organizer_participant_id' : 'participant_id'}_${eventId}`;
+            const targetKey = isOrganizer ? organizerKey : participantKey;
+            const targetIdKey = `${isOrganizer ? 'organizer_participant_id' : 'participant_id'}_${eventId}`;
+            const otherToken = localStorage.getItem(targetKey);
+
+            if (otherToken && otherToken !== token) {
+              localStorage.setItem(sourceIdKey, participantId);
+            } else {
+              localStorage.setItem(targetKey, token);
+              localStorage.setItem(targetIdKey, participantId);
+              if (sourceKey !== targetKey && localStorage.getItem(sourceKey) === token) {
+                localStorage.removeItem(sourceKey);
+                localStorage.removeItem(sourceIdKey);
+              }
             }
           }
-        }
-        set({
-          isOrganizerMode: isOrganizer,
-          organizerToken: isOrganizer ? token : null,
-          organizerParticipantId: isOrganizer ? participantId : null,
-          isParticipantMode: !isOrganizer,
-          participantToken: isOrganizer ? null : token,
-          currentParticipantId: isOrganizer ? null : participantId,
-        });
-        return true;
-      },
+          set({
+            isOrganizerMode: isOrganizer,
+            organizerToken: isOrganizer ? token : null,
+            organizerParticipantId: isOrganizer ? participantId : null,
+            isParticipantMode: !isOrganizer,
+            participantToken: isOrganizer ? null : token,
+            currentParticipantId: isOrganizer ? null : participantId,
+          });
+          return true;
+        },
 
-      rejectMeetingToken: (eventId, token) => {
-        const organizerRejected = get().organizerToken === token;
-        const participantRejected = get().participantToken === token;
-        if (!organizerRejected && !participantRejected) return false;
-        if (typeof window !== 'undefined') {
-          if (organizerRejected && localStorage.getItem(`organizer_token_${eventId}`) === token) {
-            localStorage.removeItem(`organizer_token_${eventId}`);
-            localStorage.removeItem(`organizer_participant_id_${eventId}`);
+        rejectMeetingToken: (eventId, token) => {
+          const organizerRejected = get().organizerToken === token;
+          const participantRejected = get().participantToken === token;
+          if (!organizerRejected && !participantRejected) return false;
+          if (typeof window !== 'undefined') {
+            if (organizerRejected && localStorage.getItem(`organizer_token_${eventId}`) === token) {
+              localStorage.removeItem(`organizer_token_${eventId}`);
+              localStorage.removeItem(`organizer_participant_id_${eventId}`);
+            }
+            if (
+              participantRejected &&
+              localStorage.getItem(`participant_token_${eventId}`) === token
+            ) {
+              localStorage.removeItem(`participant_token_${eventId}`);
+              localStorage.removeItem(`participant_id_${eventId}`);
+            }
           }
-          if (participantRejected && localStorage.getItem(`participant_token_${eventId}`) === token) {
-            localStorage.removeItem(`participant_token_${eventId}`);
-            localStorage.removeItem(`participant_id_${eventId}`);
-          }
-        }
-        set({
-          ...(organizerRejected && {
-            isOrganizerMode: false,
-            organizerToken: null,
-            organizerParticipantId: null,
-          }),
-          ...(participantRejected && {
-            isParticipantMode: false,
-            participantToken: null,
-            currentParticipantId: null,
-          }),
-        });
-        return true;
-      },
-    }),
+          set({
+            ...(organizerRejected && {
+              isOrganizerMode: false,
+              organizerToken: null,
+              organizerParticipantId: null,
+            }),
+            ...(participantRejected && {
+              isParticipantMode: false,
+              participantToken: null,
+              currentParticipantId: null,
+            }),
+          });
+          return true;
+        },
+      };
+    },
     {
       name: 'auth-storage',
       // Only persist user data for UI (backend cookie is source of truth)

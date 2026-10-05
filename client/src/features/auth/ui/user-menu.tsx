@@ -6,7 +6,7 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 
 export function UserMenu() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, error } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -28,9 +28,13 @@ export function UserMenu() {
   }, [isOpen]);
 
   const handleLogout = async () => {
-    await logout();
-    setIsOpen(false);
-    router.push('/');
+    try {
+      await logout();
+      setIsOpen(false);
+      router.push('/');
+    } catch {
+      return;
+    }
   };
 
   const handleNavigation = (path: string) => {
@@ -105,6 +109,11 @@ export function UserMenu() {
           </button>
 
           <div className="border-t border-gray-100 mt-1 pt-1">
+            {error && (
+              <p role="alert" className="px-4 py-2 text-sm text-red-600">
+                {error}
+              </p>
+            )}
             <button
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"

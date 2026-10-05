@@ -1,83 +1,81 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { userClient } from '@/features/user/api';
-import {
-  scanLocalStorageForTokens,
-  cleanupObsoleteTokens,
-  UnclaimedToken,
-} from '@/lib/utils/token-claimer';
+import { reconcileClaims, type ClaimSnapshot } from '@/lib/utils/token-claimer';
 
-// Keep for backward compatibility
-interface UnclaimedEvent extends UnclaimedToken {}
+type View =
+  | { kind: 'loading' }
+  | { kind: 'failed'; message: string }
+  | { kind: 'ready'; snapshot: ClaimSnapshot; claiming: boolean };
 
 export function useTokenClaimer() {
-  const { user } = useAuthStore();
-  const [unclaimedEvents, setUnclaimedEvents] = useState<UnclaimedEvent[]>([]);
-  const [isScanning, setIsScanning] = useState(true);
+  const generation = useAuthStore((state) => state.accountGeneration);
+  const userId = useAuthStore((state) => state.user?.id);
+  const [state, setState] = useState<{ generation: number; view: View }>({
+    generation,
+    view: { kind: 'loading' },
+  });
+  const operation = useRef<AbortController | null>(null);
+  const refresh = useCallback(
+    async (claimPending = false) => {
+      const auth = useAuthStore.getState();
+      if (auth.accountGeneration !== generation || auth.user?.id !== userId) return;
+      operation.current?.abort();
+      const controller = new AbortController();
+      operation.current = controller;
+      const account = useAuthStore.getState().captureAccount();
+      if (!account.userId) return;
+      const scope = { ...account, signal: AbortSignal.any([account.signal, controller.signal]) };
+      if (claimPending)
+        setState((previous) =>
+          previous.generation === generation && previous.view.kind === 'ready'
+            ? { generation, view: { ...previous.view, claiming: true } }
+            : previous
+        );
+      try {
+        const snapshot = await reconcileClaims(scope, claimPending);
+        if (scope.isCurrent() && !scope.signal.aborted)
+          setState({ generation, view: { kind: 'ready', snapshot, claiming: false } });
+      } catch (error) {
+        if (scope.isCurrent() && !scope.signal.aborted)
+          setState({
+            generation,
+            view: {
+              kind: 'failed',
+              message: error instanceof Error ? error.message : 'Could not load your events',
+            },
+          });
+      }
+    },
+    [generation, userId]
+  );
 
   useEffect(() => {
-    if (!user) {
-      setIsScanning(false);
-      return;
-    }
+    void refresh();
+    return () => operation.current?.abort();
+  }, [refresh, userId]);
 
-    // Clean up obsolete ot_ tokens from old backend version
-    cleanupObsoleteTokens();
-
-    // Use shared utility to scan localStorage for valid pt_ tokens
-    const unclaimed = scanLocalStorageForTokens();
-    setUnclaimedEvents(unclaimed);
-    setIsScanning(false);
-  }, [user]);
-
-  const claimEvent = async (eventId: string, tokenType: 'organizer' | 'participant') => {
-    const eventToClaim = unclaimedEvents.find(
-      (e) => e.eventId === eventId && e.tokenType === tokenType
-    );
-
-    if (!eventToClaim) {
-      throw new Error('Event not found in unclaimed list');
-    }
-
-    try {
-      await userClient.claimEvent({
-        eventId,
-        participantToken: eventToClaim.token,
-      });
-
-      // Remove from localStorage
-      localStorage.removeItem(`${tokenType}_token_${eventId}`);
-      if (tokenType === 'organizer') {
-        localStorage.removeItem(`organizer_participant_id_${eventId}`);
-      } else {
-        localStorage.removeItem(`participant_id_${eventId}`);
-      }
-
-      // Update state
-      setUnclaimedEvents((prev) =>
-        prev.filter((e) => !(e.eventId === eventId && e.tokenType === tokenType))
-      );
-    } catch (error) {
-      console.error('Error claiming event:', error);
-      throw error;
-    }
-  };
-
-  const claimAllEvents = async () => {
-    const claimPromises = unclaimedEvents.map((event) =>
-      claimEvent(event.eventId, event.tokenType).catch((error) => {
-        console.error(`Failed to claim event ${event.eventId}:`, error);
-        return null;
-      })
-    );
-
-    await Promise.all(claimPromises);
-  };
-
+  const view = state.generation === generation ? state.view : { kind: 'loading' as const };
+  const snapshot = view.kind === 'ready' ? view.snapshot : null;
+  const userEvents = [...(snapshot?.events ?? [])].sort((left, right) => {
+    const a = left.event;
+    const b = right.event;
+    if (a.publishedAt && b.publishedAt)
+      return Date.parse(b.publishedAt) - Date.parse(a.publishedAt);
+    if (a.publishedAt) return -1;
+    if (b.publishedAt) return 1;
+    return Date.parse(b.createdAt) - Date.parse(a.createdAt);
+  });
   return {
-    unclaimedEvents,
-    isScanning,
-    claimEvent,
-    claimAllEvents,
+    userEvents,
+    unclaimedEvents: snapshot?.pending ?? [],
+    isLoading: view.kind === 'loading',
+    isClaiming: view.kind === 'ready' && view.claiming,
+    error:
+      view.kind === 'failed'
+        ? view.message
+        : snapshot?.failures.length
+          ? 'Some events could not be claimed. You can try again.'
+          : null,
+    claimAllEvents: () => refresh(true),
   };
 }

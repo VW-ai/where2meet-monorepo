@@ -62,6 +62,7 @@ async function proxyToBackend(request: NextRequest, endpoint: string): Promise<N
       method,
       headers,
       credentials: 'include',
+      redirect: 'error',
     };
 
     // Add body for POST/PATCH/PUT requests

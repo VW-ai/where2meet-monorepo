@@ -1,9 +1,15 @@
 import { userClient } from '@/features/user/api';
+import type { UserEventResponse } from '@/features/auth/types';
 
 export interface UnclaimedToken {
   eventId: string;
   tokenType: 'organizer' | 'participant';
   token: string;
+}
+
+export interface ClaimScope {
+  signal: AbortSignal;
+  isCurrent: () => boolean;
 }
 
 export interface ClaimResult {
@@ -13,158 +19,98 @@ export interface ClaimResult {
   errors: Array<{ eventId: string; error: string }>;
 }
 
-/**
- * Scans localStorage for unclaimed event tokens
- * Returns array of tokens that need to be claimed
- *
- * NOTE: Only returns pt_ tokens (current backend format)
- * Obsolete ot_ tokens from old backend versions are ignored
- */
+export interface ClaimSnapshot {
+  events: UserEventResponse[];
+  pending: UnclaimedToken[];
+  failures: ClaimResult['errors'];
+}
+
 export function scanLocalStorageForTokens(): UnclaimedToken[] {
-  // SSR check
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  const unclaimed: UnclaimedToken[] = [];
-
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-
-      // Only scan for participant_token_ keys
-      // Backend only accepts pt_ tokens (participant tokens for everyone, including organizers)
-      if (key.startsWith('participant_token_')) {
-        const eventId = key.replace('participant_token_', '');
-        const token = localStorage.getItem(key);
-
-        // Validate token format: must start with pt_ and be 67 chars total
-        if (token && token.startsWith('pt_') && token.length === 67) {
-          unclaimed.push({ eventId, tokenType: 'participant', token });
-        } else {
-          console.warn(`[Token Scanner] Invalid token format for ${eventId}, skipping`);
-        }
-      }
-
-      // Skip organizer_token_ keys - these are from old backend version (ot_ prefix)
-      // Current backend only uses pt_ tokens for everyone
+  if (typeof window === 'undefined') return [];
+  const candidates = new Map<string, UnclaimedToken>();
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    const match = key?.match(/^(organizer|participant)_token_(.+)$/);
+    if (!key || !match) continue;
+    const token = localStorage.getItem(key);
+    if (!token || !/^pt_[0-9a-f]{64}$/.test(token)) continue;
+    const eventId = match[2];
+    const tokenType = match[1] === 'organizer' ? 'organizer' : 'participant';
+    if (!candidates.has(eventId) || tokenType === 'organizer') {
+      candidates.set(eventId, { eventId, tokenType, token });
     }
-  } catch (error) {
-    console.error('Error scanning localStorage for tokens:', error);
   }
-
-  return unclaimed;
+  return [...candidates.values()];
 }
 
-/**
- * Removes obsolete organizer tokens (ot_ prefix) from localStorage
- * These are from an old backend version and are no longer valid
- *
- * IMPORTANT: Only removes tokens with ot_ prefix, not pt_ prefix
- */
-export function cleanupObsoleteTokens(): number {
-  if (typeof window === 'undefined') {
-    return 0;
-  }
-
-  let cleaned = 0;
-
-  try {
-    const keysToRemove: string[] = [];
-
-    // Find organizer_token_ keys that have obsolete ot_ prefix
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('organizer_token_')) {
-        const token = localStorage.getItem(key);
-
-        // Only remove if token has ot_ prefix (old format)
-        // Keep tokens with pt_ prefix (new format - valid)
-        if (token && token.startsWith('ot_')) {
-          keysToRemove.push(key);
-          // Also remove associated participant ID
-          const eventId = key.replace('organizer_token_', '');
-          keysToRemove.push(`organizer_participant_id_${eventId}`);
-        }
-      }
-    }
-
-    // Remove them
-    keysToRemove.forEach((key) => {
-      localStorage.removeItem(key);
-      cleaned++;
-    });
-
-    if (cleaned > 0) {
-      console.warn(`[Token Cleanup] Removed ${cleaned} obsolete ot_ tokens from localStorage`);
-    }
-  } catch (error) {
-    console.error('Error cleaning up obsolete tokens:', error);
-  }
-
-  return cleaned;
+function requireCurrent(scope: ClaimScope) {
+  scope.signal.throwIfAborted();
+  if (!scope.isCurrent()) throw new DOMException('Account changed', 'AbortError');
 }
 
-/**
- * Claims all provided tokens and cleans up localStorage
- * Handles partial failures gracefully
- */
-export async function claimAllTokens(tokens: UnclaimedToken[]): Promise<ClaimResult> {
-  if (tokens.length === 0) {
-    return { success: true, claimed: 0, failed: 0, errors: [] };
-  }
-
-  const results = await Promise.allSettled(
-    tokens.map(async (token) => {
-      try {
-        // Call API to claim token
-        await userClient.claimEvent({
-          eventId: token.eventId,
-          participantToken: token.token,
-        });
-
-        // Clean up localStorage on success
-        localStorage.removeItem(`${token.tokenType}_token_${token.eventId}`);
-        if (token.tokenType === 'organizer') {
-          localStorage.removeItem(`organizer_participant_id_${token.eventId}`);
-        } else {
-          localStorage.removeItem(`participant_id_${token.eventId}`);
-        }
-
-        return { success: true, eventId: token.eventId };
-      } catch (error) {
-        return {
-          success: false,
-          eventId: token.eventId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
-      }
-    })
-  );
-
-  // Aggregate results
+export async function claimAllTokens(
+  tokens: UnclaimedToken[],
+  scope: ClaimScope
+): Promise<ClaimResult> {
+  const errors: ClaimResult['errors'] = [];
   let claimed = 0;
-  let failed = 0;
-  const errors: Array<{ eventId: string; error: string }> = [];
-
-  results.forEach((result, index) => {
-    if (result.status === 'fulfilled' && result.value.success) {
+  for (const token of tokens) {
+    requireCurrent(scope);
+    try {
+      await userClient.claimEvent(
+        { eventId: token.eventId, participantToken: token.token },
+        scope.signal
+      );
+      requireCurrent(scope);
       claimed++;
-    } else {
-      failed++;
-      const errorMessage =
-        result.status === 'fulfilled'
-          ? result.value.error
-          : result.reason?.message || 'Unknown error';
-      errors.push({ eventId: tokens[index].eventId, error: errorMessage });
+    } catch (error) {
+      requireCurrent(scope);
+      errors.push({
+        eventId: token.eventId,
+        error: error instanceof Error ? error.message : 'Claim failed',
+      });
     }
-  });
+  }
+  return { success: errors.length === 0, claimed, failed: errors.length, errors };
+}
 
-  return {
-    success: failed === 0,
-    claimed,
-    failed,
-    errors,
+export async function reconcileClaims(
+  scope: ClaimScope,
+  claimPending = false
+): Promise<ClaimSnapshot> {
+  requireCurrent(scope);
+  let { events } = await userClient.getEvents(scope.signal);
+  requireCurrent(scope);
+  const discover = () => {
+    const linked = new Set(events.map((entry) => entry.event.id));
+    return scanLocalStorageForTokens().filter((candidate) => !linked.has(candidate.eventId));
   };
+  let failures: ClaimResult['errors'] = [];
+  const pending = discover();
+  if (claimPending && pending.length > 0) {
+    failures = (await claimAllTokens(pending, scope)).errors;
+    requireCurrent(scope);
+    ({ events } = await userClient.getEvents(scope.signal));
+    requireCurrent(scope);
+  }
+  return { events, pending: discover(), failures };
+}
+
+export async function claimAfterAuthentication(scope: ClaimScope): Promise<void> {
+  const deadline = new AbortController();
+  const signal = AbortSignal.any([scope.signal, deadline.signal]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      reconcileClaims({ ...scope, signal }, true).catch(() => undefined),
+      new Promise<void>((resolve) => {
+        timer = setTimeout(() => {
+          deadline.abort();
+          resolve();
+        }, 10_000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }

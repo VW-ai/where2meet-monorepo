@@ -4,17 +4,20 @@ import { User, UpdateUserDTO, ClaimTokenDTO, UserEventResponse } from '@/feature
 export const usersApi = {
   getProfile: () => apiCall<User>('/api/users/me'),
 
-  updateProfile: (data: UpdateUserDTO) =>
+  updateProfile: (data: UpdateUserDTO, signal?: AbortSignal) =>
     apiCall<User>('/api/users/me', {
       method: 'PATCH',
+      signal,
       body: JSON.stringify(data),
     }),
 
-  getEvents: () => apiCall<UserEventResponse[]>('/api/users/me/events'),
+  getEvents: (signal?: AbortSignal) =>
+    apiCall<{ events: UserEventResponse[] }>('/api/users/me/events', { signal }),
 
-  claimEvent: (data: ClaimTokenDTO) =>
+  claimEvent: (data: ClaimTokenDTO, signal?: AbortSignal) =>
     apiCall('/api/users/me/events/claim', {
       method: 'POST',
+      signal,
       body: JSON.stringify(data),
     }),
 
