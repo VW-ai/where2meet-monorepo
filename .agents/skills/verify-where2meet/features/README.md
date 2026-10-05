@@ -6,7 +6,7 @@ The M2 replacement source supports the participant lifecycle, email accounts, pr
 
 ## Baseline preconditions
 
-The M4 `voting-publication` driver continues M3's completed setup with voting and publication assertions. Its SQL projection and cleanup include exact vote rows. The guarded local and PPE recipes are available, but only retained live runs establish backend acceptance. See [voting and publishing](voting-publishing.md) for the source coverage and exclusions.
+The M4 `voting-publication` driver continues M3's completed setup with voting and publication assertions. Its SQL projection and cleanup include exact vote rows. Local `2026-10-05-m4-google-e` and PPE `2026-10-05-m4-ppe-a` pass all 16 bounded observations with real Google services. See [voting and publishing](voting-publishing.md) for the verified entries, exact revisions, and exclusions.
 
 - Follow the parent skill's selected local or PPE recipe. Local runs own their database, Redis, browser profile, and ports. PPE runs use the explicitly identified remote resources and own their local frontend, browser profile, recorded synthetic events and, in the accounts scenario, one synthetic account.
 - Read `client_url` and `backend_url` from that run's `run.json`; never assume the ordinary development ports are available.
