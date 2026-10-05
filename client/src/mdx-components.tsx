@@ -4,7 +4,8 @@ import Link from 'next/link';
 const linkClass =
   'font-medium text-[#bc3942] underline decoration-[#bc3942]/30 underline-offset-2 hover:decoration-[#bc3942]';
 
-const components: MDXComponents = {
+/** Prose styles shared by blog posts and the local guides' Markdown. */
+export const proseComponents = {
   h2: (props) => (
     <h2
       className="mt-10 text-xl font-bold leading-snug tracking-[-0.4px] text-[#21252b] first:mt-0 sm:text-[22px]"
@@ -36,8 +37,8 @@ const components: MDXComponents = {
   blockquote: (props) => (
     <blockquote className="mt-6 border-l-4 border-[#f2c4c7] pl-4 text-[#666b73]" {...props} />
   ),
-};
+} satisfies MDXComponents;
 
 export function useMDXComponents(): MDXComponents {
-  return components;
+  return proseComponents;
 }

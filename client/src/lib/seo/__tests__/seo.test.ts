@@ -15,7 +15,7 @@ import {
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
-import { BLOG_POSTS, getPost, postPath } from '@/content/blog/posts';
+import { BLOG_POSTS, coverPath, getPost, postPath } from '@/content/blog/posts';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
@@ -207,9 +207,14 @@ describe('structured data', () => {
   });
 
   it('describes a blog post as a BlogPosting by the Where2Meet team', () => {
-    const post = getPost('how-to-choose-a-team-meeting-location');
-    expect(post).toBeDefined();
-    expect(generateBlogPostingSchema(post!)).toEqual({
+    const post = getPost('how-to-choose-a-team-meeting-location')!;
+    expect(
+      generateBlogPostingSchema({
+        ...post,
+        path: postPath(post.slug),
+        coverPath: coverPath(post.slug),
+      })
+    ).toEqual({
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
       headline: 'How to choose a team meeting location everyone can reach',

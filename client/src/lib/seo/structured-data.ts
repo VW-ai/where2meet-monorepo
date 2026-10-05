@@ -8,7 +8,7 @@ import type {
   WebSite,
   WithContext,
 } from 'schema-dts';
-import { BLOG_AUTHOR, coverPath, postPath, type BlogPost } from '@/content/blog/posts';
+import { BLOG_AUTHOR } from '@/content/blog/posts';
 import { SITE_CONFIG, toAbsoluteUrl } from './metadata';
 
 /**
@@ -208,18 +208,28 @@ export function generateFAQSchema(faqs: FAQItem[]): WithContext<FAQPage> {
   };
 }
 
-export function generateBlogPostingSchema(post: BlogPost): WithContext<BlogPosting> {
+/** A blog post or a local guide, by the Where2Meet team. Paths are site-relative. */
+export interface Article {
+  title: string;
+  description: string;
+  path: string;
+  coverPath: string;
+  publishedAt: string;
+  updatedAt: string;
+}
+
+export function generateBlogPostingSchema(article: Article): WithContext<BlogPosting> {
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
-    headline: post.title,
-    description: post.description,
-    image: toAbsoluteUrl(coverPath(post.slug)),
-    datePublished: post.publishedAt,
-    dateModified: post.updatedAt,
+    headline: article.title,
+    description: article.description,
+    image: toAbsoluteUrl(article.coverPath),
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt,
     author: { '@type': 'Organization', name: BLOG_AUTHOR, url: SITE_CONFIG.url },
     publisher: { '@id': `${SITE_CONFIG.url}/#organization` },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': toAbsoluteUrl(postPath(post.slug)) },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': toAbsoluteUrl(article.path) },
   };
 }
 
