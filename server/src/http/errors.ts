@@ -5,6 +5,8 @@ import { AppError, type ErrorCode } from "../errors.js";
 const statusByCode: Record<ErrorCode, number> = {
   VALIDATION_ERROR: 400,
   UNAUTHORIZED: 401,
+  EMAIL_EXISTS: 409,
+  INVALID_CREDENTIALS: 401,
   FORBIDDEN: 403,
   EVENT_NOT_FOUND: 404,
   PARTICIPANT_NOT_FOUND: 404,

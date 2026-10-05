@@ -1,8 +1,9 @@
-import type { FastifyInstance, HTTPMethods } from "fastify";
+import type { FastifyInstance, FastifyRequest, HTTPMethods } from "fastify";
 import type {
   Meetings,
   MeetingSnapshot,
   ParticipantLocationEdit,
+  AccountClaim,
 } from "../modules/meetings/index.js";
 import type { Accounts, AccountProfile } from "../modules/accounts/index.js";
 import { AppError } from "../errors.js";
@@ -22,6 +23,13 @@ import {
   meResponse,
   votesResponse,
   sessionResponse,
+  userResponse,
+  registerBody,
+  loginBody,
+  profileBody,
+  claimBody,
+  claimResponse,
+  accountEventsResponse,
 } from "./schemas.js";
 
 function eventWire(meeting: MeetingSnapshot) {
@@ -44,7 +52,22 @@ function userWire(user: AccountProfile) {
   };
 }
 
-export function registerRoutes(app: FastifyInstance, meetings: Meetings, accounts: Accounts): void {
+function requiredSessionCookie(request: FastifyRequest): string {
+  const credential = request.cookies.session_token;
+  if (!credential) throw new AppError("UNAUTHORIZED", "Session required");
+  return credential;
+}
+
+function claimWire(claim: AccountClaim) {
+  return { ...claim, createdAt: claim.createdAt.toISOString() };
+}
+
+export function registerRoutes(
+  app: FastifyInstance,
+  meetings: Meetings,
+  accounts: Accounts,
+  secureCookies: boolean
+): void {
   app.post("/api/events", async (request, reply) => {
     const body = createEventBody.parse(request.body);
     const result = await meetings.create({
@@ -150,20 +173,78 @@ export function registerRoutes(app: FastifyInstance, meetings: Meetings, account
     return response(votesResponse, await meetings.votes(id));
   });
   app.get("/api/auth/session", async (request) => {
-    const credential = request.cookies.session_token;
-    if (!credential) throw new AppError("UNAUTHORIZED", "Session required");
-    const session = await accounts.session(credential);
+    const session = await accounts.session(requiredSessionCookie(request));
     return response(sessionResponse, { user: userWire(session.user) });
+  });
+  const cookieOptions = {
+    httpOnly: true,
+    secure: secureCookies,
+    sameSite: "lax",
+    path: "/",
+  } as const;
+  app.post("/api/auth/register", async (request, reply) => {
+    const session = await accounts.register(registerBody.parse(request.body));
+    reply.setCookie("session_token", session.credential, {
+      ...cookieOptions,
+      maxAge: session.lifetimeSeconds,
+    });
+    return reply.code(201).send(response(sessionResponse, { user: userWire(session.user) }));
+  });
+  app.post("/api/auth/login", async (request, reply) => {
+    const session = await accounts.login(loginBody.parse(request.body));
+    reply.setCookie("session_token", session.credential, {
+      ...cookieOptions,
+      maxAge: session.lifetimeSeconds,
+    });
+    return response(sessionResponse, { user: userWire(session.user) });
+  });
+  app.post("/api/auth/logout", async (request, reply) => {
+    await accounts.logout(request.cookies.session_token);
+    reply.setCookie("session_token", "", { ...cookieOptions, maxAge: 0 });
+    return { success: true };
+  });
+  app.get("/api/users/me", async (request) => {
+    const { user } = await accounts.session(requiredSessionCookie(request));
+    return response(userResponse, userWire(user));
+  });
+  app.patch("/api/users/me", async (request) => {
+    const { user } = await accounts.session(requiredSessionCookie(request));
+    const updated = await accounts.updateProfile({
+      userId: user.id,
+      patch: profileBody.parse(request.body),
+    });
+    return response(userResponse, userWire(updated));
+  });
+  app.get("/api/users/me/events", async (request) => {
+    const { user } = await accounts.session(requiredSessionCookie(request));
+    const events = await meetings.listForAccount(user.id);
+    return response(accountEventsResponse, {
+      events: events.map((claim) => ({
+        ...claim,
+        createdAt: claim.createdAt.toISOString(),
+        event: {
+          ...claim.event,
+          meetingTime: claim.event.meetingTime?.toISOString() ?? null,
+          publishedAt: claim.event.publishedAt?.toISOString() ?? null,
+          createdAt: claim.event.createdAt.toISOString(),
+        },
+      })),
+    });
+  });
+  app.post("/api/users/me/events/claim", async (request, reply) => {
+    const { user } = await accounts.session(requiredSessionCookie(request));
+    const body = claimBody.parse(request.body);
+    const claim = await meetings.claim({
+      userId: user.id,
+      eventId: body.eventId,
+      credential: body.participantToken,
+    });
+    return reply
+      .code(201)
+      .send(response(claimResponse, { success: true, userEvent: claimWire(claim) }));
   });
 
   const unavailable: [HTTPMethods, string][] = [
-    ["POST", "/api/auth/register"],
-    ["POST", "/api/auth/login"],
-    ["POST", "/api/auth/logout"],
-    ["GET", "/api/users/me"],
-    ["PATCH", "/api/users/me"],
-    ["GET", "/api/users/me/events"],
-    ["POST", "/api/users/me/events/claim"],
     ["GET", "/api/events/:id/mec"],
     ["POST", "/api/events/:id/publish"],
     ["DELETE", "/api/events/:id/publish"],

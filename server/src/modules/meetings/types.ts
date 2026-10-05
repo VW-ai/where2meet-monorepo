@@ -48,7 +48,24 @@ export interface Access {
   credential: string;
 }
 
+export interface AccountClaim {
+  id: string;
+  eventId: string;
+  participantId: string | null;
+  role: "organizer" | "participant";
+  createdAt: Date;
+}
+
+export interface AccountMeeting extends Omit<AccountClaim, "eventId"> {
+  event: Pick<MeetingSnapshot, "id" | "title" | "meetingTime" | "publishedAt" | "createdAt"> & {
+    participantCount: number;
+    participants: Pick<ParticipantSnapshot, "id" | "name" | "color" | "isOrganizer">[];
+  };
+}
+
 export interface Meetings {
+  claim(input: Access & { userId: string }): Promise<AccountClaim>;
+  listForAccount(userId: string): Promise<AccountMeeting[]>;
   create(input: { title: string; meetingTime: Date | null }): Promise<{
     meeting: MeetingSnapshot;
     participantToken: string;

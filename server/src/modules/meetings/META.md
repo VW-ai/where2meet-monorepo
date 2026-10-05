@@ -12,4 +12,6 @@ Public participant snapshots hide addresses when fuzzy mode is enabled. Self ide
 
 Participant removal cascades votes and nulls the participant link in UserEvent. It publishes a removal notice and then a current vote snapshot. Notifications remain best effort and do not guarantee ordering across concurrent mutations. Existing HTTP vote reads remain authoritative. Already-open SSE streams remain connected until their normal timeout after a participant is removed; new requests and reconnections reject the deleted credential. Every broadcast contains only public projections.
 
-Vote writes, publishing, and account claims remain unavailable.
+Account claims verify the event and participant credential within a Serializable transaction, then derive role from the participant. Repeating a claim preserves its ID and creation time. A different valid token rebinds the same account-event link. A participant cannot be claimed by two accounts. Published events may be claimed. Claims leave participant credentials intact and emit no notice.
+
+Dashboard reads return narrow summaries scoped to the authenticated account. They retain links whose participant was deleted and omit addresses, coordinates and credentials. Account sessions never replace participant authentication for meeting operations or streams. Vote writes and publishing remain unavailable.
