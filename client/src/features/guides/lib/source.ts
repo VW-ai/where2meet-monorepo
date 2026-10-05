@@ -1,7 +1,14 @@
 import 'server-only';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { GUIDES_TAG, findPage, type Catalog, type GuidesPage } from './catalog';
+import {
+  GUIDES_TAG,
+  findPage,
+  listPages,
+  pageSegments,
+  type Catalog,
+  type GuidesPage,
+} from './catalog';
 import { parsePublished } from './parse';
 
 const PUBLISHED_PATH = '/api/control/where2meet/published';
@@ -44,6 +51,13 @@ export async function loadCatalog(): Promise<Catalog> {
 
 export async function loadPage(segments: readonly string[]): Promise<GuidesPage | null> {
   return findPage(await loadCatalog(), segments);
+}
+
+/** The segments of each published page `depth` levels below /where-to-meet. */
+export async function segmentsAtDepth(depth: 1 | 2 | 3): Promise<string[][]> {
+  return listPages(await loadCatalog())
+    .map(pageSegments)
+    .filter((segments) => segments.length === depth);
 }
 
 function toCatalog(raw: unknown): Catalog {

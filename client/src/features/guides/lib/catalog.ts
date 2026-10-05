@@ -48,10 +48,12 @@ export interface Catalog {
   cities: readonly City[];
 }
 
-/** A page below the index. A null `town` means the page covers the whole city. */
-export type GuidesPage =
-  | { kind: 'hub'; city: City; town: Area | null }
-  | { kind: 'guide'; city: City; town: Area | null; guide: Guide };
+/** A city's or a town's page. A null `town` means the page covers the whole city. */
+export type HubPage = { kind: 'hub'; city: City; town: Area | null };
+/** One occasion's guide in a city or a town. */
+export type GuidePage = { kind: 'guide'; city: City; town: Area | null; guide: Guide };
+/** A page below the index. */
+export type GuidesPage = HubPage | GuidePage;
 
 export interface Crumb {
   name: string;
@@ -106,13 +108,13 @@ export function pageEntry(page: GuidesPage): Guide | Area {
 }
 
 /** The hub a guide belongs to, or the hub itself. */
-export function hubOf(page: GuidesPage): GuidesPage {
+export function hubOf(page: GuidesPage): HubPage {
   return { kind: 'hub', city: page.city, town: page.town };
 }
 
 /** From the guides index down to `page`, inclusive. */
 export function pageTrail(page: GuidesPage): Crumb[] {
-  const cityHub: GuidesPage = { kind: 'hub', city: page.city, town: null };
+  const cityHub: HubPage = { kind: 'hub', city: page.city, town: null };
   return [
     { name: 'Where to meet', path: GUIDES_PATH },
     { name: page.city.name, path: pagePath(cityHub) },
