@@ -8,10 +8,47 @@ import signal
 import socket
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
 import control
+
+
+class SourceSnapshotTest(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.checkout = self.root / "checkout"
+        self.client = self.checkout / "client"
+        (self.client / "src").mkdir(parents=True)
+        self.source = self.client / "src" / "page.tsx"
+        self.source.write_text("export const title = 'Meeting';\n")
+
+    def test_typescript_build_metadata_does_not_change_source_fingerprint(self):
+        original = control.fingerprint(self.checkout, ("client",))
+        for name in ("tsconfig.tsbuildinfo", "src/compiled.tsbuildinfo"):
+            with self.subTest(cache=name):
+                cache = self.client / name
+                cache.write_text('{"version":"first build"}')
+                self.assertEqual(control.fingerprint(self.checkout, ("client",)), original)
+                cache.write_text('{"version":"rebuilt"}')
+                self.assertEqual(control.fingerprint(self.checkout, ("client",)), original)
+        self.source.write_text("export const title = 'Changed meeting';\n")
+        self.assertNotEqual(control.fingerprint(self.checkout, ("client",)), original)
+
+    def test_source_copy_omits_incremental_metadata_but_keeps_source(self):
+        for name in ("tsconfig.tsbuildinfo", "src/compiled.tsbuildinfo"):
+            (self.client / name).write_text("generated incremental state")
+        source_with_similar_name = self.client / "src" / "cache.tsbuildinfo.ts"
+        source_with_similar_name.write_text("export const metadata = true;\n")
+        snapshot = self.root / "snapshot"
+        shutil.copytree(self.checkout, snapshot, ignore=control.ignore)
+        self.assertEqual(list(snapshot.rglob("*.tsbuildinfo")), [])
+        self.assertEqual((snapshot / "client/src/page.tsx").read_text(), self.source.read_text())
+        self.assertEqual((snapshot / "client/src/cache.tsbuildinfo.ts").read_text(), source_with_similar_name.read_text())
+        self.assertEqual(control.fingerprint(snapshot, ("client",)), control.fingerprint(self.checkout, ("client",)))
 
 
 @unittest.skipUnless(shutil.which(control.LISTENER_TOOL), "Listener inspection tool is unavailable")

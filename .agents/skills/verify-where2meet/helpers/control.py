@@ -121,12 +121,16 @@ def wait_for(check, label, timeout=120):
     raise RuntimeError(f"Timed out waiting for {label}")
 
 
+def excluded(name):
+    return name in EXCLUDED or name.startswith(".env") or name.endswith(".tsbuildinfo")
+
+
 def fingerprint(root, packages=("client", "server")):
     result = hashlib.sha256()
     for package in packages:
         for path in sorted((root / package).rglob("*")):
             relative = path.relative_to(root)
-            if any(part in EXCLUDED or part.startswith(".env") for part in relative.parts):
+            if any(excluded(part) for part in relative.parts):
                 continue
             if path.is_file():
                 result.update(str(relative).encode())
@@ -135,7 +139,7 @@ def fingerprint(root, packages=("client", "server")):
 
 
 def ignore(_directory, names):
-    return [name for name in names if name in EXCLUDED or name.startswith(".env")]
+    return [name for name in names if excluded(name)]
 
 
 def load(run):
