@@ -55,7 +55,16 @@ describe('the example', () => {
     expect(summarizeDay(DAYS.sunday)).toEqual({ minutes: [35, 22, 18], longest: 35, spread: 17 });
   });
 
-  it('makes Ana wait up to one gap between trains', () => {
+  it('reads out each day', () => {
+    expect(describeDay(DAYS.tuesday)).toBe(
+      'Tuesday: the train comes every 8 minutes, and the parking near the food hall is open. Ana 20 minutes by train (walk 3, wait 8, ride 9), Ben 15 minutes by car (drive 12, parking 3), Cy 18 minutes by bike. Longest trip 20 minutes, spread 5 minutes.'
+    );
+    expect(describeDay(DAYS.sunday)).toBe(
+      'Sunday: the train comes every 20 minutes and stops at every station, and the parking near the food hall is full. Ana 35 minutes by train (walk 3, wait 20, ride 12), Ben 22 minutes by car (drive 12, parking 10), Cy 18 minutes by bike. Longest trip 35 minutes, spread 17 minutes.'
+    );
+  });
+
+  it("sets Ana's wait to the gap between trains on both days", () => {
     for (const day of Object.values(DAYS)) {
       const wait = day.trips.ana.find(({ kind }) => kind === 'wait');
       expect(wait?.minutes).toBe(day.trainEvery);

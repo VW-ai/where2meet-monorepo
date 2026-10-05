@@ -2,6 +2,7 @@
 
 import { Bike, CarFront, TrainFront, Utensils, type IconNode } from 'lucide';
 import { COUNT_DELAY_MS, COUNT_MS, OUT, useCountTo, useExplainer } from './explainer-motion';
+import { PEOPLE } from './explainer-model';
 import {
   ExampleLabel,
   ExplainerFigure,
@@ -10,7 +11,6 @@ import {
   PersonPin,
   PinIcon,
   Rail,
-  Ring,
   Route,
   SegmentedToggle,
   StatChips,
@@ -21,8 +21,12 @@ import {
 } from './explainer-ui';
 import {
   DAYS,
+  FOOD_HALL,
   FRIENDS,
   LEGS,
+  PARKING,
+  RAIL_Y,
+  STOPS,
   describeDay,
   summarizeDay,
   type DayId,
@@ -34,30 +38,23 @@ import {
  * out the train's departures, fills the parking and tweens each trip's parts.
  */
 
+const INITIAL: DayId = 'tuesday';
 const toOption = (id: DayId) => ({ id, label: DAYS[id].label, badge: DAYS[id].label.slice(0, 2) });
 const OPTIONS = [toOption('tuesday'), toOption('sunday')] as const;
 /** One scale for both days, so the bars compare across the switch. */
 const SCALE_MINUTES = 40;
-const LABEL_SIDE: Record<FriendId, 1 | -1> = { ana: -1, ben: 1, cy: -1 };
+const LABEL_SIDE: Record<FriendId, 1 | -1> = { ana: -1, ben: -1, cy: -1 };
 const MODE_ICON: Record<(typeof FRIENDS)[number]['mode'], IconNode> = {
   train: TrainFront,
   car: CarFront,
   bike: Bike,
 };
 
-const FOOD_HALL = { x: 300, y: 110 };
-const PARKING = { x: 255, y: 65 };
-const RAIL_Y = 132.5;
-/** Ana's stop, the two the express skips, and the food hall's stop. */
-const STOPS = [75, 150, 225, 300];
-
 /** The timetable strip: an hour of departures from Ana's stop. */
 const WINDOW_MINUTES = 60;
 const TRACK = { x: 27, y: 186, width: 126 };
-const MINUTE_WIDTH = TRACK.width / WINDOW_MINUTES;
 const DEPARTURES =
   Math.floor(WINDOW_MINUTES / Math.min(...Object.values(DAYS).map((d) => d.trainEvery))) + 1;
-const [ANA] = FRIENDS;
 
 /** The numbers that count up together: each friend's minutes, then these. */
 const LONGEST = FRIENDS.length;
@@ -74,7 +71,7 @@ const COUNTS: Record<DayId, readonly number[]> = {
   sunday: counts('sunday'),
 };
 /** The intro grows the trips from zero, but the timetable keeps its label. */
-const ARMED = COUNTS.tuesday.map((n, i) => (i === TRAIN_EVERY ? n : 0));
+const ARMED = COUNTS[INITIAL].map((n, i) => (i === TRAIN_EVERY ? n : 0));
 
 const css = `
   .wkt-departure {
@@ -100,7 +97,7 @@ const css = `
 `;
 
 export function WeekendTravel() {
-  const { figureRef, selected, select, armed, plays } = useExplainer<DayId>('tuesday');
+  const { figureRef, selected, select, armed } = useExplainer(INITIAL);
   const day = DAYS[selected];
   const target = armed ? ARMED : COUNTS[selected];
   const counted = useCountTo(target, !armed);
@@ -131,18 +128,15 @@ export function WeekendTravel() {
           <Route key={friend.id} d={friend.route} color={friend.color} i={i} on />
         ))}
 
-        {STOPS.map((x, i) => {
-          const skippable = i > 0 && i < STOPS.length - 1;
-          return (
-            <g
-              key={x}
-              className={skippable ? 'wkt-stop' : undefined}
-              data-on={(skippable && day.allStops) || undefined}
-            >
-              <Station at={{ x, y: RAIL_Y }} />
-            </g>
-          );
-        })}
+        {STOPS.map(({ x, express }) => (
+          <g
+            key={x}
+            className={express ? undefined : 'wkt-stop'}
+            data-on={(!express && day.allStops) || undefined}
+          >
+            <Station at={{ x, y: RAIL_Y }} />
+          </g>
+        ))}
 
         <g filter="url(#explainer-shadow)">
           <rect
@@ -188,7 +182,6 @@ export function WeekendTravel() {
         <VenuePin at={FOOD_HALL} on>
           <PinIcon at={FOOD_HALL} icon={Utensils} />
         </VenuePin>
-        {plays > 0 && !armed && <Ring key={plays} at={FOOD_HALL} />}
 
         {FRIENDS.map((friend) => (
           <PersonPin
@@ -206,11 +199,11 @@ export function WeekendTravel() {
           icon={TrainFront}
           at={{ x: 23, y: 158.5 }}
           scale={0.5}
-          color={ANA.ink}
+          color={PEOPLE.ana.ink}
           strokeWidth={2.4}
         />
         <text x="40" y="169.5" fontSize="11.5" fontWeight="700" fill="#21252b">
-          Trains every <tspan fill={ANA.ink}>{Math.round(counted[TRAIN_EVERY])} min</tspan>
+          Trains every <tspan fill={PEOPLE.ana.ink}>{Math.round(counted[TRAIN_EVERY])} min</tspan>
         </text>
         <line
           x1={TRACK.x}
@@ -234,11 +227,11 @@ export function WeekendTravel() {
                 cx={TRACK.x}
                 cy={TRACK.y}
                 r="3.75"
-                fill={ANA.color}
+                fill={PEOPLE.ana.color}
                 stroke="#fff"
                 strokeWidth="1.5"
                 style={{
-                  transform: `translateX(${armed ? 0 : minute * MINUTE_WIDTH}px)`,
+                  transform: `translateX(${armed ? 0 : (minute * TRACK.width) / WINDOW_MINUTES}px)`,
                   opacity: !armed && minute <= WINDOW_MINUTES ? 1 : 0,
                 }}
               />

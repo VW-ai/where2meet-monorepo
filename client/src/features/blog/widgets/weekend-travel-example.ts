@@ -1,4 +1,4 @@
-import { PEOPLE, tripStats } from './explainer-model';
+import { PEOPLE, tripStats, type Point } from './explainer-model';
 
 /**
  * The made-up example behind the weekend travel widget: three friends heading
@@ -16,17 +16,52 @@ export const LEGS = {
   bike: { label: 'bike', waiting: false },
 } as const;
 
-export type LegKind = keyof typeof LEGS;
-
-export interface Leg {
-  kind: LegKind;
+interface Leg {
+  kind: keyof typeof LEGS;
   minutes: number;
 }
 
+export const FOOD_HALL: Point = { x: 300, y: 110 };
+/** The lot Ben drives to, a block from the food hall. */
+export const PARKING: Point = { x: 255, y: 65 };
+export const RAIL_Y = 132.5;
+
+const ANA_HOME: Point = { x: 75, y: 75 };
+const BEN_HOME: Point = { x: 120, y: 20 };
+const CY_HOME: Point = { x: 345, y: 200 };
+
+/** Stations west to east. The express calls only at Ana's stop and the food hall's. */
+export const STOPS = [
+  { x: ANA_HOME.x, express: true },
+  { x: 150, express: false },
+  { x: 225, express: false },
+  { x: FOOD_HALL.x, express: true },
+] as const;
+
+/** An SVG path through `points`, in order. */
+function route(...points: readonly Point[]) {
+  return points.map(({ x, y }, i) => `${i === 0 ? 'M' : 'L'}${x} ${y}`).join(' ');
+}
+
 export const FRIENDS = [
-  { ...PEOPLE.ana, mode: 'train', at: { x: 75, y: 75 }, route: 'M75 75 V132.5 H300 V110' },
-  { ...PEOPLE.ben, mode: 'car', at: { x: 30, y: 20 }, route: 'M30 20 H210 V65 H255' },
-  { ...PEOPLE.cy, mode: 'bike', at: { x: 345, y: 200 }, route: 'M345 200 V110 H300' },
+  {
+    ...PEOPLE.ana,
+    mode: 'train',
+    at: ANA_HOME,
+    route: route(ANA_HOME, { x: ANA_HOME.x, y: RAIL_Y }, { x: FOOD_HALL.x, y: RAIL_Y }, FOOD_HALL),
+  },
+  {
+    ...PEOPLE.ben,
+    mode: 'car',
+    at: BEN_HOME,
+    route: route(BEN_HOME, { x: 210, y: BEN_HOME.y }, { x: 210, y: PARKING.y }, PARKING),
+  },
+  {
+    ...PEOPLE.cy,
+    mode: 'bike',
+    at: CY_HOME,
+    route: route(CY_HOME, { x: CY_HOME.x, y: FOOD_HALL.y }, FOOD_HALL),
+  },
 ] as const;
 
 export type FriendId = (typeof FRIENDS)[number]['id'];
