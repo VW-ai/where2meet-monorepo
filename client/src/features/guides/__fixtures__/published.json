@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "generated_at": "2026-10-05T12:00:00Z",
+  "cities": [
+    {
+      "slug": "new-york",
+      "name": "New York",
+      "region": "NY",
+      "country": "US",
+      "center": { "lat": 40.7128, "lng": -74.006 },
+      "updated_at": "2026-10-05",
+      "seo": {
+        "title": "Where to meet in New York",
+        "description": "Sample guide: places in New York that work for groups, from team meetings to coffee catch-ups, plus how to get around by subway."
+      },
+      "intro": "*Sample copy for local development. The real intro comes from the control plane.*\n\nNew York is easy to reach and hard to agree on. A group spread across Brooklyn, Queens and Manhattan can spend longer choosing a place than getting there. These guides collect places that work for common plans, chosen so most people can arrive on one subway line.\n\nPick the kind of plan below, or start with a neighborhood.",
+      "transit_notes": "*Sample copy.* Most trips here are by **subway**. A place within a short walk of a station served by several lines, like Union Square or Times Square, is usually the most convenient pick for a mixed group.\n\n- Check weekend service changes before you send the plan.\n- Allow extra time for crossing between boroughs at rush hour.\n- Citi Bike docks are common near parks if anyone prefers to ride.",
+      "guides": [
+        {
+          "occasion": "team-meeting",
+          "updated_at": "2026-10-05",
+          "seo": {
+            "title": "Where to hold a team meeting in New York",
+            "description": "Sample guide: quiet, bookable places in Manhattan for a team meeting, near subway lines your whole team can reach."
+          },
+          "intro": "*Sample copy for local development.*\n\nA team that works from home most of the week still needs a place to sit together now and then. In Manhattan the hard part isn't finding a venue, it's finding one that's quiet enough to talk, takes a booking, and sits near a station everyone can reach without two transfers. The places below cover a free option, a public one and a bookable one.",
+          "tips": "*Sample copy.*\n\n## Before you book\n\n1. **List where everyone starts.** Someone coming from Jersey City has a different trip from someone in Astoria.\n2. **Compare travel times, not distance.** A spot two stops from a major hub often beats one that looks central on a map.\n3. **Book for the hour you'll meet.** A room that's empty at 10 a.m. may be full at lunch.\n\n## On the day\n\n- Send the address, the nearest station and the room name in one message.\n- Bring a charger. Outlets go fast in public spaces.\n- If the group is bigger than six, a bookable room is worth the cost because public tables rarely fit everyone together.\n\nWant to see each person's trip side by side? [Plan it on Where2Meet](https://www.where2meet.org/) and let the team vote.",
+          "places": [
+            {
+              "place_id": "ChIJqaiomQBZwokRTHOaUG7fUTs",
+              "label": "New York Public Library, Stephen A. Schwarzman Building",
+              "note": "Sample note. Reading rooms suit a quiet working session, and Grand Central and Bryant Park stations are a short walk away."
+            },
+            {
+              "place_id": "ChIJvbGg56pZwokRp_E3JbivnLQ",
+              "label": "Bryant Park",
+              "note": "Sample note. Movable tables and chairs work for an informal check-in on a mild day, with many subway lines close by."
+            },
+            {
+              "place_id": "ChIJix_4sahZwokRRjUrKamamvo",
+              "label": "Nomadworks on Broadway",
+              "note": "Sample note. A coworking space with bookable rooms when the meeting needs a screen, a door and a whiteboard."
+            }
+          ]
+        },
+        {
+          "occasion": "coffee-catch-up",
+          "updated_at": "2026-10-03",
+          "seo": {
+            "title": "Where to catch up over coffee in New York",
+            "description": "Sample guide: coffee shops around Union Square for a quick catch-up, close to subway lines from every borough."
+          },
+          "intro": "*Sample copy for local development.*\n\nA coffee catch-up should take an hour, not an afternoon of travel. Union Square sits on a handful of subway lines, so friends coming from Brooklyn, Queens and the Upper West Side can all get there on one train. These cafes are a few minutes' walk from the station.",
+          "tips": "*Sample copy.*\n\n- **Go early or late.** Midday is the busiest time around the square.\n- **Have a backup.** If the first cafe is full, the next one is a block away.\n- **Walk afterwards.** The farmers market runs on several days a week and makes a good second stop.\n\nIf you're unsure which spot is quickest for everyone, compare everyone's travel time first and pick the place where the longest trip is shortest.",
+          "places": [
+            {
+              "place_id": "ChIJ0_sftbdZwokR5js23m5CrOo",
+              "label": "Joe Coffee on Union Square West",
+              "note": "Sample note. Steps from the station, so it's an easy landmark when people arrive from different lines."
+            },
+            {
+              "place_id": "ChIJsQ9CzHgrkqUR7CzbnNwGVVM",
+              "label": "Blue Dove Coffee",
+              "note": "Sample note. Another option on the west side of the square if the first stop is too busy to find a table."
+            },
+            {
+              "place_id": "ChIJr2CoI4NZwokR-BNUPN6kodk",
+              "label": "Maman on University Place",
+              "note": "Sample note. A slightly quieter spot a few blocks south, good when the catch-up turns into a longer conversation."
+            }
+          ]
+        }
+      ],
+      "towns": [
+        {
+          "slug": "williamsburg",
+          "name": "Williamsburg",
+          "center": { "lat": 40.7081, "lng": -73.9571 },
+          "updated_at": "2026-10-04",
+          "seo": {
+            "title": "Where to meet in Williamsburg, Brooklyn",
+            "description": "Sample guide: places in Williamsburg for a date night or a weekend hangout, a short ride from Manhattan on the L train."
+          },
+          "intro": "*Sample copy for local development.*\n\nWilliamsburg is one stop from Manhattan on the L train and a short walk from the East River ferry. It's a convenient pick when half the group lives in Brooklyn and half across the river.",
+          "transit_notes": "*Sample copy.* The **L train** at Bedford Avenue is the main way in. The **NYC Ferry** stops at North Williamsburg and South Williamsburg. On weekends, check for L train service changes before you send the plan.",
+          "guides": [
+            {
+              "occasion": "date-night",
+              "updated_at": "2026-10-04",
+              "seo": {
+                "title": "Where to go on a date night in Williamsburg",
+                "description": "Sample guide: wine bars in Williamsburg for a date night, near the Bedford Avenue L stop and easy to reach from Manhattan."
+              },
+              "intro": "*Sample copy for local development.*\n\nA date shouldn't start with one person on a train for an hour. Williamsburg works when one of you is in Brooklyn and the other in Manhattan, because the L train makes the trip short for both. These wine bars are small, a little dim and good for talking.",
+              "tips": "*Sample copy.*\n\n- **Reserve if you can.** Small bars fill up after 8 p.m. on weekends.\n- **Plan the ride home.** Late-night L trains run less often, so check the last convenient train for both of you.\n- **Keep a second stop in mind.** A walk along the waterfront is an easy way to continue the evening.",
+              "places": [
+                {
+                  "place_id": "ChIJoxtvLl5ZwokR5EBEMshvmOE",
+                  "label": "Woodhul Wine Bar",
+                  "note": "Sample note. A small, relaxed bar where you can hear each other, a few minutes' walk from the Lorimer Street stop."
+                },
+                {
+                  "place_id": "ChIJESlLz15ZwokR4AeUXdaaWow",
+                  "label": "Pinkerton Wine Bar",
+                  "note": "Sample note. Candlelit and low-key, a good pick when you want somewhere quieter than the bars on Bedford Avenue."
+                },
+                {
+                  "place_id": "ChIJPygkVEZZwokRKQzWA9zRYcA",
+                  "label": "With Others",
+                  "note": "Sample note. Close to the Bedford Avenue station, which makes the trip home simple for whoever lives in Manhattan."
+                }
+              ]
+            },
+            {
+              "occasion": "weekend-hangout",
+              "updated_at": "2026-10-02",
+              "seo": {
+                "title": "Where to hang out on a weekend in Williamsburg",
+                "description": "Sample guide: parks and food markets in Williamsburg for a relaxed weekend with friends, close to the L train and the ferry."
+              },
+              "intro": "*Sample copy for local development.*\n\nA weekend hangout works best somewhere with space to spread out and food for every taste. Williamsburg has both along the waterfront, and the ferry makes it an easy trip from Manhattan and Queens.",
+              "tips": "*Sample copy.*\n\n1. **Pick a meeting point** inside the park, since the entrances are far apart.\n2. **Check the market schedule.** Outdoor food markets usually run on weekends from spring to fall.\n3. **Bring a blanket** if you plan to stay a while.",
+              "places": [
+                {
+                  "place_id": "ChIJX7hLk0FZwokRFhRcjtylakg",
+                  "label": "Domino Park",
+                  "note": "Sample note. A waterfront park with seating and views of the bridge, next to the South Williamsburg ferry stop."
+                },
+                {
+                  "place_id": "ChIJ9-C4sWdZwokRjDucHJ5DepI",
+                  "label": "Smorgasburg Williamsburg",
+                  "note": "Sample note. An outdoor food market with dozens of stalls, so everyone in the group finds something they like."
+                },
+                {
+                  "place_id": "ChIJM8G7s0RZwokRWzCUMjlxA0I",
+                  "label": "McCarren Park",
+                  "note": "Sample note. Big lawns and sports fields near the Nassau Avenue G stop, with plenty of room for a larger group."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "ann-arbor",
+      "name": "Ann Arbor",
+      "region": "MI",
+      "country": "US",
+      "center": { "lat": 42.2808, "lng": -83.743 },
+      "updated_at": "2026-10-05",
+      "seo": {
+        "title": "Where to meet in Ann Arbor",
+        "description": "Sample guide: places in Ann Arbor for group dinners and coffee catch-ups, with notes on parking, buses and walking downtown."
+      },
+      "intro": "*Sample copy for local development. The real intro comes from the control plane.*\n\nAnn Arbor is compact, but a group coming from campus, Ypsilanti and the suburbs still needs a plan. Downtown and Kerrytown are walkable and have the most choice, so most of these picks are there.",
+      "transit_notes": "*Sample copy.* Downtown is walkable from central campus. **TheRide** buses connect downtown with Ypsilanti and the north side.\n\n- Public parking structures are spread across downtown.\n- Bike lanes on Division Street and William Street make cycling easy in good weather.",
+      "guides": [
+        {
+          "occasion": "group-dinner",
+          "updated_at": "2026-10-05",
+          "seo": {
+            "title": "Where to have a group dinner in Ann Arbor",
+            "description": "Sample guide: restaurants in downtown Ann Arbor that take large group reservations, near parking and bus stops."
+          },
+          "intro": "*Sample copy for local development.*\n\nA group dinner needs a table for everyone, a menu that suits different diets and a place people can reach without circling for parking. These downtown restaurants take reservations for larger groups.",
+          "tips": "*Sample copy.*\n\n- **Book ahead on football weekends.** Downtown fills up fast on game days.\n- **Ask about set menus** for groups of eight or more.\n- **Share a parking plan.** Name the closest structure in the invite so nobody circles the block.",
+          "places": [
+            {
+              "place_id": "ChIJ0518hECuPIgRQOgqLkeI6fA",
+              "label": "Sava's on State Street",
+              "note": "Sample note. A large dining room close to campus, with space for bigger groups when you book ahead."
+            },
+            {
+              "place_id": "ChIJdbTeCJivPIgRGEAoi20RTXY",
+              "label": "Union Rec",
+              "note": "Sample note. Games and a long menu on Main Street, a good choice when the dinner turns into a night out."
+            },
+            {
+              "place_id": "ChIJJS7WFBSvPIgRuGiOLpT6mlk",
+              "label": "La Serre",
+              "note": "Sample note. A quieter spot in a converted house, better suited to a smaller group that wants to talk."
+            }
+          ]
+        },
+        {
+          "occasion": "coffee-catch-up",
+          "updated_at": "2026-10-01",
+          "seo": {
+            "title": "Where to catch up over coffee in Ann Arbor",
+            "description": "Sample guide: coffee shops in downtown Ann Arbor for a catch-up between classes or meetings, a short walk from campus."
+          },
+          "intro": "*Sample copy for local development.*\n\nDowntown Ann Arbor has a coffee shop on nearly every block, so the trick is picking one that's convenient for everyone. These are close to Main Street and a short walk from central campus.",
+          "tips": "*Sample copy.*\n\n- Weekday mornings are busy with students; mid-afternoon is calmer.\n- Most shops have Wi-Fi if the catch-up turns into a working session.",
+          "places": [
+            {
+              "place_id": "ChIJnYzDIo-vPIgRHldbPj2NrLc",
+              "label": "Jabal Coffee House",
+              "note": "Sample note. Between campus and Main Street, so it works when one person comes from class and one from downtown."
+            },
+            {
+              "place_id": "ChIJg-B_cQCvPIgRQvXQxZw5JcQ",
+              "label": "Moka & Co",
+              "note": "Sample note. On Main Street near several parking structures, handy for anyone driving in from out of town."
+            },
+            {
+              "place_id": "ChIJXfAF7CuvPIgRD5MtmvdRQTw",
+              "label": "Curious Coffee",
+              "note": "Sample note. On the north end of Main Street, an easy walk from Kerrytown if you want to browse afterwards."
+            }
+          ]
+        }
+      ],
+      "towns": [
+        {
+          "slug": "kerrytown",
+          "name": "Kerrytown",
+          "center": { "lat": 42.2869, "lng": -83.7466 },
+          "updated_at": "2026-10-03",
+          "seo": {
+            "title": "Where to meet in Kerrytown, Ann Arbor",
+            "description": "Sample guide: places in Kerrytown for a weekend hangout, from the farmers market to delis, a short walk from downtown."
+          },
+          "intro": "*Sample copy for local development.*\n\nKerrytown is Ann Arbor's market district, a few blocks north of downtown. On Saturdays it's the easiest place in town for a group to meet, eat and wander.",
+          "transit_notes": "*Sample copy.* Kerrytown is a ten-minute walk from Main Street. There's a parking structure on Ann Street, and several bus routes stop on Fifth Avenue.",
+          "guides": [
+            {
+              "occasion": "weekend-hangout",
+              "updated_at": "2026-10-03",
+              "seo": {
+                "title": "Where to hang out on a weekend in Kerrytown",
+                "description": "Sample guide: the farmers market, delis and shops in Kerrytown for a relaxed Saturday with friends or family."
+              },
+              "intro": "*Sample copy for local development.*\n\nSaturday mornings in Kerrytown mean the farmers market, a line at the deli and shops to browse. It's an easy plan for a group with mixed tastes, and everything is within a block or two.",
+              "tips": "*Sample copy.*\n\n- **Arrive early.** The market is busiest late in the morning.\n- **Split up, then regroup.** Pick one landmark to meet at after browsing.\n- **Bring cash** for some market stalls.",
+              "places": [
+                {
+                  "place_id": "ChIJ-a_wdBauPIgRwd8hiA1d29k",
+                  "label": "Ann Arbor Farmers Market",
+                  "note": "Sample note. Open-air stalls on Saturdays, and an easy landmark to meet at before the group heads elsewhere."
+                },
+                {
+                  "place_id": "ChIJLXbltRWuPIgReEcGh1sAHlA",
+                  "label": "Zingerman's Delicatessen",
+                  "note": "Sample note. A local institution for sandwiches, with outdoor seating when the weather allows a long lunch."
+                },
+                {
+                  "place_id": "ChIJuZezxBWuPIgRE_6-8Oyv7YI",
+                  "label": "Kerrytown Market & Shops",
+                  "note": "Sample note. Indoor shops and food counters, a good backup when the weather turns or the market is too crowded."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
