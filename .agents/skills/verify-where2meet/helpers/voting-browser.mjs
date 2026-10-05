@@ -170,6 +170,7 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
   let stage = 'observer setup';
   let stream;
   let anonymous;
+  let stranger;
   const root = `/api/events/${eventId}`;
   const participantIds = [organizerId, guestId];
   const observeError = error => errors.push(scrubPlacesError(error.message));
@@ -213,7 +214,9 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
     const label = published ? 'Voting disabled after publish' : mine ? 'Remove vote' : 'Vote for venue';
     const button = card(active, published).getByRole('button', { name: label, exact: true });
     await button.waitFor();
-    await poll(async () => Number(await button.innerText()) === voters.length && await button.getAttribute('aria-busy') === 'false', 'Visible card count did not settle');
+    await poll(async () => Number(await button.innerText()) === voters.length &&
+      await button.getAttribute('aria-busy') === 'false' && await button.getAttribute('aria-pressed') === String(mine) &&
+      await button.isDisabled() === published, 'Visible card vote state did not settle');
     assert.equal(await button.getAttribute('aria-pressed'), String(mine));
     assert.equal(await button.isDisabled(), published);
   };
@@ -328,11 +331,16 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
     await capture('voting-01-empty-guest', guest);
     stage = 'empty guest shortlist survives reload';
     await adapter.settleRequests();
-    await guest.reload({ waitUntil: 'domcontentloaded' });
+    const [emptyReloadResponse] = await Promise.all([
+      responseFor(guest, `${root}/votes`, 'GET'), guest.reload({ waitUntil: 'domcontentloaded' }),
+    ]);
+    assert.equal(emptyReloadResponse.status(), 200);
+    const emptyReloadVotes = assertVoteRead(await emptyReloadResponse.json(), { venue, voters: [] });
+    assert.equal(await emptyReloadResponse.finished(), null);
     await liked(guest);
     await guest.getByText('No liked venues yet', { exact: true }).waitFor();
     assert.equal(await card(guest).count(), 0);
-    observations.push({ label: stage, guest_empty: true, reload_used: true });
+    observations.push({ label: stage, guest_empty: true, reload_used: true, browser_votes: emptyReloadVotes });
     await save();
     await page.getByRole('button', { name: /^Collapse liked venues filter/ }).click();
     await card(page).click();
@@ -382,29 +390,34 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
 
     stage = 'published reload and anonymous join lock';
     await adapter.settleRequests();
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await guest.reload({ waitUntil: 'domcontentloaded' });
     for (const active of [page, guest]) {
+      const [votesResponse] = await Promise.all([
+        responseFor(active, `${root}/votes`, 'GET'), active.reload({ waitUntil: 'domcontentloaded' }),
+      ]);
+      assert.equal(votesResponse.status(), 200);
+      assertVoteRead(await votesResponse.json(), { venue, voters: [] });
+      assert.equal(await votesResponse.finished(), null);
       await active.getByText('No venues were voted for in this event', { exact: true }).waitFor();
       assert(await active.getByRole('button', { name: /^Collapse liked venues filter/ }).isDisabled());
     }
     assert.deepEqual(await adapter.read(root), { status: 200, body: published });
     anonymous = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
     await adapter.guardContext(anonymous);
-    const stranger = await anonymous.newPage();
+    stranger = await anonymous.newPage();
     stranger.setDefaultTimeout(45000);
     stranger.on('pageerror', observeError);
     stranger.on('response', observeResponse);
     await stranger.goto(`${run.client_url}/meet/${eventId}?view=participant`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    await stranger.getByRole('heading', { name: 'Event Published', exact: true }).waitFor();
     await stranger.getByRole('button', { name: 'Join Event', exact: true }).waitFor();
     assert(await stranger.getByRole('button', { name: 'Join Event', exact: true }).isDisabled());
-    await stranger.getByText('Event Published', { exact: true }).waitFor();
     observations.push({ label: stage, organizer_and_guest_persisted: true, anonymous_join_disabled: true,
       database: await storedState([], venue.id, published.publishedAt) });
     await capture('voting-03-anonymous-published', stranger);
     await adapter.settleRequests();
     await anonymous.close();
     anonymous = null;
+    stranger = null;
     await save();
 
     stage = 'reopening restores the live observer';
@@ -508,7 +521,9 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
       'historical import', 'production frontend serving'] };
   } catch (error) {
     observations.push({ label: 'failure', stage, error: scrubPlacesError(error) });
-    try { await capture('voting-failure', page); await capture('voting-guest-failure', guest); } catch {}
+    for (const [name, active] of [['voting-failure', page], ['voting-guest-failure', guest], ['voting-anonymous-failure', stranger]]) {
+      if (active) try { await capture(name, active); } catch {}
+    }
     throw error;
   } finally {
     for (const active of [page, guest]) {

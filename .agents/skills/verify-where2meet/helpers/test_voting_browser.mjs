@@ -412,7 +412,7 @@ test('database publication time preserves UTC milliseconds in a non-UTC verifier
     publication: '2026-10-05T20:01:03.876Z', publication_ms: 1791230463876 });
 });
 
-test('voting failures preserve labeled evidence and redact credentials even when teardown also fails', async t => {
+test('voting failures preserve each capture and redact credentials when another capture and teardown fail', async t => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'voting-failure-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const registered = new Set();
@@ -423,7 +423,7 @@ test('voting failures preserve labeled evidence and redact credentials even when
   let attempts = 0;
   await assert.rejects(runVotingScenario({ page, guest, browser: {}, run: { backend_url: backend, client_url: client },
     eventId, organizerId, guestId, venue: observedVenue(), evidence: directory,
-    async capture(name) { captures.push(name); }, action() {}, adapter: {
+    async capture(name) { captures.push(name); if (name === 'voting-failure') throw new Error('Fixture capture failed'); }, action() {}, adapter: {
       async settleRequests() { attempts++; throw new Error('Fixture failed Ai' + 'zaFixtureSecret ' + secret); },
     } }), /Fixture failed/);
   const raw = await readFile(path.join(directory, 'voting-state.json'), 'utf8');
