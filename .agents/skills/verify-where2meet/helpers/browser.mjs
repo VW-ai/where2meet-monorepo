@@ -29,7 +29,7 @@ const context = await browser.newContext({ viewport: { width: 1440, height: 1000
 const ppe = isPpe ? await createPpeDriver(runDir, run, context, { phase: cleanupOnly ? 'cleanup' : 'verification' }) : null;
 const page = await context.newPage();
 page.setDefaultTimeout(45000);
-await page.addLocatorHandler(page.getByText('Skip tutorial', { exact: true }), async () => {
+if (scenario !== 'places-routes' || cleanupOnly) await page.addLocatorHandler(page.getByText('Skip tutorial', { exact: true }), async () => {
   await page.getByText('Skip tutorial', { exact: true }).click();
   action('Dismiss visible tutorial using Skip tutorial');
 });
@@ -130,6 +130,12 @@ try {
   assert.match(eventId, /^evt_[A-Za-z0-9_]+$/);
   await page.getByRole('button', { name: 'Settings', exact: true }).waitFor();
   await page.locator('.cat-portal').waitFor({ state: 'detached' });
+  if (scenario === 'places-routes') {
+    const skip = page.getByText('Skip tutorial', { exact: true });
+    await skip.click();
+    await skip.waitFor({ state: 'hidden' });
+    action('Dismiss the first organizer tutorial before any address entry');
+  }
   await dismissTutorial();
   if (ppe) await ppe.saveSession();
   await page.getByRole('button', { name: 'Settings', exact: true }).click({ trial: true });
