@@ -113,6 +113,75 @@ export const userResponse = z
   .strict();
 export const sessionResponse = z.object({ user: userResponse }).strict();
 
+export const registerBody = z.object({
+  email: z
+    .email()
+    .max(255)
+    .transform((email) => email.toLowerCase().trim()),
+  password: z.string().min(8),
+  name: z.string().max(255).optional(),
+});
+export const loginBody = z.object({
+  email: z.email().transform((email) => email.toLowerCase().trim()),
+  password: z.string().min(1),
+});
+export const profileBody = z
+  .object({
+    name: z.string().max(255).nullable().optional(),
+    avatarUrl: z.url().max(512).nullable().optional(),
+    defaultAddress: z.string().nullable().optional(),
+    defaultPlaceId: z.string().max(255).nullable().optional(),
+    defaultFuzzyLocation: z.boolean().optional(),
+  })
+  .refine(
+    (value) =>
+      value.name !== undefined ||
+      value.avatarUrl !== undefined ||
+      value.defaultAddress !== undefined ||
+      value.defaultPlaceId !== undefined ||
+      value.defaultFuzzyLocation !== undefined,
+    "At least one field must be provided"
+  );
+export const claimBody = z.object({
+  eventId: eventParams.shape.id,
+  participantToken: z.string().regex(/^pt_[0-9a-f]{64}$/),
+});
+const accountClaim = z
+  .object({
+    id: z.string(),
+    role: z.enum(["organizer", "participant"]),
+    participantId: z.uuid().nullable(),
+    createdAt: z.iso.datetime(),
+  })
+  .strict();
+export const claimResponse = z
+  .object({
+    success: z.literal(true),
+    userEvent: accountClaim.extend({ eventId: z.string() }),
+  })
+  .strict();
+export const accountEventsResponse = z
+  .object({
+    events: z.array(
+      accountClaim.extend({
+        event: z
+          .object({
+            id: z.string(),
+            title: z.string(),
+            meetingTime: z.iso.datetime().nullable(),
+            publishedAt: z.iso.datetime().nullable(),
+            createdAt: z.iso.datetime(),
+            participantCount: z.number().int().nonnegative(),
+            participants: z.array(
+              participantResponse.pick({ id: true, name: true, color: true, isOrganizer: true })
+            ),
+          })
+          .strict(),
+      })
+    ),
+  })
+  .strict();
+
 export function response<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (!result.success) throw new Error("Response contract violation");

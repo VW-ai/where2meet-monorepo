@@ -1,5 +1,11 @@
-import type { Event, Participant, Prisma, PrismaClient } from "@prisma/client";
-import { randomUUID } from "node:crypto";
+import {
+  Prisma,
+  type Event,
+  type Participant,
+  type UserEvent,
+  type PrismaClient,
+} from "@prisma/client";
+import { randomBytes, randomUUID } from "node:crypto";
 import { AppError } from "../../errors.js";
 import { hashToken, newEventId, newParticipantCredential } from "../../runtime/credentials.js";
 import { writeTransaction } from "../../runtime/database.js";
@@ -13,7 +19,20 @@ import type {
   ParticipantSnapshot,
   NewParticipant,
   VoteSnapshot,
+  AccountClaim,
 } from "./types.js";
+
+function accountClaim(row: UserEvent): AccountClaim {
+  if (row.role !== "organizer" && row.role !== "participant")
+    throw new Error("Invalid stored account claim role");
+  return {
+    id: row.id,
+    eventId: row.eventId,
+    participantId: row.participantId,
+    role: row.role,
+    createdAt: row.createdAt,
+  };
+}
 
 function participantSnapshot(row: Participant): ParticipantSnapshot {
   return {
@@ -185,6 +204,89 @@ export function createMeetings(dependencies: {
   }
 
   return {
+    async claim(input) {
+      try {
+        return await writeTransaction(database, async (tx) => {
+          const event = await tx.event.findUnique({
+            where: { id: input.eventId },
+            select: { id: true },
+          });
+          if (!event) throw new AppError("EVENT_NOT_FOUND", "Event not found");
+          const participant = await tx.participant.findFirst({
+            where: { eventId: input.eventId, tokenHash: hashToken(input.credential) },
+            select: { id: true, isOrganizer: true },
+          });
+          if (!participant) throw new AppError("FORBIDDEN", "Invalid participant token");
+          const membership = {
+            participantId: participant.id,
+            role: participant.isOrganizer ? "organizer" : "participant",
+          };
+          const row = await tx.userEvent.upsert({
+            where: { userId_eventId: { userId: input.userId, eventId: input.eventId } },
+            create: {
+              id: `ue_${randomBytes(16).toString("hex")}`,
+              userId: input.userId,
+              eventId: input.eventId,
+              ...membership,
+            },
+            update: membership,
+          });
+          return accountClaim(row);
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+          if (error.code === "P2002")
+            throw new AppError("CONFLICT", "Participant is already claimed");
+          if (error.code === "P2003" || error.code === "P2034")
+            throw new AppError("CONFLICT", "Account membership changed; try again");
+        }
+        throw error;
+      }
+    },
+    async listForAccount(userId) {
+      const rows = await database.$transaction(
+        (tx) =>
+          tx.userEvent.findMany({
+            where: { userId },
+            include: {
+              event: {
+                select: {
+                  id: true,
+                  title: true,
+                  meetingTime: true,
+                  publishedAt: true,
+                  createdAt: true,
+                  participants: {
+                    select: { id: true, name: true, color: true, isOrganizer: true },
+                    orderBy: { createdAt: "asc" },
+                  },
+                  _count: { select: { participants: true } },
+                },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+          }),
+        { isolationLevel: "RepeatableRead" }
+      );
+      return rows.map((row) => {
+        const claim = accountClaim(row);
+        return {
+          id: claim.id,
+          role: claim.role,
+          participantId: claim.participantId,
+          createdAt: claim.createdAt,
+          event: {
+            id: row.event.id,
+            title: row.event.title,
+            meetingTime: row.event.meetingTime,
+            publishedAt: row.event.publishedAt,
+            createdAt: row.event.createdAt,
+            participantCount: row.event._count.participants,
+            participants: row.event.participants,
+          },
+        };
+      });
+    },
     async create(input) {
       const eventId = newEventId();
       const credential = newParticipantCredential();

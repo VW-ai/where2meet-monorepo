@@ -7,3 +7,5 @@
 This directory cannot query storage. Participant creation distinguishes absent authorization from a supplied credential. A malformed supplied header fails instead of becoming an anonymous join. PATCH maps omitted addresses to retention and rejects empty or null addresses. Public participant responses and broadcasts redact fuzzy addresses; `/me` returns only the authenticated participant's private address.
 
 Participant added and updated frames retain flat coordinates and include `fuzzyLocation`. Removal also emits canonical vote statistics. These events have no replay or sequence guarantee.
+
+Account routes retain the existing response envelopes and session cookie. Registration and login set an HttpOnly, SameSite=Lax, Path=/ cookie with the lifetime supplied by Accounts; production adds Secure. Logout clears it only after successful revocation. Session reads do not issue cookies. Account authentication precedes profile and claim body validation. Claim user IDs come from that session, and Meetings independently verifies the supplied participant credential. Dashboard summaries do not expose credentials or locations.

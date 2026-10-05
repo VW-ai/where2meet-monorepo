@@ -86,7 +86,7 @@ export async function makeApp(overrides: Partial<AppConfig> = {}) {
       app.log.warn({ eventId }, "Committed meeting update could not be broadcast");
     },
   });
-  registerRoutes(app, meetings, createAccounts(database));
+  registerRoutes(app, meetings, createAccounts(database), config.environment === "production");
   registerSSE(app, meetings, notifications, config);
   app.get("/health", () => ({ status: "ok" }));
   app.get("/health/ready", async (_request, reply) => {

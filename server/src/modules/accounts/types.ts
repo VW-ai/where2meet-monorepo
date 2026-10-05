@@ -11,6 +11,33 @@ export interface AccountProfile {
   updatedAt: Date;
 }
 
+export interface Registration {
+  email: string;
+  password: string;
+  name?: string;
+}
+
+export type ProfilePatch = Partial<
+  Pick<
+    AccountProfile,
+    "name" | "avatarUrl" | "defaultAddress" | "defaultPlaceId" | "defaultFuzzyLocation"
+  >
+>;
+
+export interface AccountSession {
+  user: AccountProfile;
+  expiresAt: Date;
+}
+
+export interface IssuedSession extends AccountSession {
+  credential: string;
+  lifetimeSeconds: number;
+}
+
 export interface Accounts {
-  session(credential: string): Promise<{ user: AccountProfile; expiresAt: Date }>;
+  register(input: Registration): Promise<IssuedSession>;
+  login(input: Pick<Registration, "email" | "password">): Promise<IssuedSession>;
+  session(credential: string): Promise<AccountSession>;
+  logout(credential?: string): Promise<void>;
+  updateProfile(input: { userId: string; patch: ProfilePatch }): Promise<AccountProfile>;
 }

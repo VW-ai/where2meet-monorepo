@@ -1,1 +1,7 @@
-export type { Accounts, AccountProfile } from "./types.js";
+export type {
+  Accounts,
+  AccountProfile,
+  AccountSession,
+  IssuedSession,
+  ProfilePatch,
+} from "./types.js";

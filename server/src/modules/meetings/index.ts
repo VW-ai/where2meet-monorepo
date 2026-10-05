@@ -4,4 +4,6 @@ export type {
   MeetingSnapshot,
   ParticipantSnapshot,
   ParticipantLocationEdit,
+  AccountClaim,
+  AccountMeeting,
 } from "./types.js";
