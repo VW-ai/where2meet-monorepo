@@ -1,0 +1,43 @@
+# CI verification
+
+`Server CI` runs the complete PR suite and reports one terminal check, `CI required`. Every required job must succeed. A failed, canceled, skipped, or missing result cannot satisfy the gate. PR jobs use read-only repository access and do not receive Railway credentials.
+
+The suite checks these boundaries:
+
+| Check | What it proves |
+| --- | --- |
+| Server quality and build | Types, module ownership, lint, formatting, compilation, and the Railway Docker image build. |
+| Server tests | HTTP behavior, persistence, and migrations against PostgreSQL 17 and 18. This covers both current database majors, not complete production runtime parity. |
+| Client quality and build | Types, lint, tests, and the production bundle. The build's mock configuration is separate from browser acceptance. |
+| Candidate frontend | The proposed frontend works with the proposed compiled backend, with mocks off. |
+| Fixed frontend | Frontend `05e6daa2245e31dfd142768b545b74cdb9a51476` works with the proposed compiled backend. Changing both sides cannot silently replace this contract. |
+| Workflow and policy checks | Workflow syntax, embedded scripts, and rejection of incomplete or inconsistent CI evidence. |
+
+Browser acceptance covers the current M1 event lifecycle. Google behavior and unimplemented M2+ operations remain outside that proof. See [verification coverage](../.agents/skills/verify-where2meet/verification-status.md).
+
+## Read a run
+
+Read `CI required`, then inspect any failed dependency. Browser artifacts retain the observed backend and frontend commits, browser result, and cleanup result on both success and failure. Their names distinguish the frontend case and the workflow attempt. Raw browser storage and `run.json` are not uploaded.
+
+On pull requests, the backend checkout is GitHub's test merge commit. It differs from the proposal's head commit. The evidence policy compares the actual tested commits with the expected backend and frontend commits for that run. An older successful artifact cannot replace a current failed result.
+
+Run the complete `Server CI` workflow when repeating acceptance. A separately dispatched child workflow is diagnostic and does not replace the complete gate. Workflow lint also runs independently for workflow changes so malformed orchestration can still receive a diagnostic check.
+
+## Enable required merge checks after rollout
+
+The workflow change remains on the unmerged migration stack. Main branch protection is not enabled by this change. Requiring a check before its workflow exists on the branches being merged would block the earlier migration PRs.
+
+After this workflow lands on `main`:
+
+1. Open or update a PR and confirm that the complete `Server CI` run reports `CI required`.
+2. Add a branch rule for `main` that requires this check from GitHub Actions.
+3. Require the PR to be up to date before merging so the result covers the current base.
+4. Confirm that a missing or failing gate blocks merging. Do not accept individual child checks as substitutes.
+
+GitHub documents why dependent required checks need `always()` and why path-filtered workflows can leave required checks pending in [Troubleshooting required status checks](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks).
+
+## Deployment boundaries
+
+Both CD workflow files remain unchanged. Staging still listens for a successful `Server CI` push to `main` and deploys that run's exact commit. Its qualifying success now includes the full CI graph. Manual deployment entry points retain their existing behavior. This task does not execute a deployment.
+
+PPE automation is a separate next step. Backend acceptance still follows the explicit [PPE verification recipe](../.agents/skills/verify-where2meet/ppe.md). CI success alone does not prove that the candidate ran in Railway PPE or that historical data can be imported.

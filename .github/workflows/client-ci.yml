@@ -2,6 +2,7 @@ name: Client CI
 
 on:
   workflow_dispatch:
+  workflow_call:
   push:
     branches: [main, develop]
     paths:
@@ -10,13 +11,13 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.husky/**'
-  pull_request:
-    paths:
-      - 'client/**'
-      - '.github/workflows/client-ci.yml'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.husky/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -26,10 +27,13 @@ jobs:
   quality:
     name: Code Quality & Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -48,7 +52,7 @@ jobs:
         run: npm run lint
 
       - name: Run tests
-        run: npm run test
+        run: npm exec --no -- vitest run --passWithNoTests=false
 
       - name: Build production bundle
         run: npm run build

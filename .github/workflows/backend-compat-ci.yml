@@ -2,12 +2,7 @@ name: Backend browser compatibility
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'client/**'
-      - 'server/**'
-      - '.agents/skills/verify-where2meet/**'
-      - '.github/workflows/backend-compat-ci.yml'
+  workflow_call:
   push:
     branches: [main]
     paths:
@@ -19,14 +14,46 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: browser-compat-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lifecycle:
+    name: Browser (${{ matrix.frontend }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        frontend: [candidate, fixed]
+    env:
+      FRONTEND_CASE: ${{ matrix.frontend }}
+      FIXED_FRONTEND_SHA: 05e6daa2245e31dfd142768b545b74cdb9a51476
     steps:
       - name: Set browser run directory
-        run: echo "RUN_DIR=$RUNNER_TEMP/where2meet-browser" >> "$GITHUB_ENV"
+        run: echo "RUN_DIR=$RUNNER_TEMP/where2meet-browser-$FRONTEND_CASE" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select and verify frontend checkout
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          FRONTEND_REPO="$GITHUB_WORKSPACE"
+          EXPECTED_FRONTEND_SHA="$GITHUB_SHA"
+          if [ "$FRONTEND_CASE" = fixed ]; then
+            if ! git rev-parse --verify "$FIXED_FRONTEND_SHA^{commit}" >/dev/null 2>&1; then
+              git fetch --no-tags origin "$FIXED_FRONTEND_SHA"
+            fi
+            test "$(git rev-parse --verify "$FIXED_FRONTEND_SHA^{commit}")" = "$FIXED_FRONTEND_SHA"
+            FRONTEND_REPO="$RUNNER_TEMP/frontend-fixed"
+            EXPECTED_FRONTEND_SHA="$FIXED_FRONTEND_SHA"
+            git worktree add --detach "$FRONTEND_REPO" "$EXPECTED_FRONTEND_SHA"
+          fi
+          test "$(git -C "$FRONTEND_REPO" rev-parse HEAD)" = "$EXPECTED_FRONTEND_SHA"
+          echo "FRONTEND_REPO=$FRONTEND_REPO" >> "$GITHUB_ENV"
+          echo "EXPECTED_FRONTEND_SHA=$EXPECTED_FRONTEND_SHA" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -42,7 +69,7 @@ jobs:
         run: python3 -m unittest discover -s .agents/skills/verify-where2meet/helpers -p 'test_*.py' -v
       - name: Run real frontend against compiled backend and migrated database
         run: |
-          python3 .agents/skills/verify-where2meet/helpers/control.py launch --repo "$GITHUB_WORKSPACE" --frontend-repo "$GITHUB_WORKSPACE" --run "$RUN_DIR"
+          python3 .agents/skills/verify-where2meet/helpers/control.py launch --repo "$GITHUB_WORKSPACE" --frontend-repo "$FRONTEND_REPO" --run "$RUN_DIR"
           python3 .agents/skills/verify-where2meet/helpers/control.py drive --run "$RUN_DIR"
       - name: Save local failure diagnostics
         if: failure()
@@ -68,14 +95,18 @@ jobs:
           if [ -f "$RUN_DIR/run.json" ]; then
             python3 .agents/skills/verify-where2meet/helpers/control.py cleanup --run "$RUN_DIR"
           fi
+      - name: Require matching browser evidence and completed cleanup
+        if: always()
+        run: python3 .github/scripts/ci_policy.py evidence --evidence-dir "$RUN_DIR/evidence" --backend-sha "$GITHUB_SHA" --frontend-sha "$EXPECTED_FRONTEND_SHA"
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-browser-compatibility
+          name: backend-browser-${{ matrix.frontend }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ env.RUN_DIR }}/evidence/*.json
             ${{ env.RUN_DIR }}/evidence/*.log
             ${{ env.RUN_DIR }}/evidence/*.png
             ${{ env.RUN_DIR }}/evidence/*.aria.txt
-          if-no-files-found: ignore
+          if-no-files-found: error
+          retention-days: 7
