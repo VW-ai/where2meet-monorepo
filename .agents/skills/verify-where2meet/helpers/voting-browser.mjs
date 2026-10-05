@@ -209,6 +209,7 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
     assert.equal(await button.isDisabled(), published);
   };
   const liked = async active => {
+    await active.getByRole('button', { name: /^(Expand|Collapse) liked venues filter/ }).waitFor();
     await closeDetails(active);
     const expand = active.getByRole('button', { name: /^Expand liked venues filter/ });
     if (await expand.isVisible()) await expand.click();
@@ -316,10 +317,14 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
     }
     observations.push({ label: stage, organizer_empty: true, guest_empty: true, reload_used: false });
     await capture('voting-01-empty-guest', guest);
+    stage = 'empty guest shortlist survives reload';
     await adapter.settleRequests();
     await guest.reload({ waitUntil: 'domcontentloaded' });
     await liked(guest);
     await guest.getByText('No liked venues yet', { exact: true }).waitFor();
+    assert.equal(await card(guest).count(), 0);
+    observations.push({ label: stage, guest_empty: true, reload_used: true });
+    await save();
     await page.getByRole('button', { name: /^Collapse liked venues filter/ }).click();
     await card(page).click();
 
