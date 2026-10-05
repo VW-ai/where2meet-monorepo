@@ -15,6 +15,8 @@ During exploration, turn each new or changed behavior into a repeatable boundary
 
 Run persistent assertions in CI. AI may discover a flow and improve its driver, but a release check uses fixed expectations and preserves failures. Record the frontend revision, backend source and deployment, exercised actions, boundary results, and cleanup evidence. A local PASS does not satisfy PPE acceptance. A PPE PASS covers only the listed behavior; production frontend hosting and historical-data migration need their own proof. This requirement does not authorize a production deployment or a merge.
 
+For PR acceptance, require the complete `Server CI` run and its `CI required` result. It includes candidate and fixed-frontend browser cases, database-major coverage, and evidence validation. A separately successful child workflow does not replace that result. Keep changed-behavior assertions at the owning domain boundary and retain failed evidence. Read [the CI contract](../../../.github/README.md) for coverage and the separate branch-protection rollout step. Remote PPE proof remains required for backend acceptance and is not automated by this PR gate.
+
 ## Local verification
 
 This launcher targets the current Next.js and Fastify monorepo. [verification-status.md](verification-status.md) records the original and compatible frontend revisions. It copies the working tree, including local edits, into an isolated directory and excludes dependencies, generated output, and `.env*` files. Each run owns its database, Redis, ports, and fresh browser contexts.

@@ -11,12 +11,14 @@ on:
       - 'package-lock.json'
       - '.husky/**'
   pull_request:
-    paths:
-      - 'server/**'
-      - '.github/workflows/server-ci.yml'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.husky/**'
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -26,10 +28,13 @@ jobs:
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -61,10 +66,13 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -85,12 +93,17 @@ jobs:
         run: docker build --tag where2meet-server:ci .
 
   test:
-    name: Test
+    name: Test (PostgreSQL ${{ matrix.postgres }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['17', '18']
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:${{ matrix.postgres }}-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -104,7 +117,7 @@ jobs:
           --health-retries 5
 
       redis:
-        image: redis:7-alpine
+        image: redis:8.2-alpine
         ports:
           - 6380:6379
         options: >-
@@ -116,6 +129,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -143,3 +158,30 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/where2meet?schema=public
           REDIS_URL: redis://localhost:6380
           NODE_ENV: test
+
+  client:
+    uses: ./.github/workflows/client-ci.yml
+
+  browser-compat:
+    uses: ./.github/workflows/backend-compat-ci.yml
+
+  workflow-lint:
+    uses: ./.github/workflows/workflow-lint.yml
+
+  required:
+    name: CI required
+    if: always()
+    needs: [lint, build, test, client, browser-compat, workflow-lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require every workload to succeed
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 .github/scripts/ci_policy.py gate --needs-json "$NEEDS_JSON"

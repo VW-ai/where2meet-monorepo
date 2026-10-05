@@ -2,16 +2,23 @@ name: Workflow validation
 
 on:
   workflow_dispatch:
+  workflow_call:
   pull_request:
     paths:
       - '.github/workflows/**'
+      - '.github/scripts/**'
   push:
     branches: [main]
     paths:
       - '.github/workflows/**'
+      - '.github/scripts/**'
 
 permissions:
   contents: read
+
+concurrency:
+  group: workflow-lint-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   actionlint:
@@ -19,6 +26,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Test CI policy boundaries
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -m unittest discover -s .github/scripts -p 'test_ci_policy.py' -v
       - name: Validate workflows and embedded scripts
         uses: docker://rhysd/actionlint:1.7.12
         with:
