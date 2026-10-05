@@ -77,7 +77,7 @@ Rules:
 
 - A city appears only when published. A town appears only when it and its city are published. A guide appears only when it and its parent are published.
 - Markdown subset the site renders: paragraphs, `-` bullet lists, `1.` lists, `**bold**`, `*italic*`, `[text](https://…)` links, `##`/`###` headings. No raw HTML (the site strips it).
-- `place_id`s are Google Places IDs (storing IDs is allowed by Google's terms). `label` and `note` are the editor's own words. Never store Google-returned names, photos, ratings or addresses.
+- `place_id`s are Google Places IDs (storing IDs is allowed by Google's terms). The editor's `label` may start from Google's place name, prefilled when the place is picked from search, and is saved as the label the operator chose. `note` is the editor's own words. Photos, ratings, addresses and any other Google data are never stored.
 - Dates are `YYYY-MM-DD`. `seo.title` ≤ 60 chars, `seo.description` 50–160 chars (validated on publish).
 
 ## Revalidation webhook (site)
@@ -88,13 +88,26 @@ Rules:
 - Body: `{ "tag": "where2meet-guides" }`. Response 200 `{ "revalidated": true }`; 401 on a bad secret.
 - The control plane calls it after every publish, unpublish or edit to published content. A failed call is reported in the panel; it never blocks the save.
 
-## Publish checklist (enforced by the control plane before a guide can be published)
+## Publish checklist (enforced by the control plane before anything is published)
+
+Guides:
 
 - `intro` ≥ 60 words and `tips` ≥ 150 words, both written for that place.
 - At least 3 places, each with a `label` and a `note` of ≥ 12 words.
 - SEO title and description within limits.
 - Its city (and town) already published or published together.
-  A town can be published only with at least one publishable guide.
+
+Cities and towns:
+
+- `intro` ≥ 60 words and `transit_notes` ≥ 20 words.
+- SEO title and description within limits.
+- At least one of its own guides (city-level guides for a city, the town's guides for a town) already published or published in the same step. The last published guide of a published city or town cannot be unpublished until the city or town is.
+
+All three:
+
+- Brand wording: no published text field (SEO title and description, intro, transit notes, tips, place notes) may contain a word starting with "fair" (`\bfair`, case-insensitive, so "fairly" and "fairness" too) or the phrase "meet in the middle" (case-insensitive). Place labels are names ("Fairway Market") and are not checked. The failing check names each field and the phrase found.
+
+Content rules are checked again whenever published content is saved, so a live page cannot be edited out of compliance.
 
 ## Environment
 
