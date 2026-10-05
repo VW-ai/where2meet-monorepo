@@ -115,6 +115,7 @@ export async function runPlacesScenario({ page, browser, run, eventId, organizer
     return response.json();
   };
   try {
+    await adapter.settleRequests();
     await page.goto(`${run.client_url}/meet/${eventId}?view=participant`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await settle(page);
     await page.getByRole('region', { name: 'Map', exact: true }).waitFor();
@@ -157,6 +158,7 @@ export async function runPlacesScenario({ page, browser, run, eventId, organizer
     await capture('places-01-participants', page);
 
     stage = 'search';
+    await adapter.settleRequests();
     await page.goto(`${run.client_url}/meet/${eventId}?view=venue`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     const field = page.getByRole('combobox', { name: 'Search venues', exact: true });
     await field.fill('coffee');
@@ -264,6 +266,8 @@ export async function runPlacesScenario({ page, browser, run, eventId, organizer
   } finally {
     page.off('response', observeResponse);
     page.off('pageerror', observeError);
+    try { if (guestContext) await adapter.settleRequests(); }
+    catch { status = 'FAIL'; observations.push({ label: 'guest request validation failed before teardown' }); }
     try { if (guestContext) await guestContext.close(); }
     catch { status = 'FAIL'; observations.push({ label: 'guest browser teardown failed' }); }
     await save();

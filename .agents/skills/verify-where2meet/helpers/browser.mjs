@@ -45,6 +45,10 @@ function action(name, details = {}) {
   actions.push({ at: new Date().toISOString(), name, ...details });
 }
 
+async function settleRequests() {
+  if (ppe && scenario === 'places-routes') await ppe.settleRequests();
+}
+
 async function capture(name, activePage = page) {
   await activePage.screenshot({ path: path.join(evidence, `${name}.png`), fullPage: true });
   await writeFile(path.join(evidence, `${name}.aria.txt`), await activePage.locator('body').ariaSnapshot());
@@ -87,6 +91,7 @@ let result = { status: 'FAIL', feature: scenario, source_commit: run.source_comm
 if (cleanupOnly) {
   try {
     await ppe.cleanupOwned(page);
+    await settleRequests();
   } catch {
     await writeFile(path.join(evidence, 'ppe-ui-cleanup.json'), JSON.stringify({ status: 'FAIL', error: 'UI cleanup could not prove ownership and deletion' }));
     process.exitCode = 1;
@@ -149,6 +154,7 @@ try {
   await writeFile(path.join(evidence, 'created-state.json'), JSON.stringify({ api: afterCreate, database: initialDatabase }, null, 2));
   action('Create Meeting returns 201; transition completes; persisted event and organizer confirmed', { eventId });
   await capture('02-created');
+  await settleRequests();
 
   const [meResponse] = await Promise.all([
     page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}/me`),
@@ -159,6 +165,7 @@ try {
   await dismissTutorial();
   action('Reload restores organizer identity via /me with 200');
   await capture('03-reloaded');
+  await settleRequests();
 
   const retainedToken = await page.evaluate((id) => {
     localStorage.removeItem(`organizer_participant_id_${id}`);
@@ -211,6 +218,7 @@ try {
   await dismissTutorial(guest);
   await capture('05-shared-view', guest);
   action('Open shared link in a fresh browser context; updated title visible and organizer Settings absent');
+  await settleRequests();
   await guestContext.close();
 
   if (['participants', 'places-routes'].includes(scenario)) {
@@ -218,6 +226,7 @@ try {
     const proof = await scenarioDriver({ page, browser, run, eventId,
       organizerId: afterCreate.participants[0].id, evidence, capture, action,
       adapter: {
+        settleRequests,
         guardContext: activeContext => ppe ? ppe.guardContext(activeContext) : Promise.resolve(),
         stored,
         async read(route, { token } = {}) {
@@ -234,6 +243,7 @@ try {
         },
         async checkpoint() {
           if (ppe) {
+            await settleRequests();
             await ppe.saveSession();
             await ppe.bridge({ operation: 'postflight' });
           }
@@ -248,6 +258,7 @@ try {
   await page.getByRole('button', { name: 'Delete Event', exact: true }).click();
   await page.getByPlaceholder('Type DELETE', { exact: true }).fill('DELETE');
   await capture('06-delete-confirmation');
+  await settleRequests();
   action('Confirm deletion of this run’s synthetic event');
   const [deletedResponse] = await Promise.all([
     page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}` && res.request().method() === 'DELETE'),
@@ -268,6 +279,7 @@ try {
   assert(network.filter((entry) => entry.path.startsWith('/api/events')).every((entry) => entry.origin === run.backend_url));
   assert.deepEqual(errors, [], 'Uncaught browser errors invalidate this lifecycle proof');
   if (ppe) {
+    await settleRequests();
     ppe.assertGuard();
     result.scope.push('public HTTP invalid input and credential rejection', 'empty vote read', 'anonymous and unknown session reads', 'authenticated SSE heartbeat and title update');
     result.not_verified = ['Google Maps', 'participant location and join', 'routes', 'vote writes and publishing', 'account writes', 'valid and expired imported sessions', 'data import', 'production frontend serving'];
@@ -308,6 +320,11 @@ try {
     } catch {
       result.status = 'FAIL';
       result.cleanup_error = 'PPE UI cleanup incomplete; exact owned event IDs retained';
+      process.exitCode = 1;
+    }
+    try { await settleRequests(); } catch {
+      result.status = 'FAIL';
+      result.guard_error = 'PPE request validation did not finish successfully';
       process.exitCode = 1;
     }
     await ppe.evidence();

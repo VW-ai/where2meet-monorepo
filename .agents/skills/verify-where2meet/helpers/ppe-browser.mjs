@@ -36,7 +36,9 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
   const checks = [];
   const failures = [];
   const pendingStreams = new Set();
+  const pendingRequests = new Set();
   const streamResponses = [];
+  let requestSequence = 0;
   const snapshotPath = path.join(runDir, 'runtime', 'browser-state.json');
   let mutationTail = Promise.resolve();
   const bridge = payload => {
@@ -56,18 +58,28 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
     await activeContext.route(url => url.pathname === '/api' || url.pathname.startsWith('/api/'), async route => {
       const request = route.request();
       const url = new URL(request.url());
+      const requestId = ++requestSequence;
+      let finish;
+      const pending = new Promise(resolve => { finish = resolve; });
+      pendingRequests.add(pending);
       const streamCandidate = run.scenario === 'places-routes' && url.origin === run.backend_url &&
         request.method() === 'GET' && /^\/api\/events\/evt_[A-Za-z0-9_]+\/stream$/.test(url.pathname);
       if (streamCandidate) pendingStreams.add(request);
       let continued = false;
+      let phase = 'redirect-check';
+      let responseStatus = null;
       try {
         assert.equal(request.redirectedFrom(), null, 'API redirects are not accepted');
         if (url.origin === run.client_url) {
           assert.equal(url.pathname, '/api/auth/session', 'Only the fixed Next session proxy is permitted');
           assert.equal(request.method(), 'GET');
           if (run.scenario === 'places-routes') {
+            phase = 'fetch';
             const response = await route.fetch({ maxRedirects: 0, timeout: 45000 });
+            responseStatus = response.status();
+            phase = 'response-check';
             assert(response.status() < 300 || response.status() >= 400, 'The fixed session proxy cannot redirect');
+            phase = 'fulfill';
             return await route.fulfill({ response });
           }
           return await route.continue();
@@ -76,48 +88,69 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
         const read = ['GET', 'HEAD', 'OPTIONS'].includes(request.method());
         if (read && run.scenario !== 'places-routes') return await route.continue();
         const body = read ? undefined : request.postDataJSON();
+        phase = 'guard';
         await bridge({ operation: 'guard', method: request.method(), url: request.url(), body });
         if (streamCandidate) {
           continued = true;
+          phase = 'continue';
           await route.continue();
+          phase = 'headers';
           const response = await request.response();
           const status = response?.status() ?? null;
+          responseStatus = status;
           const validType = /^text\/event-stream(?:\s*;|$)/i.test(response?.headers()['content-type'] ?? '');
           streamResponses.push({ status, content_type_valid: validType });
           assert(status === 200 && validType, 'The continued owned SSE response must be 200 text/event-stream without redirects');
+          phase = 'postflight';
           await bridge({ operation: 'postflight' });
           return;
         }
+        phase = 'fetch';
         const response = await route.fetch({ maxRedirects: 0, timeout: 45000 });
+        responseStatus = response.status();
+        phase = 'response-check';
         const photo = run.scenario === 'places-routes' && read && /^\/api\/venues\/[^/]+\/photo$/.test(url.pathname);
         if (response.status() >= 300 && response.status() < 400) {
           assert(photo, 'Only an observed venue photo may redirect');
           validatePhotoRedirect(response.status(), response.headers());
         }
         if (request.method() === 'POST' && url.pathname === '/api/events' && response.status() === 201) {
+          phase = 'record-event';
           const created = await response.json();
           await bridge({ operation: 'record', event_id: created.id, organizer_id: created.organizerParticipantId, title: created.title });
         }
         const participantCollection = url.pathname.match(/^\/api\/events\/(evt_[A-Za-z0-9_]+)\/participants$/);
         if (request.method() === 'POST' && participantCollection && response.status() === 201) {
+          phase = 'record-participant';
           assert(['participants', 'places-routes'].includes(run.scenario));
           const participant = await response.json();
           await bridge({ operation: 'record-participant', event_id: participantCollection[1], participant_id: participant.id });
         }
         if (run.scenario === 'places-routes' && request.method() === 'POST' && url.pathname === '/api/venues/search' && response.status() === 200) {
+          phase = 'record-places';
           await bridge({ operation: 'record-places', body: await response.json() });
         }
+        phase = 'postflight';
         await bridge({ operation: 'postflight' });
+        phase = 'fulfill';
         await route.fulfill({ response });
       } catch {
         const safePath = url.pathname === '/api/venues/search' ? url.pathname : /^\/api\/venues\/[^/]+\/photo$/.test(url.pathname)
           ? '/api/venues/:placeId/photo' : /^\/api\/venues\/[^/]+$/.test(url.pathname) ? '/api/venues/:placeId'
-            : /\/directions$/.test(url.pathname) ? '/api/events/:eventId/venues/:placeId/directions' : '/api/[blocked]';
-        failures.push({ method: request.method(), origin: [run.client_url, run.backend_url].includes(url.origin) ? url.origin : '[outside-target]',
+            : /\/directions$/.test(url.pathname) ? '/api/events/:eventId/venues/:placeId/directions'
+              : /^\/api\/events\/evt_[A-Za-z0-9_]+\/(me|stream|votes)$/.test(url.pathname)
+                ? `/api/events/:eventId/${url.pathname.split('/').at(-1)}`
+                : /^\/api\/events\/evt_[A-Za-z0-9_]+$/.test(url.pathname) ? '/api/events/:eventId' : '/api/[blocked]';
+        const failure = request.failure?.()?.errorText;
+        failures.push({ request_id: requestId, at: new Date().toISOString(), phase, response_status: responseStatus,
+          request_failure: failure === 'net::ERR_ABORTED' ? 'aborted' : failure ? 'transport-failure' : null,
+          method: request.method(), origin: [run.client_url, run.backend_url].includes(url.origin) ? url.origin : '[outside-target]',
           path: run.scenario === 'places-routes' ? safePath : url.pathname });
         if (!continued) await route.abort('blockedbyclient');
       } finally {
         if (streamCandidate) pendingStreams.delete(request);
+        pendingRequests.delete(pending);
+        finish();
       }
     });
   }
@@ -256,6 +289,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
       assert.equal(existing.status, 200);
       assert([entry.initial_title, `${entry.initial_title} edited`].includes(existing.body.title), 'Owned event title changed unexpectedly');
       assert(existing.body.participants.some(item => item.id === entry.organizer_id && item.isOrganizer), 'Recorded organizer no longer owns the event');
+      await drainRequests();
       await page.goto(`${run.client_url}/meet/${entry.event_id}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
       await page.getByRole('button', { name: 'Settings', exact: true }).waitFor();
       const skip = page.getByText('Skip tutorial', { exact: true });
@@ -269,6 +303,7 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
       await page.getByRole('button', { name: 'Settings', exact: true }).click();
       await page.getByRole('button', { name: 'Delete Event', exact: true }).click();
       await page.getByPlaceholder('Type DELETE', { exact: true }).fill('DELETE');
+      await drainRequests();
       const [removed] = await Promise.all([
         page.waitForResponse(res => res.url() === `${run.backend_url}/api/events/${entry.event_id}` && res.request().method() === 'DELETE'),
         page.getByRole('button', { name: 'Delete Event', exact: true }).click(),
@@ -280,7 +315,28 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
     await writeFile(path.join(runDir, 'evidence', 'ppe-ui-cleanup.json'), JSON.stringify({ status: 'PASS', scope: 'exact UI-created event IDs only' }, null, 2));
   }
 
-  return { bridge, guardContext, saveSession, negativeChecks, watchTitle, cleanupOwned,
+  function assertGuard() {
+    assert.deepEqual(failures, [], 'A PPE API request was blocked by target checks');
+    assert.equal(pendingStreams.size, 0, 'Owned SSE response validation has not completed');
+    assert.equal(pendingRequests.size, 0, 'Owned API response validation has not completed');
+  }
+
+  async function drainRequests({ timeoutMs = 120000 } = {}) {
+    let timer;
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Owned API response validation did not finish before navigation')), timeoutMs);
+    });
+    try {
+      while (pendingRequests.size) await Promise.race([Promise.all([...pendingRequests]), deadline]);
+    } finally { clearTimeout(timer); }
+  }
+
+  async function settleRequests(options) {
+    await drainRequests(options);
+    assertGuard();
+  }
+
+  return { bridge, guardContext, saveSession, negativeChecks, watchTitle, cleanupOwned, settleRequests,
     read(route, options) { return request('GET', route, options); },
     async openParticipantStream(eventId, token, signal) {
       assert.equal(run.scenario, 'participants');
@@ -291,13 +347,10 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
       await bridge({ operation: 'postflight' });
       return response;
     },
-    assertGuard() {
-      assert.deepEqual(failures, [], 'A PPE API request was blocked by target checks');
-      assert.equal(pendingStreams.size, 0, 'Owned SSE response validation has not completed');
-    },
+    assertGuard,
     async evidence() {
       const filename = dependencies.phase === 'cleanup' ? 'ppe-request-guards-cleanup.json' : 'ppe-request-guards.json';
-      await writeFile(path.join(runDir, 'evidence', filename), JSON.stringify({ blocked: failures,
+      await writeFile(path.join(runDir, 'evidence', filename), JSON.stringify({ blocked: failures, pending_requests: pendingRequests.size,
         ...(run.scenario === 'places-routes' ? { streaming_api: {
           policy: 'Owned SSE continues without buffering. A redirect or invalid response header invalidates proof after observation.',
           pending: pendingStreams.size, responses: streamResponses,

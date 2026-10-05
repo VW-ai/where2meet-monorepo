@@ -44,6 +44,97 @@ async function guard({ status = 200, headers = {}, body = {}, rejectGuard = fals
   } };
 }
 
+async function heldRequest({ stream = false, phase, status = 200, missingResponse = false, clientProxy = false } = {}) {
+  let handler;
+  let release;
+  let reached;
+  let outcome;
+  const gate = new Promise(resolve => { release = resolve; });
+  const waiting = new Promise(resolve => { reached = resolve; });
+  const hold = async current => { if (current === phase) { reached(); await gate; } };
+  const driver = await createPpeDriver('/unused-held-request-fixture', {
+    scenario: 'places-routes', client_url: 'http://127.0.0.1:4317', backend_url: backend,
+  }, { async route(_match, callback) { handler = callback; } }, {
+    async bridge(payload) { await hold(payload.operation); },
+  });
+  const response = { status: () => status, headers: () => stream ? { 'content-type': 'text/event-stream' } : {}, json: async () => ({}) };
+  const url = clientProxy ? 'http://127.0.0.1:4317/api/auth/session' : backend + '/api/events/evt_fixture' + (stream ? '/stream' : '');
+  const pending = handler({
+    request: () => ({ url: () => url, method: () => 'GET', redirectedFrom: () => null,
+      async response() { await hold('headers'); return missingResponse ? null : response; } }),
+    async fetch() { assert.equal(stream, false, 'SSE must remain streamed'); await hold('fetch'); return response; },
+    async continue() { outcome = 'continued'; },
+    async fulfill() { await hold('fulfill'); outcome = 'fulfilled'; },
+    async abort() { outcome = 'blocked'; },
+  });
+  await waiting;
+  return { driver, release, pending, outcome: () => outcome };
+}
+
+for (const [stream, phase] of [[false, 'guard'], [false, 'fetch'], [false, 'postflight'], [false, 'fulfill'],
+  [true, 'guard'], [true, 'headers'], [true, 'postflight']]) {
+  test(`settleRequests waits through ${stream ? 'SSE' : 'finite'} ${phase} before allowing a transition`, async () => {
+    const held = await heldRequest({ stream, phase });
+    let transitionAllowed = false;
+    const drained = held.driver.settleRequests({ timeoutMs: 1000 }).then(() => { transitionAllowed = true; });
+    try {
+      assert.throws(() => held.driver.assertGuard(), /validation has not completed/);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(transitionAllowed, false);
+      held.release();
+      await held.pending;
+      await drained;
+      assert.equal(transitionAllowed, true);
+      assert.equal(held.outcome(), stream ? 'continued' : 'fulfilled');
+      held.driver.assertGuard();
+    } finally { held.release(); await Promise.allSettled([held.pending, drained]); }
+  });
+}
+
+test('settleRequests also waits for the fixed frontend session response to be fulfilled', async () => {
+  const held = await heldRequest({ clientProxy: true, phase: 'fulfill', status: 401 });
+  let transitionAllowed = false;
+  const drained = held.driver.settleRequests({ timeoutMs: 1000 }).then(() => { transitionAllowed = true; });
+  try {
+    assert.throws(() => held.driver.assertGuard(), /validation has not completed/);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(transitionAllowed, false);
+    held.release();
+    await Promise.all([held.pending, drained]);
+    assert.equal(transitionAllowed, true);
+    assert.equal(held.outcome(), 'fulfilled');
+  } finally { held.release(); await Promise.allSettled([held.pending, drained]); }
+});
+
+for (const scenario of [{ stream: false, phase: 'fetch', status: 302 }, { stream: true, phase: 'headers', status: 302 },
+  { stream: true, phase: 'headers', missingResponse: true }]) {
+  test(`settleRequests rejects a late ${scenario.stream ? 'SSE' : 'finite'} ${scenario.missingResponse ? 'missing response' : 'redirect'}`, async () => {
+    const held = await heldRequest(scenario);
+    const rejected = assert.rejects(held.driver.settleRequests({ timeoutMs: 1000 }), /blocked/);
+    try {
+      held.release();
+      await held.pending;
+      await rejected;
+      assert.equal(held.outcome(), scenario.stream ? 'continued' : 'blocked');
+      assert.throws(() => held.driver.assertGuard(), /blocked/);
+    } finally { held.release(); await Promise.allSettled([held.pending, rejected]); }
+  });
+}
+
+for (const stream of [false, true]) {
+  test(`settleRequests times out while ${stream ? 'SSE headers' : 'finite fulfillment'} remain pending`, async () => {
+    const held = await heldRequest({ stream, phase: stream ? 'headers' : 'fulfill' });
+    try {
+      await assert.rejects(held.driver.settleRequests({ timeoutMs: 10 }), /did not finish/);
+      assert.throws(() => held.driver.assertGuard(), /validation has not completed/);
+      held.release();
+      await held.pending;
+      await held.driver.settleRequests({ timeoutMs: 1000 });
+      assert.equal(held.outcome(), stream ? 'continued' : 'fulfilled');
+    } finally { held.release(); await held.pending; }
+  });
+}
+
 test('PPE records successful observed search IDs before the browser receives them', async () => {
   const run = await guard({ body: { venues: [venue()], totalResults: 1, searchCenter: { lat: 32.71, lng: -117.15 } } });
   assert.equal(await run.send('/api/venues/search', 'POST'), 'fulfilled');
@@ -273,7 +364,8 @@ test('a failed real-provider segment preserves labeled failure evidence and reda
   const page = { on() {}, off() {}, async goto() { throw new Error('Provider failed Ai' + 'zaFixtureSecret pt_' + 'a'.repeat(64)); } };
   try {
     await assert.rejects(runPlacesScenario({ page, browser: {}, run: { backend_url: backend, client_url: 'http://127.0.0.1:4317' },
-      eventId: 'evt_fixture', organizerId: 'organizer', evidence: directory, capture: async () => {}, action() {}, adapter: {} }));
+      eventId: 'evt_fixture', organizerId: 'organizer', evidence: directory, capture: async () => {}, action() {},
+      adapter: { settleRequests: async () => {} } }), /Provider failed/);
     const raw = await readFile(path.join(directory, 'places-state.json'), 'utf8');
     const result = JSON.parse(raw);
     assert.equal(result.status, 'FAIL');
