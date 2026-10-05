@@ -1,1 +1,10 @@
-export type { Places, PlaceSummary } from "./types.js";
+export type {
+  Places,
+  PlaceSummary,
+  Place,
+  PlaceDetails,
+  PlaceSearch,
+  SearchTerms,
+  Category,
+  Lookup,
+} from "./types.js";

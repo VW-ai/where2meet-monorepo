@@ -57,7 +57,7 @@ Run the importer from a checkout with development dependencies installed, using 
 
 Fixture files and plaintext test credentials stay private and outside the repository. The importer is a rehearsal tool, not evidence that historical production data has already been audited. Real migration still requires an export audit, rehearsal, and write cutoff plan.
 
-The M2 source additionally supports joining, organizer additions, participant location/privacy edits, removal and leaving, email accounts and meeting claims. See [the participant migration](m2-participants.md) and [account migration](m2-accounts.md) for contracts and limits. A source change does not update the initial deployed target manifest. Venue search, routing, voting writes, and publication remain unavailable. Do not count those paths as passed or production ready.
+The M2 source additionally supports joining, organizer additions, participant location/privacy edits, removal and leaving, email accounts and meeting claims. See [the participant migration](m2-participants.md) and [account migration](m2-accounts.md) for contracts and limits. M3 adds [place search, details, photos and meeting directions](m3-places-routes.md), with its own `places-routes` verification scenario and explicit public API origin. A source change does not update the deployed target manifest or establish PPE acceptance. Voting writes and publication remain unavailable. Do not count untested paths as passed or production ready.
 
 ## Stop and retry
 

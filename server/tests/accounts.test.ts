@@ -61,6 +61,7 @@ async function startApp(environment: "test" | "production" = "test") {
     databaseUrl: database.databaseUrl,
     redisUrl,
     environment,
+    publicApiOrigin: "https://api.example.test",
     logLevel: "silent",
     corsOrigins: ["http://localhost:3001"],
     rateLimitMax: 1000,

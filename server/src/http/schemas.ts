@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PlaceSearch } from "../modules/places/index.js";
 
 export const eventParams = z.object({ id: z.string().regex(/^evt_\d{13,15}_[a-zA-Z0-9]{16}$/) });
 export const participantParams = eventParams.extend({ participantId: z.uuid() });
@@ -33,6 +34,109 @@ export const participantBody = z
   );
 
 const location = z.object({ lat: z.number(), lng: z.number() }).strict();
+const searchLocation = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+const category = z.enum([
+  "cafe",
+  "restaurant",
+  "bar",
+  "park",
+  "library",
+  "gym",
+  "museum",
+  "shopping",
+  "things_to_do",
+]);
+export const venueParams = z.object({ id: z.string().min(1) });
+export const directionsParams = eventParams.extend({ venueId: z.string().min(1) });
+export const directionsQuery = z.object({
+  travelMode: z.enum(["driving", "walking", "transit", "bicycling"]).default("driving"),
+  participantId: z.uuid().optional(),
+});
+export const searchBody = z
+  .object({
+    center: searchLocation,
+    searchRadius: z.number().min(100).max(50000).transform(Math.round),
+    query: z.string().min(1).max(100).optional(),
+    categories: z.tuple([category]).rest(category).optional(),
+  })
+  .transform((body, context): PlaceSearch => {
+    const base = { center: body.center, radiusMeters: body.searchRadius };
+    if (body.query !== undefined)
+      return {
+        ...base,
+        terms: body.categories
+          ? { kind: "both", query: body.query, categories: body.categories }
+          : { kind: "query", query: body.query },
+      };
+    if (body.categories)
+      return { ...base, terms: { kind: "categories", categories: body.categories } };
+    context.addIssue({ code: "custom", message: "Query or categories are required" });
+    return z.NEVER;
+  });
+export const venueResponse = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    address: z.string(),
+    location,
+    types: z.array(z.string()),
+    rating: z.number().nullable(),
+    userRatingsTotal: z.number().int().nonnegative().nullable(),
+    priceLevel: z.number().int().min(0).max(4).nullable(),
+    openNow: z.boolean().nullable(),
+    photoUrl: z.string().nullable(),
+  })
+  .strict();
+export const detailsResponse = venueResponse.extend({
+  formattedPhoneNumber: z.string().nullable(),
+  website: z.string().nullable(),
+  openingHours: z.array(z.string()).nullable(),
+});
+export const searchResponse = z
+  .object({
+    venues: z.array(venueResponse),
+    totalResults: z.number().int().nonnegative(),
+    searchCenter: location,
+  })
+  .strict();
+const routeMetric = z.object({ value: z.number().nonnegative(), text: z.string() }).strict();
+export const directionsResponse = z
+  .object({
+    venueId: z.string(),
+    travelMode: directionsQuery.shape.travelMode,
+    routes: z.array(
+      z.union([
+        z
+          .object({
+            participantId: z.uuid(),
+            distance: routeMetric,
+            duration: routeMetric,
+            polyline: z.string(),
+          })
+          .strict(),
+        z
+          .object({
+            participantId: z.uuid(),
+            distance: z.null(),
+            duration: z.null(),
+            polyline: z.null(),
+          })
+          .strict(),
+      ])
+    ),
+    outcomes: z.array(
+      z
+        .object({
+          participantId: z.uuid(),
+          status: z.enum(["found", "no-location", "no-route", "unavailable"]),
+        })
+        .strict()
+    ),
+  })
+  .strict();
 export const participantResponse = z
   .object({
     id: z.uuid(),

@@ -10,6 +10,7 @@ import { AppError } from "../../errors.js";
 import { hashToken, newEventId, newParticipantCredential } from "../../runtime/credentials.js";
 import { writeTransaction } from "../../runtime/database.js";
 import type { Places } from "../places/index.js";
+import type { Routing } from "../routing/index.js";
 import { approximatePoint, participantColor } from "./locations.js";
 import type {
   Access,
@@ -20,6 +21,7 @@ import type {
   NewParticipant,
   VoteSnapshot,
   AccountClaim,
+  ParticipantRoute,
 } from "./types.js";
 
 function accountClaim(row: UserEvent): AccountClaim {
@@ -115,6 +117,7 @@ function sameLocation(a: Participant, b: Participant): boolean {
 export function createMeetings(dependencies: {
   database: PrismaClient;
   places: Places;
+  routing: Routing;
   publish: (eventId: string, notice: MeetingNotice) => Promise<void>;
   publicationFailed: (eventId: string) => void;
 }): Meetings {
@@ -411,6 +414,45 @@ export function createMeetings(dependencies: {
     },
     async authorizeStream(input) {
       await authorize(database, input);
+    },
+    async directions(input) {
+      const participants = await database.$transaction(
+        async (tx) => {
+          await authorize(tx, input);
+          const rows = await tx.participant.findMany({
+            where: {
+              eventId: input.eventId,
+              ...(input.participantId ? { id: input.participantId } : {}),
+            },
+            orderBy: { createdAt: "asc" },
+          });
+          if (input.participantId && rows.length === 0)
+            throw new AppError("PARTICIPANT_NOT_FOUND", "Participant not found");
+          return rows.map(participantSnapshot);
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
+      );
+      const destination = await places.destination(input.venueId);
+      if (destination.kind === "not-found")
+        throw new AppError("VALIDATION_ERROR", "Venue not found");
+      if (destination.kind === "unavailable")
+        throw new AppError("EXTERNAL_SERVICE_ERROR", "Venue lookup is temporarily unavailable");
+      const origins = participants.flatMap((participant) =>
+        participant.location ? [{ originId: participant.id, point: participant.location }] : []
+      );
+      const routes = await dependencies.routing.toDestination({
+        origins,
+        destination: destination.value,
+        mode: input.mode,
+      });
+      const byId = new Map(routes.map(({ originId, ...outcome }) => [originId, outcome]));
+      const outcomes: ParticipantRoute[] = participants.map((participant) => ({
+        participantId: participant.id,
+        ...(participant.location
+          ? (byId.get(participant.id) ?? { kind: "unavailable" })
+          : { kind: "no-location" }),
+      }));
+      return { venueId: input.venueId, mode: input.mode, outcomes };
     },
   };
 }

@@ -16,11 +16,31 @@ const schema = z.object({
   googleMapsApiKey: z.string(),
   geocodeTimeoutMs: z.coerce.number().int().min(100).max(30000),
   geocodeEndpoint: z.url(),
+  publicApiOrigin: z.string().nullable(),
+  placesEndpoint: z.url(),
+  directionsEndpoint: z.url(),
+  placesTimeoutMs: z.coerce.number().int().min(100).max(30000),
+  searchTimeoutMs: z.coerce.number().int().min(100).max(30000),
+  routeTimeoutMs: z.coerce.number().int().min(100).max(30000),
+  photoTimeoutMs: z.coerce.number().int().min(100).max(30000),
+  searchTtlSeconds: z.coerce.number().int().positive(),
+  detailsTtlSeconds: z.coerce.number().int().positive(),
+  routeTtlSeconds: z.coerce.number().int().positive(),
 });
 
 export type AppConfig = z.infer<typeof schema>;
 
 export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
+  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN;
+  if (
+    overrides.publicApiOrigin === undefined &&
+    !process.env.PUBLIC_API_ORIGIN &&
+    railwayDomain &&
+    !/^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(
+      railwayDomain
+    )
+  )
+    throw new Error("RAILWAY_PUBLIC_DOMAIN must be a public hostname");
   const config = schema.parse({
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
@@ -40,10 +60,45 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
     geocodeTimeoutMs: process.env.GEOCODE_TIMEOUT_MS ?? 5000,
     geocodeEndpoint: "https://maps.googleapis.com/maps/api/geocode/json",
+    publicApiOrigin:
+      process.env.PUBLIC_API_ORIGIN ??
+      (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null),
+    placesEndpoint: "https://maps.googleapis.com/maps/api/place/",
+    directionsEndpoint: "https://maps.googleapis.com/maps/api/directions/json",
+    placesTimeoutMs: process.env.PLACES_TIMEOUT_MS ?? 5000,
+    searchTimeoutMs: process.env.SEARCH_TIMEOUT_MS ?? 10000,
+    routeTimeoutMs: process.env.ROUTE_TIMEOUT_MS ?? 10000,
+    photoTimeoutMs: process.env.PHOTO_TIMEOUT_MS ?? 10000,
+    searchTtlSeconds: process.env.PLACES_SEARCH_TTL_SECONDS ?? 3600,
+    detailsTtlSeconds: process.env.PLACES_DETAILS_TTL_SECONDS ?? 86400,
+    routeTtlSeconds: process.env.ROUTE_TTL_SECONDS ?? 3600,
     ...overrides,
   });
   if (config.environment === "production" && config.corsOrigins.includes("*")) {
     throw new Error("Production requires explicit CORS origins");
+  }
+  if (config.publicApiOrigin !== null) {
+    const origin = new URL(config.publicApiOrigin);
+    const local =
+      config.environment !== "production" &&
+      origin.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname);
+    if (
+      (origin.protocol !== "https:" && !local) ||
+      ["0.0.0.0", "[::]"].includes(origin.hostname) ||
+      origin.username ||
+      origin.password ||
+      origin.pathname !== "/" ||
+      origin.search ||
+      origin.hash ||
+      origin.port === "0"
+    )
+      throw new Error(
+        "PUBLIC_API_ORIGIN must be a public HTTPS origin or a local development origin"
+      );
+    config.publicApiOrigin = origin.origin;
+  } else if (config.environment === "production") {
+    throw new Error("Production requires PUBLIC_API_ORIGIN or RAILWAY_PUBLIC_DOMAIN");
   }
   return config;
 }
