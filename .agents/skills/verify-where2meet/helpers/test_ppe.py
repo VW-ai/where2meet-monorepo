@@ -159,6 +159,45 @@ class MutationOwnershipTest(unittest.TestCase):
             with self.subTest(title=title), self.assertRaisesRegex(RuntimeError, "Only the browser UI"):
                 ppe.authorize_request(self.state, "POST", url, {"title": title}, "negative")
 
+    def test_participant_scenario_only_mutates_ui_recorded_participants(self):
+        participant = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        self.state["scenario"] = "participants"
+        self.state["owned_events"][0]["participant_ids"] = [participant]
+        base = self.state["backend_url"] + f"/api/events/{self.event}/participants"
+        ppe.authorize_request(self.state, "POST", base, {"name": "Verification guest", "address": "San Diego Central Library"}, "ui")
+        for method in ("PATCH", "DELETE"):
+            ppe.authorize_request(self.state, method, base + "/" + participant, {"name": "Verification guest"}, "ui")
+            with self.assertRaises(RuntimeError):
+                ppe.authorize_request(self.state, method, base + "/cccccccc-cccc-cccc-cccc-cccccccccccc", {}, "ui")
+        with self.assertRaises(RuntimeError):
+            ppe.authorize_request(self.state, "DELETE", base + "/" + self.organizer, None, "ui")
+        with self.assertRaisesRegex(RuntimeError, "Only the browser UI"):
+            ppe.authorize_request(self.state, "POST", base, {"name": "HTTP-created guest"}, "negative")
+
+    def test_participant_ui_inputs_cannot_smuggle_role_credentials_or_arbitrary_data(self):
+        self.state["scenario"] = "participants"
+        url = self.state["backend_url"] + f"/api/events/{self.event}/participants/{self.organizer}"
+        for body in (None, [], {}, {"isOrganizer": True}, {"tokenHash": "injected"}, {"address": "x" * 256},
+                     {"name": "x" * 51}, {"address": None}, {"fuzzyLocation": "false"}):
+            with self.subTest(body=body), self.assertRaises(RuntimeError):
+                ppe.authorize_request(self.state, "PATCH", url, body, "ui")
+        ppe.authorize_request(self.state, "PATCH", url, {"fuzzyLocation": True}, "ui")
+
+    def test_default_scenario_does_not_gain_participant_write_access(self):
+        base = self.state["backend_url"] + f"/api/events/{self.event}/participants"
+        participant = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        self.state["owned_events"][0]["participant_ids"] = [participant]
+        for method, url in (("POST", base), ("PATCH", base + "/" + participant), ("DELETE", base + "/" + participant)):
+            with self.subTest(method=method), self.assertRaises(RuntimeError):
+                ppe.authorize_request(self.state, method, url, {}, "ui")
+
+    def test_participant_scenario_cannot_change_votes_or_published_state(self):
+        self.state["scenario"] = "participants"
+        base = self.state["backend_url"] + f"/api/events/{self.event}"
+        for suffix in ("/votes", "/publish", "/participants/../../another-event"):
+            with self.subTest(suffix=suffix), self.assertRaises(RuntimeError):
+                ppe.authorize_request(self.state, "POST", base + suffix, {}, "ui")
+
 
 if __name__ == "__main__":
     unittest.main()

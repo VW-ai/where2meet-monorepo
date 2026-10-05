@@ -24,6 +24,10 @@ python3 .agents/skills/verify-where2meet/helpers/ppe.py verify \
 
 The verifier copies the fixed frontend without `.env` files, installs locked dependencies, disables mocks, and starts Next on the recorded loopback origin. Both browser API calls and Next's server proxy use the same PPE backend. It runs the shared browser lifecycle and remote boundary assertions, corroborates state with read-only database results, and stops its own local processes.
 
+For participant changes, add `--scenario participants` and supply `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` through the process environment. The identified PPE backend must already have its own `GOOGLE_MAPS_API_KEY`. Inject the authorized Doppler key without writing its value into the target or evidence. The helper records presence only. It keeps the default no-location lifecycle available without Google credentials.
+
+The participant scenario adds real autocomplete and geocoding, separate-browser joining, tokenless organizer additions, edits, public fuzzy-address redaction, private own-address reads, live membership updates, removal and leaving. It records created participant IDs before allowing their PATCH or DELETE requests. Only the UI may create test participants, inside the run's exact synthetic event. Use the corrected M2 frontend for this scenario. The original `05e6daa` pin remains the no-location compatibility baseline; it cannot correctly edit a newly redacted fuzzy address.
+
 Inspect the run's `evidence/result.json`, boundary results, state snapshots, network destinations, identity checks, and cleanup result. An assertion failure remains FAIL after successful cleanup. Keep failed attempts when a later fix passes. Do not publish raw browser storage, credentials, or query strings.
 
 For an interrupted run, retry only its recorded synthetic-event cleanup:
@@ -53,6 +57,6 @@ CI currently runs local compatibility and verifier guard tests. This recipe supp
 
 ## Interpret a result
 
-A successful run proves the listed M1 lifecycle against this PPE deployment through a local Next development server. It does not prove frontend production hosting, cross-site cookie behavior, Google integration, old-data import, or unimplemented M2+ operations. See [recorded coverage](verification-status.md).
+A successful default run proves the listed M1 lifecycle against this PPE deployment through a local Next development server. The named participant scenario additionally proves only the Google and participant behavior recorded in its `result.json` and `participants-state.json`. Neither scenario proves frontend production hosting, cross-site cookie behavior, old-data import, or unimplemented operations. See [recorded coverage](verification-status.md).
 
 Source provenance is setup-attested: the deployer records the clean Git archive and Railway image digest. The verifier compares that record and the source-revision variable with the control plane. It does not independently attest running binary contents. Pre/post deployment checks detect drift but do not atomically pin every HTTP request. Keep a single deployer and no automatic PPE rollout during verification; rerun if deployment identity changes.

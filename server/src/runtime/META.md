@@ -4,4 +4,4 @@
 
 `notifications.ts` uses Redis pub/sub on `where2meet:sse:event:<eventId>`. It tracks local listeners and falls back to local delivery when publishing fails. Readiness reports Redis availability; it does not promise delivery replay.
 
-`app.ts` owns resource shutdown. M1 uses a separate database and never connects to an old backend runtime.
+`app.ts` owns resource shutdown. The migration runtime uses a separate database and never connects to an old backend runtime. It passes Google credentials and the whole-operation geocoding deadline to Places at composition time.

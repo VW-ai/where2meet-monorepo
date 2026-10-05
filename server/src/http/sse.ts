@@ -15,7 +15,7 @@ function frame(type: string, data: unknown): string {
   return `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-export function encodeNotice(notice: MeetingNotice): string {
+export function encodeNotice(eventId: string, notice: MeetingNotice): string {
   if (notice.kind === "meeting-updated") {
     const meeting = notice.meeting;
     return frame("event:updated", {
@@ -28,8 +28,21 @@ export function encodeNotice(notice: MeetingNotice): string {
       },
     });
   }
+  if (notice.kind === "participant-removed")
+    return frame("participant:removed", { participantId: notice.participantId });
+  if (notice.kind === "votes-updated")
+    return frame("vote:statistics", {
+      eventId,
+      venues: notice.votes.venues.map((venue) => ({
+        venueId: venue.id,
+        voteCount: venue.voters.length,
+        voterIds: venue.voters,
+      })),
+      totalVotes: notice.votes.totalVotes,
+      updatedAt: new Date().toISOString(),
+    });
   const participant = notice.participant;
-  return frame("participant:updated", {
+  return frame(notice.kind === "participant-added" ? "participant:added" : "participant:updated", {
     participant: {
       id: participant.id,
       name: participant.name,
@@ -38,6 +51,7 @@ export function encodeNotice(notice: MeetingNotice): string {
       lng: participant.location?.lng ?? null,
       color: participant.color,
       isOrganizer: participant.isOrganizer,
+      fuzzyLocation: participant.fuzzyLocation,
     },
   });
 }

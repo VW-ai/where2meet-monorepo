@@ -1,29 +1,37 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { Dices, UserPlus, X, EyeOff, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { generateRandomName } from '@/features/meeting/lib/name-generator';
 import { LocationField } from '@/shared/ui/location-field';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { eventClient } from '@/features/meeting/api';
+import {
+  prepareParticipantForm,
+  type ParticipantFormData,
+} from '@/features/meeting/lib/participant-form';
+
+interface ParticipantFormValues {
+  name: string;
+  address: string;
+  placeId: string;
+  fuzzyLocation: boolean;
+}
+
+type SavedAddress = { kind: 'loading' } | { kind: 'ready'; value: string } | { kind: 'failed' };
 
 interface AddParticipantProps {
   onSubmit: (data: ParticipantFormData) => void;
   onCancel?: () => void;
   isSubmitting?: boolean;
   mode?: 'add' | 'edit';
-  initialData?: ParticipantFormData;
+  initialData?: ParticipantFormValues;
+  ownIdentity?: { eventId: string; participantId: string; token: string };
   /** Label for the secondary button (e.g. "Done" once people have been added in a row) */
   cancelLabel?: string;
   /** Confirmation for the previous submission, shown above the fields */
   notice?: string | null;
-}
-
-export interface ParticipantFormData {
-  name: string;
-  address: string;
-  placeId: string;
-  fuzzyLocation: boolean;
 }
 
 export function AddParticipant({
@@ -32,6 +40,7 @@ export function AddParticipant({
   isSubmitting = false,
   mode = 'add',
   initialData,
+  ownIdentity,
   cancelLabel = 'Cancel',
   notice,
 }: AddParticipantProps) {
@@ -43,11 +52,36 @@ export function AddParticipant({
   const [placeId, setPlaceId] = useState(initialData?.placeId || '');
   const [fuzzyLocation, setFuzzyLocation] = useState(initialData?.fuzzyLocation ?? false);
   const [errors, setErrors] = useState<{ name?: string; address?: string }>({});
+  const [savedAddress, setSavedAddress] = useState<SavedAddress>(
+    ownIdentity ? { kind: 'loading' } : { kind: 'ready', value: initialData?.address ?? '' }
+  );
+  const isBusy = isSubmitting || savedAddress.kind !== 'ready';
+  const eventId = ownIdentity?.eventId;
+  const participantId = ownIdentity?.participantId;
+  const token = ownIdentity?.token;
 
-  // An address that was already saved has been geocoded, so editing only the name
-  // (or the privacy toggle) must not force the user to re-pick it from the dropdown.
-  const savedAddress = mode === 'edit' ? initialData?.address?.trim() : undefined;
-  const addressIsSaved = !!savedAddress && address.trim() === savedAddress;
+  useEffect(() => {
+    if (!eventId || !participantId || !token) return;
+    let active = true;
+    eventClient.getMe(eventId, token).then(
+      (participant) => {
+        if (!active) return;
+        if (participant.participantId !== participantId) {
+          setSavedAddress({ kind: 'failed' });
+          return;
+        }
+        const privateAddress = participant.address ?? '';
+        setAddress(privateAddress);
+        setSavedAddress({ kind: 'ready', value: privateAddress });
+      },
+      () => {
+        if (active) setSavedAddress({ kind: 'failed' });
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [eventId, participantId, token]);
 
   const clearError = (field: 'name' | 'address') => {
     if (errors[field]) {
@@ -77,38 +111,23 @@ export function AddParticipant({
     clearError('address');
   };
 
-  // Validate form
-  const validate = (): boolean => {
-    const newErrors: { name?: string; address?: string } = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-
-    if (!address.trim()) {
-      newErrors.address = 'Address is required';
-    } else if (!placeId && !addressIsSaved) {
-      newErrors.address = 'Pick an address from the suggestions';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   // Handle form submission
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-
-    if (!validate()) {
-      return;
-    }
-
-    onSubmit({
-      name: name.trim(),
-      address: address.trim(),
+    if (savedAddress.kind !== 'ready') return;
+    const result = prepareParticipantForm({
+      name,
+      address,
       placeId,
       fuzzyLocation,
+      ...(mode === 'edit' ? { mode, savedAddress: savedAddress.value } : { mode }),
     });
+    if (result.kind === 'invalid') {
+      setErrors(result.errors);
+      return;
+    }
+    setErrors({});
+    onSubmit(result.data);
   };
 
   return (
@@ -211,7 +230,7 @@ export function AddParticipant({
             <button
               type="button"
               onClick={handleUseDefaultAddress}
-              disabled={isSubmitting}
+              disabled={isBusy}
               className={cn(
                 'text-xs font-medium text-coral-600 hover:text-coral-700',
                 'transition-colors duration-200',
@@ -228,15 +247,25 @@ export function AddParticipant({
           value={address}
           onChange={handleLocationChange}
           onError={(message) => setErrors((prev) => ({ ...prev, address: message }))}
-          disabled={isSubmitting}
+          disabled={isBusy}
           invalid={!!errors.address}
           className={cn(errors.address && 'ring-2 ring-red-500')}
         />
-        {errors.address ? (
+        {savedAddress.kind === 'loading' ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            Loading your starting location...
+          </p>
+        ) : savedAddress.kind === 'failed' ? (
+          <p role="alert" className="text-xs text-red-500">
+            Unable to load your starting location. Close this form and try again.
+          </p>
+        ) : errors.address ? (
           <p className="text-xs text-red-500">{errors.address}</p>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Pick a suggestion, or tap the target icon to use where you are now.
+            {mode === 'edit' && !savedAddress.value && initialData?.fuzzyLocation
+              ? 'Leave this blank to keep the hidden location, or pick a replacement.'
+              : 'Pick a suggestion, or tap the target icon to use where you are now.'}
           </p>
         )}
       </div>
@@ -292,7 +321,7 @@ export function AddParticipant({
       <div className="flex items-center gap-3 pt-2">
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isBusy}
           className={cn(
             'flex-1 px-4 py-2.5 text-sm font-medium',
             'bg-coral-500 text-white rounded-full',

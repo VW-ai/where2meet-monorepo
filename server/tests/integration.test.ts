@@ -319,7 +319,7 @@ describe("HTTP contracts against imported PostgreSQL records", () => {
     ).toContainEqual({
       id: guestId,
       name: "Original guest",
-      address: "Example address",
+      address: null,
       location: { lat: 32.1234567, lng: -117.1234567 },
       fuzzyLocation: true,
       color: "mint",
@@ -525,14 +525,14 @@ describe("HTTP contracts against imported PostgreSQL records", () => {
 
   it("returns explicit unsupported errors and leaves data unchanged", async () => {
     const snapshot = json(await allRows());
-    const location = await app.inject({
-      method: "PATCH",
-      url: `/api/events/${eventId}/participants/${participantId}`,
+    const voting = await app.inject({
+      method: "POST",
+      url: `/api/events/${eventId}/participants/${participantId}/votes`,
       headers: authorization(),
-      payload: { name: "Must not change", address: "Unimplemented address" },
+      payload: { venueId: "fixture_place" },
     });
-    expect(location.statusCode).toBe(501);
-    expect(location.json<unknown>()).toMatchObject({ error: { code: "FEATURE_NOT_AVAILABLE" } });
+    expect(voting.statusCode).toBe(501);
+    expect(voting.json<unknown>()).toMatchObject({ error: { code: "FEATURE_NOT_AVAILABLE" } });
     expect(
       (
         await app.inject({

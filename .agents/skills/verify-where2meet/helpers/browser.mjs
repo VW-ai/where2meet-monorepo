@@ -5,11 +5,14 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createPpeDriver } from './ppe-browser.mjs';
+import { runParticipantsScenario } from './participants-browser.mjs';
 
 const runDir = path.resolve(process.argv[2]);
 const run = JSON.parse(await readFile(path.join(runDir, 'run.json'), 'utf8'));
 const isPpe = run.kind === 'where2meet-ppe-run-v1';
 const cleanupOnly = isPpe && process.argv[3] === '--cleanup';
+const scenario = run.scenario ?? 'event-lifecycle';
+assert(['event-lifecycle', 'participants'].includes(scenario), 'Unknown verification scenario');
 assert(['where2meet-verification-v1', 'where2meet-ppe-run-v1'].includes(run.kind));
 assert.equal(run.run_dir, runDir);
 if (!cleanupOnly) assert.equal(run.status, 'ready');
@@ -64,15 +67,16 @@ async function eventRead(eventId) {
 async function stored(eventId) {
   if (ppe) return ppe.bridge({ operation: 'stored', event_id: eventId });
   assert.match(eventId, /^[A-Za-z0-9_-]+$/);
+  const locationColumns = scenario === 'participants' ? ', address, formatted_address, lat, lng, fuzzy_location, color' : '';
   const sql = `SELECT json_build_object(
     'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at FROM event WHERE id = '${eventId}') e),
     'participants', (SELECT coalesce(json_agg(p), '[]'::json) FROM
-      (SELECT id, event_id, name, is_organizer, token_hash IS NOT NULL AS has_credential
-       FROM participant WHERE event_id = '${eventId}') p));`;
+      (SELECT id, event_id, name, is_organizer, token_hash IS NOT NULL AS has_credential${locationColumns}
+       FROM participant WHERE event_id = '${eventId}' ORDER BY id) p));`;
   return JSON.parse(execFileSync('psql', [run.database_url, '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', sql], { encoding: 'utf8' }).trim());
 }
 
-let result = { status: 'FAIL', feature: 'event-lifecycle', source_commit: run.source_commit,
+let result = { status: 'FAIL', feature: scenario, source_commit: run.source_commit,
   scope: ['create without location', 'organizer name', 'reload identity', 'token-only identity recovery', 'edit title', 'shared read-only view', 'delete'],
   backend_mode: run.backend_mode ?? 'source', frontend_mode: 'development',
   not_verified: ['Google Maps', 'participant location', 'routes', 'votes and publishing', 'accounts', 'data import', 'production frontend serving'],
@@ -92,6 +96,7 @@ if (cleanupOnly) {
 }
 
 let stream;
+let participantProof;
 
 try {
   const title = `Verification meeting ${run.run_id.slice(0, 8)}`;
@@ -199,6 +204,34 @@ try {
   action('Open shared link in a fresh browser context; updated title visible and organizer Settings absent');
   await guestContext.close();
 
+  if (scenario === 'participants') {
+    participantProof = await runParticipantsScenario({ page, browser, run, eventId,
+      organizerId: afterCreate.participants[0].id, evidence, capture, action,
+      adapter: {
+        guardContext: activeContext => ppe ? ppe.guardContext(activeContext) : Promise.resolve(),
+        stored,
+        async read(route, { token } = {}) {
+          if (ppe) return ppe.read(route, { token });
+          const response = await fetch(run.backend_url + route, { headers: token ? { authorization: `Bearer ${token}` } : {},
+            redirect: 'error', signal: AbortSignal.timeout(30000) });
+          return { status: response.status, body: await response.json() };
+        },
+        async openStream(id, token, signal) {
+          if (ppe) return ppe.openParticipantStream(id, token, signal);
+          return fetch(`${run.backend_url}/api/events/${id}/stream`, {
+            headers: { authorization: `Bearer ${token}`, origin: run.client_url }, redirect: 'error', signal,
+          });
+        },
+        async checkpoint() {
+          if (ppe) {
+            await ppe.saveSession();
+            await ppe.bridge({ operation: 'postflight' });
+          }
+        },
+      },
+    });
+  }
+
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Delete Event', exact: true }).click();
   await page.getByPlaceholder('Type DELETE', { exact: true }).fill('DELETE');
@@ -229,6 +262,11 @@ try {
     result.target = run.target;
     result.deployment_check = 'Fresh pre/post checks; HTTP mutation cannot be atomically pinned';
     result.source_provenance = 'Setup-attested uploaded input archive; not independent runtime source identity or Railway transport bytes';
+  }
+  if (participantProof) {
+    result.feature = 'participants';
+    result.scope.push(...participantProof.scope);
+    result.not_verified = participantProof.not_verified;
   }
   result = { ...result, status: 'PASS', event_id: eventId };
 } catch (error) {

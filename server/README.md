@@ -1,12 +1,16 @@
 # Where2Meet backend rewrite
 
-This branch implements the first anonymous meeting lifecycle. It is not a complete production replacement. Unmigrated operations return `501 FEATURE_NOT_AVAILABLE`; see [the PPE scope](docs/railway-ppe.md).
+This branch implements anonymous meetings and the participant lifecycle. It is not a complete production replacement. Unmigrated operations return `501 FEATURE_NOT_AVAILABLE`; see [the PPE scope](docs/railway-ppe.md).
 
 The service uses Fastify, PostgreSQL through Prisma, and Redis notifications. [Source ownership](src/META.md) describes the current modules. Documents under `META/ARCHITECTURE` describe the previous implementation and are not the new module contract.
 
 ## Run locally
 
 Use a Node.js LTS version supported by the lockfile. Railway and CI currently use Node.js 20. Supply `DATABASE_URL` and `REDIS_URL` for your own development resources. `PORT` defaults to 3000. Set `CORS_ORIGINS` to the frontend origin; production rejects the wildcard default.
+
+Participant addresses require `GOOGLE_MAPS_API_KEY` with access to the Google Geocoding API. `GEOCODE_TIMEOUT_MS` defaults to 5000 and bounds the entire lookup, including up to three transient-error attempts. Unconfigured or unavailable geocoding returns `502 EXTERNAL_SERVICE_ERROR` without changing participant data. Name-only updates do not require Google.
+
+Fuzzy participant addresses are null in public event responses, mutation responses, and SSE. Authenticated `/me` returns that participant's original address. The existing organizer permission remains in effect, including location and privacy edits for any participant in the event. The frontend must hydrate private self-editor state from `/me`, omit unchanged addresses, and detect saved locations from `location`.
 
 ```sh
 npm ci

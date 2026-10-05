@@ -1,10 +1,16 @@
 import type { FastifyInstance, HTTPMethods } from "fastify";
-import type { Meetings, MeetingSnapshot } from "../modules/meetings/index.js";
+import type {
+  Meetings,
+  MeetingSnapshot,
+  ParticipantLocationEdit,
+} from "../modules/meetings/index.js";
 import type { Accounts, AccountProfile } from "../modules/accounts/index.js";
 import { AppError } from "../errors.js";
 import { bearer } from "./sse.js";
 import {
   createEventBody,
+  createParticipantBody,
+  joinedParticipantResponse,
   updateEventBody,
   eventParams,
   participantParams,
@@ -60,13 +66,13 @@ export function registerRoutes(app: FastifyInstance, meetings: Meetings, account
   app.get("/api/events/:id/me", async (request) => {
     const credential = bearer(request.headers.authorization);
     const { id } = eventParams.parse(request.params);
-    const participant = await meetings.identify({ eventId: id, credential });
+    const { participant, privateAddress } = await meetings.identify({ eventId: id, credential });
     return response(meResponse, {
       participantId: participant.id,
       name: participant.name,
       isOrganizer: participant.isOrganizer,
       color: participant.color,
-      address: participant.address,
+      address: privateAddress,
       lat: participant.location?.lat ?? null,
       lng: participant.location?.lng ?? null,
     });
@@ -91,16 +97,47 @@ export function registerRoutes(app: FastifyInstance, meetings: Meetings, account
     const credential = bearer(request.headers.authorization);
     const { id, participantId } = participantParams.parse(request.params);
     const body = participantBody.parse(request.body);
-    if (body.address !== undefined || body.fuzzyLocation !== undefined)
-      throw new AppError(
-        "FEATURE_NOT_AVAILABLE",
-        "Location changes are not available in this migration stage"
-      );
-    if (body.name === undefined) throw new AppError("VALIDATION_ERROR", "Name is required");
+    const location: ParticipantLocationEdit =
+      body.address !== undefined
+        ? { kind: "replace", address: body.address, fuzzyLocation: body.fuzzyLocation }
+        : body.fuzzyLocation !== undefined
+          ? { kind: "visibility", fuzzyLocation: body.fuzzyLocation }
+          : { kind: "retain" };
     return response(
       participantResponse,
-      await meetings.renameParticipant({ eventId: id, credential, participantId, name: body.name })
+      await meetings.updateParticipant({
+        eventId: id,
+        credential,
+        participantId,
+        name: body.name,
+        location,
+      })
     );
+  });
+  app.post("/api/events/:id/participants", async (request, reply) => {
+    const credential =
+      request.headers.authorization === undefined
+        ? undefined
+        : bearer(request.headers.authorization);
+    const { id } = eventParams.parse(request.params);
+    const participant = createParticipantBody.parse(request.body);
+    if (credential !== undefined) {
+      const added = await meetings.addParticipant({ eventId: id, credential, participant });
+      return reply.code(201).send(response(participantResponse, added));
+    }
+    const joined = await meetings.join({ eventId: id, participant });
+    return reply.code(201).send(
+      response(joinedParticipantResponse, {
+        ...joined.participant,
+        participantToken: joined.participantToken,
+      })
+    );
+  });
+  app.delete("/api/events/:id/participants/:participantId", async (request) => {
+    const credential = bearer(request.headers.authorization);
+    const { id, participantId } = participantParams.parse(request.params);
+    await meetings.removeParticipant({ eventId: id, credential, participantId });
+    return { success: true, message: "Participant deleted successfully" };
   });
   app.delete("/api/events/:id", async (request) => {
     const credential = bearer(request.headers.authorization);
@@ -130,8 +167,6 @@ export function registerRoutes(app: FastifyInstance, meetings: Meetings, account
     ["GET", "/api/events/:id/mec"],
     ["POST", "/api/events/:id/publish"],
     ["DELETE", "/api/events/:id/publish"],
-    ["POST", "/api/events/:id/participants"],
-    ["DELETE", "/api/events/:id/participants/:participantId"],
     ["POST", "/api/events/:id/participants/:participantId/votes"],
     ["DELETE", "/api/events/:id/participants/:participantId/votes/:venueId"],
     ["GET", "/api/events/:id/votes/statistics"],

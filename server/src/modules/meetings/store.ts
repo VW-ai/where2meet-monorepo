@@ -1,21 +1,25 @@
 import type { Event, Participant, Prisma, PrismaClient } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { AppError } from "../../errors.js";
 import { hashToken, newEventId, newParticipantCredential } from "../../runtime/credentials.js";
 import { writeTransaction } from "../../runtime/database.js";
 import type { Places } from "../places/index.js";
+import { approximatePoint, participantColor } from "./locations.js";
 import type {
   Access,
   Meetings,
   MeetingNotice,
   MeetingSnapshot,
   ParticipantSnapshot,
+  NewParticipant,
+  VoteSnapshot,
 } from "./types.js";
 
 function participantSnapshot(row: Participant): ParticipantSnapshot {
   return {
     id: row.id,
     name: row.name,
-    address: row.address,
+    address: row.fuzzyLocation ? null : row.address,
     location:
       row.lat !== null && row.lng !== null
         ? { lat: row.lat.toNumber(), lng: row.lng.toNumber() }
@@ -59,6 +63,36 @@ async function authorize(
   return { event, participant };
 }
 
+function requireOpen(event: Event): void {
+  if (event.publishedAt)
+    throw new AppError("EVENT_ALREADY_PUBLISHED", "Event has already been published");
+}
+
+async function participantForChange(
+  database: Prisma.TransactionClient,
+  input: Access & { participantId: string }
+): Promise<Participant> {
+  const actor = await authorize(database, input);
+  if (!actor.participant.isOrganizer && actor.participant.id !== input.participantId)
+    throw new AppError("FORBIDDEN", "Insufficient permissions");
+  requireOpen(actor.event);
+  const target = await database.participant.findFirst({
+    where: { id: input.participantId, eventId: input.eventId },
+  });
+  if (!target) throw new AppError("PARTICIPANT_NOT_FOUND", "Participant not found");
+  return target;
+}
+
+function sameLocation(a: Participant, b: Participant): boolean {
+  return (
+    a.address === b.address &&
+    a.formattedAddress === b.formattedAddress &&
+    a.fuzzyLocation === b.fuzzyLocation &&
+    a.lat?.toString() === b.lat?.toString() &&
+    a.lng?.toString() === b.lng?.toString()
+  );
+}
+
 export function createMeetings(dependencies: {
   database: PrismaClient;
   places: Places;
@@ -72,6 +106,82 @@ export function createMeetings(dependencies: {
     } catch {
       dependencies.publicationFailed(eventId);
     }
+  }
+
+  async function locationValues(address: string, fuzzyLocation: boolean) {
+    const result = await places.geocode(address);
+    if (result.kind === "not-found") throw new AppError("ADDRESS_NOT_FOUND", "Address not found");
+    if (result.kind === "unavailable")
+      throw new AppError("EXTERNAL_SERVICE_ERROR", "Address lookup is temporarily unavailable");
+    const point = fuzzyLocation ? approximatePoint(result.point) : result.point;
+    return { address, formattedAddress: result.formattedAddress, fuzzyLocation, ...point };
+  }
+
+  async function insertParticipant(input: {
+    eventId: string;
+    participant: NewParticipant;
+    credential?: string;
+    id: string;
+    tokenHash: string | null;
+  }): Promise<ParticipantSnapshot> {
+    async function permitted(tx: Prisma.TransactionClient) {
+      const event =
+        input.credential === undefined
+          ? await tx.event.findUnique({ where: { id: input.eventId } })
+          : (await authorize(tx, { eventId: input.eventId, credential: input.credential }, true))
+              .event;
+      if (!event) throw new AppError("EVENT_NOT_FOUND", "Event not found");
+      requireOpen(event);
+    }
+    await permitted(database);
+    const location = await locationValues(
+      input.participant.address,
+      input.participant.fuzzyLocation
+    );
+    const participant = await writeTransaction(database, async (tx) => {
+      await permitted(tx);
+      const participants = await tx.participant.findMany({
+        where: { eventId: input.eventId },
+        select: { color: true },
+      });
+      const row = await tx.participant.create({
+        data: {
+          id: input.id,
+          eventId: input.eventId,
+          name: input.participant.name,
+          color: participantColor(participants.map((entry) => entry.color)),
+          tokenHash: input.tokenHash,
+          ...location,
+        },
+      });
+      return participantSnapshot(row);
+    });
+    await notify(input.eventId, { kind: "participant-added", participant });
+    return participant;
+  }
+
+  async function voteSnapshot(eventId: string): Promise<VoteSnapshot> {
+    return database.$transaction(
+      async (tx) => {
+        const event = await tx.event.findUnique({ where: { id: eventId }, select: { id: true } });
+        if (!event) throw new AppError("EVENT_NOT_FOUND", "Event not found");
+        const votes = await tx.vote.findMany({
+          where: { eventId },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        });
+        const grouped = new Map<string, string[]>();
+        for (const vote of votes) {
+          const voters = grouped.get(vote.venueId) ?? [];
+          voters.push(vote.participantId);
+          grouped.set(vote.venueId, voters);
+        }
+        return {
+          venues: [...grouped].map(([id, voters]) => ({ id, voters })),
+          totalVotes: votes.length,
+        };
+      },
+      { isolationLevel: "RepeatableRead" }
+    );
   }
 
   return {
@@ -107,7 +217,7 @@ export function createMeetings(dependencies: {
     },
     async identify(input) {
       const { participant } = await authorize(database, input);
-      return participantSnapshot(participant);
+      return { participant: participantSnapshot(participant), privateAddress: participant.address };
     },
     async update(input) {
       const meeting = await writeTransaction(database, async (tx) => {
@@ -118,23 +228,67 @@ export function createMeetings(dependencies: {
       await notify(input.eventId, { kind: "meeting-updated", meeting });
       return meeting;
     },
-    async renameParticipant(input) {
+    async join(input) {
+      const credential = newParticipantCredential();
+      const participant = await insertParticipant({
+        ...input,
+        id: credential.participantId,
+        tokenHash: credential.hash,
+      });
+      return { participant, participantToken: credential.token };
+    },
+    async addParticipant(input) {
+      return insertParticipant({ ...input, id: randomUUID(), tokenHash: null });
+    },
+    async updateParticipant(input) {
+      const before = await participantForChange(database, input);
+      const edit = input.location;
+      const address = edit.kind === "replace" ? edit.address : before.address;
+      const fuzzyLocation =
+        edit.kind === "retain"
+          ? before.fuzzyLocation
+          : (edit.fuzzyLocation ?? before.fuzzyLocation);
+      const changed =
+        address !== before.address ||
+        fuzzyLocation !== before.fuzzyLocation ||
+        (edit.kind === "replace" && (before.lat === null || before.lng === null));
+      const location =
+        changed && address !== null
+          ? await locationValues(address, fuzzyLocation)
+          : edit.kind === "retain"
+            ? {}
+            : { fuzzyLocation };
       const participant = await writeTransaction(database, async (tx) => {
-        const actor = await authorize(tx, input);
-        if (!actor.participant.isOrganizer && actor.participant.id !== input.participantId)
-          throw new AppError("FORBIDDEN", "Insufficient permissions");
-        if (actor.event.publishedAt)
-          throw new AppError("EVENT_ALREADY_PUBLISHED", "Event has already been published");
-        const target = await tx.participant.findFirst({
-          where: { id: input.participantId, eventId: input.eventId },
-        });
-        if (!target) throw new AppError("PARTICIPANT_NOT_FOUND", "Participant not found");
+        const target = await participantForChange(tx, input);
+        if (edit.kind !== "retain" && !sameLocation(before, target))
+          throw new AppError("CONFLICT", "Participant location changed; reload and try again");
         return participantSnapshot(
-          await tx.participant.update({ where: { id: target.id }, data: { name: input.name } })
+          await tx.participant.update({
+            where: { id: target.id },
+            data: { ...(input.name === undefined ? {} : { name: input.name }), ...location },
+          })
         );
       });
       await notify(input.eventId, { kind: "participant-updated", participant });
       return participant;
+    },
+    async removeParticipant(input) {
+      await writeTransaction(database, async (tx) => {
+        const participant = await participantForChange(tx, input);
+        if (participant.isOrganizer)
+          throw new AppError("FORBIDDEN", "Cannot delete the organizer participant");
+        await tx.participant.delete({ where: { id: participant.id } });
+      });
+      await notify(input.eventId, {
+        kind: "participant-removed",
+        participantId: input.participantId,
+      });
+      try {
+        const votes = await voteSnapshot(input.eventId);
+        await notify(input.eventId, { kind: "votes-updated", votes });
+      } catch {
+        dependencies.publicationFailed(input.eventId);
+      }
     },
     async remove(input) {
       await writeTransaction(database, async (tx) => {
@@ -143,31 +297,15 @@ export function createMeetings(dependencies: {
       });
     },
     async votes(eventId) {
-      const votes = await database.$transaction(
-        async (tx) => {
-          const event = await tx.event.findUnique({ where: { id: eventId }, select: { id: true } });
-          if (!event) throw new AppError("EVENT_NOT_FOUND", "Event not found");
-          return tx.vote.findMany({
-            where: { eventId },
-            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-          });
-        },
-        { isolationLevel: "RepeatableRead" }
-      );
-      const grouped = new Map<string, string[]>();
-      for (const vote of votes) {
-        const voters = grouped.get(vote.venueId) ?? [];
-        voters.push(vote.participantId);
-        grouped.set(vote.venueId, voters);
-      }
-      const summaries = await places.summaries([...grouped.keys()]);
-      const venues = [...grouped].map(([placeId, voters]) => {
-        const place = summaries.get(placeId);
+      const votes = await voteSnapshot(eventId);
+      const summaries = await places.summaries(votes.venues.map((venue) => venue.id));
+      const venues = votes.venues.map(({ id, voters }) => {
+        const place = summaries.get(id);
         if (!place) throw new Error("Vote references a missing place");
         return { ...place, voteCount: voters.length, voters };
       });
       venues.sort((a, b) => b.voteCount - a.voteCount);
-      return { venues, totalVotes: votes.length };
+      return { venues, totalVotes: votes.totalVotes };
     },
     async authorizeStream(input) {
       await authorize(database, input);

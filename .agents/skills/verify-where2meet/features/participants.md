@@ -22,6 +22,15 @@ Organizers add people and their starting locations; guests join with their own n
 
 ## Driving it with Playwright
 
+Run the shared participant scenario after launching an isolated local instance with both real Google keys:
+
+```sh
+python3 .agents/skills/verify-where2meet/helpers/control.py drive \
+  --run "$VERIFY_RUN" --scenario participants
+```
+
+For deployed backend acceptance, use `ppe.py verify --scenario participants` with the target, source checkout, corrected frontend checkout, run directory and private SSH configuration described in [the PPE recipe](../ppe.md). The driver checks public HTTP and SSE against private self reads and stored synthetic rows. `participants-state.json` records named observations, and the outer `result.json` also requires event deletion to pass. Default CI browser jobs continue to exercise the fixed M1 lifecycle without Google credentials; HTTP/provider boundary tests cover participant rejection and race cases in CI.
+
 Preconditions: an unpublished UI-created event, real browser/server Google keys, organizer `page`, fresh `guestContext`/`guest`, and the event's real `meetingUrl`. Use real public addresses and record the selected Google suggestion. `addressName` means the exact accessible option name observed in the current suggestion list.
 
 - **Open each list entry.** `await page.goto(meetingUrl + '?view=participant'); await page.getByRole('heading', { name: 'Participants', exact: true }).waitFor();`. Separately switch from `Venues` with the desktop `Participants` button. On phone use `await page.getByRole('button', { name: 'People', exact: true }).click(); await page.getByRole('heading', { name: 'Participants', exact: true }).waitFor();`. Reclicking the active desktop tab hides the sidebar.
@@ -74,4 +83,6 @@ Preconditions: an unpublished UI-created event, real browser/server Google keys,
 - Typing an address invalidates its previous selection. Editing only the name or privacy keeps an unchanged saved address valid, unlike earlier behavior.
 - Form submission sends the address for server geocoding. Browser autocomplete success alone does not prove the server key works.
 - Address privacy must be checked from another person's browser. A label saying `Approximate location` alone does not prove exact coordinates were withheld.
+- Public fuzzy participant responses contain `address: null` and the persisted displaced point. The participant's own `/me` response supplies the original address to local editor state. An unchanged PATCH omits `address`; an organizer editing another hidden location may leave it blank to preserve it.
+- The migration preserves the existing organizer permission to change another participant's location or privacy. Public address redaction does not revoke that permission. Imported coordinates keep their existing meaning; new displacement is generated only when the saved location or privacy changes.
 - Published events disable joining/adding and hide edit/remove controls. Avoid deleting the organizer while testing ordinary participant removal.

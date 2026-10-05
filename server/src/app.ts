@@ -76,8 +76,12 @@ export async function makeApp(overrides: Partial<AppConfig> = {}) {
     });
   const meetings = createMeetings({
     database,
-    places: createPlaces(database),
-    publish: (eventId, notice) => notifications.publish(eventId, encodeNotice(notice)),
+    places: createPlaces(database, {
+      apiKey: config.googleMapsApiKey,
+      timeoutMs: config.geocodeTimeoutMs,
+      endpoint: config.geocodeEndpoint,
+    }),
+    publish: (eventId, notice) => notifications.publish(eventId, encodeNotice(eventId, notice)),
     publicationFailed: (eventId) => {
       app.log.warn({ eventId }, "Committed meeting update could not be broadcast");
     },

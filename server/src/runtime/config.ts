@@ -13,6 +13,9 @@ const schema = z.object({
   redisTimeoutMs: z.coerce.number().int().min(100),
   heartbeatIntervalMs: z.coerce.number().int().min(100),
   streamTimeoutMs: z.coerce.number().int().min(1000),
+  googleMapsApiKey: z.string(),
+  geocodeTimeoutMs: z.coerce.number().int().min(100).max(30000),
+  geocodeEndpoint: z.url(),
 });
 
 export type AppConfig = z.infer<typeof schema>;
@@ -34,6 +37,9 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     redisTimeoutMs: process.env.REDIS_TIMEOUT_MS ?? 1500,
     heartbeatIntervalMs: process.env.SSE_HEARTBEAT_INTERVAL_MS ?? 30000,
     streamTimeoutMs: process.env.SSE_CONNECTION_TIMEOUT_MS ?? 3600000,
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
+    geocodeTimeoutMs: process.env.GEOCODE_TIMEOUT_MS ?? 5000,
+    geocodeEndpoint: "https://maps.googleapis.com/maps/api/geocode/json",
     ...overrides,
   });
   if (config.environment === "production" && config.corsOrigins.includes("*")) {

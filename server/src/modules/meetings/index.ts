@@ -1,1 +1,7 @@
-export type { Meetings, MeetingNotice, MeetingSnapshot, ParticipantSnapshot } from "./types.js";
+export type {
+  Meetings,
+  MeetingNotice,
+  MeetingSnapshot,
+  ParticipantSnapshot,
+  ParticipantLocationEdit,
+} from "./types.js";
