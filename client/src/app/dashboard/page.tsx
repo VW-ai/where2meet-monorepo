@@ -1,89 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { UserEventResponse } from '@/features/auth/types';
-import { userClient } from '@/features/user/api';
+import { useTokenClaimer } from '@/features/auth/hooks/useTokenClaimer';
 import { EventCard } from '@/features/dashboard/ui/event-card';
 import { ClaimEventsBanner } from '@/features/dashboard/ui/claim-events-banner';
 import { LikedVenuesSection } from '@/features/dashboard/ui/liked-venues-section';
 import catLogo from '@/components/cat/logo.svg';
 
 export default function DashboardPage() {
-  const { user, logout } = useAuthStore();
-  const [userEvents, setUserEvents] = useState<UserEventResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadEvents() {
-      try {
-        const userEventsResponse = await userClient.getEvents();
-        console.warn('[Dashboard] Events response:', userEventsResponse);
-
-        // API returns array of UserEvent objects with nested event property
-        // Response structure: [{ id, role, participantId, event: {...} }, ...]
-        let events = userEventsResponse;
-
-        // Handle different response formats
-        if (
-          userEventsResponse &&
-          typeof userEventsResponse === 'object' &&
-          'events' in userEventsResponse
-        ) {
-          events = (userEventsResponse as { events: UserEventResponse[] }).events;
-        }
-
-        // Ensure we have an array
-        if (Array.isArray(events)) {
-          // Keep the full UserEvent objects to preserve role information
-          const validUserEvents = events.filter((ue: UserEventResponse) => ue.event != null);
-
-          console.warn('[Dashboard] Valid user events:', validUserEvents);
-
-          // Sort: published events first (by publishedAt desc), then unpublished (by createdAt desc)
-          const sortedUserEvents = [...validUserEvents].sort(
-            (a: UserEventResponse, b: UserEventResponse) => {
-              const aIsPublished = !!a.event.publishedAt;
-              const bIsPublished = !!b.event.publishedAt;
-
-              // Both published: newest publishedAt first
-              if (aIsPublished && bIsPublished) {
-                return (
-                  new Date(b.event.publishedAt!).getTime() -
-                  new Date(a.event.publishedAt!).getTime()
-                );
-              }
-
-              // Only a is published: a comes first
-              if (aIsPublished) return -1;
-
-              // Only b is published: b comes first
-              if (bIsPublished) return 1;
-
-              // Both unpublished: newest createdAt first
-              return new Date(b.event.createdAt).getTime() - new Date(a.event.createdAt).getTime();
-            }
-          );
-
-          setUserEvents(sortedUserEvents);
-        } else {
-          console.warn('[Dashboard] Events response is not an array:', userEventsResponse);
-          setUserEvents([]);
-        }
-      } catch (error) {
-        console.error('Error loading events:', error);
-        setUserEvents([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadEvents();
-  }, []);
+  const { user, logout, error: authError } = useAuthStore();
+  const { userEvents, isLoading, unclaimedEvents, isClaiming, claimAllEvents, error } =
+    useTokenClaimer();
 
   const handleLogout = async () => {
-    await logout();
+    await logout().catch(() => undefined);
   };
 
   return (
@@ -130,7 +62,16 @@ export default function DashboardPage() {
             <p className="text-gray-600">Manage your events and settings</p>
           </div>
 
-          <ClaimEventsBanner />
+          <ClaimEventsBanner
+            unclaimedEvents={unclaimedEvents}
+            isClaiming={isClaiming}
+            onClaim={claimAllEvents}
+          />
+          {(authError || error) && (
+            <p role="alert" className="mb-4 text-red-600">
+              {authError || error}
+            </p>
+          )}
 
           <LikedVenuesSection />
 

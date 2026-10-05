@@ -1,16 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { Event } from '@/entities';
+import type { UserEventResponse } from '@/features/auth/types';
 
 interface EventCardProps {
-  event: Event;
+  event: UserEventResponse['event'];
   role?: 'organizer' | 'participant';
 }
 
 export function EventCard({ event, role }: EventCardProps) {
-  const participantCount = event.participants?.length || 0;
-  const isPublished = event.publishedVenueId !== null;
+  const participantCount = event.participantCount;
+  const isPublished = event.publishedAt !== null;
 
   const formattedDate = event.meetingTime
     ? new Date(event.meetingTime).toLocaleDateString('en-US', {

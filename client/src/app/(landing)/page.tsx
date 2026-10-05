@@ -12,6 +12,7 @@ import { StoryPreview } from '@/features/landing/ui/story-preview';
 import { LandingBackdrop } from '@/features/landing/ui/landing-backdrop';
 import { eventClient, participantClient } from '@/features/meeting/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { claimAllTokens } from '@/lib/utils/token-claimer';
 import { SignInButton } from '@/features/auth/ui/sign-in-button';
 import { UserMenu } from '@/features/auth/ui/user-menu';
 import { analyticsEvents } from '@/lib/analytics/events';
@@ -30,6 +31,7 @@ export default function LandingPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const logoRef = useRef<HTMLImageElement>(null);
+  const creationSequence = useRef(0);
   // While the create-meeting transition runs, the page steps aside for the cat.
   const leaving = usePortalStore((state) => state.status === 'running');
 
@@ -88,6 +90,8 @@ export default function LandingPage() {
       return;
     }
 
+    const accountScope = useAuthStore.getState().captureAccount();
+    const creationId = ++creationSequence.current;
     setIsLoading(true);
     setCreateError(null);
     const logo = logoRef.current?.getBoundingClientRect();
@@ -96,6 +100,13 @@ export default function LandingPage() {
       .start(
         logo ? { left: logo.left, top: logo.top, width: logo.width, height: logo.height } : null
       );
+    const transition = usePortalStore.getState();
+    const cancelCreation = () => {
+      if (creationSequence.current !== creationId) return;
+      setIsLoading(false);
+      if (usePortalStore.getState() === transition) transition.fail();
+    };
+    accountScope.signal.addEventListener('abort', cancelCreation, { once: true });
     let hasPin = false;
 
     try {
@@ -105,69 +116,27 @@ export default function LandingPage() {
         meetingTime: new Date(meetingTime).toISOString(),
       });
 
-      console.warn('[LandingPage] Event created:', {
-        eventId: event.id,
-        hasParticipantToken: !!event.participantToken,
-        tokenPrefix: event.participantToken?.substring(0, 3),
-        isAuthenticated,
-      });
-
-      // Store organizer token and participant ID for organizer actions
       if (event.participantToken && event.organizerParticipantId) {
-        console.warn('[LandingPage] Storing organizer credentials:', {
-          eventId: event.id,
-          hasToken: !!event.participantToken,
-          hasParticipantId: !!event.organizerParticipantId,
-        });
-        const { setOrganizerInfo } = useAuthStore.getState();
-        setOrganizerInfo(event.id, event.participantToken, event.organizerParticipantId);
-        console.warn('[LandingPage] Auth store after setOrganizerInfo:', {
-          isOrganizerMode: useAuthStore.getState().isOrganizerMode,
-          hasOrganizerToken: !!useAuthStore.getState().organizerToken,
-        });
-
+        localStorage.setItem(`organizer_token_${event.id}`, event.participantToken);
+        localStorage.setItem(`organizer_participant_id_${event.id}`, event.organizerParticipantId);
+        if (!accountScope.isCurrent()) return;
+        useAuthStore
+          .getState()
+          .setOrganizerInfo(event.id, event.participantToken, event.organizerParticipantId);
         hasPin = await saveOrganizerDetails(
           event.id,
           event.organizerParticipantId,
           event.participantToken
         );
-
-        // Auto-claim event if user is authenticated
-        if (isAuthenticated) {
-          console.warn('[LandingPage] User is authenticated, attempting auto-claim...');
-          try {
-            const { userClient } = await import('@/features/user/api');
-            console.warn('[LandingPage] Claiming with token:', {
-              eventId: event.id,
-              tokenPrefix: event.participantToken.substring(0, 10),
-              tokenLength: event.participantToken.length,
-            });
-
-            const result = await userClient.claimEvent({
-              eventId: event.id,
-              participantToken: event.participantToken,
-            });
-
-            console.warn('[LandingPage] ✅ Auto-claim successful:', result);
-          } catch (claimError) {
-            // Non-fatal: event was created successfully, claiming is optional
-            console.error('[LandingPage] ❌ Auto-claim failed:', claimError);
-            if (claimError instanceof Error) {
-              console.error('[LandingPage] Error details:', {
-                message: claimError.message,
-                stack: claimError.stack,
-              });
-            }
-          }
-        } else {
-          console.warn('[LandingPage] User NOT authenticated, skipping auto-claim');
+        if (!accountScope.isCurrent()) return;
+        if (accountScope.userId) {
+          await claimAllTokens(
+            [{ eventId: event.id, tokenType: 'organizer', token: event.participantToken }],
+            accountScope
+          ).catch(() => undefined);
         }
-      } else {
-        console.error('[LandingPage] Missing credentials in event response:', {
-          hasParticipantToken: !!event.participantToken,
-          hasOrganizerParticipantId: !!event.organizerParticipantId,
-        });
       }
+      if (!accountScope.isCurrent()) return;
 
       // Track event creation in analytics
       analyticsEvents.createEvent(event.id);
@@ -175,11 +144,14 @@ export default function LandingPage() {
       usePortalStore.getState().created(event.id, hasPin);
       router.push(`/meet/${event.id}`);
     } catch (error) {
+      if (!accountScope.isCurrent()) return;
       console.error('Error creating event:', error);
       usePortalStore.getState().fail();
       setCreateError('We couldn’t create your meeting. Check your connection and try again.');
     } finally {
-      setIsLoading(false);
+      accountScope.signal.removeEventListener('abort', cancelCreation);
+      if (!accountScope.isCurrent()) cancelCreation();
+      if (creationSequence.current === creationId) setIsLoading(false);
     }
   };
 

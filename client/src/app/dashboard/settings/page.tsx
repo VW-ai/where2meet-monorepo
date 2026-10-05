@@ -22,14 +22,16 @@ interface Identity {
 */
 
 export default function SettingsPage() {
-  const { user, updateProfile, logout } = useAuthStore();
+  const { user, accountGeneration, updateProfile, logout, error, clearError } = useAuthStore();
   const [name, setName] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [placeId, setPlaceId] = useState<string | null>(null);
   const [defaultFuzzyLocation, setDefaultFuzzyLocation] = useState(false);
   const [_isLocating, setIsLocating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [saving, setSaving] = useState<{ generation: number } | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
+  const isSaving = saving?.generation === accountGeneration;
+  const message = error || saveMessage;
 
   // OAuth temporarily disabled - uncomment when backend implements OAuth
   // const [identities, setIdentities] = useState<Identity[]>([]);
@@ -133,13 +135,16 @@ export default function SettingsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    const accountScope = useAuthStore.getState().captureAccount();
+    const operation = { generation: useAuthStore.getState().accountGeneration };
+    setSaving(operation);
+    clearError();
     setSaveMessage('');
 
     // Validate: If address is set, placeId must also be set
     if (addressInput && !placeId) {
       setSaveMessage('Please select an address from the autocomplete dropdown');
-      setIsSaving(false);
+      setSaving(null);
       return;
     }
 
@@ -150,17 +155,20 @@ export default function SettingsPage() {
         defaultPlaceId: placeId || undefined,
         defaultFuzzyLocation,
       });
+      if (!accountScope.isCurrent()) return;
       setSaveMessage('Settings saved successfully!');
-      setTimeout(() => setSaveMessage(''), 3000);
+      setTimeout(() => {
+        if (accountScope.isCurrent()) setSaveMessage('');
+      }, 3000);
     } catch (error) {
-      setSaveMessage('Failed to save settings. Please try again.');
+      if (accountScope.isCurrent()) setSaveMessage('Failed to save settings. Please try again.');
     } finally {
-      setIsSaving(false);
+      setSaving((current) => (current === operation ? null : current));
     }
   };
 
   const handleLogout = async () => {
-    await logout();
+    await logout().catch(() => undefined);
   };
 
   return (
@@ -300,11 +308,12 @@ export default function SettingsPage() {
               </div>
               */}
 
-              {saveMessage && (
+              {message && (
                 <div
-                  className={`p-3 rounded-lg text-sm ${saveMessage.includes('successfully') ? 'bg-mint-50 text-mint-700' : 'bg-red-50 text-red-700'}`}
+                  role="status"
+                  className={`p-3 rounded-lg text-sm ${message.includes('successfully') ? 'bg-mint-50 text-mint-700' : 'bg-red-50 text-red-700'}`}
                 >
-                  {saveMessage}
+                  {message}
                 </div>
               )}
 
