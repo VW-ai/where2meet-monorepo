@@ -297,7 +297,7 @@ try {
     result.not_verified = placesProof.not_verified;
     result.shared_provider_cache = placesProof.shared_provider_cache;
     result.external_boundary = 'real Google Maps, Places and Directions; no provider fixture';
-    if (ppe) result.streaming_api_policy = 'Owned SSE continues without buffering; observed redirects or invalid response headers invalidate proof. Finite API redirects are blocked before forwarding, except validated photos.';
+    if (ppe) result.streaming_api_policy = 'Owned SSE continues without buffering; observed redirects or invalid response headers fail. Confirmed cancelled attempts require a later validated same-page/event replacement. Finite API redirects are blocked before forwarding, except validated photos.';
     result.synthetic_cleanup = 'exact UI-created event and participant rows absent; shared provider cache rows are separate';
   }
   result = { ...result, status: 'PASS', event_id: eventId };

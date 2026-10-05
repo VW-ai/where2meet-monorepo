@@ -38,6 +38,8 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
   const pendingStreams = new Set();
   const pendingRequests = new Set();
   const streamResponses = [];
+  const cancelledStreams = [];
+  const validatedStreams = new Map();
   let requestSequence = 0;
   const snapshotPath = path.join(runDir, 'runtime', 'browser-state.json');
   let mutationTail = Promise.resolve();
@@ -98,11 +100,21 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
           const response = await request.response();
           const status = response?.status() ?? null;
           responseStatus = status;
+          const streamPage = request.frame().page();
+          if (response === null && request.failure()?.errorText === 'net::ERR_ABORTED') {
+            cancelledStreams.push({ requestId, page: streamPage, path: url.pathname });
+            phase = 'postflight';
+            await bridge({ operation: 'postflight' });
+            return;
+          }
           const validType = /^text\/event-stream(?:\s*;|$)/i.test(response?.headers()['content-type'] ?? '');
           streamResponses.push({ status, content_type_valid: validType });
           assert(status === 200 && validType, 'The continued owned SSE response must be 200 text/event-stream without redirects');
           phase = 'postflight';
           await bridge({ operation: 'postflight' });
+          const pageStreams = validatedStreams.get(streamPage) ?? new Map();
+          pageStreams.set(url.pathname, Math.max(requestId, pageStreams.get(url.pathname) ?? 0));
+          validatedStreams.set(streamPage, pageStreams);
           return;
         }
         phase = 'fetch';
@@ -319,6 +331,8 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
     assert.deepEqual(failures, [], 'A PPE API request was blocked by target checks');
     assert.equal(pendingStreams.size, 0, 'Owned SSE response validation has not completed');
     assert.equal(pendingRequests.size, 0, 'Owned API response validation has not completed');
+    assert(cancelledStreams.every(attempt => (validatedStreams.get(attempt.page)?.get(attempt.path) ?? 0) > attempt.requestId),
+      'A cancelled owned SSE attempt has no later valid replacement on the same page and event');
   }
 
   async function drainRequests({ timeoutMs = 120000 } = {}) {
@@ -352,8 +366,11 @@ export async function createPpeDriver(runDir, run, context, dependencies = {}) {
       const filename = dependencies.phase === 'cleanup' ? 'ppe-request-guards-cleanup.json' : 'ppe-request-guards.json';
       await writeFile(path.join(runDir, 'evidence', filename), JSON.stringify({ blocked: failures, pending_requests: pendingRequests.size,
         ...(run.scenario === 'places-routes' ? { streaming_api: {
-          policy: 'Owned SSE continues without buffering. A redirect or invalid response header invalidates proof after observation.',
+          policy: 'Owned SSE continues without buffering. Invalid observed headers or redirects fail. A browser-confirmed pre-response cancellation requires a later validated replacement on the same page and event.',
           pending: pendingStreams.size, responses: streamResponses,
+          cancelled_attempts: cancelledStreams.map(attempt => ({ request_id: attempt.requestId,
+            replacement_request_id: validatedStreams.get(attempt.page)?.get(attempt.path) ?? null,
+            replacement_verified: (validatedStreams.get(attempt.page)?.get(attempt.path) ?? 0) > attempt.requestId })),
         } } : {}) }, null, 2));
     },
   };

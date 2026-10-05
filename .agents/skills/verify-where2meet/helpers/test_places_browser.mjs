@@ -16,6 +16,7 @@ const venue = () => ({ id: placeId, name: 'Fixture cafe', address: 'Fixture addr
 async function guard({ status = 200, headers = {}, body = {}, rejectGuard = false } = {}) {
   let handler;
   const calls = [];
+  const page = {};
   const driver = await createPpeDriver('/unused-places-guard-fixture', {
     scenario: 'places-routes', client_url: 'http://127.0.0.1:4317', backend_url: backend,
   }, { async route(_match, callback) { handler = callback; } }, {
@@ -30,6 +31,7 @@ async function guard({ status = 200, headers = {}, body = {}, rejectGuard = fals
     const url = pathname.startsWith('http') ? pathname : backend + pathname;
     await handler({
       request: () => ({ url: () => url, method: () => method, redirectedFrom: () => null, postDataJSON: () => ({ query: 'coffee' }),
+        frame: () => ({ page: () => page }), failure: () => null,
         response: async () => ({ status: () => status, headers: () => headers }) }),
       async continue() { calls.push('continue'); outcome = 'continued'; },
       async fetch(options) {
@@ -49,6 +51,7 @@ async function heldRequest({ stream = false, phase, status = 200, missingRespons
   let release;
   let reached;
   let outcome;
+  const page = {};
   const gate = new Promise(resolve => { release = resolve; });
   const waiting = new Promise(resolve => { reached = resolve; });
   const hold = async current => { if (current === phase) { reached(); await gate; } };
@@ -61,6 +64,7 @@ async function heldRequest({ stream = false, phase, status = 200, missingRespons
   const url = clientProxy ? 'http://127.0.0.1:4317/api/auth/session' : backend + '/api/events/evt_fixture' + (stream ? '/stream' : '');
   const pending = handler({
     request: () => ({ url: () => url, method: () => 'GET', redirectedFrom: () => null,
+      frame: () => ({ page: () => page }), failure: () => null,
       async response() { await hold('headers'); return missingResponse ? null : response; } }),
     async fetch() { assert.equal(stream, false, 'SSE must remain streamed'); await hold('fetch'); return response; },
     async continue() { outcome = 'continued'; },
@@ -69,6 +73,128 @@ async function heldRequest({ stream = false, phase, status = 200, missingRespons
   });
   await waiting;
   return { driver, release, pending, outcome: () => outcome };
+}
+
+async function streamReplacementFixture(t, { failedPostflights = [] } = {}) {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'places-stream-replacement-'));
+  await mkdir(path.join(directory, 'evidence'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const page = {};
+  const handlers = [];
+  let postflights = 0;
+  const context = () => ({ async route(_match, callback) { handlers.push(callback); } });
+  const driver = await createPpeDriver(directory, { scenario: 'places-routes', backend_url: backend }, context(), {
+    async bridge(payload) {
+      if (payload.operation === 'postflight' && failedPostflights.includes(++postflights)) throw new Error('Fixture postflight failure');
+    },
+  });
+  await driver.guardContext(context());
+  return { driver, page,
+    async send({ page: activePage = page, pathname = '/api/events/evt_fixture/stream', contextIndex = 0,
+      kind = 'valid', failure = kind === 'cancelled' ? 'net::ERR_ABORTED' : null, waitHeaders } = {}) {
+      let outcome;
+      await handlers[contextIndex]({
+        request: () => ({ url: () => backend + pathname, method: () => 'GET', redirectedFrom: () => null,
+          frame: () => ({ page: () => activePage }), failure: () => failure === null ? null : { errorText: failure },
+          async response() {
+            if (waitHeaders) await waitHeaders;
+            if (kind === 'cancelled') return null;
+            if (kind === 'missing') return undefined;
+            return { status: () => kind === 'redirect' ? 302 : 200,
+              headers: () => ({ 'content-type': kind === 'bad-type' ? 'application/json' : 'text/event-stream' }) };
+          } }),
+        async continue() { outcome = 'continued'; },
+        async fetch() { assert.fail('SSE must remain streamed'); },
+        async abort() { outcome = 'blocked'; },
+      });
+      return outcome;
+    },
+    async evidence() {
+      await driver.evidence();
+      return JSON.parse(await readFile(path.join(directory, 'evidence/ppe-request-guards.json'), 'utf8'));
+    },
+  };
+}
+
+test('an explicitly aborted SSE attempt requires a later verified replacement', async t => {
+  const run = await streamReplacementFixture(t);
+  assert.equal(await run.send({ kind: 'cancelled' }), 'continued');
+  assert.throws(() => run.driver.assertGuard(), /no later valid replacement/);
+  await assert.rejects(run.driver.settleRequests({ timeoutMs: 100 }), /no later valid replacement/);
+  const evidence = await run.evidence();
+  assert.deepEqual(evidence.blocked, []);
+  assert.deepEqual(evidence.streaming_api.cancelled_attempts,
+    [{ request_id: 1, replacement_request_id: null, replacement_verified: false }]);
+});
+
+test('an older successful SSE cannot replace a later cancelled attempt', async t => {
+  const run = await streamReplacementFixture(t);
+  await run.send();
+  await run.send({ kind: 'cancelled' });
+  await assert.rejects(run.driver.settleRequests(), /no later valid replacement/);
+  assert.deepEqual((await run.evidence()).streaming_api.cancelled_attempts,
+    [{ request_id: 2, replacement_request_id: 1, replacement_verified: false }]);
+});
+
+for (const mismatch of ['other page', 'other context', 'other event path']) {
+  test(`a valid SSE on ${mismatch} cannot replace the cancelled attempt`, async t => {
+    const run = await streamReplacementFixture(t);
+    await run.send({ kind: 'cancelled' });
+    await run.send(mismatch === 'other event path' ? { pathname: '/api/events/evt_another/stream' }
+      : { page: {}, contextIndex: mismatch === 'other context' ? 1 : 0 });
+    await assert.rejects(run.driver.settleRequests(), /no later valid replacement/);
+    assert.deepEqual((await run.evidence()).streaming_api.cancelled_attempts,
+      [{ request_id: 1, replacement_request_id: null, replacement_verified: false }]);
+  });
+}
+
+test('replacement postflight failure leaves the cancellation unresolved and the proof blocked', async t => {
+  const run = await streamReplacementFixture(t, { failedPostflights: [2] });
+  await run.send({ kind: 'cancelled' });
+  await run.send();
+  await assert.rejects(run.driver.settleRequests(), /blocked/);
+  const evidence = await run.evidence();
+  assert.equal(evidence.blocked[0].phase, 'postflight');
+  assert.deepEqual(evidence.streaming_api.cancelled_attempts,
+    [{ request_id: 1, replacement_request_id: null, replacement_verified: false }]);
+});
+
+test('the cancelled attempt also requires a successful postflight despite a valid replacement', async t => {
+  const run = await streamReplacementFixture(t, { failedPostflights: [1] });
+  await run.send({ kind: 'cancelled' });
+  await run.send();
+  await assert.rejects(run.driver.settleRequests(), /blocked/);
+  assert.equal((await run.evidence()).blocked[0].phase, 'postflight');
+});
+
+test('a later verified stream replaces a cancellation chain and preserves each receipt', async t => {
+  const run = await streamReplacementFixture(t);
+  await run.send({ kind: 'cancelled' });
+  await run.send({ kind: 'cancelled' });
+  await run.send();
+  await run.driver.settleRequests();
+  run.driver.assertGuard();
+  const evidence = await run.evidence();
+  assert.deepEqual(evidence.blocked, []);
+  assert.deepEqual(evidence.streaming_api.responses, [{ status: 200, content_type_valid: true }]);
+  assert.deepEqual(evidence.streaming_api.cancelled_attempts, [
+    { request_id: 1, replacement_request_id: 3, replacement_verified: true },
+    { request_id: 2, replacement_request_id: 3, replacement_verified: true },
+  ]);
+});
+
+for (const invalid of [{ kind: 'cancelled', failure: null }, { kind: 'cancelled', failure: 'net::ERR_FAILED' },
+  { kind: 'missing', failure: 'net::ERR_ABORTED' }, { kind: 'redirect', failure: 'net::ERR_ABORTED' },
+  { kind: 'bad-type', failure: 'net::ERR_ABORTED' }]) {
+  test(`a ${invalid.kind} response with ${invalid.failure ?? 'no failure code'} cannot use the cancellation rule`, async t => {
+    const run = await streamReplacementFixture(t);
+    await run.send(invalid);
+    await run.send();
+    await assert.rejects(run.driver.settleRequests(), /blocked/);
+    const evidence = await run.evidence();
+    assert.equal(evidence.blocked.length, 1);
+    assert.deepEqual(evidence.streaming_api.cancelled_attempts, []);
+  });
 }
 
 for (const [stream, phase] of [[false, 'guard'], [false, 'fetch'], [false, 'postflight'], [false, 'fulfill'],
@@ -209,11 +335,13 @@ for (const heldPhase of ['guard', 'headers']) {
       async route(_match, callback) { handler = callback; },
     }, { async bridge(payload) { if (payload.operation === 'guard' && heldPhase === 'guard') await hold(); } });
     const request = { url: () => backend + '/api/events/evt_fixture/stream', method: () => 'GET', redirectedFrom: () => null,
+      frame: () => ({ page: () => page }), failure: () => null,
       async response() {
         if (heldPhase === 'headers') await hold();
         return { status: () => 302, headers: () => ({ location: 'https://outside.example.test/page' }) };
       } };
     let continued = false;
+    const page = {};
     const pending = handler({ request: () => request, async continue() { continued = true; },
       async fetch() { assert.fail('SSE must not be buffered'); }, async abort() { assert.fail('This response was already continued'); } });
     try {
