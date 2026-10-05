@@ -211,7 +211,8 @@ export async function runPlacesScenario({ page, browser, run, eventId, organizer
       await panel.getByRole('heading', { name: 'Travel Times', exact: true }).waitFor();
       await panel.getByText('Calculating routes...', { exact: true }).waitFor({ state: 'hidden' });
       for (const person of people) {
-        const row = panel.locator('div.rounded-xl').filter({ has: panel.getByText(person.name, { exact: true }) });
+        const row = panel.locator('div.rounded-xl').filter({ hasText: person.name });
+        await row.waitFor({ state: 'visible' });
         assert.equal(await row.count(), 1, 'Each participant must have one visible travel row');
         const route = data.routes.find(item => item.participantId === person.id);
         await row.getByText(route.duration.text, { exact: true }).waitFor();
