@@ -40,6 +40,28 @@ export async function searchPlaces(
   );
 }
 
+/**
+ * Card details for known place IDs, keyed by the ID asked for (Google may answer with a
+ * newer one). A place Google can't return is left out, so its card can still show the
+ * editor's words.
+ */
+export async function fetchPlaces(ids: readonly string[]): Promise<Map<string, PlaceSummary>> {
+  const { places } = await loadGoogleMaps();
+  const found = await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const place = new places.Place({ id });
+        await place.fetchFields({ fields: CARD_FIELDS });
+        return toPlaceSummary(place).map((summary) => [id, summary] as const);
+      } catch (error) {
+        console.error(`[places] Couldn't load place ${id}:`, error);
+        return [];
+      }
+    })
+  );
+  return new Map(found.flat());
+}
+
 /** The best match for a typed city name, or null when Google finds nothing. */
 export async function findCity(query: string): Promise<SearchArea | null> {
   const { places } = await loadGoogleMaps();
