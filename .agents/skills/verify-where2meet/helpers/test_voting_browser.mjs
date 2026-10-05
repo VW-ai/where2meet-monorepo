@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -395,6 +396,20 @@ test('voting stored evidence projects only exact membership and publication fiel
     votes: [{ id: voteId, event_id: eventId, participant_id: organizerId, venue_id: placeId }],
   });
   assert.deepEqual(votingStoredProjection({ event: null, participants: [], votes: [] }), { event: null, participants: [], votes: [] });
+});
+
+test('database publication time preserves UTC milliseconds in a non-UTC verifier process', () => {
+  const moduleUrl = new URL('./voting-browser.mjs', import.meta.url).href;
+  const output = execFileSync(process.execPath, ['--input-type=module', '-e', `
+    import { votingStoredProjection } from ${JSON.stringify(moduleUrl)};
+    const raw = '2026-10-05T20:01:03.876';
+    const projected = votingStoredProjection({ event: { id: 'evt_fixture', published_at: raw,
+      published_venue_id: 'observed-place' }, participants: [], votes: [] });
+    console.log(JSON.stringify({ unzoned_ms: Date.parse(raw), publication: projected.event.published_at,
+      publication_ms: Date.parse(projected.event.published_at) }));
+  `], { encoding: 'utf8', env: { ...process.env, TZ: 'America/Los_Angeles' } });
+  assert.deepEqual(JSON.parse(output), { unzoned_ms: 1791255663876,
+    publication: '2026-10-05T20:01:03.876Z', publication_ms: 1791230463876 });
 });
 
 test('voting failures preserve labeled evidence and redact credentials even when teardown also fails', async t => {

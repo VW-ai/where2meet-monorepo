@@ -86,9 +86,16 @@ export function assertPublication(event, { eventId, participantIds, venueId }) {
   return event;
 }
 
+function databasePublicationTime(value) {
+  if (value === null) return null;
+  assert.match(value, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z?$/);
+  // Prisma stores UTC in TIMESTAMP(3); row_to_json omits that offset.
+  return new Date(value.endsWith('Z') ? value : value + 'Z').toISOString();
+}
+
 export function votingStoredProjection(stored) {
   return { event: stored.event === null ? null : {
-    id: stored.event.id, published_at: stored.event.published_at, published_venue_id: stored.event.published_venue_id,
+    id: stored.event.id, published_at: databasePublicationTime(stored.event.published_at), published_venue_id: stored.event.published_venue_id,
   }, participants: stored.participants.map(({ id, event_id }) => ({ id, event_id })),
   votes: stored.votes.map(({ id, event_id, participant_id, venue_id }) => ({ id, event_id, participant_id, venue_id })) };
 }
