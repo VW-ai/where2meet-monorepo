@@ -136,13 +136,18 @@ describe('sitemap', () => {
       `${CANONICAL_ORIGIN}/faq`,
       `${CANONICAL_ORIGIN}/contact`,
       `${CANONICAL_ORIGIN}/blog`,
+      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-weekend-hangout-with-friends`,
       `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
     ]);
   });
 
   it('dates each post by its update and the blog by its newest post', () => {
     const blogEntries = entries.filter((entry) => entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`));
-    expect(blogEntries.map((entry) => entry.lastModified)).toEqual(['2026-10-04', '2026-10-04']);
+    expect(blogEntries.map((entry) => entry.lastModified)).toEqual([
+      '2026-10-05',
+      '2026-10-05',
+      '2026-10-04',
+    ]);
   });
 
   it('uses fixed ISO content dates for lastModified, never the build time', () => {
