@@ -32,15 +32,11 @@ export async function createPpeDriver(runDir, run, context) {
   };
 
   async function guardContext(activeContext) {
-    await activeContext.route('**/api/**', async route => {
+    await activeContext.route(url => url.pathname === '/api' || url.pathname.startsWith('/api/'), async route => {
       const request = route.request();
       const url = new URL(request.url());
       try {
         assert.equal(request.redirectedFrom(), null, 'API redirects are not accepted');
-        if (run.scenario === 'participants' && url.origin === 'https://maps.googleapis.com' &&
-            url.pathname.startsWith('/maps/api/') && request.method() === 'GET') {
-          return await route.continue();
-        }
         if (url.origin === run.client_url) {
           assert.equal(url.pathname, '/api/auth/session', 'Only the fixed Next session proxy is permitted');
           assert.equal(request.method(), 'GET');

@@ -66,7 +66,9 @@ jobs:
           cd .agents/skills/verify-where2meet/helpers
           npx --no-install playwright install --with-deps chrome
       - name: Test local and PPE ownership boundaries
-        run: python3 -m unittest discover -s .agents/skills/verify-where2meet/helpers -p 'test_*.py' -v
+        run: |
+          python3 -m unittest discover -s .agents/skills/verify-where2meet/helpers -p 'test_*.py' -v
+          node --test .agents/skills/verify-where2meet/helpers/test_ppe_browser.mjs
       - name: Run real frontend against compiled backend and migrated database
         run: |
           python3 .agents/skills/verify-where2meet/helpers/control.py launch --repo "$GITHUB_WORKSPACE" --frontend-repo "$FRONTEND_REPO" --run "$RUN_DIR"
