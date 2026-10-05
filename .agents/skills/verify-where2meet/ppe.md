@@ -30,6 +30,8 @@ The participant scenario adds real autocomplete and geocoding, separate-browser 
 
 For accounts, add `--scenario accounts` and use the corrected M2 frontend. The driver creates one synthetic email account and two named organizer meetings through the UI. It checks anonymous creation followed by registration and claim, signed-in creation, reload, profile save and cancel, logout and login, retained organizer access, and a fresh device's public-only meeting view. No Google key is needed for these no-address actions. The request guard binds cookies to sessions issued to this run's account, restricts claims to its recorded meeting credentials, and rejects API redirects. The Next proxy must also reject downstream redirects; browser interception alone cannot prove that hop.
 
+The driver reads the real browser cookie jar and selects only `session_token` for the exact frontend hostname and `/` path. Chrome sends Secure cookies to its trusted loopback origin, while Playwright's HTTP URL filter and API request context can omit them. Explicit verifier reads therefore attach that existing cookie only to the frontend proxy origin; meeting requests to Railway do not receive it. PPE requires the observed cookie to remain Secure. The local cookie transport fixture in the main skill checks this behavior without weakening cookie attributes.
+
 Inspect the run's `evidence/result.json`, boundary results, state snapshots, network destinations, identity checks, and cleanup result. An assertion failure remains FAIL after successful cleanup. Keep failed attempts when a later fix passes. Do not publish raw browser storage, credentials, or query strings.
 
 For an interrupted run, retry only its recorded synthetic-event cleanup:

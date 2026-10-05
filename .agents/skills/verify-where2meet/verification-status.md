@@ -10,7 +10,11 @@ The clean unchanged frontend `05e6daa2245e31dfd142768b545b74cdb9a51476` also pas
 
 Independent review reproduced a cancelled profile save that stayed busy after failed logout. The fixed Settings component restores its save button, shows the failure and retains the valid account. The component fault test substitutes transport and Google/Next rendering dependencies; it does not establish backend or PPE behavior. Real browser and database evidence remains separate.
 
-The account backend is deployed to dedicated PPE deployment `f6042b7d-01b5-41df-b82d-86e728dc30a2`. Control-plane identity and database/Redis readiness pass. The remote account scenario remains unverified pending temporary SSH access for database corroboration and bounded cleanup. No account test data has been created in PPE for this slice. Local PASS and deployment readiness do not satisfy remote acceptance. No migration PR is merged, and staging and production are unchanged.
+The same backend and frontend pass all 18 account checks in dedicated Railway PPE run `2026-10-04-m2-accounts-ppe-b`, deployment `f6042b7d-01b5-41df-b82d-86e728dc30a2`. Control-plane checks bind the run to the expected database and Redis. Browser actions and remote SQL corroborate registration, claims, profile persistence and independent sessions. The observed session cookie retains Secure, HttpOnly, SameSite=Lax and Path=/. Request guards record no blocked requests, and the browser reports no uncaught errors.
+
+Attempt A failed because the verifier's HTTP URL cookie filter omitted the Secure session stored by Chrome. The corrected verifier selects the actual cookie by exact hostname, name and root path, and passes it only to explicit frontend proxy reads. The backend, frontend and cookie attributes are unchanged between attempts. A real Chrome loopback fixture and ten request-guard tests cover the fix. Keep A's failed result and successful cleanup alongside B's pass.
+
+Both attempts removed their two synthetic meetings and account rows, including identities, sessions and links. B's verification and cleanup fingerprints match. The approved temporary Railway SSH key was revoked after cleanup, its absence was checked, and the local private key was removed. No migration PR is merged, and staging and production are unchanged. Hosted frontend cookies, Google account defaults, manual and participant claim UI variants, and historical production migration remain outside this account run.
 
 ## Railway PPE, 2026-10-04
 
