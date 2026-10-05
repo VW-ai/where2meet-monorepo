@@ -33,7 +33,7 @@ def gate(needs_json):
     return passed, lines
 
 
-def evidence(directory, backend_sha, frontend_sha):
+def evidence(directory, backend_sha, frontend_sha, scenario):
     if any(re.fullmatch(r"[0-9a-f]{40}", sha) is None for sha in (backend_sha, frontend_sha)):
         raise ValueError("expected identities must be full commit SHAs")
     documents = {}
@@ -52,7 +52,8 @@ def evidence(directory, backend_sha, frontend_sha):
             "source_status": "", "frontend_status": "", "mocks": "off",
             "process_ownership": "verified", "schema_mode": "migrations", "backend_mode": "compiled",
         },
-        "result": {"status": "PASS", "source_commit": backend_sha, "backend_mode": "compiled"},
+        "result": {"status": "PASS", "source_commit": backend_sha, "frontend_commit": frontend_sha,
+                   "backend_mode": "compiled", "feature": scenario},
         "cleanup": {"status": "cleaned", "issues": []},
     }
     for name, fields in expected.items():
@@ -72,12 +73,13 @@ def main():
     evidence_parser.add_argument("--evidence-dir", type=Path, required=True)
     evidence_parser.add_argument("--backend-sha", required=True)
     evidence_parser.add_argument("--frontend-sha", required=True)
+    evidence_parser.add_argument("--scenario", choices=("event-lifecycle", "accounts"), default="event-lifecycle")
     args = parser.parse_args()
     try:
         if args.operation == "gate":
             passed, lines = gate(args.needs_json)
         else:
-            passed, lines = evidence(args.evidence_dir, args.backend_sha, args.frontend_sha)
+            passed, lines = evidence(args.evidence_dir, args.backend_sha, args.frontend_sha, args.scenario)
     except (OSError, ValueError) as error:
         passed, lines = False, [str(error) if args.operation == "evidence" else "Malformed needs JSON."]
     report = "\n".join([f"CI {args.operation}: {'PASS' if passed else 'FAIL'}", "", *lines]) + "\n"

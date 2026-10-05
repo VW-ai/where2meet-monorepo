@@ -32,7 +32,8 @@ class PolicyCLI(unittest.TestCase):
                 "source_status": "", "frontend_status": "", "mocks": "off",
                 "process_ownership": "verified", "schema_mode": "migrations", "backend_mode": "compiled",
             },
-            "result": {"status": "PASS", "source_commit": BACKEND, "backend_mode": "compiled"},
+            "result": {"status": "PASS", "source_commit": BACKEND, "frontend_commit": FRONTEND,
+                       "backend_mode": "compiled", "feature": "event-lifecycle"},
             "cleanup": {"status": "cleaned", "issues": []},
         }
 
@@ -51,9 +52,9 @@ class PolicyCLI(unittest.TestCase):
         for name, document in self.documents.items():
             (self.directory / f"{name}.json").write_text(json.dumps(document), encoding="utf-8")
 
-    def run_evidence(self, backend=BACKEND, frontend=FRONTEND):
+    def run_evidence(self, backend=BACKEND, frontend=FRONTEND, scenario="event-lifecycle"):
         return self.invoke("evidence", "--evidence-dir", str(self.directory),
-                           "--backend-sha", backend, "--frontend-sha", frontend)
+                           "--backend-sha", backend, "--frontend-sha", frontend, "--scenario", scenario)
 
     def assert_rejected(self, result, operation):
         self.assertEqual(result.returncode, 1, result.stderr)
@@ -136,7 +137,7 @@ Browser evidence matches both commits and cleanup completed.
 
     def test_evidence_rejects_stale_backend_and_frontend_identities(self):
         for name, field in (("doctor", "source_commit"), ("doctor", "frontend_commit"),
-                            ("result", "source_commit")):
+                            ("result", "source_commit"), ("result", "frontend_commit")):
             with self.subTest(name=name, field=field):
                 previous = self.documents[name][field]
                 self.documents[name][field] = "9" * 40
@@ -145,6 +146,18 @@ Browser evidence matches both commits and cleanup completed.
                 self.assert_rejected(result, "evidence")
                 self.assertIn(f"{name}.json has invalid {field}", result.stdout)
                 self.documents[name][field] = previous
+
+    def test_accounts_requires_its_own_browser_result(self):
+        self.write_evidence()
+        rejected = self.run_evidence(scenario="accounts")
+        self.assert_rejected(rejected, "evidence")
+        self.assertIn("result.json has invalid feature", rejected.stdout)
+        self.documents["result"]["feature"] = "accounts"
+        self.write_evidence()
+        accepted = self.run_evidence(scenario="accounts")
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        self.assertEqual(accepted.stdout.splitlines()[0], "CI evidence: PASS")
+        self.assert_rejected(self.run_evidence(), "evidence")
 
     def test_evidence_rejects_failed_and_unfinished_runs(self):
         for name, field, value in (

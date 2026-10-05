@@ -20,19 +20,26 @@ concurrency:
 
 jobs:
   lifecycle:
-    name: Browser (${{ matrix.frontend }})
+    name: Browser (${{ matrix.frontend }}, ${{ matrix.scenario }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        frontend: [candidate, fixed]
+        include:
+          - frontend: candidate
+            scenario: event-lifecycle
+          - frontend: fixed
+            scenario: event-lifecycle
+          - frontend: candidate
+            scenario: accounts
     env:
       FRONTEND_CASE: ${{ matrix.frontend }}
+      BROWSER_SCENARIO: ${{ matrix.scenario }}
       FIXED_FRONTEND_SHA: 05e6daa2245e31dfd142768b545b74cdb9a51476
     steps:
       - name: Set browser run directory
-        run: echo "RUN_DIR=$RUNNER_TEMP/where2meet-browser-$FRONTEND_CASE" >> "$GITHUB_ENV"
+        run: echo "RUN_DIR=$RUNNER_TEMP/where2meet-browser-$FRONTEND_CASE-$BROWSER_SCENARIO" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -68,11 +75,42 @@ jobs:
       - name: Test local and PPE ownership boundaries
         run: |
           python3 -m unittest discover -s .agents/skills/verify-where2meet/helpers -p 'test_*.py' -v
-          node --test .agents/skills/verify-where2meet/helpers/test_ppe_browser.mjs
+          node --test .agents/skills/verify-where2meet/helpers/test_ppe_browser.mjs .agents/skills/verify-where2meet/helpers/test_ppe_accounts_browser.mjs
       - name: Run real frontend against compiled backend and migrated database
         run: |
           python3 .agents/skills/verify-where2meet/helpers/control.py launch --repo "$GITHUB_WORKSPACE" --frontend-repo "$FRONTEND_REPO" --run "$RUN_DIR"
-          python3 .agents/skills/verify-where2meet/helpers/control.py drive --run "$RUN_DIR"
+          python3 .agents/skills/verify-where2meet/helpers/control.py drive --run "$RUN_DIR" --scenario "$BROWSER_SCENARIO"
+      - name: Verify cancelled profile save and failed logout in the Settings component
+        if: matrix.scenario == 'accounts'
+        run: node .agents/skills/verify-where2meet/helpers/account-ui-races.mjs "$RUN_DIR"
+      - name: Verify PPE account cleanup against isolated PostgreSQL
+        if: matrix.scenario == 'accounts'
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          from urllib.parse import urlsplit, urlunsplit
+          import uuid
+
+          state = json.loads((Path(os.environ["RUN_DIR"]) / "run.json").read_text())
+          original = urlsplit(state["database_url"])
+          if original.hostname != "127.0.0.1":
+              raise SystemExit("Cleanup tests require the owned loopback cluster")
+          database = "w2m_ppe_accounts_test_" + uuid.uuid4().hex
+          test_url = urlunsplit(original._replace(path="/" + database, query=""))
+          env = {**os.environ, "DATABASE_URL": test_url, "PPE_ACCOUNTS_TEST_DATABASE_URL": test_url}
+          subprocess.run(["createdb", "--maintenance-db=" + state["database_url"], database], check=True)
+          try:
+              subprocess.run(["npm", "run", "db:migrate:deploy"], env=env,
+                             cwd=Path(state["source_copy"]) / "server", check=True)
+              subprocess.run([sys.executable, "-m", "unittest", "discover", "-s",
+                              ".agents/skills/verify-where2meet/helpers", "-p", "test_ppe_accounts.py", "-v"],
+                             env=env, check=True)
+          finally:
+              subprocess.run(["dropdb", "--maintenance-db=" + state["database_url"], database], check=True)
       - name: Save local failure diagnostics
         if: failure()
         shell: python
@@ -99,12 +137,12 @@ jobs:
           fi
       - name: Require matching browser evidence and completed cleanup
         if: always()
-        run: python3 .github/scripts/ci_policy.py evidence --evidence-dir "$RUN_DIR/evidence" --backend-sha "$GITHUB_SHA" --frontend-sha "$EXPECTED_FRONTEND_SHA"
+        run: python3 .github/scripts/ci_policy.py evidence --evidence-dir "$RUN_DIR/evidence" --backend-sha "$GITHUB_SHA" --frontend-sha "$EXPECTED_FRONTEND_SHA" --scenario "$BROWSER_SCENARIO"
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-browser-${{ matrix.frontend }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: backend-browser-${{ matrix.frontend }}-${{ matrix.scenario }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ env.RUN_DIR }}/evidence/*.json
             ${{ env.RUN_DIR }}/evidence/*.log

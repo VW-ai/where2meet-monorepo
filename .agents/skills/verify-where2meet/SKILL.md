@@ -98,12 +98,13 @@ test "$VERIFY_GOOGLE_STATUS" -eq 0
 
 Always execute cleanup even after a failing driver. If your shell exits on the first failure, run cleanup in a `finally` step in your orchestration instead. Evidence uses the `google-` prefix and `google-result.json`; the ordinary `result.json` belongs to the separate no-location lifecycle driver. Review [current verification coverage](verification-status.md) before interpreting a feature's status.
 
-The [accounts driver](helpers/accounts-browser.mjs) covers registration, sign-in, logout, settings, organizer claims, and separate-browser dashboard access. Token-only `/me` recovery passes with the M1 frontend correction; anonymous-organizer auto-claim remains a failing assertion. Run this full account flow against the old backend while M1 account writes are unavailable. Require every selected check to pass before accepting an account migration. A FAIL result with passing individual checks remains FAIL overall.
+The [accounts driver](helpers/accounts-browser.mjs) covers registration, sign-in, logout, settings, organizer claims, retained meeting credentials, and separate-browser dashboard access. Use the M2 account backend and corrected frontend. The no-address flow needs no Google key; default addresses and map behavior remain outside its proof. Require every selected check to pass before accepting an account migration. A FAIL result with passing individual checks remains FAIL overall.
 
 ```sh
-python3 "$VERIFY_SKILL/helpers/control.py" doctor --run "$VERIFY_RUN"
-node "$VERIFY_SKILL/helpers/accounts-browser.mjs" "$VERIFY_RUN"
+python3 "$VERIFY_SKILL/helpers/control.py" drive --run "$VERIFY_RUN" --scenario accounts
 ```
+
+After the account flow, run `node "$VERIFY_SKILL/helpers/account-ui-races.mjs" "$VERIFY_RUN"` before local cleanup. This bundles the actual Settings component and account store with explicit rendering and fetch fixtures. It checks a pending profile save cancelled by a failed logout, retained login, a usable save button, visible failure and successful logout retry. It blocks real network requests, rejects PPE runs and writes separate `accounts-ui-races.json` evidence. This component fault test supplements the real account flow; it cannot prove backend behavior or cookies.
 
 Each driver must run by itself. After a failed attempt, clean up and launch a fresh run before retrying. Navigation can discard a captured response body or leave a previous page's response pending. The accounts driver observes UI actions and response status, then corroborates the session and dashboard through read-only requests using that browser's Cookie jar. Its `accounts-*.json` evidence stores Cookie attributes and hash-presence checks without credential values.
 
@@ -170,7 +171,7 @@ The private output directory must not already exist. Use the candidate's `server
 python3 "$VERIFY_SKILL/helpers/control.py" restart-backend --run "$VERIFY_RUN"
 ```
 
-Restart checks ownership before stopping only that run's backend, preserves its database, and records the old and new process IDs. Run `node "$VERIFY_SKILL/helpers/migration-proof.mjs" "$VERIFY_RUN" "$PRIVATE_FIXTURE_DIR"` to import twice, compare every selected row including the password hash, and verify the old participant token, valid session cookie, and expired cookie before and after restart. It also opens the original event ID in an anonymous browser. Copying a hash is not sufficient proof that the old credential works. Keep the UI lifecycle evidence separate from this fixture-based credential proof. Remove private fixture files after completing the rehearsal.
+Restart checks ownership before stopping only that run's backend, preserves its database, and records the old and new process IDs. Run `node "$VERIFY_SKILL/helpers/migration-proof.mjs" "$VERIFY_RUN" "$PRIVATE_FIXTURE_DIR"` to import twice, compare every selected row including the password hash, and verify the old participant token, valid session cookie, and expired cookie before and after restart. Add `--accounts` for M2 to log in through Next with the original password, read the imported dashboard relationship, repeat its claim without changing its ID or timestamp, and revoke the new session without extending or revoking the old one. It also opens the original event ID in an anonymous browser. Copying a hash is not sufficient proof that the old credential works. Keep the UI lifecycle evidence separate from this fixture-based credential proof. Remove private fixture files after completing the rehearsal.
 
 ## Cleanup
 

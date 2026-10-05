@@ -8,7 +8,7 @@ Read [the Railway setup](../../../server/docs/railway-ppe.md). Record the exact 
 
 The verifier accepts only the recorded project and independent PPE environment. It checks the actual service instances, active backend deployment, domain mapping, CORS, and database/Redis references. A target that merely has `ppe` in its URL is insufficient. Replacing a deployment invalidates an active run. Start a fresh run with new evidence after a deployment changes.
 
-PPE database reads use authenticated native SSH to the verified PostgreSQL service instance. Supply a registered private key through `PPE_SSH_KEY` and an established known-host file through `PPE_SSH_KNOWN_HOSTS`. Keep both outside the repository. The verifier requires host verification and sends only its fixed read-only SQL projection. It does not open database ports, register keys, accept new host keys, or write rows through SQL. Remove a temporary verification key after the run and any cleanup retries complete.
+PPE database checks use authenticated native SSH to the verified PostgreSQL service instance. Supply a registered private key through `PPE_SSH_KEY` and an established known-host file through `PPE_SSH_KNOWN_HOSTS`. Keep both outside the repository. The verifier requires host verification and uses fixed read-only projections. The accounts scenario additionally has a fixed transaction to remove its recorded synthetic account after its meetings are absent. It does not accept arbitrary SQL or open database ports, register keys, or accept new host keys. Remove a temporary verification key after the run and any cleanup retries complete.
 
 Prerequisites are Python 3, Node LTS, npm, Git, Railway CLI with read access to the target, OpenSSH, and Google Chrome. Port ownership checks use `ss` on Linux and `lsof` on macOS. No local PostgreSQL or Redis server is needed. Use a clean frontend checkout and leave `http://127.0.0.1:4317` free. Its CORS origin must already be configured in PPE.
 
@@ -28,6 +28,8 @@ For participant changes, add `--scenario participants` and supply `NEXT_PUBLIC_G
 
 The participant scenario adds real autocomplete and geocoding, separate-browser joining, tokenless organizer additions, edits, public fuzzy-address redaction, private own-address reads, live membership updates, removal and leaving. It records created participant IDs before allowing their PATCH or DELETE requests. Only the UI may create test participants, inside the run's exact synthetic event. Use the corrected M2 frontend for this scenario. The original `05e6daa` pin remains the no-location compatibility baseline; it cannot correctly edit a newly redacted fuzzy address.
 
+For accounts, add `--scenario accounts` and use the corrected M2 frontend. The driver creates one synthetic email account and two named organizer meetings through the UI. It checks anonymous creation followed by registration and claim, signed-in creation, reload, profile save and cancel, logout and login, retained organizer access, and a fresh device's public-only meeting view. No Google key is needed for these no-address actions. The request guard binds cookies to sessions issued to this run's account, restricts claims to its recorded meeting credentials, and rejects API redirects. The Next proxy must also reject downstream redirects; browser interception alone cannot prove that hop.
+
 Inspect the run's `evidence/result.json`, boundary results, state snapshots, network destinations, identity checks, and cleanup result. An assertion failure remains FAIL after successful cleanup. Keep failed attempts when a later fix passes. Do not publish raw browser storage, credentials, or query strings.
 
 For an interrupted run, retry only its recorded synthetic-event cleanup:
@@ -36,7 +38,7 @@ For an interrupted run, retry only its recorded synthetic-event cleanup:
 python3 .agents/skills/verify-where2meet/helpers/ppe.py cleanup --run "$PPE_RUN"
 ```
 
-Cleanup checks target identity and deletes only events recorded from this run's successful UI creation. It never selects events by title prefix, deletes a Railway service, or resets a database. If identity or ownership cannot be proved, retain the run and report the exact residual event IDs. Do not mark cleanup complete while data remains.
+Cleanup checks target identity and deletes only events recorded from this run's successful UI creation. The accounts scenario then checks the account's exact ID, email, creation receipt, identity and database dependencies before deleting that one synthetic account and its sessions. Any remaining account-to-event relationship prevents deletion. Its private journal supports a retry and stays on disk when cleanup is incomplete. It never selects events by title prefix, deletes a Railway service, or resets a database. If identity or ownership cannot be proved, retain the run and report the exact residual IDs. Do not mark cleanup complete while data remains.
 
 ## Add behavior at a domain boundary
 
@@ -57,6 +59,6 @@ CI currently runs local compatibility and verifier guard tests. This recipe supp
 
 ## Interpret a result
 
-A successful default run proves the listed M1 lifecycle against this PPE deployment through a local Next development server. The named participant scenario additionally proves only the Google and participant behavior recorded in its `result.json` and `participants-state.json`. Neither scenario proves frontend production hosting, cross-site cookie behavior, old-data import, or unimplemented operations. See [recorded coverage](verification-status.md).
+A successful default run proves the listed M1 lifecycle against this PPE deployment through a local Next development server. The participant and accounts scenarios prove only the behavior recorded in their `result.json` and state observations. The accounts scenario exercises production Secure cookies through the actual loopback Next proxy. This does not establish hosted cross-site cookie behavior. None of these scenarios proves frontend production hosting, old-data import, or unimplemented operations. See [recorded coverage](verification-status.md).
 
 Source provenance is setup-attested: the deployer records the clean Git archive and Railway image digest. The verifier compares that record and the source-revision variable with the control plane. It does not independently attest running binary contents. Pre/post deployment checks detect drift but do not atomically pin every HTTP request. Keep a single deployer and no automatic PPE rollout during verification; rerun if deployment identity changes.

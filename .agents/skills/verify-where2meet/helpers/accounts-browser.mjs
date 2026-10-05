@@ -6,11 +6,14 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { createPpeAccountsDriver, safeAccountRequest } from './ppe-accounts-browser.mjs';
 
 assert(process.argv[2], 'Supply the absolute verification run directory');
 const runDir = path.resolve(process.argv[2]);
 const run = JSON.parse(await readFile(path.join(runDir, 'run.json'), 'utf8'));
-assert.equal(run.kind, 'where2meet-verification-v1');
+const isPpe = run.kind === 'where2meet-ppe-run-v1';
+assert(['where2meet-verification-v1', 'where2meet-ppe-run-v1'].includes(run.kind));
+assert.equal(run.scenario, 'accounts');
 assert.equal(run.run_dir, runDir);
 assert.equal(run.status, 'ready');
 const doctor = JSON.parse(await readFile(path.join(runDir, 'evidence/doctor.json'), 'utf8'));
@@ -20,20 +23,26 @@ const { chromium } = require('playwright');
 const evidence = path.join(runDir, 'evidence');
 const psql = existsSync('/opt/homebrew/opt/postgresql@14/bin/psql')
   ? '/opt/homebrew/opt/postgresql@14/bin/psql' : 'psql';
-const account = {
+const ppe = isPpe ? await createPpeAccountsDriver(runDir, run) : null;
+const account = ppe?.account ?? {
   email: `verify-accounts-${Date.now()}-${randomBytes(4).toString('hex')}@example.test`,
   password: `Verify-${randomBytes(24).toString('hex')}!`,
   name: 'Verification account',
   updatedName: 'Verification renamed account',
 };
-let title = `Account verification ${run.run_id.slice(0, 8)} ${Date.now()}`;
+const titles = ppe?.titles ?? {
+  anonymous: `Account verification ${run.run_id.slice(0, 8)}`,
+  'signed-in': `Account verification ${run.run_id.slice(0, 8)} signed in`,
+};
+let title = titles.anonymous;
+const ownedEvents = [];
 const actions = [];
 const network = [];
 const pageErrors = [];
 const consoleErrors = [];
 const result = {
   status: 'FAIL',
-  feature: 'accounts-claims-baseline',
+  feature: 'accounts',
   source_commit: run.source_commit,
   frontend_commit: run.frontend_commit,
   backend_mode: run.backend_mode,
@@ -43,7 +52,7 @@ const result = {
   scope: [],
   not_verified: [
     'Participant claims after joining', 'Manual claim banner',
-    'Default address and geolocation', 'Application of fuzzy preference when joining',
+    'Google Maps and address autocomplete', 'Default address and geolocation', 'Application of fuzzy preference when joining',
     'Password validation', 'Password recovery', 'External identities',
     'Settings and landing signout entry points', 'Cross-device organizer mutations',
     'Phone layouts', 'Historical data migration', 'Production build',
@@ -87,7 +96,7 @@ async function check(name, work, { fatal = true } = {}) {
 
 function responseFor(current, pathname, method, timeout = 45000) {
   const promise = current.waitForResponse(response =>
-    new URL(response.url()).pathname === pathname && response.request().method() === method,
+    response.url() === `${pathname.startsWith('/api/auth/') || pathname.startsWith('/api/users/') ? run.client_url : run.backend_url}${pathname}` && response.request().method() === method,
     { timeout },
   );
   promise.catch(() => {});
@@ -98,6 +107,7 @@ async function newPage(name) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce',
   });
+  await ppe?.guardContext(context);
   const current = await context.newPage();
   current.setDefaultTimeout(45000);
   current.setDefaultNavigationTimeout(120000);
@@ -106,8 +116,8 @@ async function newPage(name) {
   current.on('response', response => {
     const url = new URL(response.url());
     if (url.pathname.startsWith('/api/')) {
-      network.push({ browser: name, method: response.request().method(),
-        origin: url.origin, path: url.pathname, status: response.status() });
+      network.push({ browser: name, ...safeAccountRequest(response.request().method(), url, run),
+        status: response.status() });
     }
   });
   current.on('pageerror', error => pageErrors.push({ browser: name, message: scrub(error.message) }));
@@ -142,7 +152,8 @@ async function cookieMetadata(current) {
   }));
 }
 
-function stored({ eventId, userId = null, expectedName = account.name }) {
+async function stored({ eventId, userId = null, expectedName = account.name }) {
+  if (ppe) return ppe.storedAccount({ eventId, userId, expectedName });
   assert.match(eventId, /^evt_[A-Za-z0-9_]+$/);
   if (userId) assert.match(userId, /^usr_[A-Za-z0-9_]+$/);
   assert([account.name, account.updatedName].includes(expectedName));
@@ -176,6 +187,46 @@ function stored({ eventId, userId = null, expectedName = account.name }) {
   ).trim());
 }
 
+async function accountRequest(current, requestPath) {
+  if (ppe) return ppe.request(current, 'GET', requestPath);
+  return current.request.get(`${run.client_url}${requestPath}`, { maxRedirects: 0 });
+}
+
+async function assertOwnerAccess(eventId, participantId) {
+  const identity = responseFor(page, `/api/events/${eventId}/me`, 'GET');
+  const stream = responseFor(page, `/api/events/${eventId}/stream`, 'GET');
+  await navigate(page, `/meet/${eventId}`, 200);
+  const me = await identity;
+  assert.equal(me.status(), 200);
+  assert.equal((await me.json()).participantId, participantId);
+  const live = await stream;
+  assert.equal(live.status(), 200);
+  assert.match(live.headers()['content-type'], /text\/event-stream/);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click({ trial: true });
+  const retained = await page.evaluate(id => ({
+    has_token: /^pt_[0-9a-f]{64}$/.test(localStorage.getItem(`organizer_token_${id}`) ?? ''),
+    participant_id: localStorage.getItem(`organizer_participant_id_${id}`),
+  }), eventId);
+  assert.deepEqual(retained, { has_token: true, participant_id: participantId });
+}
+
+async function cleanupLocalEvents() {
+  for (const eventId of ownedEvents) {
+    await page.goto(`${run.client_url}/meet/${eventId}`, { waitUntil: 'domcontentloaded' });
+    await page.locator('.cat-portal').waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByRole('button', { name: 'Delete Event', exact: true }).click();
+    await page.getByPlaceholder('Type DELETE', { exact: true }).fill('DELETE');
+    const deletion = responseFor(page, `/api/events/${eventId}`, 'DELETE');
+    await page.getByRole('button', { name: 'Delete Event', exact: true }).click();
+    assert.equal((await deletion).status(), 200);
+    const state = await stored({ eventId });
+    assert.equal(state.event_exists, false);
+    assert.deepEqual(state.participants, []);
+  }
+  await save('ui-cleanup', { status: 'PASS', event_ids: ownedEvents });
+}
+
 function eventCard(current) {
   return current.getByRole('link').filter({
     has: current.getByRole('heading', { name: title, exact: true }),
@@ -185,12 +236,12 @@ function eventCard(current) {
 async function dashboard(current, userId) {
   const events = responseFor(current, '/api/users/me/events', 'GET');
   await navigate(current, '/dashboard', 200);
-  const session = await current.request.get(`${run.client_url}/api/auth/session`);
+  const session = await accountRequest(current, '/api/auth/session');
   assert.equal(session.status(), 200);
   assert.equal((await session.json()).user.id, userId);
   const listing = await events;
   assert.equal(listing.status(), 200);
-  const persisted = await current.request.get(`${run.client_url}/api/users/me/events`);
+  const persisted = await accountRequest(current, '/api/users/me/events');
   assert.equal(persisted.status(), 200);
   const payload = await persisted.json();
   assert(Array.isArray(payload.events), 'Dashboard event response must contain an events array');
@@ -215,7 +266,7 @@ async function signIn(current, userId) {
   assert.equal(response.status(), 200);
   await current.waitForURL(`${run.client_url}/dashboard`);
   await current.getByRole('heading', { name: 'My Events', exact: true }).waitFor();
-  const session = await current.request.get(`${run.client_url}/api/auth/session`);
+  const session = await accountRequest(current, '/api/auth/session');
   assert.equal(session.status(), 200);
   assert.equal((await session.json()).user.id, userId);
 }
@@ -245,11 +296,13 @@ try {
     const created = await creation;
     assert.equal(created.status(), 201);
     result.event_id = (await created.json()).id;
+    ownedEvents.push(result.event_id);
     assert.match(result.event_id, /^evt_[A-Za-z0-9_]+$/);
     await page.waitForURL(`${run.client_url}/meet/${result.event_id}`);
     await page.locator('.cat-portal').waitFor({ state: 'detached' });
     await page.getByRole('button', { name: 'Settings', exact: true }).click({ trial: true });
-    const state = stored({ eventId: result.event_id });
+    await ppe?.saveSession(page.context());
+    const state = await stored({ eventId: result.event_id });
     assert.equal(state.event_exists, true);
     assert.equal(state.participants.length, 1);
     assert.equal(state.participants[0].is_organizer, true);
@@ -351,7 +404,7 @@ try {
     assert.match(userId, /^usr_[A-Za-z0-9_]+$/);
     result.user_id = userId;
     await page.waitForURL(`${run.client_url}/dashboard`);
-    const state = stored({ eventId: result.event_id, userId });
+    const state = await stored({ eventId: result.event_id, userId });
     assert.equal(state.user.name_matches, true);
     assert.equal(state.has_active_session, true);
     assert.equal(state.identities.length, 1);
@@ -361,26 +414,41 @@ try {
     assert.equal(state.sessions[0].has_token_hash, true);
     assert.equal(state.sessions[0].is_active, true);
     await save('registered-state', state);
-    await save('registered-cookie-metadata', await cookieMetadata(page));
+    const cookies = await cookieMetadata(page);
+    const sessionCookie = cookies.find(cookie => cookie.name === 'session_token');
+    assert(sessionCookie);
+    assert.equal(sessionCookie.httpOnly, true);
+    assert.equal(sessionCookie.sameSite, 'Lax');
+    assert.equal(sessionCookie.path, '/');
+    assert(sessionCookie.expires > Date.now() / 1000);
+    await save('registered-cookie-metadata', cookies);
   });
 
   await check('Signup automatically claims the anonymous organizer event', async () => {
     const observed = await automaticClaim;
-    const state = stored({ eventId: result.event_id, userId });
+    const state = await stored({ eventId: result.event_id, userId });
     await save('anonymous-claim-state', { observed_request_status: observed.status, database: state });
     await capture('05b-anonymous-claim-dashboard');
     assert.equal(observed.status, 201, 'No successful automatic claim response observed within 20 seconds of signup');
     assert.equal(state.links.length, 1);
     assert.equal(state.links[0].role, 'organizer');
     assert.equal(state.links[0].participant_id, result.participant_id);
-  }, { fatal: false });
+    await eventCard(page).getByText('Organizer', { exact: true }).waitFor();
+    assert.equal(await eventCard(page).getByText('Published', { exact: true }).count(), 0);
+    assert.equal(await page.getByText('Unclaimed Events Found', { exact: true }).count(), 0);
+  });
+
+  await check('Anonymous organizer access and SSE survive account claim and reload', async () => {
+    await assertOwnerAccess(result.event_id, result.participant_id);
+  });
 
   result.anonymous_event_id = result.event_id;
   result.anonymous_participant_id = result.participant_id;
   await check('Signed-in creation claims the new organizer event', async () => {
+    await dashboard(page, userId);
     await page.getByRole('link', { name: 'Create New Event', exact: true }).click();
     await page.waitForURL(`${run.client_url}/`);
-    title = `${title} signed in`;
+    title = titles['signed-in'];
     await page.getByRole('textbox', { name: 'Occasion', exact: true }).fill(title);
     await page.getByRole('textbox', { name: 'Your name', exact: true }).fill('Verification signed-in organizer');
     await page.getByRole('button', { name: 'Pick a date and time', exact: true }).click();
@@ -392,11 +460,13 @@ try {
     const created = await creation;
     assert.equal(created.status(), 201);
     result.event_id = (await created.json()).id;
+    ownedEvents.push(result.event_id);
     assert.equal((await claim).status(), 201);
     await page.waitForURL(`${run.client_url}/meet/${result.event_id}`);
     await page.locator('.cat-portal').waitFor({ state: 'detached' });
     await page.getByRole('button', { name: 'Settings', exact: true }).click({ trial: true });
-    const state = stored({ eventId: result.event_id, userId });
+    await ppe?.saveSession(page.context());
+    const state = await stored({ eventId: result.event_id, userId });
     assert.equal(state.participants.length, 1);
     assert.equal(state.participants[0].is_organizer, true);
     assert.equal(state.participants[0].has_no_location, true);
@@ -435,7 +505,7 @@ try {
     assert.equal(await nameInput.inputValue(), account.updatedName);
     assert(await page.getByRole('checkbox', { name: 'Use fuzzy location by default', exact: true }).isChecked());
     assert(await page.getByLabel('Email', { exact: true }).isDisabled());
-    const state = stored({ eventId: result.event_id, userId, expectedName: account.updatedName });
+    const state = await stored({ eventId: result.event_id, userId, expectedName: account.updatedName });
     assert.equal(state.user.name_matches, true);
     assert.equal(state.user.default_fuzzy_location, true);
     await save('settings-state', state);
@@ -459,27 +529,30 @@ try {
     await page.getByRole('button', { name: 'Sign Out', exact: true }).click();
     assert.equal((await logout).status(), 200);
     await page.waitForURL(`${run.client_url}/auth/signin`);
-    const state = stored({ eventId: result.event_id, userId, expectedName: account.updatedName });
+    const state = await stored({ eventId: result.event_id, userId, expectedName: account.updatedName });
     assert.equal(state.has_active_session, false);
     assert.equal(state.sessions.length, 0);
     assert.equal(state.links.length, 1);
     await navigate(page, '/dashboard', 401);
     await page.waitForURL(`${run.client_url}/auth/signin`);
     await save('signed-out-state', state);
-    await save('signed-out-cookie-metadata', await cookieMetadata(page));
+    const cookies = await cookieMetadata(page);
+    assert.equal(cookies.some(cookie => cookie.name === 'session_token'), false);
+    await save('signed-out-cookie-metadata', cookies);
     await capture('08-signed-out');
   });
 
   await check('Existing account signs in and restores its claimed event', async () => {
     await signIn(page, userId);
     const card = await dashboard(page, userId);
-    const state = stored({ eventId: result.event_id, userId, expectedName: account.updatedName });
+    const state = await stored({ eventId: result.event_id, userId, expectedName: account.updatedName });
     assert.equal(state.has_active_session, true);
     assert.equal(state.sessions.length, 1);
     assert.equal(state.sessions[0].has_token_hash, true);
     await save('signed-in-state', state);
     await save('signed-in-cookie-metadata', await cookieMetadata(page));
     await capture('09-signed-in-again');
+    await assertOwnerAccess(result.event_id, result.participant_id);
     return card;
   });
 
@@ -495,7 +568,7 @@ try {
     const card = await dashboard(other, userId);
     await capture('11-separate-dashboard', other);
     await save('separate-dashboard-card', card);
-    await save('separate-signed-in-state', stored({
+    await save('separate-signed-in-state', await stored({
       eventId: result.event_id, userId, expectedName: account.updatedName,
     }));
     await save('separate-signed-in-cookie-metadata', await cookieMetadata(other));
@@ -514,9 +587,25 @@ try {
       organizer_settings_visible: await other.getByRole('button', { name: 'Settings', exact: true }).isVisible(),
       join_event_visible: await other.getByRole('button', { name: 'Join Event', exact: true }).isVisible(),
     };
+    assert.equal(observed.organizer_settings_visible, false);
+    assert.equal(observed.join_event_visible, true);
     result.observations.push({ name: 'Claimed card access in separate browser', ...observed });
     await save('separate-event-access', observed);
     await capture('12-separate-event', other);
+  });
+
+  await check('Separate-browser signout preserves the original account session', async () => {
+    await dashboard(other, userId);
+    const logout = responseFor(other, '/api/auth/logout', 'POST');
+    await other.getByRole('button', { name: 'Sign Out', exact: true }).click();
+    assert.equal((await logout).status(), 200);
+    await other.waitForURL(`${run.client_url}/auth/signin`);
+    const session = await accountRequest(page, '/api/auth/session');
+    assert.equal(session.status(), 200);
+    assert.equal((await session.json()).user.id, userId);
+    const state = await stored({ eventId: result.event_id, userId, expectedName: account.updatedName });
+    assert.equal(state.sessions.length, 1);
+    assert.equal(state.sessions[0].is_active, true);
   });
 
   await check('No uncaught browser errors during the selected account paths', async () => {
@@ -530,6 +619,20 @@ try {
   }
   try { if (other) await capture('separate-failure', other); } catch {}
 } finally {
+  try {
+    if (page) {
+      if (ppe) await ppe.cleanupOwned(page);
+      else await cleanupLocalEvents();
+    }
+    ppe?.assertGuard();
+  } catch (error) {
+    result.status = 'FAIL';
+    result.cleanup_error = scrub(error);
+  }
+  try { await ppe?.finish(); } catch (error) {
+    result.status = 'FAIL';
+    result.guard_evidence_error = scrub(error);
+  }
   await save('actions', actions);
   await save('network', network);
   await save('browser-errors', { page_errors: pageErrors, console_errors: consoleErrors });
@@ -538,6 +641,7 @@ try {
     result.teardown_error = scrub(error);
   }
   await save('result', result);
+  await writeFile(path.join(evidence, 'result.json'), JSON.stringify(result, null, 2));
   if (result.status !== 'PASS') process.exitCode = 1;
   console.log(JSON.stringify(result, null, 2));
 }

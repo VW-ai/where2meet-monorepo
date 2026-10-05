@@ -1,5 +1,17 @@
 # Recorded verification coverage
 
+## M2 accounts and meeting claims, 2026-10-04
+
+The account backend at `2c9d892f6fdca2eff8b2a843146f6cdcf0add678` passes 88 server tests, static checks and compilation. Client revision `4eb4badb6596e88828f7917d2d6b71688de59e56` passes 94 tests and type checks, with zero lint errors and 52 existing warnings. Registration, login, logout, profile updates, dashboard reads and meeting claims now have implemented operations. Places search, routing, vote writes and publication remain unimplemented.
+
+The final local account flow passes all 18 checks with the clean frontend `137a408cba37303ad950fede552e113199c99b55`. This local verification commit combines the account frontend with current main `9cde2f7619fe2c74328f7aefc3c63412a04e177d`; it does not merge a pull request. That composition also passes type checking and all 130 client tests. The run is `2026-10-04-m2-accounts-local-final`. It proves anonymous organizer registration and claim, retained meeting credentials and SSE, signed-in creation, profile persistence, independent sessions and the separate-device public-view limit. Its `result.json` lists exclusions.
+
+The clean unchanged frontend `05e6daa2245e31dfd142768b545b74cdb9a51476` also passes seven synthetic legacy import and restart checks against this backend. The run is `2026-10-04-m2-accounts-import-final`. The original password, participant token, relationship ID and timestamps survive import and restart. The expired session stays unauthorized, and logging out a new session leaves the original valid session intact. This is not a historical production export or cutover rehearsal.
+
+Independent review reproduced a cancelled profile save that stayed busy after failed logout. The fixed Settings component restores its save button, shows the failure and retains the valid account. The component fault test substitutes transport and Google/Next rendering dependencies; it does not establish backend or PPE behavior. Real browser and database evidence remains separate.
+
+The account backend is deployed to dedicated PPE deployment `f6042b7d-01b5-41df-b82d-86e728dc30a2`. Control-plane identity and database/Redis readiness pass. The remote account scenario remains unverified pending temporary SSH access for database corroboration and bounded cleanup. No account test data has been created in PPE for this slice. Local PASS and deployment readiness do not satisfy remote acceptance. No migration PR is merged, and staging and production are unchanged.
+
 ## Railway PPE, 2026-10-04
 
 PASS for the M1 no-location lifecycle against deployment `c49fa4e7-f179-42fd-9103-9586e6b2d486`, backend source `9850114`, and clean local frontend `05e6daa`. The final fixed-verifier run is `2026-10-04-ppe-d`. It verified UI creation, organizer identity and token-only recovery, title editing, anonymous sharing, and deletion with read-only remote database corroboration. Public HTTP checks covered missing/invalid credentials, invalid title edits with unchanged state, empty vote reads and unauthorized sessions. The authenticated stream supplied a heartbeat and the title-update notice. Cleanup removed the synthetic event and local processes.

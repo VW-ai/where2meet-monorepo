@@ -9,15 +9,15 @@ The suite checks these boundaries:
 | Server quality and build | Types, module ownership, lint, formatting, compilation, and the Railway Docker image build. |
 | Server tests | HTTP behavior, persistence, and migrations against PostgreSQL 17 and 18. This covers both current database majors, not complete production runtime parity. |
 | Client quality and build | Types, lint, tests, and the production bundle. The build's mock configuration is separate from browser acceptance. |
-| Candidate frontend | The proposed frontend works with the proposed compiled backend, with mocks off. |
+| Candidate frontend | The proposed frontend exercises the event lifecycle and accounts in separate isolated runs against the compiled backend, with mocks off. |
 | Fixed frontend | Frontend `05e6daa2245e31dfd142768b545b74cdb9a51476` works with the proposed compiled backend. Changing both sides cannot silently replace this contract. |
 | Workflow and policy checks | Workflow syntax, embedded scripts, and rejection of incomplete or inconsistent CI evidence. |
 
-Browser acceptance covers the current M1 event lifecycle. Google behavior and unimplemented M2+ operations remain outside that proof. See [verification coverage](../.agents/skills/verify-where2meet/verification-status.md).
+Browser acceptance covers the no-location event lifecycle and account registration, claims, session restoration, profile preferences and sign-in/out. The fixed frontend remains the event-lifecycle compatibility baseline; corrected account consumption runs on the candidate frontend. The account job also tests bounded PPE cleanup against its own local database and preserves an unrelated account. A separate Settings component test uses explicit transport faults to check cancelled saves and failed logout; it records `accounts-ui-races.json` and cannot replace real-backend evidence. Google behavior and unimplemented operations remain outside that proof. See [verification coverage](../.agents/skills/verify-where2meet/verification-status.md).
 
 ## Read a run
 
-Read `CI required`, then inspect any failed dependency. Browser artifacts retain the observed backend and frontend commits, browser result, and cleanup result on both success and failure. Their names distinguish the frontend case and the workflow attempt. Raw browser storage and `run.json` are not uploaded.
+Read `CI required`, then inspect any failed dependency. Browser artifacts retain the observed backend and frontend commits, browser result, and cleanup result on both success and failure. Their names distinguish the frontend case, scenario and workflow attempt. The evidence gate rejects a result for a different scenario or source revision. Raw browser storage and `run.json` are not uploaded.
 
 On pull requests, the backend checkout is GitHub's test merge commit. It differs from the proposal's head commit. The evidence policy compares the actual tested commits with the expected backend and frontend commits for that run. An older successful artifact cannot replace a current failed result.
 

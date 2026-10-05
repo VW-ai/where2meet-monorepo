@@ -7,8 +7,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 
-const [runArgument, privateArgument] = process.argv.slice(2);
+const [runArgument, privateArgument, ...options] = process.argv.slice(2);
 assert(runArgument && privateArgument, 'Pass the candidate run and private legacy fixture directories');
+assert(options.length === 0 || (options.length === 1 && options[0] === '--accounts'), 'Unknown migration proof option');
+const verifyAccounts = options.includes('--accounts');
 process.umask(0o077);
 const runDir = path.resolve(runArgument);
 const fixtureDir = path.resolve(privateArgument);
@@ -31,7 +33,8 @@ let result = { status: 'FAIL', source_commit: run.source_commit,
   frontend_fingerprint: run.frontend_fingerprint,
   scope: 'Synthetic old HTTP fixture imported to new database, original credentials after restart',
   transport: 'Fresh HTTP connections for credential checks across process restart',
-  not_verified: ['production export', 'production cutover', 'new login or account writes', 'historical schema upgrade'] };
+  not_verified: ['production export', 'production cutover', 'historical schema upgrade',
+    ...(verifyAccounts ? ['registration and profile writes'] : ['new login or account writes'])] };
 
 function check(name) { checks.push({ name, status: 'PASS' }); }
 
@@ -73,6 +76,57 @@ async function identityCheck() {
   }
 }
 
+async function accountCheck() {
+  const oldSessionIds = expected.userSessions.map(row => row.id);
+  const originalSessions = await db.userSession.findMany({ where: { id: { in: oldSessionIds } }, orderBy: { id: 'asc' } });
+  const originalIdentity = await db.userIdentity.findUnique({ where: { id: expected.userIdentities[0].id } });
+  assert(originalIdentity, 'Imported password identity must exist before login');
+  const originalLink = expected.userEvents[0];
+  const response = await fetch(`${run.client_url}/api/auth/login`, {
+    method: 'POST', redirect: 'error',
+    headers: { 'content-type': 'application/json', connection: 'close' },
+    body: JSON.stringify({ email: credentials.email, password: credentials.password }),
+  });
+  assert.equal(response.status, 200, 'Old password must authenticate through the Next proxy');
+  assert.equal((await response.json()).user.id, credentials.userId);
+  const cookie = response.headers.get('set-cookie')?.split(';')[0];
+  assert(cookie?.startsWith('session_token=st_'), 'Login must issue a session cookie');
+  try {
+    const headers = { cookie, connection: 'close' };
+    const listing = await fetch(`${run.client_url}/api/users/me/events`, { headers, redirect: 'error' });
+    assert.equal(listing.status, 200);
+    const { events } = await listing.json();
+    const link = events.find(entry => entry.event.id === credentials.eventId);
+    assert(link, 'Imported account relationship must appear in the dashboard');
+    assert.equal(link.id, originalLink.id);
+    assert.equal(link.participantId, credentials.participantId);
+    assert.equal(link.role, originalLink.role);
+    assert.equal(link.createdAt, originalLink.createdAt);
+    const claimed = await fetch(`${run.client_url}/api/users/me/events/claim`, {
+      method: 'POST', redirect: 'error',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ eventId: credentials.eventId, participantToken: credentials.token }),
+    });
+    assert.equal(claimed.status, 201);
+    const repeated = (await claimed.json()).userEvent;
+    assert.equal(repeated.id, originalLink.id);
+    assert.equal(repeated.participantId, credentials.participantId);
+    assert.equal(repeated.createdAt, originalLink.createdAt);
+    assert(isDeepStrictEqual(await db.userIdentity.findUnique({ where: { id: originalIdentity.id } }), originalIdentity), 'Login must preserve the imported password identity');
+    assert(isDeepStrictEqual(await db.userSession.findMany({ where: { id: { in: oldSessionIds } }, orderBy: { id: 'asc' } }), originalSessions), 'New login must not extend original sessions');
+  } finally {
+    const logout = await fetch(`${run.client_url}/api/auth/logout`, {
+      method: 'POST', redirect: 'error', headers: { cookie, connection: 'close' },
+    });
+    assert.equal(logout.status, 200);
+    assert.deepEqual(await logout.json(), { success: true });
+    const invalid = await fetch(`${run.client_url}/api/auth/session`, { headers: { cookie, connection: 'close' }, redirect: 'error' });
+    assert.equal(invalid.status, 401, 'Logout must revoke the newly issued session');
+    await invalid.arrayBuffer();
+  }
+  await identityCheck();
+}
+
 try {
   importRows(1);
   await compareRows();
@@ -82,9 +136,17 @@ try {
   check('Second identical import leaves every selected row unchanged');
   await identityCheck();
   check('Old participant token and old valid session work; deliberately expired session returns 401');
+  if (verifyAccounts) {
+    await accountCheck();
+    check('Old password logs in through Next; claim ID and credential hashes persist; new logout leaves old valid session intact');
+  }
   execFileSync('python3', [control, 'restart-backend', '--run', runDir], { stdio: 'pipe', timeout: 60000 });
   await identityCheck();
   check('Same credentials and expiration behavior survive backend process restart');
+  if (verifyAccounts) {
+    await accountCheck();
+    check('Old password, account relationship and session isolation survive backend process restart');
+  }
 
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
