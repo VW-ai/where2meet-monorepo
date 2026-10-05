@@ -83,6 +83,9 @@ jobs:
       - name: Verify cancelled profile save and failed logout in the Settings component
         if: matrix.scenario == 'accounts'
         run: node .agents/skills/verify-where2meet/helpers/account-ui-races.mjs "$RUN_DIR"
+      - name: Verify Secure session cookies on the loopback frontend
+        if: matrix.scenario == 'accounts'
+        run: node .agents/skills/verify-where2meet/helpers/account-cookie-proof.mjs "$RUN_DIR"
       - name: Verify PPE account cleanup against isolated PostgreSQL
         if: matrix.scenario == 'accounts'
         shell: python

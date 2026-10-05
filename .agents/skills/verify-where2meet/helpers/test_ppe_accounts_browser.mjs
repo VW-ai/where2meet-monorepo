@@ -91,6 +91,42 @@ test('explicit API requests use the same ownership policy and never follow redir
   await assert.rejects(browser.driver.request(page, 'GET', '/api/auth/session'), /redirects/);
 });
 
+test('explicit proxy reads use the stored frontend session without leaking cookies to meeting requests', async () => {
+  const session = 'st_' + 'e'.repeat(64);
+  const sent = [];
+  const guarded = [];
+  const driver = await createPpeAccountsDriver('/unused-cookie-test', run, async payload => {
+    if (payload.operation === 'account-plan') return { account: {}, titles: {} };
+    if (payload.operation === 'account-guard') {
+      guarded.push({ url: payload.url, cookie: payload.headers.cookie ?? null });
+      return { receipt: 'owned-cookie-request' };
+    }
+    if (payload.operation === 'account-response') return { status: 'recorded' };
+    assert.fail('Unexpected cookie-probe operation');
+  });
+  const context = { async cookies(url) {
+    if (url) return [];
+    return [
+      { name: 'session_token', value: session, domain: '127.0.0.1', path: '/', secure: true },
+      { name: 'session_token', value: 'foreign-host', domain: 'ppe.example.test', path: '/', secure: true },
+      { name: 'session_token', value: 'foreign-path', domain: '127.0.0.1', path: '/elsewhere', secure: true },
+      { name: 'other_cookie', value: 'unrelated', domain: '127.0.0.1', path: '/', secure: false },
+    ];
+  } };
+  const page = { context: () => context, request: { async fetch(url, options) {
+    sent.push({ url, cookie: options.headers.cookie ?? null });
+    return { status: () => 200, headers: () => ({ 'content-type': 'application/json' }), json: async () => ({ ok: true }) };
+  } } };
+  await driver.request(page, 'GET', '/api/auth/session');
+  await driver.request(page, 'GET', '/api/events/evt_1234567890123_abcdefghijklmnop');
+  const expected = [
+    { url: run.client_url + '/api/auth/session', cookie: 'session_token=' + session },
+    { url: run.backend_url + '/api/events/evt_1234567890123_abcdefghijklmnop', cookie: null },
+  ];
+  assert.deepEqual(sent, expected);
+  assert.deepEqual(guarded, expected);
+});
+
 test('a successful cleanup attempt cannot overwrite the original blocked-request evidence', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'ppe-accounts-evidence-'));
   try {

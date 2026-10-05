@@ -6,6 +6,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ppeBridge } from './ppe-browser.mjs';
 
+export async function sessionCookiesForOrigin(context, origin) {
+  const hostname = new URL(origin).hostname;
+  const cookies = (await context.cookies()).filter(cookie =>
+    cookie.name === 'session_token' && cookie.domain === hostname && cookie.path === '/');
+  assert(cookies.length <= 1, 'Ambiguous frontend session cookie');
+  return cookies;
+}
+
 export function safeAccountRequest(method, value, run) {
   const url = value instanceof URL ? value : new URL(value);
   const accountPaths = new Set(['/api/auth/session', '/api/auth/register', '/api/auth/login', '/api/auth/logout',
@@ -72,7 +80,8 @@ export async function createPpeAccountsDriver(runDir, run, bridge = payload => p
     const origin = requestPath.startsWith('/api/auth/') || requestPath.startsWith('/api/users/')
       ? run.client_url : run.backend_url;
     const url = origin + requestPath;
-    const cookies = await page.context().cookies(url);
+    const cookies = origin === run.client_url
+      ? await sessionCookiesForOrigin(page.context(), origin) : [];
     const requestHeaders = { ...headers, ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(cookies.length ? { cookie: cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ') } : {}) };
     const { receipt } = await bridge({ operation: 'account-guard', method, url, body: body ?? null,
