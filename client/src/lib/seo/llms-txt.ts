@@ -1,3 +1,4 @@
+import { BLOG_POSTS, postPath } from '@/content/blog/posts';
 import { toAbsoluteUrl } from '@/lib/seo/metadata';
 import {
   GUIDES_PATH,
@@ -7,8 +8,8 @@ import {
   type Catalog,
 } from '@/features/guides/lib/catalog';
 
-/** Edit by hand when a page or post is added; a test fails if a post is missing. */
-const SITE = `# Where2Meet
+/** Edit by hand when a page is added. Blog posts are listed from `BLOG_POSTS`. */
+const INTRO = `# Where2Meet
 
 > Where2Meet is a free web app where a group plans where to meet together. Everyone adds where they are starting from, the group looks for places near everyone, compares each person's real travel time to a place by car, transit, walking or bike, and votes on a convenient spot. No account is needed to create a meeting or join one from a shared link.
 
@@ -29,10 +30,13 @@ How it works:
 - [Home](https://www.where2meet.org/): Create a meeting and see how planning works.
 - [FAQ](https://www.where2meet.org/faq): How group planning works, accounts, hiding your exact address, travel modes, voting and cost.
 - [Blog](https://www.where2meet.org/blog): Guides to planning where to meet with friends, family and coworkers.
-- [How to plan a weekend hangout with friends across town](https://www.where2meet.org/blog/how-to-plan-a-weekend-hangout-with-friends): Pick an activity, find a spot everyone can reach, and lock in the plan before Friday.
-- [How to choose a team meeting location everyone can reach](https://www.where2meet.org/blog/how-to-choose-a-team-meeting-location): Compare travel times, pick a venue that suits the meeting, and settle on a place without a week of back-and-forth.
-- [Contact](https://www.where2meet.org/contact): How to reach the Where2Meet team.
 `;
+
+const CONTACT = `- [Contact](https://www.where2meet.org/contact): How to reach the Where2Meet team.
+`;
+
+const SITE = `${INTRO}${BLOG_POSTS.map((post) => link(post.title, postPath(post.slug), post.description)).join('\n')}
+${CONTACT}`;
 
 const OPTIONAL = `
 ## Optional
