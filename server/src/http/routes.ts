@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest, HTTPMethods } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import type {
   Meetings,
   MeetingSnapshot,
@@ -9,7 +9,8 @@ import type { Accounts, AccountProfile } from "../modules/accounts/index.js";
 import type { Places } from "../modules/places/index.js";
 import { directionsWire, photoWire } from "./places.js";
 import { AppError } from "../errors.js";
-import { bearer } from "./sse.js";
+import type { Notifications } from "../runtime/notifications.js";
+import { bearer, voteStatisticsWire } from "./sse.js";
 import {
   createEventBody,
   createParticipantBody,
@@ -24,6 +25,12 @@ import {
   participantResponse,
   meResponse,
   votesResponse,
+  castVoteBody,
+  castVoteResponse,
+  removeVoteParams,
+  removeVoteResponse,
+  voteStatisticsResponse,
+  publishBody,
   sessionResponse,
   userResponse,
   registerBody,
@@ -77,7 +84,8 @@ export function registerRoutes(
   accounts: Accounts,
   secureCookies: boolean,
   places: Places,
-  publicApiOrigin: () => string
+  publicApiOrigin: () => string,
+  notifications: Notifications
 ): void {
   app.post("/api/events", async (request, reply) => {
     const body = createEventBody.parse(request.body);
@@ -186,6 +194,40 @@ export function registerRoutes(
       ...votes,
       venues: votes.venues.map((place) => photoWire(place, publicApiOrigin)),
     });
+  });
+  app.post("/api/events/:id/participants/:participantId/votes", async (request, reply) => {
+    const credential = bearer(request.headers.authorization);
+    const { id, participantId } = participantParams.parse(request.params);
+    const { venueId } = castVoteBody.parse(request.body);
+    const voteId = await meetings.castVote({ eventId: id, credential, participantId, venueId });
+    return reply.code(201).send(response(castVoteResponse, { success: true, voteId }));
+  });
+  app.delete("/api/events/:id/participants/:participantId/votes/:venueId", async (request) => {
+    const credential = bearer(request.headers.authorization);
+    const { id, participantId, venueId } = removeVoteParams.parse(request.params);
+    const deleted = await meetings.removeVote({ eventId: id, credential, participantId, venueId });
+    return response(removeVoteResponse, { success: true, deleted });
+  });
+  app.get("/api/events/:id/votes/statistics", async (request) => {
+    const { id } = eventParams.parse(request.params);
+    const votes = await meetings.voteStatistics(id);
+    const seq = await notifications.currentSequence(id);
+    return response(voteStatisticsResponse, voteStatisticsWire(id, votes, seq));
+  });
+  app.post("/api/events/:id/publish", async (request) => {
+    const credential = bearer(request.headers.authorization);
+    const { id } = eventParams.parse(request.params);
+    const { venueId } = publishBody.parse(request.body);
+    const meeting = await meetings.publish({ eventId: id, credential, venueId });
+    return response(eventResponse, eventWire(meeting));
+  });
+  app.delete("/api/events/:id/publish", async (request) => {
+    const credential = bearer(request.headers.authorization);
+    const { id } = eventParams.parse(request.params);
+    return response(
+      eventResponse,
+      eventWire(await meetings.unpublish({ eventId: id, credential }))
+    );
   });
   app.post("/api/venues/search", async (request) => {
     const input = searchBody.parse(request.body);
@@ -299,24 +341,10 @@ export function registerRoutes(
       .send(response(claimResponse, { success: true, userEvent: claimWire(claim) }));
   });
 
-  const unavailable: [HTTPMethods, string][] = [
-    ["GET", "/api/events/:id/mec"],
-    ["POST", "/api/events/:id/publish"],
-    ["DELETE", "/api/events/:id/publish"],
-    ["POST", "/api/events/:id/participants/:participantId/votes"],
-    ["DELETE", "/api/events/:id/participants/:participantId/votes/:venueId"],
-    ["GET", "/api/events/:id/votes/statistics"],
-  ];
-  for (const [method, url] of unavailable) {
-    app.route({
-      method,
-      url,
-      handler: () => {
-        throw new AppError(
-          "FEATURE_NOT_AVAILABLE",
-          "This operation is not available in this migration stage"
-        );
-      },
-    });
-  }
+  app.get("/api/events/:id/mec", () => {
+    throw new AppError(
+      "FEATURE_NOT_AVAILABLE",
+      "This operation is not available in this migration stage"
+    );
+  });
 }

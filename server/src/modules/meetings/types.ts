@@ -1,4 +1,4 @@
-import type { PlaceSummary } from "../places/index.js";
+import type { PlaceDetails, PlaceSummary } from "../places/index.js";
 import type { RouteOutcome, TravelMode } from "../routing/index.js";
 
 export type ParticipantRoute = { participantId: string } & (RouteOutcome | { kind: "no-location" });
@@ -29,7 +29,17 @@ export interface MeetingSnapshot {
   participants: ParticipantSnapshot[];
 }
 
+export type PublishedMeetingSnapshot = Omit<MeetingSnapshot, "publishedAt" | "publishedVenueId"> & {
+  publishedAt: Date;
+  publishedVenueId: string;
+};
+
 export type MeetingNotice =
+  | {
+      kind: "meeting-published";
+      meeting: PublishedMeetingSnapshot;
+      venue: Pick<PlaceDetails, "id" | "name" | "address" | "location">;
+    }
   | { kind: "meeting-updated"; meeting: MeetingSnapshot }
   | { kind: "participant-added" | "participant-updated"; participant: ParticipantSnapshot }
   | { kind: "participant-removed"; participantId: string }
@@ -56,6 +66,8 @@ export interface Access {
   credential: string;
 }
 
+export type VoteIdentity = Access & { participantId: string; venueId: string };
+
 export interface AccountClaim {
   id: string;
   eventId: string;
@@ -72,6 +84,11 @@ export interface AccountMeeting extends Omit<AccountClaim, "eventId"> {
 }
 
 export interface Meetings {
+  castVote(input: VoteIdentity): Promise<string>;
+  removeVote(input: VoteIdentity): Promise<boolean>;
+  voteStatistics(eventId: string): Promise<VoteSnapshot>;
+  publish(input: Access & { venueId: string }): Promise<MeetingSnapshot>;
+  unpublish(input: Access): Promise<MeetingSnapshot>;
   directions(
     input: Access & { venueId: string; mode: TravelMode; participantId?: string }
   ): Promise<MeetingDirections>;

@@ -523,9 +523,12 @@ describe("participant lifecycle over HTTP", () => {
       ).toMatchObject({ participantId: null, role: "participant" });
       expect(await stream.next("participant:removed")).toEqual({ participantId: guestId });
       const statistics = await stream.next("vote:statistics");
-      const { updatedAt } = z.object({ updatedAt: z.iso.datetime() }).parse(statistics);
+      const { updatedAt, seq } = z
+        .object({ updatedAt: z.iso.datetime(), seq: z.number().int().nonnegative() })
+        .parse(statistics);
       expect(statistics).toEqual({
         eventId,
+        seq,
         venues: [],
         totalVotes: 0,
         updatedAt,

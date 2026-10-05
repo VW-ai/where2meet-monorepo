@@ -106,7 +106,11 @@ export async function makeApp(overrides: Partial<AppConfig> = {}) {
       timeoutMs: config.routeTimeoutMs,
       ttlSeconds: config.routeTtlSeconds,
     }),
-    publish: (eventId, notice) => notifications.publish(eventId, encodeNotice(eventId, notice)),
+    publish: async (eventId, notice) => {
+      const seq =
+        notice.kind === "votes-updated" ? await notifications.advanceSequence(eventId) : 0;
+      await notifications.publish(eventId, encodeNotice(eventId, notice, seq));
+    },
     publicationFailed: (eventId) => {
       app.log.warn({ eventId }, "Committed meeting update could not be broadcast");
     },
@@ -124,7 +128,8 @@ export async function makeApp(overrides: Partial<AppConfig> = {}) {
       if (!port)
         throw new Error("A listening port or explicit public API origin is required for photos");
       return `http://127.0.0.1:${String(port)}`;
-    }
+    },
+    notifications
   );
   registerSSE(app, meetings, notifications, config);
   app.get("/health", () => ({ status: "ok" }));

@@ -201,6 +201,42 @@ export const votesResponse = z
     totalVotes: z.number().int().nonnegative(),
   })
   .strict();
+export const castVoteBody = z.object({
+  venueId: z.string().min(1),
+  venueData: z.object({
+    name: z.string().min(1),
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    address: z.string().nullable().optional(),
+    category: z.string().nullable().optional(),
+    rating: z.number().min(0).max(5).nullable().optional(),
+    priceLevel: z.number().int().min(0).max(4).nullable().optional(),
+    photoUrl: z.url().nullable().optional(),
+  }),
+});
+export const removeVoteParams = participantParams.extend({ venueId: z.string().min(1) });
+export const publishBody = z.object({ venueId: z.string().min(1) });
+export const castVoteResponse = z.object({ success: z.literal(true), voteId: z.uuid() }).strict();
+export const removeVoteResponse = z
+  .object({ success: z.literal(true), deleted: z.boolean() })
+  .strict();
+export const voteStatisticsResponse = z
+  .object({
+    eventId: z.string(),
+    seq: z.number().int().nonnegative(),
+    venues: z.array(
+      z
+        .object({
+          venueId: z.string(),
+          voteCount: z.number().int().positive(),
+          voterIds: z.array(z.uuid()),
+        })
+        .strict()
+    ),
+    totalVotes: z.number().int().nonnegative(),
+    updatedAt: z.iso.datetime(),
+  })
+  .strict();
 export const userResponse = z
   .object({
     id: z.string(),

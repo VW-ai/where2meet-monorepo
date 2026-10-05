@@ -20,6 +20,7 @@ import type {
   ParticipantSnapshot,
   NewParticipant,
   VoteSnapshot,
+  VoteIdentity,
   AccountClaim,
   ParticipantRoute,
 } from "./types.js";
@@ -89,6 +90,16 @@ function requireOpen(event: Event): void {
     throw new AppError("EVENT_ALREADY_PUBLISHED", "Event has already been published");
 }
 
+async function authorizeOwnVote(database: Prisma.TransactionClient, input: VoteIdentity) {
+  const actor = await authorize(database, input);
+  if (actor.participant.id !== input.participantId)
+    throw new AppError(
+      "FORBIDDEN",
+      "Can only access your own participant record for this operation"
+    );
+  return actor;
+}
+
 async function participantForChange(
   database: Prisma.TransactionClient,
   input: Access & { participantId: string }
@@ -128,6 +139,22 @@ export function createMeetings(dependencies: {
     } catch {
       dependencies.publicationFailed(eventId);
     }
+  }
+
+  async function notifyVotes(eventId: string): Promise<void> {
+    try {
+      await notify(eventId, { kind: "votes-updated", votes: await voteSnapshot(eventId) });
+    } catch {
+      dependencies.publicationFailed(eventId);
+    }
+  }
+
+  async function prepareVenue(venueId: string) {
+    const result = await places.details(venueId);
+    if (result.kind === "not-found") throw new AppError("VALIDATION_ERROR", "Venue not found");
+    if (result.kind === "unavailable")
+      throw new AppError("EXTERNAL_SERVICE_ERROR", "Venue lookup is temporarily unavailable");
+    return result.value;
   }
 
   async function locationValues(address: string, fuzzyLocation: boolean) {
@@ -198,7 +225,9 @@ export function createMeetings(dependencies: {
           grouped.set(vote.venueId, voters);
         }
         return {
-          venues: [...grouped].map(([id, voters]) => ({ id, voters })),
+          venues: [...grouped]
+            .map(([id, voters]) => ({ id, voters }))
+            .sort((a, b) => b.voters.length - a.voters.length),
           totalVotes: votes.length,
         };
       },
@@ -207,6 +236,76 @@ export function createMeetings(dependencies: {
   }
 
   return {
+    async castVote(input) {
+      const key = {
+        eventId: input.eventId,
+        participantId: input.participantId,
+        venueId: input.venueId,
+      };
+      const existing = await database.$transaction(
+        async (tx) => {
+          requireOpen((await authorizeOwnVote(tx, input)).event);
+          return tx.vote.findUnique({ where: { eventId_participantId_venueId: key } });
+        },
+        { isolationLevel: "RepeatableRead" }
+      );
+      if (existing) {
+        await notifyVotes(input.eventId);
+        return existing.id;
+      }
+      await prepareVenue(input.venueId);
+      const voteId = await writeTransaction(database, async (tx) => {
+        requireOpen((await authorizeOwnVote(tx, input)).event);
+        await tx.vote.createMany({ data: [key], skipDuplicates: true });
+        const vote = await tx.vote.findUniqueOrThrow({
+          where: { eventId_participantId_venueId: key },
+        });
+        return vote.id;
+      });
+      await notifyVotes(input.eventId);
+      return voteId;
+    },
+    async removeVote(input) {
+      const deleted = await writeTransaction(database, async (tx) => {
+        await authorizeOwnVote(tx, input);
+        const result = await tx.vote.deleteMany({
+          where: {
+            eventId: input.eventId,
+            participantId: input.participantId,
+            venueId: input.venueId,
+          },
+        });
+        return result.count > 0;
+      });
+      if (deleted) await notifyVotes(input.eventId);
+      return deleted;
+    },
+    voteStatistics: voteSnapshot,
+    async publish(input) {
+      requireOpen((await authorize(database, input, true)).event);
+      const venue = await prepareVenue(input.venueId);
+      const meeting = await writeTransaction(database, async (tx) => {
+        requireOpen((await authorize(tx, input, true)).event);
+        const publication = { publishedVenueId: venue.id, publishedAt: new Date() };
+        await tx.event.update({ where: { id: input.eventId }, data: publication });
+        return { ...(await eventWithParticipants(tx, input.eventId)), ...publication };
+      });
+      await notify(input.eventId, { kind: "meeting-published", meeting, venue });
+      return meeting;
+    },
+    async unpublish(input) {
+      const meeting = await writeTransaction(database, async (tx) => {
+        const { event } = await authorize(tx, input, true);
+        if (!event.publishedAt) throw new AppError("EVENT_NOT_PUBLISHED", "Event is not published");
+        await tx.event.update({
+          where: { id: input.eventId },
+          data: { publishedAt: null, publishedVenueId: null },
+        });
+        return eventWithParticipants(tx, input.eventId);
+      });
+      await notify(input.eventId, { kind: "meeting-updated", meeting });
+      return meeting;
+    },
     async claim(input) {
       try {
         return await writeTransaction(database, async (tx) => {
@@ -388,12 +487,7 @@ export function createMeetings(dependencies: {
         kind: "participant-removed",
         participantId: input.participantId,
       });
-      try {
-        const votes = await voteSnapshot(input.eventId);
-        await notify(input.eventId, { kind: "votes-updated", votes });
-      } catch {
-        dependencies.publicationFailed(input.eventId);
-      }
+      await notifyVotes(input.eventId);
     },
     async remove(input) {
       await writeTransaction(database, async (tx) => {
@@ -409,7 +503,6 @@ export function createMeetings(dependencies: {
         if (!place) throw new Error("Vote references a missing place");
         return { ...place, voteCount: voters.length, voters };
       });
-      venues.sort((a, b) => b.voteCount - a.voteCount);
       return { venues, totalVotes: votes.totalVotes };
     },
     async authorizeStream(input) {

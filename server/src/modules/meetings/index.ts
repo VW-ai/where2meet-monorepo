@@ -1,6 +1,7 @@
 export type {
   Meetings,
   MeetingNotice,
+  VoteSnapshot,
   MeetingSnapshot,
   ParticipantSnapshot,
   ParticipantLocationEdit,
