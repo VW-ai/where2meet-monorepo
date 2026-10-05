@@ -2,7 +2,7 @@
 
 This directory maps the existing Where2Meet product behavior. Read this index before driving a feature. A recipe is not proof that its entry points work. See [recorded verification coverage](../verification-status.md) for each run's revision and scope.
 
-The M2 replacement source supports the participant lifecycle, email accounts, profile updates and meeting claims in addition to M1's no-location meeting lifecycle, stored vote reads and authenticated SSE. Places currently geocodes participant addresses. Venue search, routes, vote writes and publication still return 501. Use the corrected M2 frontend for participant and account scenarios. The fixed M1 frontend `05e6daa` remains the no-location compatibility baseline. Source support is separate from the executed evidence in [recorded coverage](../verification-status.md).
+The M2 replacement source supports the participant lifecycle, email accounts, profile updates and meeting claims in addition to M1's no-location meeting lifecycle, stored vote reads and authenticated SSE. The M3 candidate adds venue search, full details, safe photos, and routes. Its bounded `places-routes` verifier uses the fixed frontend `b960f605d4a6015f7d389cc8d1bf0bb528e8773e` and stops before voting or publication. Adding a driver does not establish live-provider acceptance. Use the corrected M2 frontend for participant and account scenarios. The fixed M1 frontend `05e6daa` remains the no-location compatibility baseline. Source support is separate from the executed evidence in [recorded coverage](../verification-status.md).
 
 ## Baseline preconditions
 

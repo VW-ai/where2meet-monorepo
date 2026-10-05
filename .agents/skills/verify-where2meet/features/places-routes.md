@@ -1,5 +1,9 @@
 # Places and routes
 
+The M3 `places-routes` scenario in `helpers/places-browser.mjs` covers the bounded desktop path through the shared lifecycle driver. It verifies real public-landmark origins, `coffee` text search, selected-ID full details, an available photo, and driving/walking routes for both participants. It compares explicit outcomes and visible per-person distance and duration. It leaves the meeting unpublished, performs no votes, and uses the existing exact event cleanup. Run it locally or in PPE with the fixed frontend `b960f605d4a6015f7d389cc8d1bf0bb528e8773e` and real Google credentials. See [the skill](../SKILL.md) and [PPE recipe](../ppe.md).
+
+The recipes below describe broader entry points. Their presence does not mean M3 verifies them. In the fixed frontend, the detail panel's **View travel statistics** button has no click handler, so that button is outside M3 acceptance.
+
 Search around the group's starting points, inspect a specific place, and compare travel times by car, transit, walking, or bike. Core desktop paths have been exercised with real Google services; see [recorded coverage](../verification-status.md). Unlisted entry points remain UNVERIFIED.
 
 ## Sub-features
@@ -18,7 +22,7 @@ Search around the group's starting points, inspect a specific place, and compare
 - Desktop categories are `Bar`, `Gym`, `Cafe`, and `Things to do`. Phone uses the `Find a meeting spot` searchbox with `Search venues`, plus `All spots`, `Coffee`, `Restaurants`, and `Bars`.
 - Click a venue card, press Enter or Space on the card, or click its Google marker. Searched markers use the venue name; shortlisted markers append `(Liked)` or `(Published)`.
 - Details offer `Close venue details`, Escape, `Open in Google Maps`, and optional website/phone links. `Travel by Car`, `Travel by Transit`, `Travel by Walk`, and `Travel by Bike` appear in the unpublished venue list.
-- Participant view `View travel time statistics` and venue details `View travel statistics` open `Travel Time Stats`; `Close stats panel` closes it. Phone also displays `Travel times to selected venue`.
+- Participant view `View travel time statistics` opens `Travel Time Stats`; `Close stats panel` closes it. The venue detail button `View travel statistics` has no click handler in the fixed frontend. Phone also displays `Travel times to selected venue`.
 - Map buttons expose `Show satellite map`/`Show street map` and `Center map on meeting area`. The search circle is editable and draggable when no valid participant location exists; with locations it follows the group.
 
 ## Driving it with Playwright
@@ -66,12 +70,8 @@ Preconditions: an unpublished event with two UI-created, geocoded participants; 
   assert((await routesResponse).ok());
   assert.equal(await page.getByRole('button', { name: 'Travel by Walk', exact: true }).getAttribute('aria-pressed'), 'true');
   assert.equal(new URL(page.url()).searchParams.get('travelMode'), 'walk');
-  await page.getByRole('button', { name: 'View travel statistics', exact: true }).click();
-  await page.getByRole('heading', { name: 'Travel Time Stats', exact: true }).waitFor();
-  await page.getByText('Shortest', { exact: true }).waitFor();
-  await page.getByText('Longest', { exact: true }).waitFor();
   ```
-  Repeat Car/driving, Transit/transit, and Bike/bicycling; confirm each participant's time and the visible graph. Separately open statistics from `View travel time statistics` in Participants.
+  Repeat Car/driving, Transit/transit, and Bike/bicycling; confirm each participant's time. Verify the graph separately through `View travel time statistics` in Participants. The inactive venue-detail statistics button does not provide that proof.
 - **Map and external links.** `await page.getByRole('button', { name: 'Show satellite map', exact: true }).click(); await page.getByRole('button', { name: 'Show street map', exact: true }).waitFor();` then restore street view. Click `Center map on meeting area` and capture the recentered map. For `Open in Google Maps`, capture the new page URL and assert its hostname is `www.google.com` and its `query_place_id` matches the observed selected venue. Inspect website and `tel:` links without placing a call.
 
 ## Gotchas

@@ -6,13 +6,14 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createPpeDriver } from './ppe-browser.mjs';
 import { runParticipantsScenario } from './participants-browser.mjs';
+import { runPlacesScenario, scrubPlacesError } from './places-browser.mjs';
 
 const runDir = path.resolve(process.argv[2]);
 const run = JSON.parse(await readFile(path.join(runDir, 'run.json'), 'utf8'));
 const isPpe = run.kind === 'where2meet-ppe-run-v1';
 const cleanupOnly = isPpe && process.argv[3] === '--cleanup';
 const scenario = run.scenario ?? 'event-lifecycle';
-assert(['event-lifecycle', 'participants'].includes(scenario), 'Unknown verification scenario');
+assert(['event-lifecycle', 'participants', 'places-routes'].includes(scenario), 'Unknown verification scenario');
 assert(['where2meet-verification-v1', 'where2meet-ppe-run-v1'].includes(run.kind));
 assert.equal(run.run_dir, runDir);
 if (!cleanupOnly) assert.equal(run.status, 'ready');
@@ -25,10 +26,10 @@ const errors = [];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce',
   ...(cleanupOnly ? { storageState: path.join(runDir, 'runtime/browser-state.json') } : {}) });
-const ppe = isPpe ? await createPpeDriver(runDir, run, context) : null;
+const ppe = isPpe ? await createPpeDriver(runDir, run, context, { phase: cleanupOnly ? 'cleanup' : 'verification' }) : null;
 const page = await context.newPage();
 page.setDefaultTimeout(45000);
-await page.addLocatorHandler(page.getByText('Skip tutorial', { exact: true }), async () => {
+if (scenario !== 'places-routes' || cleanupOnly) await page.addLocatorHandler(page.getByText('Skip tutorial', { exact: true }), async () => {
   await page.getByText('Skip tutorial', { exact: true }).click();
   action('Dismiss visible tutorial using Skip tutorial');
 });
@@ -38,10 +39,14 @@ page.on('response', (res) => {
     network.push({ method: res.request().method(), origin: url.origin, path: url.pathname, status: res.status() });
   }
 });
-page.on('pageerror', (error) => errors.push(error.message.replace(/https?:\/\/\S+/g, '[url removed]')));
+page.on('pageerror', (error) => errors.push(scrubPlacesError(error.message)));
 
 function action(name, details = {}) {
   actions.push({ at: new Date().toISOString(), name, ...details });
+}
+
+async function settleRequests() {
+  if (ppe && scenario === 'places-routes') await ppe.settleRequests();
 }
 
 async function capture(name, activePage = page) {
@@ -67,7 +72,7 @@ async function eventRead(eventId) {
 async function stored(eventId) {
   if (ppe) return ppe.bridge({ operation: 'stored', event_id: eventId });
   assert.match(eventId, /^[A-Za-z0-9_-]+$/);
-  const locationColumns = scenario === 'participants' ? ', address, formatted_address, lat, lng, fuzzy_location, color' : '';
+  const locationColumns = ['participants', 'places-routes'].includes(scenario) ? ', address, formatted_address, lat, lng, fuzzy_location, color' : '';
   const sql = `SELECT json_build_object(
     'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at FROM event WHERE id = '${eventId}') e),
     'participants', (SELECT coalesce(json_agg(p), '[]'::json) FROM
@@ -86,6 +91,7 @@ let result = { status: 'FAIL', feature: scenario, source_commit: run.source_comm
 if (cleanupOnly) {
   try {
     await ppe.cleanupOwned(page);
+    await settleRequests();
   } catch {
     await writeFile(path.join(evidence, 'ppe-ui-cleanup.json'), JSON.stringify({ status: 'FAIL', error: 'UI cleanup could not prove ownership and deletion' }));
     process.exitCode = 1;
@@ -98,6 +104,7 @@ if (cleanupOnly) {
 
 let stream;
 let participantProof;
+let placesProof;
 
 try {
   const title = `Verification meeting ${run.run_id.slice(0, 8)}`;
@@ -128,6 +135,12 @@ try {
   assert.match(eventId, /^evt_[A-Za-z0-9_]+$/);
   await page.getByRole('button', { name: 'Settings', exact: true }).waitFor();
   await page.locator('.cat-portal').waitFor({ state: 'detached' });
+  if (scenario === 'places-routes') {
+    const skip = page.getByText('Skip tutorial', { exact: true });
+    await skip.click();
+    await skip.waitFor({ state: 'hidden' });
+    action('Dismiss the first organizer tutorial before any address entry');
+  }
   await dismissTutorial();
   if (ppe) await ppe.saveSession();
   await page.getByRole('button', { name: 'Settings', exact: true }).click({ trial: true });
@@ -141,6 +154,7 @@ try {
   await writeFile(path.join(evidence, 'created-state.json'), JSON.stringify({ api: afterCreate, database: initialDatabase }, null, 2));
   action('Create Meeting returns 201; transition completes; persisted event and organizer confirmed', { eventId });
   await capture('02-created');
+  await settleRequests();
 
   const [meResponse] = await Promise.all([
     page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}/me`),
@@ -151,6 +165,7 @@ try {
   await dismissTutorial();
   action('Reload restores organizer identity via /me with 200');
   await capture('03-reloaded');
+  await settleRequests();
 
   const retainedToken = await page.evaluate((id) => {
     localStorage.removeItem(`organizer_participant_id_${id}`);
@@ -203,12 +218,15 @@ try {
   await dismissTutorial(guest);
   await capture('05-shared-view', guest);
   action('Open shared link in a fresh browser context; updated title visible and organizer Settings absent');
+  await settleRequests();
   await guestContext.close();
 
-  if (scenario === 'participants') {
-    participantProof = await runParticipantsScenario({ page, browser, run, eventId,
+  if (['participants', 'places-routes'].includes(scenario)) {
+    const scenarioDriver = scenario === 'participants' ? runParticipantsScenario : runPlacesScenario;
+    const proof = await scenarioDriver({ page, browser, run, eventId,
       organizerId: afterCreate.participants[0].id, evidence, capture, action,
       adapter: {
+        settleRequests,
         guardContext: activeContext => ppe ? ppe.guardContext(activeContext) : Promise.resolve(),
         stored,
         async read(route, { token } = {}) {
@@ -225,18 +243,22 @@ try {
         },
         async checkpoint() {
           if (ppe) {
+            await settleRequests();
             await ppe.saveSession();
             await ppe.bridge({ operation: 'postflight' });
           }
         },
       },
     });
+    if (scenario === 'participants') participantProof = proof;
+    else placesProof = proof;
   }
 
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('button', { name: 'Delete Event', exact: true }).click();
   await page.getByPlaceholder('Type DELETE', { exact: true }).fill('DELETE');
   await capture('06-delete-confirmation');
+  await settleRequests();
   action('Confirm deletion of this run’s synthetic event');
   const [deletedResponse] = await Promise.all([
     page.waitForResponse((res) => res.url() === `${run.backend_url}/api/events/${eventId}` && res.request().method() === 'DELETE'),
@@ -257,6 +279,7 @@ try {
   assert(network.filter((entry) => entry.path.startsWith('/api/events')).every((entry) => entry.origin === run.backend_url));
   assert.deepEqual(errors, [], 'Uncaught browser errors invalidate this lifecycle proof');
   if (ppe) {
+    await settleRequests();
     ppe.assertGuard();
     result.scope.push('public HTTP invalid input and credential rejection', 'empty vote read', 'anonymous and unknown session reads', 'authenticated SSE heartbeat and title update');
     result.not_verified = ['Google Maps', 'participant location and join', 'routes', 'vote writes and publishing', 'account writes', 'valid and expired imported sessions', 'data import', 'production frontend serving'];
@@ -269,9 +292,17 @@ try {
     result.scope.push(...participantProof.scope);
     result.not_verified = participantProof.not_verified;
   }
+  if (placesProof) {
+    result.scope.push(...placesProof.scope);
+    result.not_verified = placesProof.not_verified;
+    result.shared_provider_cache = placesProof.shared_provider_cache;
+    result.external_boundary = 'real Google Maps, Places and Directions; no provider fixture';
+    if (ppe) result.streaming_api_policy = 'Owned SSE continues without buffering; observed redirects or invalid response headers fail. Confirmed cancelled attempts require a later validated same-page/event replacement. Finite API redirects are blocked before forwarding, except validated photos.';
+    result.synthetic_cleanup = 'exact UI-created event and participant rows absent; shared provider cache rows are separate';
+  }
   result = { ...result, status: 'PASS', event_id: eventId };
 } catch (error) {
-  result.error = String(error).replace(/https?:\/\/\S+/g, '[url removed]');
+  result.error = scrubPlacesError(error);
   try { await capture('failure'); } catch {}
   process.exitCode = 1;
 } finally {
@@ -291,6 +322,11 @@ try {
       result.cleanup_error = 'PPE UI cleanup incomplete; exact owned event IDs retained';
       process.exitCode = 1;
     }
+    try { await settleRequests(); } catch {
+      result.status = 'FAIL';
+      result.guard_error = 'PPE request validation did not finish successfully';
+      process.exitCode = 1;
+    }
     await ppe.evidence();
   }
   await writeFile(path.join(evidence, 'actions.json'), JSON.stringify(actions, null, 2));
@@ -300,7 +336,7 @@ try {
     await browser.close();
   } catch (error) {
     result.status = 'FAIL';
-    result.error = `Browser teardown failed: ${String(error)}`;
+    result.error = `Browser teardown failed: ${scrubPlacesError(error)}`;
     process.exitCode = 1;
   }
   await writeFile(path.join(evidence, 'result.json'), JSON.stringify(result, null, 2));

@@ -88,6 +88,16 @@ The script does not prove every entry in [event lifecycle](features/event-lifecy
 
 The real-Google desktop flow is supplied by [helpers/google-browser.mjs](helpers/google-browser.mjs). It creates two participants through separate browsers, verifies actual autocomplete and stored coordinates, searches real venues, checks driving and walking routes against displayed times, and exercises card voting, publishing, and reopening. Run it only after a successful doctor and with the Doppler launch above. It records failures per behavior; a known last-vote synchronization failure remains a failing result even when later publication checks succeed.
 
+For M3, use the bounded `places-routes` scenario with the fixed frontend `b960f605d4a6015f7d389cc8d1bf0bb528e8773e`. Launch with real browser and backend Google keys, then run:
+
+```sh
+python3 "$VERIFY_SKILL/helpers/control.py" drive --run "$VERIFY_RUN" --scenario places-routes
+```
+
+This reuses the event lifecycle and exact cleanup, then adds two public-landmark participant origins, actual `coffee` search, selected-ID full details, a loaded photo when available, and both people's visible driving and walking distance/duration. It requires complete found outcomes for both participant IDs. Voting, publication, statistics, transit, and cycling remain outside this scenario. The local launcher sets `PUBLIC_API_ORIGIN` to its actual random backend origin. PPE has its own guarded adapter, described in [ppe.md](ppe.md).
+
+The M3 result is `evidence/result.json`, with intermediate and failed steps in `places-state.json`. Shared provider-cache place IDs are separate from exact synthetic event/participant cleanup. The verifier never deletes or restores Venue rows. A fixture test of the verifier is not live Google evidence, and no Google browser scenario runs in CI without credentials.
+
 ```sh
 python3 "$VERIFY_SKILL/helpers/control.py" doctor --run "$VERIFY_RUN" && \
   node "$VERIFY_SKILL/helpers/google-browser.mjs" "$VERIFY_RUN"
