@@ -18,20 +18,23 @@ const STEPS = [0, 20, 36, 52, 68] as const;
 
 const captions = [
   'Everyone adds a location',
-  'We find the middle',
+  'We search around everyone',
   'Nearby spots show up',
   'Travel times are compared',
   'Convenient for everyone',
 ];
 
 const people = [
-  { id: 'a', color: '#FF6B6B', ink: '#d9474a', cx: 48, cy: 44, time: '18 min', chip: [48, 17] },
-  { id: 'b', color: '#4D96FF', ink: '#2f6fd6', cx: 352, cy: 44, time: '20 min', chip: [352, 17] },
-  { id: 'c', color: '#6BCB77', ink: '#3a9447', cx: 200, cy: 214, time: '19 min', chip: [242, 214] },
+  { id: 'a', color: '#FF6B6B', ink: '#d9474a', cx: 124, cy: 44, time: '18 min', chip: [124, 17] },
+  { id: 'b', color: '#4D96FF', ink: '#2f6fd6', cx: 276, cy: 44, time: '20 min', chip: [276, 17] },
+  { id: 'c', color: '#6BCB77', ink: '#3a9447', cx: 200, cy: 196, time: '19 min', chip: [242, 196] },
 ] as const;
 
-// Street routes from each person to Coffee at the middle (200, 120).
-const routes = ['M48 44 H124 V120 H200', 'M352 44 H276 V120 H200', 'M200 214 V120'];
+/** The smallest circle around everyone, which is the area the app searches for places. Each person sits on its edge. */
+const AREA = { cx: 200, cy: 101, r: 95 } as const;
+
+// Street routes from each person to Coffee (200, 120).
+const routes = ['M124 44 V120 H200', 'M276 44 V120 H200', 'M200 196 V120'];
 
 const spots: {
   name: string;
@@ -77,7 +80,7 @@ const spots: {
     name: 'Park',
     color: '#B695C0',
     iconColor: '#ffffff',
-    times: ['25m', '12m', '24m'],
+    times: ['26m', '21m', '9m'],
     cx: 238,
     cy: 158,
     mark: () => (
@@ -147,12 +150,11 @@ const css = [
   ]),
 
   anim('s-radius', show(21, END, 'opacity: 0; transform: scale(0.3);', POP_SHOWN)),
-  anim('s-middle', show(22, END, POP_HIDDEN, POP_SHOWN)),
   anim(
     's-pulse',
-    `0%, 24% { opacity: 0; transform: scale(0.4); }
-    26% { opacity: 0.7; }
-    34%, 100% { opacity: 0; transform: scale(1.5); }`
+    `0%, 24% { opacity: 0; transform: scale(0.2); }
+    26% { opacity: 0.6; }
+    34%, 100% { opacity: 0; transform: scale(1); }`
   ),
 
   anim('s-venue-1', showThenPick(37, POP_HIDDEN, POP_SHOWN, 'opacity: 1; transform: scale(1.18);')),
@@ -229,7 +231,7 @@ export function StoryPreview() {
     <div
       className="story flex flex-col overflow-hidden rounded-[28px] bg-white p-3 shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-4 lg:h-full"
       role="img"
-      aria-label="Three friends add where they're starting. Where2Meet finds the middle, shows Coffee, Ramen and Park nearby, and compares everyone's travel time. Coffee wins: 18, 20 and 19 minutes, convenient for everyone."
+      aria-label="Three friends add where they're starting. Where2Meet searches the area around everyone, shows Coffee, Ramen and Park, and compares everyone's travel time. Coffee wins: 18, 20 and 19 minutes, convenient for everyone."
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-[#f7f8fa] ring-1 ring-[#e6eaef] lg:aspect-auto lg:min-h-[240px] lg:flex-1">
         <svg
@@ -270,8 +272,8 @@ export function StoryPreview() {
           <ellipse cx="34" cy="244" rx="78" ry="46" fill="#d7e7f8" />
           <ellipse cx="392" cy="232" rx="60" ry="30" fill="#d7e7f8" />
 
-          <circle className="s-radius s-pop" cx="200" cy="120" r="74" />
-          <circle className="s-pulse s-pop" cx="200" cy="120" r="74" />
+          <circle className="s-radius s-pop" cx={AREA.cx} cy={AREA.cy} r={AREA.r} />
+          <circle className="s-pulse s-pop" cx={AREA.cx} cy={AREA.cy} r={AREA.r} />
 
           {routes.map((d, i) => (
             <g key={d}>
@@ -284,16 +286,6 @@ export function StoryPreview() {
               />
             </g>
           ))}
-
-          <circle
-            className="s-middle s-pop"
-            cx="200"
-            cy="120"
-            r="5"
-            fill="#c83f49"
-            stroke="#fff"
-            strokeWidth="2.5"
-          />
 
           {spots.map((spot, i) => (
             <g key={spot.name} className={`s-venue-${i + 1} s-pop`} filter="url(#story-shadow)">
