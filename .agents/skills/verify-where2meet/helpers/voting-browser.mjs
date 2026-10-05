@@ -193,7 +193,9 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
     const url = new URL(response.url());
     return url.origin === run.backend_url && url.pathname === pathname && response.request().method() === method;
   });
-  const card = active => active.getByRole('button').filter({ has: active.getByRole('heading', { level: 3, name: venue.name, exact: true }) });
+  const card = (active, published = false) => active.getByRole('button').filter({
+    has: active.getByRole('heading', { level: 3, name: venue.name + (published ? 'Published' : ''), exact: true }),
+  });
   const panel = active => active.getByRole('complementary', { name: venue.name, exact: true });
   const closeDetails = async active => {
     const close = active.getByRole('button', { name: 'Close venue details', exact: true });
@@ -202,7 +204,7 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
   const count = async (active, voters, participantId, published = false) => {
     const mine = voters.includes(participantId);
     const label = published ? 'Voting disabled after publish' : mine ? 'Remove vote' : 'Vote for venue';
-    const button = card(active).getByRole('button', { name: label, exact: true });
+    const button = card(active, published).getByRole('button', { name: label, exact: true });
     await button.waitFor();
     await poll(async () => Number(await button.innerText()) === voters.length && await button.getAttribute('aria-busy') === 'false', 'Visible card count did not settle');
     assert.equal(await button.getAttribute('aria-pressed'), String(mine));
@@ -344,7 +346,7 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
     await page.getByRole('heading', { name: 'Event Published!', exact: true }).waitFor();
     const voteFrame = await snapshot(publishMark, [organizerId]);
     const publicationFrame = await publicationNotice(publishMark, published);
-    await card(guest).getByText('Published', { exact: true }).waitFor();
+    await card(guest, true).getByText('Published', { exact: true }).waitFor();
     await count(page, [organizerId], organizerId, true);
     await count(guest, [organizerId], guestId, true);
     assert.equal(navigations.get(guest), guestNavigation);
@@ -356,7 +358,7 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
     await save();
 
     await page.getByRole('heading', { name: 'Event Published!', exact: true }).waitFor({ state: 'hidden' });
-    if (!await panel(page).isVisible()) await card(page).click();
+    if (!await panel(page).isVisible()) await card(page, true).click();
     await proveVote('published detail-heart DELETE remains allowed', page, organizerId, 'DELETE', () => panel(page).getByRole('button', { name: 'Remove from saved', exact: true }).click(), [], published);
     stage = 'published detail-heart POST rejects and rolls back';
     const beforeRejected = new Map(navigations);
@@ -450,7 +452,7 @@ export async function runVotingScenario({ page, guest, browser, run, eventId, or
     const republished = assertPublication(repeatReceipt.body, { eventId, participantIds, venueId: venue.id });
     await page.getByRole('heading', { name: 'Event Published!', exact: true }).waitFor();
     const repeatFrame = await publicationNotice(repeatPublishMark, republished);
-    await card(guest).getByText('Published', { exact: true }).waitFor();
+    await card(guest, true).getByText('Published', { exact: true }).waitFor();
     await count(page, participantIds, organizerId, true);
     await count(guest, participantIds, guestId, true);
     assert.equal(navigations.get(guest), guestBeforeRepeatPublish);
