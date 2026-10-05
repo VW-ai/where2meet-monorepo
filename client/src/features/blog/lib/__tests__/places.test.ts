@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  dataProviders,
-  describeResults,
-  formatRating,
-  pickPlaces,
-  shortAddress,
-  type PlaceSummary,
-} from '../places';
+import { dataProviders, formatRating, shortAddress, type PlaceSummary } from '../places';
 
 function place(
   id: string,
@@ -25,27 +18,6 @@ function place(
   };
 }
 
-describe('pickPlaces', () => {
-  it('alternates between queries and skips places both queries found', () => {
-    const coworking = [place('hub'), place('desk'), place('loft')];
-    const cafes = [place('bean'), place('hub'), place('brew')];
-
-    expect(pickPlaces([coworking, cafes], 6).map(({ id }) => id)).toEqual([
-      'hub',
-      'bean',
-      'desk',
-      'loft',
-      'brew',
-    ]);
-  });
-
-  it('puts places with a photo first and stops at the limit', () => {
-    const results = [place('a', false), place('b'), place('c', false), place('d'), place('e')];
-
-    expect(pickPlaces([results], 4).map(({ id }) => id)).toEqual(['b', 'd', 'e', 'a']);
-  });
-});
-
 describe('formatRating', () => {
   it('shows one decimal and a grouped review count', () => {
     expect(formatRating({ value: 4.6, count: 1203 })).toBe('4.6 (1,203)');
@@ -61,16 +33,6 @@ describe('shortAddress', () => {
     ['Somewhere', 'Somewhere'],
   ])('shortens %s', (formattedAddress, expected) => {
     expect(shortAddress(formattedAddress)).toBe(expected);
-  });
-});
-
-describe('describeResults', () => {
-  it.each([
-    [6, 'Showing 6 places near Chicago.'],
-    [1, 'Showing 1 place near Chicago.'],
-    [0, 'No places came up near Chicago.'],
-  ])('describes %i results', (count, expected) => {
-    expect(describeResults(count, 'Chicago')).toBe(expected);
   });
 });
 

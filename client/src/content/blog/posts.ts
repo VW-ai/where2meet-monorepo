@@ -13,53 +13,41 @@ import { assertIsoDate } from '@/lib/seo/site-pages';
 
 /**
  * The homepage's meeting-type chips, plus occasions only the blog writes about.
- * `placeQueries` are the Google Maps searches behind each post's "Places to try".
  */
 export const OCCASIONS = {
   'date-night': {
     label: 'Date night',
     icon: Heart,
-    placeQueries: ['cocktail bar', 'romantic restaurant'],
   },
   'team-meeting': {
     label: 'Team meeting',
     icon: Briefcase,
-    placeQueries: ['coworking space', 'quiet cafe with wifi'],
   },
   'group-dinner': {
     label: 'Group dinner',
     icon: Utensils,
-    placeQueries: ['restaurant for large groups', 'family style restaurant'],
   },
   'coffee-catch-up': {
     label: 'Coffee catch-up',
     icon: Coffee,
-    placeQueries: ['coffee shop', 'bakery cafe'],
   },
   'weekend-hangout': {
     label: 'Weekend hangout',
     icon: Sun,
-    placeQueries: ['food hall', 'park'],
   },
   'family-outing': {
     label: 'Family outing',
     icon: Users,
-    placeQueries: ['park with playground', 'family friendly museum'],
   },
   'team-offsite': {
     label: 'Team offsite',
     icon: Mountain,
-    placeQueries: ['event space for teams', 'meeting room rental'],
   },
   'long-distance-reunion': {
     label: 'Long-distance reunion',
     icon: Plane,
-    placeQueries: ['restaurant for groups', 'brunch restaurant'],
   },
-} satisfies Record<
-  string,
-  { label: string; icon: IconNode; placeQueries: readonly [string] | readonly [string, string] }
->;
+} satisfies Record<string, { label: string; icon: IconNode }>;
 
 export type Occasion = keyof typeof OCCASIONS;
 
