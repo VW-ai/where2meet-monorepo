@@ -340,6 +340,7 @@ def main():
     parser.add_argument("--schema-mode", choices=("migrations", "push"), default="migrations",
                         help="Use push only to reproduce the legacy schema baseline")
     parser.add_argument("--backend-mode", choices=("compiled", "source"), default="compiled")
+    parser.add_argument("--scenario", choices=("event-lifecycle", "participants"), default="event-lifecycle")
     args = parser.parse_args()
     run = args.run.resolve()
     if args.operation == "launch":
@@ -357,9 +358,13 @@ def main():
         try:
             doctor(run)
             state = load(run)
+            if args.scenario == "participants" and not all(state.get("google_keys", {}).get(key) for key in ("GOOGLE_MAPS_API_KEY", "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")):
+                raise RuntimeError("The participant scenario requires real backend and browser Google Maps keys at launch")
+            state["scenario"] = args.scenario
+            save(run, state)
             process = start(run, state, "browser", ["node", str(HELPERS / "browser.mjs"), str(run)],
                             HELPERS, clean_environment())
-            if process.wait(timeout=300):
+            if process.wait(timeout=1200):
                 raise RuntimeError(f"Browser verification failed; read {run / 'evidence' / 'result.json'}")
             print((run / "evidence" / "result.json").read_text())
         except BaseException as error:

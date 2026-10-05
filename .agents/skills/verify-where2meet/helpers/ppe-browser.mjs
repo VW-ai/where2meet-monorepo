@@ -37,6 +37,10 @@ export async function createPpeDriver(runDir, run, context) {
       const url = new URL(request.url());
       try {
         assert.equal(request.redirectedFrom(), null, 'API redirects are not accepted');
+        if (run.scenario === 'participants' && url.origin === 'https://maps.googleapis.com' &&
+            url.pathname.startsWith('/maps/api/') && request.method() === 'GET') {
+          return await route.continue();
+        }
         if (url.origin === run.client_url) {
           assert.equal(url.pathname, '/api/auth/session', 'Only the fixed Next session proxy is permitted');
           assert.equal(request.method(), 'GET');
@@ -51,6 +55,12 @@ export async function createPpeDriver(runDir, run, context) {
         if (request.method() === 'POST' && url.pathname === '/api/events' && response.status() === 201) {
           const created = await response.json();
           await bridge({ operation: 'record', event_id: created.id, organizer_id: created.organizerParticipantId, title: created.title });
+        }
+        const participantCollection = url.pathname.match(/^\/api\/events\/(evt_[A-Za-z0-9_]+)\/participants$/);
+        if (request.method() === 'POST' && participantCollection && response.status() === 201) {
+          assert.equal(run.scenario, 'participants');
+          const participant = await response.json();
+          await bridge({ operation: 'record-participant', event_id: participantCollection[1], participant_id: participant.id });
         }
         await bridge({ operation: 'postflight' });
         await route.fulfill({ response });
@@ -220,6 +230,16 @@ export async function createPpeDriver(runDir, run, context) {
   }
 
   return { bridge, guardContext, saveSession, negativeChecks, watchTitle, cleanupOwned,
+    read(route, options) { return request('GET', route, options); },
+    async openParticipantStream(eventId, token, signal) {
+      assert.equal(run.scenario, 'participants');
+      const url = `${run.backend_url}/api/events/${eventId}/stream`;
+      await bridge({ operation: 'guard', method: 'GET', url });
+      const response = await fetch(url, { headers: { authorization: `Bearer ${token}`, origin: run.client_url },
+        redirect: 'error', signal });
+      await bridge({ operation: 'postflight' });
+      return response;
+    },
     assertGuard() { assert.deepEqual(failures, [], 'A PPE API request was blocked by target checks'); },
     async evidence() {
       await writeFile(path.join(runDir, 'evidence', 'ppe-request-guards.json'), JSON.stringify({ blocked: failures }, null, 2));

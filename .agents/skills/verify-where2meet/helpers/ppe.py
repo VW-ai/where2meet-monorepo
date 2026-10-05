@@ -44,7 +44,7 @@ def digest(value):
 
 
 def verifier_fingerprint():
-    return hashlib.sha256(b"".join((HELPERS / name).read_bytes() for name in ("control.py", "ppe.py", "browser.mjs", "ppe-browser.mjs"))).hexdigest()
+    return hashlib.sha256(b"".join((HELPERS / name).read_bytes() for name in ("control.py", "ppe.py", "browser.mjs", "ppe-browser.mjs", "participants-browser.mjs"))).hexdigest()
 
 
 def private_environment():
@@ -151,6 +151,7 @@ def verify_identity(target, status, deployments, backend, postgres, redis):
     require(re.fullmatch(r"[0-9a-f-]{36}", postgres_instance), "PPE PostgreSQL service instance is missing")
     return {"status": "PASS", "at": now(), **expected, "source_revision": target["source"]["revision"],
             "postgres_service_instance_id": postgres_instance,
+            "rate_limit": {"maximum": backend.get("RATE_LIMIT_MAX", "100"), "window_ms": backend.get("RATE_LIMIT_WINDOW_MS", "900000")},
             "source_provenance": "setup-attested upload; not independent runtime source identity",
             "deployment_check": "fresh pre/post checks; HTTP mutation cannot be atomically pinned"}
 
@@ -228,12 +229,28 @@ def authorize_request(state, method, url, body, purpose):
         require(body.get("title") == f"Verification meeting {state['run_id'][:8]}" and not state["owned_events"], "Create request is not this run's synthetic meeting")
         return
     match = re.fullmatch(r"/api/events/(evt_[A-Za-z0-9_]+)(.*)", path)
-    require(bool(match), "Mutation path is outside the selected M1 proof")
+    require(bool(match), "Mutation path is outside the selected lifecycle proof")
     entry = owned_event(state, match[1])
     suffix = match[2]
     require(entry["cleanup_state"] == "pending", "Event was already cleaned")
     if not suffix and method in ("PATCH", "DELETE"):
         return
+    if state.get("scenario") == "participants":
+        if method in ("POST", "PATCH"):
+            require(isinstance(body, dict) and bool(body) and set(body) <= {"name", "address", "fuzzyLocation"}, "Participant request contains unsupported fields")
+            for field, limit in (("name", 50), ("address", 255)):
+                if field in body:
+                    require(isinstance(body[field], str) and 0 < len(body[field]) <= limit, "Participant input exceeds the synthetic scenario contract")
+            require("fuzzyLocation" not in body or isinstance(body["fuzzyLocation"], bool), "Participant privacy input must be a boolean")
+        if suffix == "/participants" and method == "POST":
+            require(purpose == "ui", "Only the browser UI may add synthetic participants")
+            require({"name", "address"} <= set(body), "Participant creation requires a name and address")
+            return
+        participant_match = re.fullmatch(r"/participants/([0-9a-f-]{36})", suffix)
+        require(bool(participant_match), "Mutation is outside the participant lifecycle")
+        participant_id = participant_match[1]
+        if participant_id in entry.get("participant_ids", []) and method in ("PATCH", "DELETE"):
+            return
     require(suffix == "/participants/" + entry["organizer_id"] and method == "PATCH", "Mutation does not address the UI-created organizer")
 
 
@@ -248,7 +265,8 @@ def observe_event(run, state, event_id):
 SELECT json_build_object(
  'event', (SELECT row_to_json(e) FROM (SELECT id, title, meeting_time, published_at FROM event WHERE id = '{event_id}') e),
  'participants', (SELECT coalesce(json_agg(p), '[]'::json) FROM
- (SELECT id, event_id, name, is_organizer, token_hash IS NOT NULL AS has_credential
+ (SELECT id, event_id, name, is_organizer, token_hash IS NOT NULL AS has_credential,
+ address, formatted_address, lat, lng, fuzzy_location, color
  FROM participant WHERE event_id = '{event_id}' ORDER BY id) p));
 COMMIT;
 """
@@ -289,6 +307,18 @@ def bridge(run, payload):
             "initial_title": payload["title"], "created_at": now(), "creation_deployment_id": state["target"]["railway"]["deployment_id"], "cleanup_state": "pending"})
         control.save(run, state)
         return {"recorded": payload["event_id"]}
+    if operation == "record-participant":
+        require(state.get("scenario") == "participants", "Participant creation is outside this run's scenario")
+        entry = owned_event(state, payload.get("event_id"))
+        require(entry["cleanup_state"] == "pending", "Event was already cleaned")
+        participant_id = payload.get("participant_id", "")
+        require(isinstance(participant_id, str) and re.fullmatch(r"[0-9a-f-]{36}", participant_id), "Invalid created participant ID")
+        require(participant_id != entry["organizer_id"], "Participant creation cannot replace the organizer")
+        participants = entry.setdefault("participant_ids", [])
+        if participant_id not in participants:
+            participants.append(participant_id)
+        control.save(run, state)
+        return {"recorded": participant_id}
     if operation == "stored":
         return observe_event(run, state, payload["event_id"])
     if operation == "closed":
@@ -364,7 +394,9 @@ def launch_frontend(run, state, env):
                         "NEXT_PUBLIC_MOCK_DOMAINS": "", "MOCK_DOMAINS": "", "NEXT_PUBLIC_USE_MOCK_API": "false",
                         "NEXT_TELEMETRY_DISABLED": "1", "BACKEND_URL": state["backend_url"],
                         "NEXT_PUBLIC_BACKEND_URL": state["backend_url"], "NEXT_PUBLIC_API_URL": state["backend_url"],
-                        "NEXT_PUBLIC_APP_URL": CLIENT_ORIGIN, "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": "", "NEXT_PUBLIC_GA_MEASUREMENT_ID": ""})
+                        "NEXT_PUBLIC_APP_URL": CLIENT_ORIGIN,
+                        "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "") if state.get("scenario") == "participants" else "",
+                        "NEXT_PUBLIC_GA_MEASUREMENT_ID": ""})
     control.start(run, state, "frontend", ["node", "node_modules/next/dist/bin/next", "dev", "-p", "4317", "-H", "127.0.0.1"], Path(state["source_copy"]) / "client", frontend_env)
     def responding():
         try:
@@ -376,6 +408,7 @@ def launch_frontend(run, state, env):
 
 def verify(args):
     run = args.run.resolve()
+    require(args.scenario != "participants" or bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")), "The participant scenario requires a real browser Google Maps key")
     require(not (run / "run.json").exists(), "Run already exists; use a fresh directory")
     target = canonical_target(json.loads(args.target.read_text()))
     frontend = args.frontend_repo.resolve()
@@ -404,7 +437,9 @@ def verify(args):
              "source_fingerprint": target["source"]["server_tree_digest"], "frontend_commit": target["frontend"]["revision"],
              "frontend_status": "", "frontend_fingerprint": frontend_digest, "source_copy": str(runtime / "app"),
              "frontend_repo": str(frontend), "client_url": CLIENT_ORIGIN, "backend_url": target["railway"]["backend_origin"],
-             "backend_mode": "railway-ppe", "google_keys": {}, "ports": {"frontend": 4317}, "processes": {}, "owned_events": [],
+             "backend_mode": "railway-ppe", "scenario": args.scenario,
+             "google_keys": {"NEXT_PUBLIC_GOOGLE_MAPS_API_KEY": bool(os.environ.get("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")) if args.scenario == "participants" else False},
+             "ports": {"frontend": 4317}, "processes": {}, "owned_events": [],
              "verifier_fingerprint": verifier_fingerprint()}
     control.save(run, state)
     passed = False
@@ -451,6 +486,7 @@ def main():
     parser.add_argument("--target", type=Path)
     parser.add_argument("--frontend-repo", type=Path)
     parser.add_argument("--repo", type=Path)
+    parser.add_argument("--scenario", choices=("event-lifecycle", "participants"), default="event-lifecycle")
     args = parser.parse_args()
     require(args.operation != "verify" or (args.target and args.frontend_repo and args.repo), "verify requires --target, --repo, and --frontend-repo")
     if args.operation == "verify":
