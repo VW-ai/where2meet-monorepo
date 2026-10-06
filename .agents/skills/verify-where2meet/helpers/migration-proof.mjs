@@ -2,19 +2,24 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
+import { allRows, assertImportCounts, assertVerifierUnchanged, claimCandidate, cleanupCandidate, cleanupReceipt, compareAfterBrowser, compareRows as compareAllRows,
+  models, parseProfile, ProofFailure, readBundle, refreshedVenue, requireProof, verifierIdentity } from './migration-fixture.mjs';
 
 const [runArgument, privateArgument, ...options] = process.argv.slice(2);
 assert(runArgument && privateArgument, 'Pass the candidate run and private legacy fixture directories');
-assert(options.length === 0 || (options.length === 1 && options[0] === '--accounts'), 'Unknown migration proof option');
+const profile = parseProfile(options, true);
 const verifyAccounts = options.includes('--accounts');
 process.umask(0o077);
-const runDir = path.resolve(runArgument);
+const runDir = await realpath(path.resolve(runArgument));
 const fixtureDir = path.resolve(privateArgument);
 const control = fileURLToPath(new URL('./control.py', import.meta.url));
+if (profile === 'populated-v1' || profile === 'cleanup') {
+  await populatedProof();
+} else {
 execFileSync('python3', [control, 'doctor', '--run', runDir], { stdio: 'pipe' });
 const run = JSON.parse(await readFile(path.join(runDir, 'run.json'), 'utf8'));
 assert.equal(run.schema_mode, 'migrations');
@@ -41,7 +46,7 @@ function check(name) { checks.push({ name, status: 'PASS' }); }
 function importRows(attempt) {
   const imported = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/import-cli.ts', path.join(fixtureDir, 'rows.json')], {
     cwd: path.join(run.source_copy, 'server'),
-    env: { ...process.env, DATABASE_URL: run.database_url }, encoding: 'utf8', timeout: 60000,
+    env: { ...process.env, DATABASE_URL: run.database_url }, encoding: 'utf8', timeout: 120000,
   });
   assert.equal(imported.status, 0, `Import attempt ${attempt} failed; credentials omitted`);
 }
@@ -169,4 +174,247 @@ try {
   await db.$disconnect();
   await writeFile(path.join(runDir, 'evidence/migration-result.json'), JSON.stringify({ ...result, checks }, null, 2) + '\n');
   console.log(JSON.stringify({ ...result, checks }, null, 2));
+}
+}
+
+async function populatedProof() {
+  const run = JSON.parse(await readFile(path.join(runDir, 'run.json'), 'utf8'));
+  const result = { status: 'FAIL', profile: 'populated-v1', source_commit: run.source_commit,
+    source_fingerprint: run.source_fingerprint, frontend_commit: run.frontend_commit,
+    frontend_fingerprint: run.frontend_fingerprint, checks: [],
+    not_verified: ['historical or production data', 'remote import', 'production database version parity', 'large-pack import'] };
+  result.verifier = await verifierIdentity();
+  let stage = 'validate local owned candidate';
+  let db; let browser; let receipt; let bundle;
+  const checked = name => result.checks.push({ name, status: 'PASS' });
+  const operate = operation => execFileSync('python3', [control, operation, '--run', runDir], { stdio: 'pipe', timeout: 90000 });
+  try {
+    requireProof(run.kind === 'where2meet-verification-v1' && run.run_dir === runDir, 'Candidate ownership mismatch');
+    if (profile === 'cleanup') {
+      const owned = await cleanupReceipt(run);
+      const selected = path.join(await realpath(path.dirname(fixtureDir)), path.basename(fixtureDir));
+      requireProof(selected === owned.fixture.directory, 'Cleanup fixture path differs from receipt');
+      receipt = owned;
+      result.recovery_only = true;
+    } else {
+      operate('doctor');
+      requireProof(run.status === 'ready' && run.schema_mode === 'migrations' && run.backend_mode === 'compiled', 'Candidate must be a ready compiled migrated run');
+      requireProof(run.source_status.trim() === '' && run.frontend_status.trim() === '', 'Candidate and frontend sources must be clean');
+      const database = new URL(run.database_url);
+      requireProof(database.hostname === '127.0.0.1' && Number(database.port) === run.ports.postgres && database.pathname === '/where2meet_verify', 'Candidate database is not the owned local target');
+      const requireServer = createRequire(path.join(run.source_copy, 'server/package.json'));
+      const { PrismaClient, Prisma } = requireServer('@prisma/client');
+      db = new PrismaClient({ datasources: { db: { url: run.database_url } } });
+      const empty = await allRows(db);
+      requireProof(Object.keys(models).every(key => empty[key].length === 0), 'Populated rehearsal requires empty business tables');
+      bundle = await readBundle(fixtureDir);
+      receipt = await claimCandidate(run, bundle);
+      result.fixture_sha256 = bundle.manifest.rowsSha256;
+      result.ids = bundle.manifest.ids;
+      result.legacy_commit = bundle.manifest.source.commit;
+      result.legacy_verifier = bundle.manifest.verifier;
+      stage = 'verify legacy writer cutoff';
+      const source = JSON.parse(await readFile(path.join(bundle.manifest.source.runDirectory, 'run.json'), 'utf8'));
+      requireProof(source.run_id === bundle.manifest.source.runId && source.source_commit === bundle.manifest.source.commit &&
+        source.source_fingerprint === bundle.manifest.source.fingerprint && source.run_dir !== runDir && source.database_url !== run.database_url,
+        'Legacy source receipt mismatch');
+      execFileSync('python3', [control, 'stop-backend', '--run', source.run_dir], { stdio: 'pipe', timeout: 60000 });
+      checked('Private graph/digests and exact owned source cutoff verified; candidate business tables empty');
+      for (const attempt of [1, 2]) {
+        stage = `import attempt ${attempt} and exact pre-auth rows`;
+        const imported = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/import-cli.ts', path.join(bundle.owner.directory, 'rows.json')], {
+          cwd: path.join(run.source_copy, 'server'), env: { ...process.env, DATABASE_URL: run.database_url }, encoding: 'utf8', timeout: 120000,
+        });
+        requireProof(imported.status === 0 && !imported.error, 'Importer failed; private output omitted');
+        const counts = JSON.parse(imported.stdout.trim());
+        assertImportCounts(counts, attempt === 1);
+        compareAllRows(await allRows(db), bundle.rows);
+        result.import_counts ??= []; result.import_counts.push(counts);
+        checked(`Import ${attempt}: exact complete row sets and every field before auth/browser; counts checked`);
+      }
+      const afterAuth = { ...bundle.rows, userSessions: bundle.rows.userSessions.filter(row => row.id !== bundle.manifest.expiredSessionId) };
+      const http = async (route, { method = 'GET', body, token, cookie, status = 200, proxy = false } = {}) => {
+        const response = await fetch((proxy ? run.client_url : run.backend_url) + route, { method, redirect: 'error', signal: AbortSignal.timeout(30000),
+          headers: { connection: 'close', ...(token ? { authorization: `Bearer ${token}` } : {}), ...(cookie ? { cookie } : {}),
+            ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+        requireProof(response.status === status, 'Imported API status mismatch; private request omitted');
+        return { body: await response.json(), cookie: response.headers.get('set-cookie')?.split(';')[0], setCookie: response.headers.get('set-cookie') };
+      };
+      const authenticate = async () => {
+        for (const credential of bundle.credentials.participants) {
+          const person = bundle.rows.participants.find(row => row.id === credential.participantId);
+          const me = (await http(`/api/events/${credential.eventId}/me`, { token: credential.token })).body;
+          requireProof(me.participantId === person.id && me.isOrganizer === person.isOrganizer && me.name === person.name, 'Old participant identity mismatch');
+          const otherEvent = bundle.rows.events.find(row => row.id !== credential.eventId).id;
+          await http(`/api/events/${otherEvent}/me`, { token: credential.token, status: 403 });
+        }
+        for (const [cookie, status] of [[bundle.credentials.account.validCookie, 200], [bundle.credentials.account.expiredCookie, 401]]) {
+          const session = await http('/api/auth/session', { cookie, status, proxy: true });
+          requireProof(session.setCookie === null, 'Session read altered cookie');
+          if (status === 200) requireProof(session.body.user.id === bundle.credentials.account.userId, 'Old session user mismatch');
+        }
+        compareAllRows(await allRows(db), afterAuth);
+        const account = bundle.credentials.account;
+        const login = await http('/api/auth/login', { method: 'POST', proxy: true, body: { email: account.email, password: account.password } });
+        requireProof(login.body.user.id === account.userId && login.cookie?.startsWith('session_token=st_'), 'Old password login failed');
+        try {
+          const listing = (await http('/api/users/me/events', { cookie: login.cookie, proxy: true })).body.events;
+          requireProof(listing.length === 2, 'Imported account listing must contain exactly two links');
+          for (const link of bundle.rows.userEvents) {
+            const actual = listing.find(row => row.event.id === link.eventId);
+            requireProof(actual && ['id', 'participantId', 'role', 'createdAt'].every(key => actual[key] === link[key]), 'Imported account link changed');
+            const credential = bundle.credentials.participants.find(row => row.participantId === link.participantId);
+            const claimed = (await http('/api/users/me/events/claim', { method: 'POST', proxy: true, cookie: login.cookie, status: 201,
+              body: { eventId: link.eventId, participantToken: credential.token } })).body.userEvent;
+            requireProof(['id', 'participantId', 'role', 'createdAt'].every(key => claimed[key] === link[key]), 'Repeated imported claim changed');
+          }
+        } finally {
+          const logout = await http('/api/auth/logout', { method: 'POST', cookie: login.cookie, proxy: true });
+          requireProof(isDeepStrictEqual(logout.body, { success: true }), 'New session logout failed');
+          await http('/api/auth/session', { cookie: login.cookie, status: 401, proxy: true });
+        }
+        compareAllRows(await allRows(db), afterAuth);
+      };
+      const savedMeetings = async () => {
+        for (const expected of bundle.rows.events) {
+          const event = (await http(`/api/events/${expected.id}`)).body;
+          requireProof(['id', 'title', 'meetingTime', 'publishedVenueId', 'publishedAt', 'createdAt', 'updatedAt'].every(key => event[key] === expected[key]), 'Imported public event fields changed');
+          const people = bundle.rows.participants.filter(row => row.eventId === expected.id);
+          requireProof(isDeepStrictEqual(event.participants.map(row => row.id).sort(), people.map(row => row.id).sort()), 'Imported event participant set changed');
+          const votes = (await http(`/api/events/${expected.id}/votes`)).body;
+          requireProof(votes.totalVotes === people.length && votes.venues.length === 1 && votes.venues[0].id === bundle.manifest.sharedVenueId &&
+            votes.venues[0].voteCount === people.length && isDeepStrictEqual([...votes.venues[0].voters].sort(), people.map(row => row.id).sort()), 'Imported vote totals or event scoping changed');
+        }
+      };
+      stage = 'old credentials and account links before restart';
+      await authenticate(); await savedMeetings(); compareAllRows(await allRows(db), afterAuth);
+      checked('All three old tokens, cross-event rejection, password, both exact claims and session isolation; only known expired session deleted');
+      stage = 'owned backend restart and repeat old credentials';
+      operate('restart-backend');
+      compareAllRows(await allRows(db), afterAuth);
+      await authenticate(); await savedMeetings(); compareAllRows(await allRows(db), afterAuth);
+      checked('Owned restart preserves all remaining fields, old credentials and both meetings; no reimport after expired-session consumption');
+      stage = 'anonymous original links and visible saved state';
+      const requireDriver = createRequire(path.join(runDir, 'runtime/driver/package.json'));
+      const { chromium } = requireDriver('playwright');
+      browser = await chromium.launch({ channel: 'chrome', headless: true });
+      const errors = []; const details = []; const pending = new Set(); const responses = [];
+      const startedAt = Date.now();
+      for (const event of bundle.rows.events) {
+        const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+        const page = await context.newPage();
+        const reads = [];
+        const inFlight = new Set();
+        const relevant = request => {
+          const url = new URL(request.url());
+          return url.origin === run.backend_url && [`/api/events/${event.id}`, `/api/events/${event.id}/votes`,
+            `/api/venues/${encodeURIComponent(bundle.manifest.sharedVenueId)}`].includes(url.pathname);
+        };
+        page.on('request', request => { if (relevant(request)) inFlight.add(request); });
+        page.on('requestfinished', request => inFlight.delete(request));
+        page.on('pageerror', () => errors.push('uncaught page error'));
+        page.on('requestfailed', request => {
+          inFlight.delete(request);
+          if (relevant(request)) errors.push('relevant browser request failed');
+        });
+        page.on('response', response => {
+          const url = new URL(response.url());
+          if (url.origin === run.backend_url && response.request().method() === 'GET' &&
+            [`/api/events/${event.id}`, `/api/events/${event.id}/votes`].includes(url.pathname)) {
+            reads.push({ path: url.pathname, status: response.status() });
+          }
+          if (url.origin !== run.backend_url || url.pathname !== `/api/venues/${encodeURIComponent(bundle.manifest.sharedVenueId)}` || response.request().method() !== 'GET') return;
+          const task = (async () => {
+            requireProof(response.status() === 200, 'Owned venue hydration response failed');
+            const place = await response.json();
+            const projected = refreshedVenue(bundle.rows.venues[0], place, Prisma.Decimal);
+            details.push(place);
+            responses.push({ event_id: event.id, status: response.status(), venue: { id: projected.id, name: projected.name,
+              address: projected.address, lat: projected.lat, lng: projected.lng, category: projected.category,
+              rating: projected.rating, priceLevel: projected.priceLevel, photoUrl: projected.photoUrl } });
+          })();
+          pending.add(task); task.catch(() => errors.push('owned detail response could not be verified')).finally(() => pending.delete(task));
+        });
+        try {
+          await page.goto(`${run.client_url}/meet/${event.id}?view=participant`, { waitUntil: 'domcontentloaded' });
+          await page.getByRole('heading', { level: 1, name: event.title, exact: true }).waitFor({ timeout: 60000 });
+          const published = event.id === bundle.manifest.publishedEventId;
+          if (published) await page.getByRole('heading', { level: 2, name: 'Event Published', exact: true }).waitFor();
+          const join = page.getByRole('button', { name: 'Join Event', exact: true });
+          await join.waitFor();
+          for (const person of bundle.rows.participants.filter(row => row.eventId === event.id)) await page.getByText(person.name, { exact: true }).first().waitFor();
+          requireProof(await join.isDisabled() === published, 'Loaded imported Join Event lock mismatch');
+          requireProof(await page.getByRole('button', { name: 'Settings', exact: true }).count() === 0, 'Anonymous link exposes organizer controls');
+          await page.getByRole('button', { name: 'Share event', exact: true }).click();
+          await page.getByRole('heading', { name: 'Share Event', exact: true }).waitFor();
+          await page.getByText(event.title, { exact: true }).last().waitFor();
+          await page.getByRole('button', { name: 'Done', exact: true }).click();
+          await page.getByRole('button', { name: 'Venues', exact: true }).click();
+          await page.getByRole('button', { name: /^(Expand|Collapse) liked venues filter/ }).waitFor();
+          const expand = page.getByRole('button', { name: /^Expand liked venues filter/ });
+          if (await expand.isVisible()) await expand.click();
+          await page.getByRole('heading', { name: 'Liked Venues', exact: true }).waitFor();
+          await page.waitForFunction(() => document.querySelector('h3') !== null);
+          const deadline = Date.now() + 30000;
+          let matched = false;
+          while (Date.now() < deadline) {
+            const names = [...new Set(details.map(place => place.name))];
+            for (const name of names) {
+              const card = page.getByRole('button').filter({ has: page.getByRole('heading', { level: 3, name: name + (published ? 'Published' : ''), exact: true }) });
+              const button = card.getByRole('button', { name: published ? 'Voting disabled after publish' : 'Vote for venue', exact: true });
+              if (await button.count() === 1 && await button.isVisible() && Number(await button.innerText()) === (published ? 2 : 1) &&
+                await button.getAttribute('aria-busy') === 'false' && await button.getAttribute('aria-pressed') === 'false' && await button.isDisabled() === published) matched = true;
+            }
+            if (matched) break;
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          requireProof(matched, 'Imported venue card/count/lock did not settle');
+          requireProof(reads.every(read => read.status === 200) && [`/api/events/${event.id}`, `/api/events/${event.id}/votes`]
+            .every(route => reads.some(read => read.path === route)), 'Required browser event/vote responses absent or unsuccessful');
+          requireProof(responses.some(response => response.event_id === event.id), 'This anonymous context did not complete owned detail hydration');
+          const drainedBy = Date.now() + 30000;
+          while ((inFlight.size || pending.size) && Date.now() < drainedBy) {
+            await Promise.allSettled([...pending]);
+            if (inFlight.size) await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          requireProof(inFlight.size === 0 && pending.size === 0, 'Relevant browser requests did not drain before context close');
+          await page.screenshot({ path: path.join(runDir, `evidence/imported-${published ? 'published' : 'open'}.png`), fullPage: true });
+          await writeFile(path.join(runDir, `evidence/imported-${published ? 'published' : 'open'}.aria.txt`), await page.locator('body').ariaSnapshot());
+        } catch (error) {
+          await page.screenshot({ path: path.join(runDir, 'evidence/imported-failure.png'), fullPage: true }).catch(() => {});
+          await writeFile(path.join(runDir, 'evidence/imported-failure.aria.txt'), await page.locator('body').ariaSnapshot()).catch(() => {});
+          throw error;
+        } finally { await context.close(); }
+      }
+      await browser.close(); browser = undefined;
+      await Promise.allSettled([...pending]);
+      result.venue_refresh_responses = responses;
+      requireProof(errors.length === 0, 'Imported links had uncaught page errors or unverified detail responses');
+      compareAfterBrowser(await allRows(db), afterAuth, details, Prisma.Decimal, startedAt, Date.now());
+      checked('Both original anonymous links render imported names, shared venue, scoped counts 2/1 and publication lock');
+      checked('Every other row/field exact after browser; sole Venue refresh matches an observed provider projection and bounded timestamp');
+      result.status = 'PASS';
+    }
+  } catch (error) {
+    result.error = 'Populated migration proof failed; private values omitted';
+    if (error instanceof ProofFailure) result.failed_check = error.message;
+    result.failed_stage = stage;
+    process.exitCode = 1;
+  } finally {
+    await browser?.close().catch(() => {});
+    await db?.$disconnect().catch(() => {});
+    try { await assertVerifierUnchanged(result.verifier); }
+    catch { result.status = 'FAIL'; result.verifier_changed = true; process.exitCode = 1; }
+    if (receipt) {
+      try {
+        result.cleanup = await cleanupCandidate(run, receipt, () => operate('cleanup'));
+        if (profile === 'cleanup') result.status = 'PASS';
+      } catch { result.status = 'FAIL'; result.cleanup_error = 'Owned cleanup incomplete; retain receipts and use --cleanup-only'; process.exitCode = 1; }
+    } else result.cleanup = { ownership_not_claimed: true, caller_cleanup_required: true };
+    try { await assertVerifierUnchanged(result.verifier); }
+    catch { result.status = 'FAIL'; result.verifier_changed = true; process.exitCode = 1; }
+    const name = !receipt ? `migration-refused-${process.pid}.json` : profile === 'cleanup' ? 'migration-recovery.json' : 'migration-result.json';
+    await writeFile(path.join(runDir, 'evidence', name), JSON.stringify(result, null, 2) + '\n');
+    console.log(JSON.stringify(result, null, 2));
+  }
 }
