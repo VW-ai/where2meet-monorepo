@@ -1,5 +1,7 @@
 # Separate MEC Endpoint from Venue Search
 
+> This issue preserves the historical design. The migration runtime retires the proposed MEC endpoint with `404 NOT_FOUND`; the frontend calculates geometry locally. See [MEC retirement](../../docs/mec-retirement.md).
+
 **Date**: 2025-12-25
 **Milestone**: 6 (Results & Publishing)
 **Status**: Open

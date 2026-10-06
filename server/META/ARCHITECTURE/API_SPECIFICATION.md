@@ -1,5 +1,7 @@
 # Where2Meet Backend - API 规范
 
+> This document preserves the legacy API specification. The migration runtime retires `GET /api/events/:id/mec` with `404 NOT_FOUND` and retains `Event.mec: null`. See [MEC retirement](../../docs/mec-retirement.md).
+
 > 基于前端 codebase 分析，整理所有需要实现的 API
 
 ---

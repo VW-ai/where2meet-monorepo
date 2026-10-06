@@ -523,12 +523,21 @@ describe("HTTP contracts against imported PostgreSQL records", () => {
     ).toMatchObject({ user: { id: userId } });
   });
 
-  it("returns explicit unsupported errors and leaves data unchanged", async () => {
+  it("retains the Event contract while retired and unknown routes leave data unchanged", async () => {
     const snapshot = json(await allRows());
+    const event = await app.inject(`/api/events/${eventId}`);
+    expect(event.statusCode).toBe(200);
+    expect(event.json<unknown>()).toMatchObject({ id: eventId, mec: null });
     const mec = await app.inject(`/api/events/${eventId}/mec`);
-    expect(mec.statusCode).toBe(501);
-    expect(mec.json<unknown>()).toMatchObject({ error: { code: "FEATURE_NOT_AVAILABLE" } });
-    expect((await app.inject("/api/unknown")).statusCode).toBe(404);
+    expect(mec.statusCode).toBe(404);
+    expect(mec.json<unknown>()).toEqual({
+      error: { code: "NOT_FOUND", message: "Route not found" },
+    });
+    const unknown = await app.inject("/api/unknown");
+    expect(unknown.statusCode).toBe(404);
+    expect(unknown.json<unknown>()).toEqual({
+      error: { code: "NOT_FOUND", message: "Route not found" },
+    });
     expect(json(await allRows())).toEqual(snapshot);
   });
 

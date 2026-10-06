@@ -340,11 +340,4 @@ export function registerRoutes(
       .code(201)
       .send(response(claimResponse, { success: true, userEvent: claimWire(claim) }));
   });
-
-  app.get("/api/events/:id/mec", () => {
-    throw new AppError(
-      "FEATURE_NOT_AVAILABLE",
-      "This operation is not available in this migration stage"
-    );
-  });
 }

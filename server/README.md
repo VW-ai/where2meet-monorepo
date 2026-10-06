@@ -1,6 +1,6 @@
 # Where2Meet backend rewrite
 
-This branch implements anonymous meetings, the participant lifecycle, email accounts, meeting claims, trusted places, routing, voting, and publication. It is not a complete production replacement. MEC returns `501 FEATURE_NOT_AVAILABLE`; see [the PPE scope](docs/railway-ppe.md).
+This branch implements anonymous meetings, the participant lifecycle, email accounts, meeting claims, trusted places, routing, voting, and publication. It is not a complete production replacement. The MEC endpoint is retired and returns `404 NOT_FOUND`; the frontend calculates geometry locally. See [MEC retirement](docs/mec-retirement.md) and [the PPE scope](docs/railway-ppe.md).
 
 The service uses Fastify, PostgreSQL through Prisma, and Redis notifications. [Source ownership](src/META.md) describes the current modules. Documents under `META/ARCHITECTURE` describe the previous implementation and are not the new module contract.
 
