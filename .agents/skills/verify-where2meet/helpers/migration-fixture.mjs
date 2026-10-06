@@ -13,7 +13,7 @@ const files = new Set(['owner.json', 'rows.json', 'credentials.json', 'manifest.
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const normalize = value => JSON.parse(JSON.stringify(value));
 export async function verifierIdentity() {
-  return Object.fromEntries(await Promise.all(['control.py', 'legacy-fixture.mjs', 'migration-proof.mjs', 'migration-fixture.mjs']
+  return Object.fromEntries(await Promise.all(['control.py', 'ppe.py', 'ppe-browser.mjs', 'ppe_import.py', 'legacy-fixture.mjs', 'migration-proof.mjs', 'migration-fixture.mjs', 'migration-remote.mjs']
     .map(async name => [name, sha256(await readFile(new URL(name, import.meta.url)))])));
 }
 export async function assertVerifierUnchanged(original) {
@@ -202,7 +202,10 @@ export async function cleanupReceipt(run) {
 }
 
 export async function acquireCleanupLock(runDirectory) {
-  const child = spawn('python3', [fileURLToPath(new URL('./control.py', import.meta.url)), 'hold-import-cleanup', '--run', runDirectory],
+  const run = JSON.parse(await readFile(path.join(runDirectory, 'run.json'), 'utf8'));
+  requireProof(['where2meet-verification-v1', 'where2meet-remote-import-run-v1'].includes(run.kind), 'Cleanup controller kind unsupported');
+  const script = run.kind === 'where2meet-remote-import-run-v1' ? './ppe_import.py' : './control.py';
+  const child = spawn('python3', [fileURLToPath(new URL(script, import.meta.url)), 'hold-import-cleanup', '--run', runDirectory],
     { stdio: ['pipe', 'pipe', 'pipe'] });
   child.stderr.resume();
   child.stdin.on('error', () => {});
