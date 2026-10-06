@@ -1,5 +1,17 @@
 # Recorded verification coverage
 
+## M5 MEC retirement, 2026-10-05
+
+PPE run `2026-10-05-m5-mec-ppe-a` passes the `places-routes` scenario against backend `29c9a99a12e5d5010db868a82c98f8c159b3ec6e` and fixed frontend `b803949bd1a327627e99d4a463d03c450364203e`. The frontend combines the previously verified meeting client with main `3bb5d0f`'s blog cleanup. Deployment `39eada8a-cdaa-4370-bb93-40800f97a57d` uses image `sha256:17f68c57f7d191d029c65b50a5a6847285a0391ac0027987e6876bd273413414`. The MEC change removes an unused HTTP route and preserves client source, schema and `Event.mec: null`.
+
+The fixed local frontend proves creation, original identity recovery, title editing, sharing, real Google map/autocomplete, two public-landmark origins, search, details/photo and visible driving/walking values for both participants. Ten HTTP rejection/read checks and authenticated SSE heartbeat/title updates pass. A separate read-only probe during the same owned event confirms its 200 response with `mec: null` and the retired MEC URL's exact 404 `NOT_FOUND` envelope. The browser reports no uncaught page errors or blocked requests. All 79 recorded deployment checks pass. Six browser streams have valid headers, and the recorded cancelled attempt has a later validated replacement on the same page and event.
+
+The exact synthetic event and participant rows are absent after deletion. Cleanup has no issues or remaining event IDs, and the local runtime is removed. Railway confirms the temporary SSH key is absent; its private files and public alias are removed. Verification and cleanup helper fingerprints match `7771f7f7ea61610647447e109c4875a4372f1559db644103c718a54bb756c3a4`. Trusted shared Venue cache rows and Redis diagnostic sequence keys remain outside fixture cleanup.
+
+Local run `2026-10-05-m5-mec-local-a` passes the same browser scenario using the reviewed working-tree patch before commit. The server passes 161 tests, static checks and build; the fixed frontend passes type checking and 155 tests. [Server CI for code commit 29c9a99](https://github.com/VW-ai/where2meet-monorepo/actions/runs/37415261294) passes all ten jobs, including PostgreSQL 17/18 and three browser jobs. This does not alter the earlier M4 runner-cancellation records or establish required-check enforcement on main.
+
+Artifacts remain in the migration workspace under `verification-evidence/2026-10-05-m5-mec-{local-a,ppe-a,ppe-setup}`. This run does not repeat voting/publication or account writes, prove historical import, or validate production frontend serving. Source identity is setup-attested from the uploaded input archive; pre/post checks cannot atomically pin requests. Unknown external MEC callers were not audited. [PR35](https://github.com/VW-ai/where2meet-monorepo/pull/35) remains unmerged; staging and production are unchanged.
+
 ## M4 voting and publication, 2026-10-05
 
 Local run `2026-10-05-m4-google-e` and dedicated Railway run `2026-10-05-m4-ppe-a` pass the bounded `voting-publication` scenario. Both use backend `99bebef771d3ae2af8ce7e553d9dd8cb05cb4b55`, fixed frontend `b960f605d4a6015f7d389cc8d1bf0bb528e8773e`, and verifier `871171727105a6a1055419b57757879314f2cc5b`. M4 changes neither client source nor schema. PPE deployment is `62c6348f-9bb7-4224-bbe5-18ae7071489a`, with image `sha256:c50b44a45cfb8fb6b8bfe69ed7d0e5714f94d8ed8839e3ba8005ece6ce4f3ab4`.
