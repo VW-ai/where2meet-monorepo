@@ -1,6 +1,6 @@
 # HTTP contracts
 
-`routes.ts` adapts public module operations to existing request and response shapes and registers known unavailable routes. `schemas.ts` validates requests and outgoing response data. `errors.ts` maps failures to the nested error envelope.
+`routes.ts` adapts public module operations to existing request and response shapes. `schemas.ts` validates requests and outgoing response data. `errors.ts` maps failures to the nested error envelope.
 
 `sse.ts` authenticates a stream, applies the origin allowlist, writes heartbeat and update frames, and releases timers and subscriptions when the connection closes. It maps typed domain notices to SSE payloads without replay or ordering guarantees.
 
@@ -16,4 +16,6 @@ Directions retains successful route rows followed by legacy null rows for unloca
 
 M4 restores vote POST and DELETE, public vote statistics, publication, and reopening. HTTP validates the legacy `venueData` shape but discards it before calling Meetings. Publication responses use the full Event DTO. Publication emits `event:published` with the prepared trusted venue. Reopening emits `event:updated` with explicit null publication fields.
 
-Vote SSE sends complete `vote:statistics` snapshots. HTTP statistics contains `voterIds`; SSE also preserves deprecated `voterNames` containing the same participant IDs. No `vote:changed` delta is emitted. This preserves the fixed frontend's snapshot behavior but does not claim exact legacy SSE parity. The runtime supplies a diagnostic `seq`; it is not a database revision or replay cursor. MEC remains the only registered 501 operation.
+Vote SSE sends complete `vote:statistics` snapshots. HTTP statistics contains `voterIds`; SSE also preserves deprecated `voterNames` containing the same participant IDs. No `vote:changed` delta is emitted. This preserves the fixed frontend's snapshot behavior but does not claim exact legacy SSE parity. The runtime supplies a diagnostic `seq`; it is not a database revision or replay cursor.
+
+`GET /api/events/:id/mec` is retired and returns the ordinary `404 NOT_FOUND` envelope. Event responses retain the required `mec: null` field. The frontend calculates its circle locally. See [MEC retirement](../../docs/mec-retirement.md).
