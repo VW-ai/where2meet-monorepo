@@ -57,6 +57,9 @@ jobs:
       - name: Check module boundaries
         run: npm run check:boundaries
 
+      - name: Test migration fixture boundaries
+        run: node --test ../.agents/skills/verify-where2meet/helpers/test_migration_fixture.mjs
+
       - name: Run ESLint
         run: npm run lint
 

@@ -2,6 +2,7 @@
 """Run the real Where2Meet app in a disposable local environment."""
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -10,6 +11,7 @@ import re
 import shutil
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import time
@@ -256,6 +258,50 @@ def restart_backend(run):
     })
 
 
+def stop_backend(run):
+    state = load(run)
+    record = state["processes"]["backend"]
+    receipt = run / "evidence" / "backend-stop.json"
+    if state["status"] in ("backend-stopped", "cleaned"):
+        stopped = json.loads(receipt.read_text())
+        if (stopped.get("status") != "PASS" or stopped.get("pid") != record["pid"]
+                or stopped.get("identity") != record["identity"]
+                or stopped.get("source_fingerprint") != state["source_fingerprint"]):
+            raise RuntimeError("Backend cutoff receipt does not match this run")
+        if process_identity(record["pid"]) or group_members(record["pid"]):
+            raise RuntimeError("Recorded backend process or group is present; cutoff is not proven")
+        return
+    doctor(run)
+    # Recheck after doctor: a reused PID must never receive the shutdown signal.
+    if process_identity(record["pid"]) != record["identity"] or os.getpgid(record["pid"]) != record["pid"]:
+        raise RuntimeError("Backend ownership changed before cutoff; not signaled")
+    os.killpg(record["pid"], signal.SIGTERM)
+    wait_for(lambda: not group_members(record["pid"]), "legacy backend shutdown", timeout=15)
+    if process_identity(record["pid"]):
+        raise RuntimeError("Backend process remains after cutoff")
+    require_owned_listener(state, "postgres")
+    state["status"] = "backend-stopped"
+    save(run, state)
+    write_json(receipt, {"status": "PASS", "pid": record["pid"], "identity": record["identity"],
+                         "source_fingerprint": state["source_fingerprint"],
+                         "database_retained": True, "promise_settlement_claimed": False})
+
+
+def hold_import_cleanup(run):
+    load(run)
+    descriptor = os.open(run / "migration-cleanup.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        details = os.fstat(descriptor)
+        if not stat.S_ISREG(details.st_mode) or details.st_uid != os.getuid() or details.st_nlink != 1 or stat.S_IMODE(details.st_mode) != 0o600:
+            raise RuntimeError("Import cleanup lock ownership or mode changed")
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        print("IMPORT_CLEANUP_LOCKED", flush=True)
+        # The Node owner closes this pipe in finally; process death also closes it.
+        sys.stdin.read()
+    finally:
+        os.close(descriptor)
+
+
 def launch(run, repo, frontend_repo, schema_mode, backend_mode):
     if (run / "run.json").exists():
         raise RuntimeError("Run already exists. Use a new run directory, or doctor/cleanup the existing run")
@@ -350,7 +396,7 @@ def launch(run, repo, frontend_repo, schema_mode, backend_mode):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("launch", "doctor", "drive", "cleanup", "restart-backend"))
+    parser.add_argument("operation", choices=("launch", "doctor", "drive", "cleanup", "restart-backend", "stop-backend", "hold-import-cleanup"))
     parser.add_argument("--run", type=Path, required=True)
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--frontend-repo", type=Path, help="Pinned original frontend checkout during backend migration")
@@ -371,6 +417,10 @@ def main():
         cleanup(run)
     elif args.operation == "restart-backend":
         restart_backend(run)
+    elif args.operation == "stop-backend":
+        stop_backend(run)
+    elif args.operation == "hold-import-cleanup":
+        hold_import_cleanup(run)
     else:
         try:
             doctor(run)

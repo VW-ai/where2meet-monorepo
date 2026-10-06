@@ -51,6 +51,70 @@ class SourceSnapshotTest(unittest.TestCase):
         self.assertEqual(control.fingerprint(snapshot, ("client",)), control.fingerprint(self.checkout, ("client",)))
 
 
+class BackendCutoffTest(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.run = Path(temporary.name)
+        (self.run / "evidence").mkdir()
+        self.state = {"kind": "where2meet-verification-v1", "run_dir": str(self.run), "status": "ready",
+                      "source_fingerprint": "frozen", "processes": {"backend": {"pid": 1234, "identity": "owned"}}}
+        control.save(self.run, self.state)
+
+    def test_cutoff_retains_database_and_has_an_idempotent_read_only_check(self):
+        with patch.object(control, "doctor"), patch.object(control, "process_identity", side_effect=["owned", ""]), \
+                patch.object(control.os, "getpgid", return_value=1234), patch.object(control.os, "killpg") as kill, \
+                patch.object(control, "wait_for"), patch.object(control, "require_owned_listener") as listener:
+            control.stop_backend(self.run)
+        kill.assert_called_once_with(1234, signal.SIGTERM)
+        listener.assert_called_once()
+        self.assertEqual(listener.call_args.args[1], "postgres")
+        self.assertEqual(listener.call_args.args[0]["processes"]["backend"]["pid"], 1234)
+        self.assertEqual(control.load(self.run)["status"], "backend-stopped")
+        self.assertFalse(json.loads((self.run / "evidence/backend-stop.json").read_text())["promise_settlement_claimed"])
+        with patch.object(control, "process_identity", return_value=""), patch.object(control, "group_members", return_value=[]), \
+                patch.object(control.os, "killpg") as kill:
+            control.stop_backend(self.run)
+        kill.assert_not_called()
+
+    def test_changed_pid_is_never_signaled(self):
+        with patch.object(control, "doctor"), patch.object(control, "process_identity", return_value="reused"), \
+                patch.object(control.os, "killpg") as kill:
+            with self.assertRaisesRegex(RuntimeError, "ownership changed"):
+                control.stop_backend(self.run)
+        kill.assert_not_called()
+
+    def test_surviving_group_fails_and_does_not_record_cutoff(self):
+        with patch.object(control, "doctor"), patch.object(control, "process_identity", return_value="owned"), \
+                patch.object(control.os, "getpgid", return_value=1234), patch.object(control.os, "killpg"), \
+                patch.object(control, "wait_for", side_effect=RuntimeError("backend shutdown did not finish")):
+            with self.assertRaisesRegex(RuntimeError, "shutdown"):
+                control.stop_backend(self.run)
+        self.assertFalse((self.run / "evidence/backend-stop.json").exists())
+        self.assertEqual(control.load(self.run)["status"], "ready")
+
+    def test_recheck_rejects_surviving_group_or_reused_pid(self):
+        self.state["status"] = "cleaned"
+        control.save(self.run, self.state)
+        control.write_json(self.run / "evidence/backend-stop.json", {
+            "status": "PASS", "pid": 1234, "identity": "owned", "source_fingerprint": "frozen"})
+        for identity, members in (("reused", []), ("", [5678])):
+            with self.subTest(identity=identity), patch.object(control, "process_identity", return_value=identity), \
+                    patch.object(control, "group_members", return_value=members), patch.object(control.os, "killpg") as kill:
+                with self.assertRaisesRegex(RuntimeError, "present"):
+                    control.stop_backend(self.run)
+                kill.assert_not_called()
+
+    def test_recheck_rejects_missing_or_wrong_receipt(self):
+        self.state["status"] = "backend-stopped"
+        control.save(self.run, self.state)
+        with self.assertRaises(FileNotFoundError):
+            control.stop_backend(self.run)
+        control.write_json(self.run / "evidence/backend-stop.json", {"status": "PASS", "pid": 999})
+        with self.assertRaisesRegex(RuntimeError, "receipt"):
+            control.stop_backend(self.run)
+
+
 @unittest.skipUnless(shutil.which(control.LISTENER_TOOL), "Listener inspection tool is unavailable")
 class ListenerOwnershipTest(unittest.TestCase):
     def setUp(self):
