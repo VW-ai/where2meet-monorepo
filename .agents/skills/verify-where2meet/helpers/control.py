@@ -289,12 +289,25 @@ def stop_backend(run):
 
 def hold_import_cleanup(run):
     load(run)
+    hold_cleanup_lock(run)
+
+
+def acquire_cleanup_lock(run):
     descriptor = os.open(run / "migration-cleanup.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
         details = os.fstat(descriptor)
         if not stat.S_ISREG(details.st_mode) or details.st_uid != os.getuid() or details.st_nlink != 1 or stat.S_IMODE(details.st_mode) != 0o600:
             raise RuntimeError("Import cleanup lock ownership or mode changed")
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return descriptor
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def hold_cleanup_lock(run):
+    descriptor = acquire_cleanup_lock(run)
+    try:
         print("IMPORT_CLEANUP_LOCKED", flush=True)
         # The Node owner closes this pipe in finally; process death also closes it.
         sys.stdin.read()

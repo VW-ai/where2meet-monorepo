@@ -1,5 +1,19 @@
 # Recorded verification coverage
 
+## M5 isolated Railway import, 2026-10-05
+
+Remote populated import remains **UNVERIFIED**. Attempt `2026-10-05-m5-remote-import-candidate-a` failed during local `prisma generate`, before opening a database tunnel or starting the importer. `prisma.config.ts` requires `DATABASE_URL` even for generation. The final helper supplies a dummy loopback URL only to that command. A real generation run and a command-environment regression test pass after the fix. The failed attempt is retained and has not been replayed.
+
+The fresh old-service export `2026-10-05-m5-remote-import-legacy-a` passes with frozen attempt-A helpers. It contains the same 15-row populated profile, generated through the actual old HTTP API. The old runtime is removed. The candidate never claims or imports that bundle. Its private bundle and failed local preparation directory remain restricted for recovery; they are not ordinary evidence or repository files.
+
+Setup independently verifies PostgreSQL 17.11 through a private SSH tunnel, then closes that tunnel. Clean backend source `ea53bf57f70faf1fad958ca7ef578cad3490da70` deploys as `191c709c-e608-49e4-bbf8-5dc0a81cdbcc`, image `sha256:b92859aeb8e8cdefee9434644f03aef79d15446f727c36b6f4ef7bbf8e83d138`. A real restart changes PID 1 start ticks while preserving deployment, image, database and other PPE services. Railway's deployment and replica IDs alone stayed unchanged. These setup observations do not prove populated import, browser compatibility or production version parity.
+
+Cleanup is **BLOCKED by provider permissions**. Railway rejects the current Wayne identity's service-delete request. The three new `m5-import-12a4837cbf-*` deployments are confirmed `REMOVED` with no active deployment, but their service records and PostgreSQL volume `39db59a3-ec8b-4319-9738-25b3c39cda0d` still require administrator deletion. The existing PPE deployments remain unchanged. The temporary SSH key is revoked, its absence is confirmed, and its private files are removed. No staging or production change, historical-data access, merge or import occurred.
+
+The final code passes all 124 Node verifier tests and 110 Python tests, with 104 passes and six existing database-dependent skips. Workflow validation and direct Python static checks pass. The new tests cover exact resource ownership, interrupted claims, process and lock ownership, denied or uncertain cleanup, request limits, photo redirects, clock bounds and generation-only configuration. Application source, schema and importer writes are unchanged.
+
+Artifacts remain under `verification-evidence/2026-10-05-m5-remote-import-{setup,checks,legacy-a,candidate-a}` in the migration workspace. Setup retains the failed first upload, configuration correction, failed provider-ID-only restart assertion and successful actual-process observation. The original helper bytes are retained separately for attempt-A cleanup. After exact resource cleanup, remove the receipt-bound private bundle, create a fresh trio and source fixture, and rerun the [remote import recipe](remote-import.md). Do not treat the local fix or successful setup checks as remote acceptance.
+
 ## M5 populated local import, 2026-10-05
 
 Old-service export `2026-10-05-m5-import-legacy-b` and candidate proof `2026-10-05-m5-import-candidate-b` pass the `populated-v1` profile with the final helper files. Attempt A also passes; B repeats the proof after one redundant code comment is removed. The old source is clean `5a158d8b2545b1c75628f1d36efb7b9cc0c76de9`, using schema push and source mode. The candidate is clean `a870c11ce45a25058ac076f5ebfa6887c2fc83f0`, using checked-in migrations and the compiled backend. Both use fixed frontend `b803949bd1a327627e99d4a463d03c450364203e`. The four frozen helper-file digests are recorded in both B results and match after the run. This verifier patch changes no application source, Prisma schema or importer write behavior.

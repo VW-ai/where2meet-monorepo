@@ -1,6 +1,6 @@
 # Populated synthetic import rehearsal
 
-This local profile extends the existing exporter and proof commands. It uses the unchanged server importer and the real old HTTP API. It does not import historical or production data, change schema, run against Railway, or configure an existing PPE service. A source or unit-test result is not live acceptance; record the actual run separately.
+This local profile extends the existing exporter and proof commands. For the separately owned Railway variant, follow [remote-import.md](remote-import.md). It uses the unchanged server importer and the real old HTTP API. It does not import historical or production data, change schema, run against Railway, or configure an existing PPE service. A source or unit-test result is not live acceptance; record the actual run separately.
 
 Use Node 24 and the launch prerequisites in [SKILL.md](SKILL.md). Supply the authorized Google development key through the process environment. Both the old fixture and browser hydration require real Google responses. Keep the same key available when the candidate proof restarts its backend. Do not print it or put it in command arguments.
 
@@ -22,7 +22,7 @@ python3 "$VERIFY_SKILL/helpers/control.py" launch --repo "$CANDIDATE_REPO" --fro
 node "$VERIFY_SKILL/helpers/migration-proof.mjs" "$CANDIDATE_RUN" "$PRIVATE_FIXTURE_DIR" --profile populated-v1
 ```
 
-Stop on any nonzero command and retain its evidence. Require the exporter and candidate result to report `PASS`, plus the owned cleanup result. The old revision is pinned to `5a158d8b2545b1c75628f1d36efb7b9cc0c76de9`. Both app sources must be clean; the fixed frontend is separately recorded by the launcher. Each populated report records SHA-256 identities for the four import/control helper files and rejects changes during execution. Freeze those helpers before starting either command. The candidate may be a separate clean checkout from the helper checkout.
+Stop on any nonzero command and retain its evidence. Require the exporter and candidate result to report `PASS`, plus the owned cleanup result. The old revision is pinned to `5a158d8b2545b1c75628f1d36efb7b9cc0c76de9`. Both app sources must be clean; the fixed frontend is separately recorded by the launcher. Each populated report records SHA-256 identities for its import, controller and request-policy helpers and rejects changes during execution. Freeze those helpers before starting either command. The candidate may be a separate clean checkout from the helper checkout.
 
 The private directory must be new, outside every Git checkout, owned by the current user and mode 0700. Its files are mode 0600. `rows.json`, `credentials.json`, `manifest.json`, and ownership receipts are private; never copy them into ordinary evidence, a PR, logs, or Railway variables. The manifest binds both content digests, source run/revision/fingerprint and exact row IDs. The graph audit reports the first failed model or field boundary without private values. The server importer remains responsible for its complete field schema. An exclusive source-run receipt prevents two exporters from using different bundle paths against the same database. Only an accepted empty source is eligible for automatic exporter cleanup; a failed precondition preserves existing state.
 
