@@ -32,6 +32,7 @@ jobs:
        github.event.workflow_run.head_branch == 'main' &&
        github.event.workflow_run.head_repository.full_name == github.repository)
     env:
+      PYTHONDONTWRITEBYTECODE: '1'
       APPROVED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       RAILWAY_PROJECT: 848dc1e0-d9c2-4571-b542-73a1efdc5848
       RAILWAY_ENVIRONMENT: cc3365e4-e13f-43dd-b73c-77f2029bf8da
