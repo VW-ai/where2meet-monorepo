@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import platform
 import re
 import shutil
 import signal
@@ -360,6 +361,15 @@ def launch(run, repo, frontend_repo, schema_mode, backend_mode):
         log = run / "evidence" / "setup.log"
         for name in ("server", "client"):
             command(["npm", "ci", "--no-audit", "--no-fund"], runtime / "app" / name, env, log)
+        client = runtime / "app" / "client"
+        if sys.platform == "linux" and platform.machine() == "x86_64" and platform.libc_ver()[0] == "glibc":
+            native = "@next/swc-linux-x64-gnu"
+            load_native = ["node", "-e", f"require('{native}')"]
+            if subprocess.run(load_native, cwd=client, env=env, capture_output=True).returncode:
+                version = json.loads((client / "node_modules" / "next" / "package.json").read_text())["version"]
+                command(["npm", "install", "--no-save", "--no-audit", "--no-fund", f"{native}@{version}"],
+                        client, env, log)
+            command(load_native, client, env, log)
         driver = runtime / "driver"
         driver.mkdir()
         for name in ("package.json", "package-lock.json"):
