@@ -61,6 +61,13 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:8000
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
+      - name: Build disposable staging-test frontend image
+        run: >-
+          docker build -f Dockerfile.staging-test -t where2meet-client-staging-test
+          --build-arg NEXT_PUBLIC_BACKEND_URL=https://where2meet-server-staging.up.railway.app
+          --build-arg NEXT_PUBLIC_API_URL=https://where2meet-server-staging.up.railway.app
+          --build-arg NEXT_PUBLIC_APP_URL=http://127.0.0.1:4317 .
+
       - name: Check bundle size
         run: |
           BUNDLE_SIZE=$(du -sh .next | cut -f1)

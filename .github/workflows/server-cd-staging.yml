@@ -1,93 +1,175 @@
 name: Server CD Staging
 
 on:
-  workflow_dispatch:  # Manual trigger for testing
   workflow_run:
     workflows: ["Server CI"]
     branches: [main]
     types: [completed]
 
+permissions:
+  contents: read
+
 concurrency:
-  group: cd-staging-${{ github.event_name }}
-  cancel-in-progress: true
+  group: server-cd-staging
+  cancel-in-progress: false
 
 jobs:
   deploy-staging:
-    name: Deploy to Staging
+    name: Deploy and verify staging
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     environment: staging
-    # For workflow_run: check CI success + push to main + vars configured
-    # For workflow_dispatch: skip workflow_run checks (manual trigger)
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main')
-
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    env:
+      APPROVED_SHA: ${{ github.event.workflow_run.head_sha }}
+      RAILWAY_PROJECT: 848dc1e0-d9c2-4571-b542-73a1efdc5848
+      RAILWAY_ENVIRONMENT: cc3365e4-e13f-43dd-b73c-77f2029bf8da
+      RAILWAY_SERVICE: 57bc3975-1bd6-4506-95df-ed7edc52380d
+      VERIFY_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      CLIENT_CONTAINER: staging-client-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - name: Checkout
+      - name: Set private verification run directory
+        run: echo "RUN_DIR=$RUNNER_TEMP/staging-proof-$VERIFY_RUN_ID" >> "$GITHUB_ENV"
+
+      - name: Checkout approved source
         uses: actions/checkout@v4
         with:
-          # Use workflow_run's commit for auto-deploy, default branch for manual trigger
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Validate CI approval and current main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          test "$(python3 .github/scripts/staging_policy.py event --main-sha "$MAIN_SHA")" = "$APPROVED_SHA"
+          test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          mkdir -p "$RUN_DIR/evidence"
+          chmod 700 "$RUN_DIR" "$RUN_DIR/evidence"
+          python3 -m unittest discover -s .github/scripts -p 'test_staging_policy.py'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
-      - name: Verify Railway configuration
+      - name: Install deployment and browser tools
+        run: |
+          npm install -g @railway/cli@5.63.1
+          npm ci --prefix .agents/skills/verify-where2meet/helpers
+          .agents/skills/verify-where2meet/helpers/node_modules/.bin/playwright install --with-deps chrome
+
+      - name: Check staging source and CORS policy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+        run: python3 .github/scripts/staging_policy.py preflight
+
+      - name: Upload approved revision
         shell: bash
         env:
-          # Use a Project Token scoped to the staging environment.
-          # Configure this as a GitHub Environment secret for `staging`.
+          GH_TOKEN: ${{ github.token }}
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
-          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
         run: |
           set -euo pipefail
-          missing=0
-          for key in RAILWAY_TOKEN RAILWAY_SERVICE_NAME; do
-            if [[ -z "${!key:-}" ]]; then
-              echo "::error::Missing required config: ${key}"
-              missing=1
-            fi
-          done
-          if [[ "$missing" -eq 1 ]]; then
-            echo "::error::Configure GitHub 'Actions secrets and variables' (Environment secret + repo vars) before running CD."
+          MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          test "$MAIN_SHA" = "$APPROVED_SHA"
+          test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          python3 .github/scripts/staging_policy.py preflight
+          if ! railway up --detach --json --project "$RAILWAY_PROJECT" --environment "$RAILWAY_ENVIRONMENT" --service "$RAILWAY_SERVICE" > "$RUNNER_TEMP/staging-upload.jsonl" 2> "$RUNNER_TEMP/staging-upload.stderr"; then
+            echo '::error::Railway upload failed; provider output withheld'
             exit 1
           fi
+          DEPLOYMENT_ID=$(python3 .github/scripts/staging_policy.py upload-id --file "$RUNNER_TEMP/staging-upload.jsonl")
+          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> "$GITHUB_ENV"
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Sync Railway env vars (optional)
-        shell: bash
+      - name: Wait for exact deployment and readiness
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
-          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
-          DATABASE_URL: ${{ vars.database_url }}
-          REDIS_URL: ${{ vars.redis_url }}
+        run: python3 .github/scripts/staging_policy.py wait
+
+      - name: Start disposable frontend from approved source
+        shell: bash
         run: |
           set -euo pipefail
-          args=()
-          if [[ -n "${DATABASE_URL:-}" ]]; then
-            args+=(--set "DATABASE_URL=${DATABASE_URL}")
-          fi
-          if [[ -n "${REDIS_URL:-}" ]]; then
-            args+=(--set "REDIS_URL=${REDIS_URL}")
-          fi
-          if [[ "${#args[@]}" -gt 0 ]]; then
-            railway variables --service "$RAILWAY_SERVICE_NAME" --environment staging --skip-deploys "${args[@]}"
-          else
-            echo "No GitHub vars provided for DATABASE_URL/REDIS_URL; skipping sync."
-          fi
+          test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          docker build -f client/Dockerfile.staging-test -t "$CLIENT_CONTAINER" \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=https://where2meet-server-staging.up.railway.app \
+            --build-arg NEXT_PUBLIC_API_URL=https://where2meet-server-staging.up.railway.app \
+            --build-arg NEXT_PUBLIC_APP_URL=http://127.0.0.1:4317 client
+          docker run --detach --name "$CLIENT_CONTAINER" --label "where2meet.run=$VERIFY_RUN_ID" \
+            -p 127.0.0.1:4317:4317 \
+            -e NEXT_PUBLIC_MOCK_MODE=off -e NEXT_PUBLIC_MOCK_DOMAINS= -e NEXT_PUBLIC_USE_MOCK_API=false \
+            -e NEXT_PUBLIC_BACKEND_URL=https://where2meet-server-staging.up.railway.app \
+            -e NEXT_PUBLIC_API_URL=https://where2meet-server-staging.up.railway.app \
+            -e NEXT_PUBLIC_APP_URL=http://127.0.0.1:4317 \
+            -e BACKEND_URL=https://where2meet-server-staging.up.railway.app "$CLIENT_CONTAINER"
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:4317/ > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::Disposable frontend failed to become ready after $attempt checks"
+          exit 1
 
-      # Uploads the whole repo from the root; the Railway service must have
-      # Root Directory set to "server" so it builds from server/ (Dockerfile,
-      # railway.toml) exactly as a GitHub-triggered deploy would.
-      - name: Deploy to Railway (staging)
-        run: railway up --ci --environment staging --service "$RAILWAY_SERVICE_NAME"
+      - name: Verify staging through the browser
+        run: >-
+          node .agents/skills/verify-where2meet/helpers/staging-browser.mjs
+          --backend-origin https://where2meet-server-staging.up.railway.app
+          --client-origin http://127.0.0.1:4317
+          --backend-sha "$APPROVED_SHA" --frontend-sha "$APPROVED_SHA"
+          --deployment-id "$DEPLOYMENT_ID" --run-dir "$RUN_DIR" --run-id "$VERIFY_RUN_ID"
+
+      - name: Reconcile owned test event after browser interruption
+        if: always() && env.DEPLOYMENT_ID != ''
+        run: >-
+          node .agents/skills/verify-where2meet/helpers/staging-browser.mjs cleanup
+          --backend-origin https://where2meet-server-staging.up.railway.app
+          --client-origin http://127.0.0.1:4317
+          --backend-sha "$APPROVED_SHA" --frontend-sha "$APPROVED_SHA"
+          --deployment-id "$DEPLOYMENT_ID" --run-dir "$RUN_DIR" --run-id "$VERIFY_RUN_ID"
+
+      - name: Confirm deployment remained active
+        if: always() && env.DEPLOYMENT_ID != ''
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
-          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: python3 .github/scripts/staging_policy.py wait
+
+      - name: Stop disposable frontend
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if docker inspect "$CLIENT_CONTAINER" > /dev/null 2>&1; then
+            test "$(docker inspect --format '{{ index .Config.Labels "where2meet.run" }}' "$CLIENT_CONTAINER")" = "$VERIFY_RUN_ID"
+            docker rm --force "$CLIENT_CONTAINER"
+          fi
+          if docker inspect "$CLIENT_CONTAINER" > /dev/null 2>&1; then exit 1; fi
+
+      - name: Validate browser result and cleanup identities
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          test "$MAIN_SHA" = "$APPROVED_SHA"
+          python3 .github/scripts/staging_policy.py evidence
+
+      - name: Preserve sanitized browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.RUN_DIR }}/evidence/
+          if-no-files-found: warn
+          retention-days: 14

@@ -31,7 +31,12 @@ jobs:
       - name: Test CI policy boundaries
         env:
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python3 -m unittest discover -s .github/scripts -p 'test_ci_policy.py' -v
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*policy.py' -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test staging browser safety boundaries
+        run: node --test .agents/skills/verify-where2meet/helpers/test_staging_browser.mjs
       - name: Validate workflows and embedded scripts
         uses: docker://rhysd/actionlint:1.7.12
         with:

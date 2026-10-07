@@ -6,7 +6,10 @@ on:
     branches: [main]
     paths:
       - 'server/**'
-      - '.github/workflows/server-ci.yml'
+      - 'client/**'
+      - '.agents/skills/verify-where2meet/**'
+      - '.github/workflows/**'
+      - '.github/scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - '.husky/**'
