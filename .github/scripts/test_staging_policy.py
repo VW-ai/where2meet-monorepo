@@ -92,21 +92,43 @@ class StagingPolicyTests(unittest.TestCase):
                     'DATABASE_URL': variables['DATABASE_URL']}
         redis = {'RAILWAY_ENVIRONMENT_ID': ENVIRONMENT, 'RAILWAY_SERVICE_ID': REDIS,
                  'REDIS_URL': variables['REDIS_URL']}
-        self.assertIsNone(preflight(status_fixture(), variables, postgres, redis))
+        config = {'services': {SERVICE: {'build': {}}}}
+        self.assertIsNone(preflight(status_fixture(), variables, postgres, redis, config))
         for source in ({'repo': REPOSITORY, 'image': None}, {}, None):
             status = status_fixture()
             status['environments']['edges'][0]['node']['serviceInstances']['edges'][0]['node']['source'] = source
             with self.subTest(source=source), self.assertRaises(RuntimeError):
-                preflight(status, variables, postgres, redis)
+                preflight(status, variables, postgres, redis, config)
         for key, value in [('CORS_ORIGINS', '*'), ('CORS_ORIGINS', 'http://localhost:4317'),
                            ('RAILWAY_ENVIRONMENT_ID', 'production'), ('RAILWAY_SERVICE_ID', 'other')]:
             with self.subTest(key=key, value=value), self.assertRaises(RuntimeError):
-                preflight(status_fixture(), {**variables, key: value}, postgres, redis)
+                preflight(status_fixture(), {**variables, key: value}, postgres, redis, config)
         for bad_postgres, bad_redis in [({**postgres, 'DATABASE_URL': 'production'}, redis),
                                         (postgres, {**redis, 'REDIS_URL': 'production'}),
                                         ({**postgres, 'RAILWAY_ENVIRONMENT_ID': 'production'}, redis)]:
             with self.assertRaises(RuntimeError):
-                preflight(status_fixture(), variables, bad_postgres, bad_redis)
+                preflight(status_fixture(), variables, bad_postgres, bad_redis, config)
+
+    def test_preflight_requires_staging_backend_with_no_path_filter(self):
+        variables = {'RAILWAY_ENVIRONMENT_ID': ENVIRONMENT, 'RAILWAY_SERVICE_ID': SERVICE,
+                     'CORS_ORIGINS': CLIENT, 'DATABASE_URL': 'staging-postgres-url',
+                     'REDIS_URL': 'staging-redis-url'}
+        postgres = {'RAILWAY_ENVIRONMENT_ID': ENVIRONMENT, 'RAILWAY_SERVICE_ID': POSTGRES,
+                    'DATABASE_URL': variables['DATABASE_URL']}
+        redis = {'RAILWAY_ENVIRONMENT_ID': ENVIRONMENT, 'RAILWAY_SERVICE_ID': REDIS,
+                 'REDIS_URL': variables['REDIS_URL']}
+        self.assertIsNone(preflight(status_fixture(), variables, postgres, redis,
+                                    {'services': {SERVICE: {'build': {'watchPatterns': []}}}}))
+        self.assertIsNone(preflight(status_fixture(), variables, postgres, redis,
+                                    {'services': {SERVICE: {}}}))
+        for patterns in (['/server/**'], ['/**'], ['/server/**', '/**'], None):
+            config = {'services': {SERVICE: {'build': {'watchPatterns': patterns}}}}
+            with self.subTest(patterns=patterns), self.assertRaisesRegex(RuntimeError, 'no path filter'):
+                preflight(status_fixture(), variables, postgres, redis, config)
+        for config in ({'services': {POSTGRES: {}}}, {'services': {SERVICE: {'build': None}}},
+                       {'services': {SERVICE: {'build': []}}}, {}):
+            with self.subTest(config=config), self.assertRaisesRegex(RuntimeError, 'no path filter'):
+                preflight(status_fixture(), variables, postgres, redis, config)
 
     def test_only_uploaded_successful_active_deployment_is_ready(self):
         meta = {'commitHash': SHA, 'rootDirectory': '/server', 'configFile': '/server/railway.toml',
@@ -127,6 +149,19 @@ class StagingPolicyTests(unittest.TestCase):
                         {**meta, 'commitHash': 'b' * 40}):
             with self.assertRaises(RuntimeError):
                 deployment_ready(status_fixture(), [{**deployments[0], 'meta': changed}], DEPLOYMENT, SHA)
+
+    def test_successful_deployment_manifest_must_have_no_effective_path_filter(self):
+        meta = {'commitHash': SHA, 'rootDirectory': '/server', 'configFile': '/server/railway.toml',
+                'serviceManifest': {'build': {'builder': 'DOCKERFILE', 'dockerfilePath': 'Dockerfile',
+                                              'watchPatterns': []},
+                                    'deploy': {'startCommand': START_COMMAND, 'healthcheckPath': '/health/ready'}}}
+        deployment = {'id': DEPLOYMENT, 'status': 'SUCCESS', 'meta': meta}
+        self.assertTrue(deployment_ready(status_fixture(), [deployment], DEPLOYMENT, SHA))
+        for patterns in (['/server/**'], ['/**'], None):
+            changed = copy.deepcopy(deployment)
+            changed['meta']['serviceManifest']['build']['watchPatterns'] = patterns
+            with self.subTest(patterns=patterns), self.assertRaisesRegex(RuntimeError, 'path filter'):
+                deployment_ready(status_fixture(), [changed], DEPLOYMENT, SHA)
 
     def test_evidence_requires_exact_identity_and_cleanup_pass(self):
         identity = {'backend_sha': SHA, 'frontend_sha': SHA, 'deployment_id': DEPLOYMENT,

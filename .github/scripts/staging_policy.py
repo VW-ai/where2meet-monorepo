@@ -82,8 +82,16 @@ def instance(status):
     return services[0]
 
 
-def preflight(status, variables, postgres, redis):
+def preflight(status, variables, postgres, redis, environment_config):
     service = instance(status)
+    services = environment_config.get('services') if isinstance(environment_config, dict) else None
+    backend_config = services.get(SERVICE) if isinstance(services, dict) else None
+    build = backend_config.get('build') if isinstance(backend_config, dict) else None
+    require(isinstance(backend_config, dict)
+            and ('build' not in backend_config or
+                 (isinstance(build, dict)
+                  and ('watchPatterns' not in build or build['watchPatterns'] == []))),
+            'Staging backend must have no path filter')
     require('source' in service and isinstance(service['source'], dict)
             and 'repo' in service['source'] and service['source']['repo'] is None
             and not service['source'].get('image'), 'Staging source must be disconnected from GitHub and images')
@@ -119,6 +127,8 @@ def deployment_ready(status, deployments, deployment_id, approved_sha=None):
             and deploy.get('startCommand') == START_COMMAND
             and deploy.get('healthcheckPath') == '/health/ready',
             'Uploaded deployment has unexpected build or runtime settings')
+    require('watchPatterns' not in build or build['watchPatterns'] == [],
+            'Uploaded deployment has a path filter')
     if approved_sha and meta.get('commitHash'):
         require(meta['commitHash'] == approved_sha, 'Uploaded deployment commit differs from approved source')
     active = service.get('activeDeployments', [])
@@ -162,6 +172,17 @@ def railway(*command):
         raise RuntimeError('Railway JSON invalid; provider output withheld') from None
 
 
+def railway_environment_config():
+    proc = subprocess.run(['railway', 'environment', 'config', '--environment', ENVIRONMENT, '--json'],
+                          env={**os.environ, 'RAILWAY_PROJECT_ID': PROJECT},
+                          capture_output=True, text=True, timeout=60)
+    require(proc.returncode == 0, 'Railway environment config read failed; provider output withheld')
+    try:
+        return json.loads(proc.stdout)
+    except ValueError:
+        raise RuntimeError('Railway environment config JSON invalid; provider output withheld') from None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('operation', choices=['event', 'pr-number', 'preflight', 'upload-id',
@@ -187,7 +208,7 @@ def main():
     elif args.operation == 'preflight':
         preflight(railway('status'), railway('variables', '--service', SERVICE),
                   railway('variables', '--service', POSTGRES),
-                  railway('variables', '--service', REDIS))
+                  railway('variables', '--service', REDIS), railway_environment_config())
     elif args.operation == 'upload-id':
         rows = [json.loads(line) for line in Path(args.file).read_text().splitlines() if line.strip()]
         ids = {row['deploymentId'] for row in rows if row.get('deploymentId')}
