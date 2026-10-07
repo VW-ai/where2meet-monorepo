@@ -45,6 +45,7 @@ async function startApp() {
     port: 0,
     logLevel: "silent",
     corsOrigins: ["http://localhost:3001"],
+    deploymentId: "12345678-1234-4234-8234-123456789abc",
     redisTimeoutMs: 1000,
     heartbeatIntervalMs: 1000,
     streamTimeoutMs: 10000,
@@ -93,6 +94,14 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   if (cleanup) await cleanup();
+});
+
+it("identifies the running deployment in readiness responses", async () => {
+  const readiness = await app.inject("/health/ready");
+  expect(readiness.statusCode).toBe(200);
+  expect(readiness.json<{ deploymentId: string }>().deploymentId).toBe(
+    "12345678-1234-4234-8234-123456789abc"
+  );
 });
 
 it("deploys every immutable migration into a fresh isolated schema", async () => {

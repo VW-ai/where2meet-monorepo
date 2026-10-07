@@ -6,7 +6,10 @@ on:
     branches: [main]
     paths:
       - 'server/**'
-      - '.github/workflows/server-ci.yml'
+      - 'client/**'
+      - '.agents/skills/verify-where2meet/**'
+      - '.github/workflows/**'
+      - '.github/scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - '.husky/**'
@@ -18,7 +21,7 @@ permissions:
 
 concurrency:
   group: server-ci-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 defaults:
   run:
@@ -171,10 +174,21 @@ jobs:
   workflow-lint:
     uses: ./.github/workflows/workflow-lint.yml
 
+  staging:
+    name: Deploy and verify staging
+    if: github.event_name == 'pull_request'
+    needs: [lint, build, test, client, browser-compat, workflow-lint]
+    uses: ./.github/workflows/server-cd-staging.yml
+    permissions:
+      contents: read
+      pull-requests: read
+    secrets:
+      RAILWAY_STAGING: ${{ secrets.RAILWAY_STAGING }}
+
   required:
     name: CI required
     if: always()
-    needs: [lint, build, test, client, browser-compat, workflow-lint]
+    needs: [lint, build, test, client, browser-compat, workflow-lint, staging]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     defaults:
@@ -187,4 +201,5 @@ jobs:
       - name: Require every workload to succeed
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
-        run: python3 .github/scripts/ci_policy.py gate --needs-json "$NEEDS_JSON"
+          EVENT_NAME: ${{ github.event_name }}
+        run: python3 .github/scripts/ci_policy.py gate --needs-json "$NEEDS_JSON" --event-name "$EVENT_NAME"

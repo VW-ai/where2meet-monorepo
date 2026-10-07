@@ -17,6 +17,7 @@ const schema = z.object({
   geocodeTimeoutMs: z.coerce.number().int().min(100).max(30000),
   geocodeEndpoint: z.url(),
   publicApiOrigin: z.string().nullable(),
+  deploymentId: z.uuid().nullable(),
   placesEndpoint: z.url(),
   directionsEndpoint: z.url(),
   placesTimeoutMs: z.coerce.number().int().min(100).max(30000),
@@ -63,6 +64,7 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     publicApiOrigin:
       process.env.PUBLIC_API_ORIGIN ??
       (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null),
+    deploymentId: process.env.RAILWAY_DEPLOYMENT_ID ?? null,
     placesEndpoint: "https://maps.googleapis.com/maps/api/place/",
     directionsEndpoint: "https://maps.googleapis.com/maps/api/directions/json",
     placesTimeoutMs: process.env.PLACES_TIMEOUT_MS ?? 5000,

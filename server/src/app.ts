@@ -140,6 +140,7 @@ export async function makeApp(overrides: Partial<AppConfig> = {}) {
     ]);
     return reply.code(dbHealthy ? 200 : 503).send({
       status: dbHealthy ? (redisHealthy ? "ok" : "degraded") : "unhealthy",
+      deploymentId: config.deploymentId,
       timestamp: new Date().toISOString(),
       services: {
         database: dbHealthy ? "ok" : "unhealthy",

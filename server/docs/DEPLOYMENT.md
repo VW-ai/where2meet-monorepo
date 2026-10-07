@@ -1,49 +1,27 @@
-# Deployment (Railway + GitHub Actions)
+# Railway deployment and verification
 
-This repo can deploy to Railway in two ways:
+## Staging
 
-1) Railway GitHub integration (Railway auto-deploys on git pushes), or
-2) GitHub Actions CD workflows (GitHub triggers `railway up`).
+On a same-repository pull request, `Server CI` runs for any file change because its PR trigger has no path filter. It first runs local checks. If they pass, it calls [staging CD](../../.github/workflows/server-cd-staging.yml) for GitHub's PR test merge commit. Before upload and after browser acceptance, the job checks the live PR's open state, repository, head, base, and test merge revision. A changed PR cannot pass on stale evidence. Fork PRs do not get the staging credential and cannot pass this gate.
 
-If you want GitHub Actions to control CD, disable Railway's auto-deploy to avoid double-deploys.
+After merge, a successful `Server CI` push for the current `main` commit runs the same staging verification again. Manual dispatch is not a staging bypass. PR and post-merge runs share one staging deployment lock. A new request cannot cancel a running job, but GitHub may replace an older pending job; rerun a canceled PR job. The PR `CI required` check needs staging success; it accepts a skipped staging job only for push, merge-group, or manual CI events.
 
-## GitHub Actions CD (recommended if you want full control)
+Before upload, the job checks the fixed Railway project, staging environment and backend service; the backend's resolved `DATABASE_URL` and `REDIS_URL` must equal those of the staging PostgreSQL and Redis services. The backend service must have no GitHub or image source attached, so Railway cannot auto-deploy from GitHub around this workflow. Set the staging backend's Railway Build > Watch Patterns to no filter. In `railway environment config --environment <staging-id> --json`, its service `build.watchPatterns` must be omitted or `[]`; the preflight rejects any configured pattern. This lets even a documentation-only PR or a rerun of the same commit produce a new deployment. Production's watch pattern is separate and is not changed by this setting. `CORS_ORIGINS` must explicitly include `http://127.0.0.1:4317` without a wildcard. Set these in Railway while preserving the existing allowed origins. The workflow deliberately fails before deployment if a prerequisite is missing.
 
-Workflows:
+Railway's source attachment belongs to the service shared by staging and production; disconnecting it affects both environments. It does not stop the active deployments. Production remains deployable through its separate manual GitHub Actions workflow. The CORS variable is environment-scoped; use `--skip-deploys` when preparing staging so the change takes effect with the next approved deployment.
 
-- Staging: `.github/workflows/server-cd-staging.yml`
-- Production: `.github/workflows/server-cd-production.yml`
+The workflow receives only the repository's `RAILWAY_STAGING` secret. Its deployment job records the `staging` GitHub environment, but that environment currently has no protection rules or environment-scoped secret. The Railway token must itself be scoped to staging. The fixed project, environment, and service IDs and the preflight checks limit the target, but they do not replace token scoping. Same-repository PR authors can change the workflow and scripts that run with this token, so branch write access is a trust boundary.
 
-### Required GitHub config
+The job uploads the approved checkout, captures Railway's deployment ID, then requires that ID to be the sole active successful deployment. Its effective manifest must also have no watch-pattern filter, in case `server/railway.toml` overrides the environment setting. The manifest must use `/server`, `/server/railway.toml`, the Dockerfile, migration start command, and `/health/ready`. The HTTP readiness response must report the same Railway deployment ID with healthy PostgreSQL and Redis.
 
-Configure these in **GitHub → Settings → Secrets and variables → Actions**:
+Each PR deploys into the same persistent staging database and applies its migrations. Browser cleanup removes its test event, not schema changes. PR migrations must remain compatible with subsequent candidate and `main` deployments; use isolated PPE for rehearsals that cannot meet that requirement.
 
-- Variables (repo-level): `RAILWAY_SERVICE_NAME`
-- Optional variables (repo-level): `database_url`, `redis_url` (synced to Railway as `DATABASE_URL`/`REDIS_URL` before deploy)
-- Secret (environment-level):
-  - `staging` environment: `RAILWAY_TOKEN` (Project Token scoped to staging)
-  - `production` environment: `RAILWAY_TOKEN` (Project Token scoped to production)
+GitHub Actions builds a production-mode Next.js frontend from the same checkout with mocks off and the staging backend URL baked in. It starts that image **only on the CI runner's loopback port**. The staging browser check uses this temporary frontend; it does not connect to the hosted or production frontend. It creates a no-location meeting, reloads organizer identity, edits the title, checks a fresh guest view, and deletes the meeting. A private receipt permits a final cleanup retry if the browser stops after creation. Only sanitized result and cleanup files are uploaded. The job removes its own frontend container before success.
 
-### Railway settings
+This initial staging check does not cover Google Maps, routes, votes, publication, accounts, or historical-data import. Keep the [PPE verification recipe](../../.agents/skills/verify-where2meet/ppe.md) and PR boundary checks for those behaviors. A passing staging deployment is evidence for the listed no-location flow and the exact uploaded deployment, not for every product feature.
 
-- Root Directory: `/server`.
-- Config File Path: `/server/railway.toml` (the config path does not follow Root Directory automatically).
-- A new GitHub repository needs its own environment secrets and variables; these are not part of Git history.
+## Production
 
-- Disable Railway GitHub integration auto-deploy for this service (so only Actions deploys).
-- Ensure the Railway service has the required runtime env vars configured (e.g. `DATABASE_URL`, `REDIS_URL`, `CORS_ORIGINS`).
+[Production CD](../../.github/workflows/server-cd-production.yml) remains a separate manual workflow with its own Railway environment secret and confirmation input. It has not yet been changed to require a staging evidence artifact. Do not describe a staging success as an automatic production release.
 
-### How deploy works
-
-- (Optional) The workflows sync `database_url`/`redis_url` into Railway variables `DATABASE_URL`/`REDIS_URL` (without triggering an extra deploy)
-- Then they run `railway up --ci --environment <staging|production> --service <name>`
-- The Railway runtime runs DB migrations before start via `railway.toml` (`startCommand`, before the Node process starts)
-
-Note: In Railway UI, `DATABASE_URL`/`REDIS_URL` may appear as `${{<id>.DATABASE_URL}}`-style references; Railway resolves these at runtime.
-
-## Config as Code
-
-Railway uses `railway.toml` as the source of truth for build/deploy settings:
-
-- Builder: Dockerfile
-- Healthcheck: `/health/ready`
+Railway runs migrations before starting the Node process through `server/railway.toml`. Keep `DATABASE_URL`, `REDIS_URL`, and `CORS_ORIGINS` scoped to their intended environment. The production workflow still supports optional GitHub `database_url` and `redis_url` variable synchronization; staging reads Railway's existing references and does not sync those variables.
