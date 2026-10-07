@@ -24,16 +24,11 @@ On pull requests, the backend checkout is GitHub's test merge commit. It differs
 
 Run the complete `Server CI` workflow when repeating acceptance. A separately dispatched child workflow is diagnostic and does not replace the complete gate. Workflow lint also runs independently for workflow changes so malformed orchestration can still receive a diagnostic check.
 
-## Enable required merge checks after rollout
+## Required merge checks on `main`
 
-The workflow change remains on the unmerged migration stack. Main branch protection is not enabled by this change. Requiring a check before its workflow exists on the branches being merged would block the earlier migration PRs.
+`main` branch protection requires `CI required` from GitHub Actions, requires a PR to be up to date with `main`, and applies the rule to administrators. The staging acceptance workflow is still on the unmerged migration stack. PRs #17–#19 and #10 do not emit `CI required`, so they cannot merge into `main` under this rule until their branches are updated and the check runs. PRs #20–#37 have an earlier check with the same name; its success alone does not prove the staging acceptance added in this PR. Inspect the workflow run before merging any migration PR.
 
-After this workflow lands on `main`:
-
-1. Open or update a PR and confirm that the complete `Server CI` run reports `CI required`.
-2. Add a branch rule for `main` that requires this check from GitHub Actions.
-3. Require the PR to be up to date before merging so the result covers the current base.
-4. Confirm that a missing or failing gate blocks merging. Do not accept individual child checks as substitutes.
+Once this workflow reaches `main`, verify that a same-repository PR runs the complete `Server CI` workflow and that a missing or failing `CI required` blocks merging. Do not accept individual child checks as substitutes.
 
 GitHub documents why dependent required checks need `always()` and why path-filtered workflows can leave required checks pending in [Troubleshooting required status checks](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks).
 
