@@ -1,10 +1,11 @@
 import copy
+import json
 import unittest
 
 from staging_policy import (BACKEND, CLIENT, ENVIRONMENT, POSTGRES, PROJECT, REDIS, SERVICE,
                             START_COMMAND,
                             approved_event, approved_pr_event, deployment_ready, evidence_matches, http_readiness,
-                            preflight)
+                            preflight, upload_error_code)
 
 SHA = 'a' * 40
 DEPLOYMENT = '12cd34ef-1234-5678-abcd-123456789012'
@@ -23,6 +24,19 @@ def status_fixture():
 
 
 class StagingPolicyTests(unittest.TestCase):
+    def test_upload_failure_reports_only_bounded_provider_code(self):
+        payload = {'code': 'PROJECT_NOT_FOUND', 'error': 'private error', 'hint': 'secret://value'}
+        self.assertEqual(upload_error_code(json.dumps(payload)), 'PROJECT_NOT_FOUND')
+        for changed in ({**payload, 'code': 'PROJECT_NOT_FOUND\n::error::secret'},
+                        {**payload, 'code': 'A' * 65},
+                        {**payload, 'code': 'lowercase'},
+                        {**payload, 'code': None},
+                        {'error': 'private error'},
+                        [payload]):
+            with self.subTest(changed=changed):
+                self.assertEqual(upload_error_code(json.dumps(changed)), 'UNKNOWN')
+        self.assertEqual(upload_error_code('{private error'), 'UNKNOWN')
+
     def test_pr_approval_requires_live_same_repo_merge_revision(self):
         head = 'b' * 40
         base = 'c' * 40

@@ -105,7 +105,8 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=normal)"
           python3 .github/scripts/staging_policy.py preflight
           if ! railway up --detach --json --project "$RAILWAY_PROJECT" --environment "$RAILWAY_ENVIRONMENT" --service "$RAILWAY_SERVICE" > "$RUNNER_TEMP/staging-upload.jsonl" 2> "$RUNNER_TEMP/staging-upload.stderr"; then
-            echo '::error::Railway upload failed; provider output withheld'
+            UPLOAD_ERROR_CODE=$(python3 .github/scripts/staging_policy.py upload-error --file "$RUNNER_TEMP/staging-upload.jsonl")
+            echo "::error::Railway upload failed (code: $UPLOAD_ERROR_CODE)"
             exit 1
           fi
           DEPLOYMENT_ID=$(python3 .github/scripts/staging_policy.py upload-id --file "$RUNNER_TEMP/staging-upload.jsonl")
@@ -175,7 +176,7 @@ jobs:
           if docker inspect "$CLIENT_CONTAINER" > /dev/null 2>&1; then exit 1; fi
 
       - name: Validate browser result and cleanup identities
-        if: always()
+        if: always() && env.DEPLOYMENT_ID != ''
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

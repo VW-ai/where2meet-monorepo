@@ -143,6 +143,15 @@ def http_readiness(status, body, deployment_id):
             'Staging HTTP route does not serve the ready uploaded deployment')
 
 
+def upload_error_code(payload):
+    try:
+        response = json.loads(payload)
+    except (TypeError, ValueError):
+        return 'UNKNOWN'
+    code = response.get('code') if isinstance(response, dict) else None
+    return code if isinstance(code, str) and re.fullmatch(r'[A-Z][A-Z0-9_]{0,63}', code) else 'UNKNOWN'
+
+
 def railway(*command):
     proc = subprocess.run(['railway', *command, '--project', PROJECT, '--environment', ENVIRONMENT,
                            '--json'], capture_output=True, text=True, timeout=60)
@@ -155,7 +164,8 @@ def railway(*command):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('operation', choices=['event', 'pr-number', 'preflight', 'upload-id', 'wait', 'evidence'])
+    parser.add_argument('operation', choices=['event', 'pr-number', 'preflight', 'upload-id',
+                                              'upload-error', 'wait', 'evidence'])
     parser.add_argument('--main-sha')
     parser.add_argument('--pr-file')
     parser.add_argument('--file')
@@ -185,6 +195,14 @@ def main():
         value = ids.pop()
         require(re.fullmatch('[0-9a-f-]{36}', value), 'Invalid uploaded deployment ID')
         print(value)
+    elif args.operation == 'upload-error':
+        try:
+            with Path(args.file).open('rb') as source:
+                payload = source.read(16385)
+            code = upload_error_code(payload.decode('utf-8')) if len(payload) <= 16384 else 'UNKNOWN'
+        except (OSError, TypeError, UnicodeError):
+            code = 'UNKNOWN'
+        print(code)
     elif args.operation == 'wait':
         for _ in range(90):
             if deployment_ready(railway('status'), railway('deployment', 'list', '--service', SERVICE, '--limit', '20'),
