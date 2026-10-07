@@ -37,6 +37,36 @@ def approved_event(event, repository, main_sha):
     return sha
 
 
+def pr_number(event, repository):
+    pr = event.get('pull_request', {})
+    number = event.get('number')
+    require(event.get('repository', {}).get('full_name') == repository
+            and type(number) is int and number > 0 and pr.get('number') == number,
+            'Expected a pull request in the current repository')
+    return number
+
+
+def approved_pr_event(event, current, repository, checkout_sha):
+    number = pr_number(event, repository)
+    previous = event['pull_request']
+    require(current.get('number') == number and previous.get('state') == 'open'
+            and current.get('state') == 'open', 'Pull request is no longer open')
+    for name in ('head', 'base'):
+        original = previous.get(name, {})
+        live = current.get(name, {})
+        require(original.get('repo', {}).get('full_name') == repository
+                and live.get('repo', {}).get('full_name') == repository,
+                'Staging accepts only same-repository pull requests')
+        original_sha = original.get('sha')
+        require(isinstance(original_sha, str) and re.fullmatch('[0-9a-f]{40}', original_sha)
+                and original_sha == live.get('sha'),
+                f'Pull request {name} revision changed after CI started')
+    require(re.fullmatch('[0-9a-f]{40}', checkout_sha)
+            and current.get('merge_commit_sha') == checkout_sha,
+            'Checkout must equal the current pull request test merge revision')
+    return checkout_sha
+
+
 def nodes(connection):
     return [edge['node'] for edge in connection.get('edges', [])]
 
@@ -125,13 +155,25 @@ def railway(*command):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('operation', choices=['event', 'preflight', 'upload-id', 'wait', 'evidence'])
+    parser.add_argument('operation', choices=['event', 'pr-number', 'preflight', 'upload-id', 'wait', 'evidence'])
     parser.add_argument('--main-sha')
+    parser.add_argument('--pr-file')
     parser.add_argument('--file')
     args = parser.parse_args()
     if args.operation == 'event':
-        print(approved_event(json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text()),
-                             os.environ['GITHUB_REPOSITORY'], args.main_sha))
+        event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+        if os.environ['GITHUB_EVENT_NAME'] == 'pull_request':
+            require(bool(args.pr_file), 'Current pull request response is required')
+            print(approved_pr_event(event, json.loads(Path(args.pr_file).read_text()),
+                                    os.environ['GITHUB_REPOSITORY'], os.environ['GITHUB_SHA']))
+        else:
+            require(os.environ['GITHUB_EVENT_NAME'] == 'workflow_run' and bool(args.main_sha),
+                    'Expected approved main workflow run')
+            print(approved_event(event, os.environ['GITHUB_REPOSITORY'], args.main_sha))
+    elif args.operation == 'pr-number':
+        require(os.environ['GITHUB_EVENT_NAME'] == 'pull_request', 'Expected pull request event')
+        print(pr_number(json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text()),
+                        os.environ['GITHUB_REPOSITORY']))
     elif args.operation == 'preflight':
         preflight(railway('status'), railway('variables', '--service', SERVICE),
                   railway('variables', '--service', POSTGRES),

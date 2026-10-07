@@ -3,7 +3,7 @@ import unittest
 
 from staging_policy import (BACKEND, CLIENT, ENVIRONMENT, POSTGRES, PROJECT, REDIS, SERVICE,
                             START_COMMAND,
-                            approved_event, deployment_ready, evidence_matches, http_readiness,
+                            approved_event, approved_pr_event, deployment_ready, evidence_matches, http_readiness,
                             preflight)
 
 SHA = 'a' * 40
@@ -23,6 +23,38 @@ def status_fixture():
 
 
 class StagingPolicyTests(unittest.TestCase):
+    def test_pr_approval_requires_live_same_repo_merge_revision(self):
+        head = 'b' * 40
+        base = 'c' * 40
+        merge = 'd' * 40
+        pull_request = {'number': 38, 'state': 'open',
+                        'head': {'sha': head, 'repo': {'full_name': REPOSITORY}},
+                        'base': {'sha': base, 'repo': {'full_name': REPOSITORY}},
+                        'merge_commit_sha': merge}
+        event = {'number': 38, 'repository': {'full_name': REPOSITORY},
+                 'pull_request': copy.deepcopy(pull_request)}
+        self.assertEqual(approved_pr_event(event, pull_request, REPOSITORY, merge), merge)
+        mutations = (
+            ('new head', 'current', 'head', 'sha', 'e' * 40),
+            ('new base', 'current', 'base', 'sha', 'e' * 40),
+            ('new merge', 'current', None, 'merge_commit_sha', 'e' * 40),
+            ('closed', 'current', None, 'state', 'closed'),
+            ('forked head', 'current', 'head', 'repo', {'full_name': 'other/repo'}),
+            ('forked base', 'event', 'base', 'repo', {'full_name': 'other/repo'}),
+            ('wrong number', 'current', None, 'number', 39),
+        )
+        for label, source, part, field, value in mutations:
+            with self.subTest(label=label):
+                candidate_event = copy.deepcopy(event)
+                candidate_current = copy.deepcopy(pull_request)
+                target = candidate_event['pull_request'] if source == 'event' else candidate_current
+                target = target[part] if part else target
+                target[field] = value
+                with self.assertRaises(RuntimeError):
+                    approved_pr_event(candidate_event, candidate_current, REPOSITORY, merge)
+        with self.assertRaises(RuntimeError):
+            approved_pr_event(event, pull_request, REPOSITORY, 'f' * 40)
+
     def test_ci_approval_requires_current_main_and_repository(self):
         event = {'repository': {'full_name': REPOSITORY}, 'workflow_run': {
             'name': 'Server CI', 'conclusion': 'success', 'event': 'push',

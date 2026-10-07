@@ -20,7 +20,7 @@ The backend origin is `https://ppe-backend-ppe.up.railway.app`. The local fronte
 
 ## Existing deployment triggers
 
-The checked-in production workflow only deploys after a manual request with `confirm=deploy`. Staging also deploys after a successful Server CI run caused by a push to `main`. Pull request CI, including a pull request targeting another development branch, does not satisfy that staging condition.
+The checked-in production workflow only deploys after a manual request with `confirm=deploy`. Staging verifies same-repository PRs after their local Server CI jobs pass, using the current PR test merge revision. It runs again after a successful Server CI push to the current `main` commit. The PR gate is required only once this workflow is present on the branch running the checks and a branch protection rule requires `CI required`. PPE remains the isolated place to rehearse incomplete backend changes; shared staging is the PR acceptance target.
 
 Railway can have a separate GitHub deployment integration. Before uploading this branch, inspect the target service's linked repository, branch, automatic deployment setting, and root directory in Railway. The repository workflows do not prove those dashboard settings.
 

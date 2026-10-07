@@ -25,6 +25,7 @@ class PolicyCLI(unittest.TestCase):
             "client": {"result": "success", "outputs": {}},
             "browser-compat": {"result": "success", "outputs": {}},
             "workflow-lint": {"result": "success", "outputs": {}},
+            "staging": {"result": "success", "outputs": {}},
         }
         self.documents = {
             "doctor": {
@@ -45,8 +46,8 @@ class PolicyCLI(unittest.TestCase):
             text=True, capture_output=True, check=False,
         )
 
-    def run_gate(self, needs):
-        return self.invoke("gate", "--needs-json", json.dumps(needs))
+    def run_gate(self, needs, event_name="pull_request"):
+        return self.invoke("gate", "--needs-json", json.dumps(needs), "--event-name", event_name)
 
     def write_evidence(self):
         for name, document in self.documents.items():
@@ -75,6 +76,7 @@ class PolicyCLI(unittest.TestCase):
 | client | success |
 | browser-compat | success |
 | workflow-lint | success |
+| staging | success |
 """)
         self.assertEqual(self.summary.read_text(), result.stdout)
 
@@ -85,6 +87,18 @@ class PolicyCLI(unittest.TestCase):
                     needs = json.loads(json.dumps(self.needs))
                     needs[name]["result"] = outcome
                     self.assert_rejected(self.run_gate(needs), "gate")
+
+    def test_gate_requires_staging_for_pr_and_skips_it_for_other_events(self):
+        for event_name in ("push", "merge_group", "workflow_dispatch"):
+            with self.subTest(event_name=event_name):
+                needs = json.loads(json.dumps(self.needs))
+                needs["staging"]["result"] = "skipped"
+                self.assertEqual(self.run_gate(needs, event_name).returncode, 0)
+                self.assert_rejected(self.run_gate(self.needs, event_name), "gate")
+        needs = json.loads(json.dumps(self.needs))
+        needs["staging"]["result"] = "skipped"
+        self.assert_rejected(self.run_gate(needs), "gate")
+        self.assert_rejected(self.run_gate(self.needs, "workflow_run"), "gate")
 
     def test_gate_rejects_missing_and_extra_workloads(self):
         for name in self.needs:
@@ -100,7 +114,7 @@ class PolicyCLI(unittest.TestCase):
     def test_gate_rejects_malformed_payloads_without_echoing_them(self):
         for payload in ("{secret", "[]", "null", '"secret"'):
             with self.subTest(payload=payload):
-                result = self.invoke("gate", "--needs-json", payload)
+                result = self.invoke("gate", "--needs-json", payload, "--event-name", "pull_request")
                 self.assert_rejected(result, "gate")
                 self.assertEqual(result.stdout, "CI gate: FAIL\n\nMalformed needs JSON.\n")
         for job in ({}, [], {"result": ["success"]}, {"result": "success\n::notice::secret"}):

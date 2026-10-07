@@ -1,6 +1,10 @@
 name: Server CD Staging
 
 on:
+  workflow_call:
+    secrets:
+      RAILWAY_STAGING:
+        required: true
   workflow_run:
     workflows: ["Server CI"]
     branches: [main]
@@ -8,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: server-cd-staging
@@ -20,13 +25,14 @@ jobs:
     timeout-minutes: 35
     environment: staging
     if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     env:
-      APPROVED_SHA: ${{ github.event.workflow_run.head_sha }}
+      APPROVED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       RAILWAY_PROJECT: 848dc1e0-d9c2-4571-b542-73a1efdc5848
       RAILWAY_ENVIRONMENT: cc3365e4-e13f-43dd-b73c-77f2029bf8da
       RAILWAY_SERVICE: 57bc3975-1bd6-4506-95df-ed7edc52380d
@@ -36,20 +42,28 @@ jobs:
       - name: Set private verification run directory
         run: echo "RUN_DIR=$RUNNER_TEMP/staging-proof-$VERIFY_RUN_ID" >> "$GITHUB_ENV"
 
-      - name: Checkout approved source
+      - name: Checkout candidate source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ env.APPROVED_SHA }}
           persist-credentials: false
 
-      - name: Validate CI approval and current main
+      - name: Validate current CI approval
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
-          test "$(python3 .github/scripts/staging_policy.py event --main-sha "$MAIN_SHA")" = "$APPROVED_SHA"
+          if test "$GITHUB_EVENT_NAME" = pull_request; then
+            PR_NUMBER=$(python3 .github/scripts/staging_policy.py pr-number)
+            gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/current-pr.json"
+            test "$(python3 .github/scripts/staging_policy.py event --pr-file "$RUNNER_TEMP/current-pr.json")" = "$APPROVED_SHA"
+          elif test "$GITHUB_EVENT_NAME" = workflow_run; then
+            MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+            test "$(python3 .github/scripts/staging_policy.py event --main-sha "$MAIN_SHA")" = "$APPROVED_SHA"
+          else
+            exit 1
+          fi
           test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
           test -z "$(git status --porcelain --untracked-files=normal)"
           mkdir -p "$RUN_DIR/evidence"
@@ -69,18 +83,24 @@ jobs:
 
       - name: Check staging source and CORS policy
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING }}
         run: python3 .github/scripts/staging_policy.py preflight
 
       - name: Upload approved revision
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING }}
         run: |
           set -euo pipefail
-          MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
-          test "$MAIN_SHA" = "$APPROVED_SHA"
+          if test "$GITHUB_EVENT_NAME" = pull_request; then
+            PR_NUMBER=$(python3 .github/scripts/staging_policy.py pr-number)
+            gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/current-pr.json"
+            test "$(python3 .github/scripts/staging_policy.py event --pr-file "$RUNNER_TEMP/current-pr.json")" = "$APPROVED_SHA"
+          else
+            MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+            test "$(python3 .github/scripts/staging_policy.py event --main-sha "$MAIN_SHA")" = "$APPROVED_SHA"
+          fi
           test "$(git rev-parse HEAD)" = "$APPROVED_SHA"
           test -z "$(git status --porcelain --untracked-files=normal)"
           python3 .github/scripts/staging_policy.py preflight
@@ -93,7 +113,7 @@ jobs:
 
       - name: Wait for exact deployment and readiness
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING }}
         run: python3 .github/scripts/staging_policy.py wait
 
       - name: Start disposable frontend from approved source
@@ -140,7 +160,7 @@ jobs:
       - name: Confirm deployment remained active
         if: always() && env.DEPLOYMENT_ID != ''
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING || secrets.railway_staging }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING }}
         run: python3 .github/scripts/staging_policy.py wait
 
       - name: Stop disposable frontend
@@ -161,8 +181,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
-          test "$MAIN_SHA" = "$APPROVED_SHA"
+          if test "$GITHUB_EVENT_NAME" = pull_request; then
+            PR_NUMBER=$(python3 .github/scripts/staging_policy.py pr-number)
+            gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/current-pr.json"
+            test "$(python3 .github/scripts/staging_policy.py event --pr-file "$RUNNER_TEMP/current-pr.json")" = "$APPROVED_SHA"
+          else
+            MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+            test "$MAIN_SHA" = "$APPROVED_SHA"
+          fi
           python3 .github/scripts/staging_policy.py evidence
 
       - name: Preserve sanitized browser evidence
