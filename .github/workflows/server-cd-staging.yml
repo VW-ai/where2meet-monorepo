@@ -170,11 +170,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if docker inspect "$CLIENT_CONTAINER" > /dev/null 2>&1; then
-            test "$(docker inspect --format '{{ index .Config.Labels "where2meet.run" }}' "$CLIENT_CONTAINER")" = "$VERIFY_RUN_ID"
+          if docker container inspect "$CLIENT_CONTAINER" > /dev/null 2>&1; then
+            test "$(docker container inspect --format '{{ index .Config.Labels "where2meet.run" }}' "$CLIENT_CONTAINER")" = "$VERIFY_RUN_ID"
             docker rm --force "$CLIENT_CONTAINER"
           fi
-          if docker inspect "$CLIENT_CONTAINER" > /dev/null 2>&1; then exit 1; fi
+          if docker container inspect "$CLIENT_CONTAINER" > /dev/null 2>&1; then exit 1; fi
 
       - name: Validate browser result and cleanup identities
         if: always() && env.DEPLOYMENT_ID != ''
