@@ -17,6 +17,8 @@ Run persistent assertions in CI. AI may discover a flow and improve its driver, 
 
 For PR acceptance, require the complete `Server CI` run and its `CI required` result. It includes candidate and fixed-frontend browser cases, database-major coverage, and evidence validation. A separately successful child workflow does not replace that result. Keep changed-behavior assertions at the owning domain boundary and retain failed evidence. Read [the CI contract](../../../.github/README.md) for coverage and the separate branch-protection rollout step. Remote PPE proof remains required for backend acceptance and is not automated by this PR gate.
 
+After a qualifying push reaches `main`, the [staging CD gate](../../../server/docs/DEPLOYMENT.md) deploys that exact revision and tests it through a production-built frontend container on the CI runner. It does not use a hosted frontend. Read the sanitized browser result and cleanup evidence together with the Railway deployment ID. This staging flow covers the no-location meeting lifecycle; retain PPE proof for candidate changes and affected Google, voting, account, or migration boundaries. Current Railway staging needs its GitHub source disconnected and its exact loopback CORS origin added before this gate can run.
+
 ## Local verification
 
 This launcher targets the current Next.js and Fastify monorepo. [verification-status.md](verification-status.md) records the original and compatible frontend revisions. It copies the working tree, including local edits, into an isolated directory and excludes dependencies, generated output, and `.env*` files. Each run owns its database, Redis, ports, and fresh browser contexts.

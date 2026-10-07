@@ -8,10 +8,10 @@ The suite checks these boundaries:
 | --- | --- |
 | Server quality and build | Types, module ownership, lint, formatting, compilation, and the Railway Docker image build. |
 | Server tests | HTTP behavior, persistence, and migrations against PostgreSQL 17 and 18. This covers both current database majors, not complete production runtime parity. |
-| Client quality and build | Types, lint, tests, and the production bundle. The build's mock configuration is separate from browser acceptance. |
+| Client quality and build | Types, lint, tests, the production bundle, and the production-mode disposable staging frontend image. The ordinary bundle's mock configuration is separate from browser acceptance. |
 | Candidate frontend | The proposed frontend exercises the event lifecycle and accounts in separate isolated runs against the compiled backend, with mocks off. |
 | Fixed frontend | Frontend `05e6daa2245e31dfd142768b545b74cdb9a51476` works with the proposed compiled backend. Changing both sides cannot silently replace this contract. |
-| Workflow and policy checks | Workflow syntax, embedded scripts, and rejection of incomplete or inconsistent CI evidence. |
+| Workflow and policy checks | Workflow syntax, embedded scripts, staging browser safety checks, and rejection of incomplete or inconsistent CI evidence. |
 
 Browser acceptance covers the no-location event lifecycle and account registration, claims, session restoration, profile preferences and sign-in/out. The fixed frontend remains the event-lifecycle compatibility baseline; corrected account consumption runs on the candidate frontend. The account job also tests bounded PPE cleanup against its own local database and preserves an unrelated account. A separate Settings component test uses explicit transport faults to check cancelled saves and failed logout; it records `accounts-ui-races.json` and cannot replace real-backend evidence. Google behavior and unimplemented operations remain outside that proof. See [verification coverage](../.agents/skills/verify-where2meet/verification-status.md).
 
@@ -38,6 +38,6 @@ GitHub documents why dependent required checks need `always()` and why path-filt
 
 ## Deployment boundaries
 
-Both CD workflow files remain unchanged. Staging still listens for a successful `Server CI` push to `main` and deploys that run's exact commit. Its qualifying success now includes the full CI graph. Manual deployment entry points retain their existing behavior. This task does not execute a deployment.
+The staging CD workflow accepts only a successful `Server CI` push for the current `main` commit. It checks Railway environment and data-resource ownership before uploading, observes the exact active deployment, and tests a production-built frontend container on the CI runner against the staging backend. Its browser evidence proves the listed no-location event lifecycle and exact cleanup. A hosted frontend or Vercel preview is not used for this gate. See [the staging recipe](../server/docs/DEPLOYMENT.md).
 
-PPE automation is a separate next step. Backend acceptance still follows the explicit [PPE verification recipe](../.agents/skills/verify-where2meet/ppe.md). CI success alone does not prove that the candidate ran in Railway PPE or that historical data can be imported.
+The current Railway staging service still has a GitHub source attached and lacks the runner's loopback CORS origin. The new preflight is expected to fail until those settings are changed; a green PR check alone is not a Railway staging proof. Production CD remains manually controlled and does not yet consume staging evidence. Backend acceptance still follows the [PPE verification recipe](../.agents/skills/verify-where2meet/ppe.md); historical-data import needs its separate proof.
