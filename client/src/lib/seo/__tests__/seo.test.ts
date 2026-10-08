@@ -171,6 +171,7 @@ describe('sitemap', () => {
       `${CANONICAL_ORIGIN}/faq`,
       `${CANONICAL_ORIGIN}/contact`,
       `${CANONICAL_ORIGIN}/blog`,
+      `${CANONICAL_ORIGIN}/blog/how-to-pick-a-date-spot`,
       `${CANONICAL_ORIGIN}/blog/how-to-plan-a-weekend-hangout-with-friends`,
       `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
     ]);
@@ -181,6 +182,7 @@ describe('sitemap', () => {
       entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`)
     );
     expect(blogEntries.map((entry) => entry.lastModified)).toEqual([
+      '2026-10-08',
       '2026-10-08',
       '2026-10-08',
       '2026-10-08',
