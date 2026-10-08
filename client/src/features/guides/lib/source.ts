@@ -11,10 +11,10 @@ import {
 } from './catalog';
 import { parsePublished } from './parse';
 
-const PUBLISHED_PATH = '/api/control/where2meet/published';
+const PUBLISHED_PATH = '/api/control/where2meet/published/v2';
 /** A stalled control plane fails fast instead of holding a build worker or a render. */
 const FETCH_TIMEOUT_MS = 10_000;
-const NONE: Catalog = { cities: [] };
+const NONE: Catalog = { cities: new Map() };
 
 /**
  * Everything the control plane has published. Without its env vars the site builds

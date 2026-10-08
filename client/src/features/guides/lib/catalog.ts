@@ -1,4 +1,3 @@
-import { OCCASIONS, type Occasion } from '@/content/blog/posts';
 import type { IsoDate } from '@/lib/seo/site-pages';
 
 export const GUIDES_PATH = '/where-to-meet';
@@ -17,9 +16,17 @@ export interface CuratedPlace {
   note: string;
 }
 
+export interface Term {
+  key: string;
+  label: string;
+}
+
 /** Text fields hold Markdown in the contract's subset. */
 export interface Guide {
-  occasion: Occasion;
+  slug: string;
+  occasion: Term;
+  /** The optional parameters the guide sets, in the order time, venue type, group size, budget. */
+  parameters: readonly Term[];
   updatedAt: IsoDate;
   seo: Seo;
   intro: string;
@@ -27,7 +34,7 @@ export interface Guide {
   places: readonly CuratedPlace[];
 }
 
-/** A city or a town: what a hub page is about. */
+/** A city or a town: what a hub page is about. Maps are keyed by slug, in the panel's order. */
 export interface Area {
   slug: string;
   name: string;
@@ -35,22 +42,22 @@ export interface Area {
   seo: Seo;
   intro: string;
   transitNotes: string;
-  guides: readonly Guide[];
+  guides: ReadonlyMap<string, Guide>;
 }
 
+/** Its town slugs and its own guide slugs never overlap, since both follow /where-to-meet/<city>/. */
 export interface City extends Area {
   region: string;
-  towns: readonly Area[];
+  towns: ReadonlyMap<string, Area>;
 }
 
-/** Everything published, in the control plane's order. */
+/** Everything published, keyed by slug in the control plane's order. */
 export interface Catalog {
-  cities: readonly City[];
+  cities: ReadonlyMap<string, City>;
 }
 
 /** A city's or a town's page. A null `town` means the page covers the whole city. */
 export type HubPage = { kind: 'hub'; city: City; town: Area | null };
-/** One occasion's guide in a city or a town. */
 export type GuidePage = { kind: 'guide'; city: City; town: Area | null; guide: Guide };
 /** A page below the index. */
 export type GuidesPage = HubPage | GuidePage;
@@ -62,25 +69,29 @@ export interface Crumb {
 
 /** Hubs and guides depth first: a city, its guides, then each town and its guides. */
 export function listPages(catalog: Catalog): GuidesPage[] {
-  return catalog.cities.flatMap((city) => [
+  return [...catalog.cities.values()].flatMap((city) => [
     ...areaPages(city, null),
-    ...city.towns.flatMap((town) => areaPages(city, town)),
+    ...[...city.towns.values()].flatMap((town) => areaPages(city, town)),
   ]);
 }
 
 function areaPages(city: City, town: Area | null): GuidesPage[] {
   return [
     { kind: 'hub', city, town },
-    ...(town ?? city).guides.map((guide) => ({ kind: 'guide' as const, city, town, guide })),
+    ...[...(town ?? city).guides.values()].map((guide) => ({
+      kind: 'guide' as const,
+      city,
+      town,
+      guide,
+    })),
   ];
 }
 
-/** `['new-york', 'williamsburg', 'date-night']`: the URL segments after /where-to-meet. */
 export function pageSegments(page: GuidesPage): string[] {
   return [
     page.city.slug,
     ...(page.town ? [page.town.slug] : []),
-    ...(page.kind === 'guide' ? [page.guide.occasion] : []),
+    ...(page.kind === 'guide' ? [page.guide.slug] : []),
   ];
 }
 
@@ -92,10 +103,24 @@ export function coverPath(page: GuidesPage): string {
   return `${pagePath(page)}/cover.png`;
 }
 
-/** Slugs never equal an occasion key, so one lookup tells a town hub from a city guide. */
+/**
+ * The page at /where-to-meet/<segments>. A second segment is a town when one has that slug,
+ * otherwise one of the city's own guides. A third is a guide in that town.
+ */
 export function findPage(catalog: Catalog, segments: readonly string[]): GuidesPage | null {
-  const path = [GUIDES_PATH, ...segments].join('/');
-  return listPages(catalog).find((page) => pagePath(page) === path) ?? null;
+  const [citySlug, second, third, ...rest] = segments;
+  const city = citySlug === undefined ? undefined : catalog.cities.get(citySlug);
+  if (!city || rest.length > 0) return null;
+  if (second === undefined) return { kind: 'hub', city, town: null };
+
+  const town = city.towns.get(second);
+  if (third === undefined) {
+    if (town) return { kind: 'hub', city, town };
+    const guide = city.guides.get(second);
+    return guide ? { kind: 'guide', city, town: null, guide } : null;
+  }
+  const guide = town?.guides.get(third);
+  return town && guide ? { kind: 'guide', city, town, guide } : null;
 }
 
 export function pageArea(page: GuidesPage): Area {
@@ -119,10 +144,24 @@ export function pageTrail(page: GuidesPage): Crumb[] {
     { name: 'Where to meet', path: GUIDES_PATH },
     { name: page.city.name, path: pagePath(cityHub) },
     ...(page.town ? [{ name: page.town.name, path: pagePath(hubOf(page)) }] : []),
-    ...(page.kind === 'guide'
-      ? [{ name: OCCASIONS[page.guide.occasion].label, path: pagePath(page) }]
-      : []),
+    ...(page.kind === 'guide' ? [{ name: page.guide.seo.title, path: pagePath(page) }] : []),
   ];
+}
+
+export interface OccasionGroup {
+  occasion: Term;
+  guides: readonly Guide[];
+}
+
+/** An area's guides by occasion. Groups follow the order of their first guide. */
+export function guidesByOccasion(area: Area): OccasionGroup[] {
+  const groups = new Map<string, { occasion: Term; guides: Guide[] }>();
+  for (const guide of area.guides.values()) {
+    const group = groups.get(guide.occasion.key);
+    if (group) group.guides.push(guide);
+    else groups.set(guide.occasion.key, { occasion: guide.occasion, guides: [guide] });
+  }
+  return [...groups.values()];
 }
 
 /** The newest content date across the catalog, or null when nothing is published. */

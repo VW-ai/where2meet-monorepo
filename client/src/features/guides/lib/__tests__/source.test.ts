@@ -6,7 +6,7 @@ import { loadCatalog } from '../source';
 const FIXTURE_PATH = path.join(__dirname, '../../__fixtures__/published.json');
 
 function citySlugs(catalog: Awaited<ReturnType<typeof loadCatalog>>) {
-  return catalog.cities.map((city) => city.slug);
+  return [...catalog.cities.keys()];
 }
 
 function stubControlPlane(response: Response) {
@@ -31,7 +31,7 @@ describe('loadCatalog', () => {
   it('reads the fixture outside production and ignores it in production', async () => {
     vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
     vi.stubEnv('VERCEL_ENV', 'preview');
-    expect(citySlugs(await loadCatalog())).toEqual(['new-york', 'ann-arbor']);
+    expect(citySlugs(await loadCatalog())).toEqual(['new-york']);
 
     vi.stubEnv('VERCEL_ENV', 'production');
     expect(citySlugs(await loadCatalog())).toEqual([]);
@@ -40,14 +40,14 @@ describe('loadCatalog', () => {
   it('publishes nothing until the control plane is configured, then asks it with the read token', async () => {
     const fetchMock = vi.fn(async (..._args: [string, RequestInit]) => Response.json(fixture));
     vi.stubGlobal('fetch', fetchMock);
-    expect(await loadCatalog()).toEqual({ cities: [] });
+    expect(await loadCatalog()).toEqual({ cities: new Map() });
 
     vi.stubEnv('CONTROL_PLANE_URL', 'https://control.example/');
     vi.stubEnv('CONTROL_PLANE_READ_TOKEN', 'read-token');
-    expect(citySlugs(await loadCatalog())).toEqual(['new-york', 'ann-arbor']);
+    expect(citySlugs(await loadCatalog())).toEqual(['new-york']);
     expect(fetchMock.mock.calls).toEqual([
       [
-        'https://control.example/api/control/where2meet/published',
+        'https://control.example/api/control/where2meet/published/v2',
         {
           headers: { Authorization: 'Bearer read-token' },
           next: { revalidate: 3600, tags: ['where2meet-guides'] },
@@ -62,6 +62,6 @@ describe('loadCatalog', () => {
     await expect(loadCatalog()).rejects.toThrow('The control plane answered 503');
 
     vi.stubEnv('NEXT_PHASE', 'phase-production-build');
-    expect(await loadCatalog()).toEqual({ cities: [] });
+    expect(await loadCatalog()).toEqual({ cities: new Map() });
   });
 });

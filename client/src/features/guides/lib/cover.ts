@@ -1,15 +1,13 @@
 import { MapPin } from 'lucide';
-import { OCCASIONS } from '@/content/blog/posts';
 import { renderArticleCover } from '@/lib/og/share-card';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { GUIDES_PATH, pageArea, pageEntry, type GuidesPage } from './catalog';
+import { occasionIcon } from './occasion-icon';
 import { loadPage } from './source';
 
-/** "New York · Team meeting" on a guide, "Williamsburg, New York" on a town hub. */
+/** "Midtown · Team meeting" on a guide, "Midtown, New York" on a town hub. */
 function coverBadge(page: GuidesPage): string {
-  if (page.kind === 'guide') {
-    return `${pageArea(page).name} · ${OCCASIONS[page.guide.occasion].label}`;
-  }
+  if (page.kind === 'guide') return `${pageArea(page).name} · ${page.guide.occasion.label}`;
   const { city, town } = page;
   return town ? `${town.name}, ${city.name}` : [city.name, city.region].filter(Boolean).join(', ');
 }
@@ -19,7 +17,7 @@ export async function coverResponse(segments: readonly string[]): Promise<Respon
   const page = await loadPage(segments);
   if (!page) return new Response('Not found', { status: 404 });
   return renderArticleCover({
-    icon: page.kind === 'guide' ? OCCASIONS[page.guide.occasion].icon : MapPin,
+    icon: page.kind === 'guide' ? occasionIcon(page.guide.occasion.key) : MapPin,
     badge: coverBadge(page),
     title: pageEntry(page).seo.title,
     address: `${new URL(SITE_CONFIG.url).host}${GUIDES_PATH}`,

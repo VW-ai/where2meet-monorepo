@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description:
       'Local guides to places that work for groups, from team meetings to date nights, picked by the Where2Meet team with tips on getting there.',
     canonical: GUIDES_PATH,
-    robots: { index: cities.length > 0, follow: true },
+    robots: { index: cities.size > 0, follow: true },
   });
 }
 
@@ -34,9 +34,9 @@ export default async function WhereToMeetPage() {
       <p className="mt-1 text-sm text-[#666b73]">
         Local guides to places that work for groups, picked by the Where2Meet team.
       </p>
-      {cities.length > 0 ? (
+      {cities.size > 0 ? (
         <ul className="mt-6 space-y-5">
-          {cities.map((city) => {
+          {[...cities.values()].map((city) => {
             const hub: HubPage = { kind: 'hub', city, town: null };
             return (
               <li key={city.slug}>
