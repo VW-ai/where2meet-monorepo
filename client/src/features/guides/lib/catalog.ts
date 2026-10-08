@@ -153,12 +153,12 @@ export function pageTrail(page: GuidesPage): Crumb[] {
 
 export interface OccasionGroup {
   occasion: Term;
-  guides: Guide[];
+  guides: readonly Guide[];
 }
 
 /** An area's guides by occasion. Groups follow the order of their first guide. */
 export function guidesByOccasion(area: Area): OccasionGroup[] {
-  const groups = new Map<string, OccasionGroup>();
+  const groups = new Map<string, { occasion: Term; guides: Guide[] }>();
   for (const guide of area.guides.values()) {
     const group = groups.get(guide.occasion.key);
     if (group) group.guides.push(guide);

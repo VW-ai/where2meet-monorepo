@@ -4,7 +4,7 @@ import { guidesPageMetadata } from '@/features/guides/lib/seo';
 import { loadPage, segmentsAtDepth } from '@/features/guides/lib/source';
 import { GuidesPageView } from '@/features/guides/ui/guides-page';
 
-/** `segment` is an occasion for a city guide, or a town's slug for its hub. */
+/** `segment` is a town's slug for its hub, otherwise a city guide's slug. */
 type Params = { city: string; segment: string };
 
 export const dynamicParams = true;

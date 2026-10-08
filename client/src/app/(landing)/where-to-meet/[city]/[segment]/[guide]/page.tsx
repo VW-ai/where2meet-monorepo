@@ -5,21 +5,17 @@ import { loadPage, segmentsAtDepth } from '@/features/guides/lib/source';
 import { GuidesPageView } from '@/features/guides/ui/guides-page';
 
 /** `segment` is the town's slug: Next needs one name per URL level. */
-type Params = { city: string; segment: string; occasion: string };
+type Params = { city: string; segment: string; guide: string };
 
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<Params[]> {
-  return (await segmentsAtDepth(3)).map(([city, segment, occasion]) => ({
-    city,
-    segment,
-    occasion,
-  }));
+  return (await segmentsAtDepth(3)).map(([city, segment, guide]) => ({ city, segment, guide }));
 }
 
 async function findPage(params: Promise<Params>) {
-  const { city, segment, occasion } = await params;
-  return (await loadPage([city, segment, occasion])) ?? notFound();
+  const { city, segment, guide } = await params;
+  return (await loadPage([city, segment, guide])) ?? notFound();
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
