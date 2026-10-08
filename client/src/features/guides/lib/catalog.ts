@@ -16,7 +16,6 @@ export interface CuratedPlace {
   note: string;
 }
 
-/** A value from the panel's taxonomy, such as `{ key: 'weekday-lunch', label: 'Weekday lunch' }`. */
 export interface Term {
   key: string;
   label: string;
@@ -59,7 +58,6 @@ export interface Catalog {
 
 /** A city's or a town's page. A null `town` means the page covers the whole city. */
 export type HubPage = { kind: 'hub'; city: City; town: Area | null };
-/** One guide in a city or a town. */
 export type GuidePage = { kind: 'guide'; city: City; town: Area | null; guide: Guide };
 /** A page below the index. */
 export type GuidesPage = HubPage | GuidePage;
@@ -89,7 +87,6 @@ function areaPages(city: City, town: Area | null): GuidesPage[] {
   ];
 }
 
-/** `['new-york', 'midtown', 'quiet-places-for-a-team-meeting']`: the URL segments after /where-to-meet. */
 export function pageSegments(page: GuidesPage): string[] {
   return [
     page.city.slug,
@@ -140,7 +137,7 @@ export function hubOf(page: GuidesPage): HubPage {
   return { kind: 'hub', city: page.city, town: page.town };
 }
 
-/** From the guides index down to `page`, inclusive. A guide is named by its title. */
+/** From the guides index down to `page`, inclusive. */
 export function pageTrail(page: GuidesPage): Crumb[] {
   const cityHub: HubPage = { kind: 'hub', city: page.city, town: null };
   return [

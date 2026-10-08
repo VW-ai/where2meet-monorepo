@@ -7,7 +7,6 @@ export type Issues = string[];
 type Fields = Record<string, unknown>;
 type ParseItem<T> = (value: unknown, at: string, issues: Issues) => T | null;
 
-/** The taxonomy's values for each guide field that names one, keyed by value key. */
 type Taxonomy = Record<'occasion' | OptionalParameter, ReadonlyMap<string, Term>>;
 type OptionalParameter = (typeof OPTIONAL_PARAMETERS)[number];
 
@@ -93,9 +92,7 @@ function parseTown(value: unknown, at: string, issues: Issues, taxonomy: Taxonom
 function parseAreaFields(value: unknown, at: string, issues: Issues): Omit<Area, 'guides'> | null {
   if (!isFields(value)) return drop(at, 'not an object', issues);
   const { slug, name, updated_at: updatedAt } = value;
-  if (typeof slug !== 'string' || !SLUG.test(slug)) {
-    return drop(at, `invalid slug ${JSON.stringify(slug)}`, issues);
-  }
+  if (!isSlug(slug)) return drop(at, `invalid slug ${JSON.stringify(slug)}`, issues);
   if (!isText(name)) return drop(at, 'missing name', issues);
   if (typeof updatedAt !== 'string' || !isIsoDate(updatedAt)) {
     return drop(at, 'invalid updated_at', issues);
@@ -133,9 +130,7 @@ function parseGuides(
 function parseGuide(value: unknown, at: string, issues: Issues, taxonomy: Taxonomy): Guide | null {
   if (!isFields(value)) return drop(at, 'not an object', issues);
   const { slug, updated_at: updatedAt } = value;
-  if (typeof slug !== 'string' || !SLUG.test(slug)) {
-    return drop(at, `invalid slug ${JSON.stringify(slug)}`, issues);
-  }
+  if (!isSlug(slug)) return drop(at, `invalid slug ${JSON.stringify(slug)}`, issues);
   if (slug.length > GUIDE_SLUG_MAX_LENGTH) {
     return drop(at, `slug is longer than ${GUIDE_SLUG_MAX_LENGTH} characters`, issues);
   }
@@ -213,6 +208,10 @@ function keyBy<T>(
 function drop(at: string, reason: string, issues: Issues): null {
   issues.push(`${at}: ${reason}`);
   return null;
+}
+
+function isSlug(value: unknown): value is string {
+  return typeof value === 'string' && SLUG.test(value);
 }
 
 function isFields(value: unknown): value is Fields {

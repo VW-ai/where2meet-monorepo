@@ -9,7 +9,6 @@ const ORIGIN = 'https://www.where2meet.org';
 /** What Next's `notFound()` throws in this version, which it turns into a 404 page. */
 const NOT_FOUND = { digest: 'NEXT_HTTP_ERROR_FALLBACK;404' };
 
-/** Calls the page route that serves /where-to-meet/<segments>, as Next does. */
 function metadata(segments: string) {
   const [city, segment, guide] = segments.split('/');
   if (guide) {

@@ -14,12 +14,10 @@ function render(...segments: string[]) {
   return renderToStaticMarkup(<GuidesPageView page={page} />).replace(/ class="[^"]*"/g, '');
 }
 
-/** The body of the plain `<section>` headed `heading`. */
 function section(html: string, heading: string) {
   return html.match(new RegExp(`<section><h2>${heading}</h2>(.*?)</section>`, 's'))?.[1] ?? '';
 }
 
-/** What a reader scans: each h3 as `### label`, each link as its href plus any chips. */
 function outline(html: string) {
   return [...html.matchAll(/<h3>(.*?)<\/h3>|<a href="([^"]+)">(.*?)<\/a>/gs)].map(
     ([, heading, href, body]) => {

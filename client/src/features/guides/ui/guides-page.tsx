@@ -37,7 +37,6 @@ interface LinkCard {
   description: string;
 }
 
-/** A guide's occasion, left out when a heading already names it, then its parameters. */
 interface Chips {
   occasion?: Term;
   parameters: readonly Term[];
@@ -107,10 +106,7 @@ function GuideBody({ page }: { page: GuidePage }) {
         <LinkCards
           cards={[
             ...siblings.map((other) =>
-              guideCard(
-                { kind: 'guide', city: page.city, town: page.town, guide: other },
-                { occasion: other.occasion, parameters: other.parameters }
-              )
+              guideCard({ kind: 'guide', city: page.city, town: page.town, guide: other }, true)
             ),
             hubCard(hubOf(page), area.seo.title),
           ]}
@@ -187,23 +183,23 @@ function OccasionGuides({ hub, group }: { hub: HubPage; group: OccasionGroup }) 
       )}
       <LinkCards
         cards={guides.map((guide) =>
-          guideCard(
-            { kind: 'guide', city: hub.city, town: hub.town, guide },
-            { parameters: guide.parameters }
-          )
+          guideCard({ kind: 'guide', city: hub.city, town: hub.town, guide }, false)
         )}
       />
     </div>
   );
 }
 
-function guideCard(page: GuidePage, chips: Chips): LinkCard {
+function guideCard(page: GuidePage, showOccasion: boolean): LinkCard {
   const { guide } = page;
   return {
     href: pagePath(page),
     icon: occasionIcon(guide.occasion.key),
     title: guide.seo.title,
-    chips,
+    chips: {
+      occasion: showOccasion ? guide.occasion : undefined,
+      parameters: guide.parameters,
+    },
     description: guide.seo.description,
   };
 }

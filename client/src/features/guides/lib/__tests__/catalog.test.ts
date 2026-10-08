@@ -14,7 +14,6 @@ import { parsePublished } from '../parse';
 
 const { catalog } = parsePublished(fixture);
 
-/** What a reader sees: the kind of page and its title. */
 function resolve(from: Catalog, ...segments: string[]) {
   const page = findPage(from, segments);
   return page && [page.kind, pageEntry(page).seo.title];
