@@ -54,8 +54,19 @@ export type Occasion = keyof typeof OCCASIONS;
 
 type IsoDate = `${number}-${number}-${number}`;
 
-/** Share-alike licenses are left out on purpose. */
-type CoverLicense = 'CC0' | 'Public domain' | 'CC BY 2.0' | 'CC BY 3.0' | 'CC BY 4.0';
+/**
+ * The licenses a cover photo may carry. CC BY asks us to link the license and say we
+ * cropped the photo. Share-alike licenses are left out on purpose.
+ */
+export const COVER_LICENSES = {
+  CC0: { url: 'https://creativecommons.org/publicdomain/zero/1.0/', cropNotice: false },
+  'Public domain': { url: null, cropNotice: false },
+  'CC BY 2.0': { url: 'https://creativecommons.org/licenses/by/2.0/', cropNotice: true },
+  'CC BY 3.0': { url: 'https://creativecommons.org/licenses/by/3.0/', cropNotice: true },
+  'CC BY 4.0': { url: 'https://creativecommons.org/licenses/by/4.0/', cropNotice: true },
+} as const satisfies Record<string, { url: string | null; cropNotice: boolean }>;
+
+type CoverLicense = keyof typeof COVER_LICENSES;
 
 /** A freely licensed photo of a place the post names, saved as `src/content/blog/covers/<slug>.jpg`. */
 export interface CoverPhoto {
@@ -82,6 +93,44 @@ export interface BlogPost {
 export const BLOG_AUTHOR = 'The Where2Meet team';
 
 const posts: BlogPost[] = [
+  {
+    slug: 'how-to-pick-a-restaurant-for-a-group-dinner',
+    title: 'How to pick a restaurant for a group dinner',
+    description:
+      'Pick a restaurant your whole group can reach before the table is given away, check it seats big groups, and settle the menu and bill early.',
+    publishedAt: '2026-10-08',
+    updatedAt: '2026-10-08',
+    occasion: 'group-dinner',
+    coverAlt:
+      'Street signs for West 32nd Street and Korea Way above yellow taxis on Broadway, next to the article title.',
+    coverPhoto: {
+      place: 'Koreatown',
+      author: 'Jazz Guy',
+      license: 'CC BY 2.0',
+      sourceUrl:
+        'https://commons.wikimedia.org/wiki/File:West_32nd_Street_(Korea_Way)_@_Broadway_(2559336247).jpg',
+    },
+    examplePlaces: {
+      title: 'Group dinner spots near the subway in New York',
+      places: [
+        {
+          placeId: 'ChIJ99_m8KhZwokRz33z_j0NaQ8',
+          label: 'miss KOREA BBQ',
+          note: "A Korean barbecue restaurant in Koreatown, with food made for sharing. It's about a 3-minute walk from the Herald Square station, where the B, D, F, M, N, Q, R and W stop.",
+        },
+        {
+          placeId: 'ChIJT4JpKxhawokRJsGwYfLpp60',
+          label: 'The Malt House',
+          note: "A pub and restaurant in the Financial District, close to many offices for a dinner after work. It's about a 2-minute walk from the Fulton St station, where the 2, 3, 4, 5, A, C, J and Z stop.",
+        },
+        {
+          placeId: 'ChIJX0ngNbRbwokR2sNkLsVtQMY',
+          label: 'El Zason',
+          note: "A Mexican restaurant on Atlantic Avenue in Brooklyn. It's about a 5-minute walk from the Atlantic Av-Barclays Ctr station, where the 2, 3, 4, 5, B, D, N, Q and R stop.",
+        },
+      ],
+    },
+  },
   {
     slug: 'how-to-pick-a-date-spot',
     title: 'How to pick a date spot you can both reach',
