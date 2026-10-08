@@ -32,10 +32,33 @@ export const PARTICIPANT_HEX_COLORS: Record<string, string> = {
 };
 
 /**
- * Get the hex color value for a Tailwind color class
+ * The palette the server assigns (server/src/utils/colors.ts) is CSS color names. Google Maps
+ * rejects extended names like "coral", so markers and routes need them as hex.
  */
-export function getHexColor(colorClass: string): string {
-  return PARTICIPANT_HEX_COLORS[colorClass] || '#6BCB77'; // fallback to mint
+const SERVER_HEX_COLORS: Record<string, string> = {
+  coral: '#FF7F50',
+  teal: '#008080',
+  gold: '#FFD700',
+  orchid: '#DA70D6',
+  lime: '#00FF00',
+  dodgerblue: '#1E90FF',
+  tomato: '#FF6347',
+  mediumseagreen: '#3CB371',
+  slateblue: '#6A5ACD',
+  darkorange: '#FF8C00',
+  hotpink: '#FF69B4',
+  steelblue: '#4682B4',
+  yellowgreen: '#9ACD32',
+  mediumpurple: '#9370DB',
+  indianred: '#CD5C5C',
+  cadetblue: '#5F9EA0',
+};
+
+/**
+ * A participant's color as hex, from a server palette name or an older Tailwind class.
+ */
+export function getHexColor(color: string | undefined): string {
+  return (color && (SERVER_HEX_COLORS[color] ?? PARTICIPANT_HEX_COLORS[color])) || '#6BCB77'; // fallback to mint
 }
 
 /**

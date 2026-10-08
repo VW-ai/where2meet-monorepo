@@ -1,8 +1,16 @@
 @import 'tailwindcss';
 @config "../../tailwind.config.ts";
 
-* {
-  border-color: hsl(214.3 31.8% 91.4%);
+/* In the base layer, so `border-*` color utilities can override it. Unlayered CSS beats every layer. */
+@layer base {
+  /* tailwind.config.ts builds `border-border` from this. */
+  :root {
+    --border: 214.3 31.8% 91.4%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
 }
 
 body {
