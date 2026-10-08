@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   VENUES,
@@ -39,5 +41,19 @@ describe('the example', () => {
     expect(closest.miles).toBeLessThan(easiest.miles);
     expect(closest.longest).toBeGreaterThan(easiest.longest);
     expect(closest.spread).toBeGreaterThan(easiest.spread);
+  });
+
+  it('matches the spread sentence in the team meeting post', () => {
+    const post = readFileSync(
+      path.join(__dirname, '../../../../content/blog/how-to-choose-a-team-meeting-location.mdx'),
+      'utf8'
+    );
+    const [easiest, closest] = [VENUES.easiest, VENUES.closest].map(
+      (venue) => summarize(venue).minutes
+    );
+    const trips = ([a, b, c]: number[]) => `${a}, ${b} and ${c}`;
+    expect(post).toContain(
+      `A place where trips take ${trips(easiest)} minutes usually works better than one where they take ${trips(closest)}.`
+    );
   });
 });

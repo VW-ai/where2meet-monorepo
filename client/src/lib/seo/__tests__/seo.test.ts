@@ -181,9 +181,9 @@ describe('sitemap', () => {
       entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`)
     );
     expect(blogEntries.map((entry) => entry.lastModified)).toEqual([
-      '2026-10-05',
-      '2026-10-05',
-      '2026-10-04',
+      '2026-10-08',
+      '2026-10-08',
+      '2026-10-08',
     ]);
   });
 
@@ -280,12 +280,12 @@ describe('structured data', () => {
     ).toEqual({
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
-      headline: 'How to choose a team meeting location everyone can reach',
+      headline: 'How to choose a team meeting location',
       description:
         'Your team is spread across town. Compare travel times, pick a venue that suits the meeting, and settle on a place without a week of back-and-forth.',
       image: `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location/cover.png`,
       datePublished: '2026-10-04',
-      dateModified: '2026-10-04',
+      dateModified: '2026-10-08',
       author: { '@type': 'Organization', name: 'The Where2Meet team', url: CANONICAL_ORIGIN },
       publisher: { '@id': `${CANONICAL_ORIGIN}/#organization` },
       mainEntityOfPage: {

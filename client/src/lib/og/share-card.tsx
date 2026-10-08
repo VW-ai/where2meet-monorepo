@@ -11,11 +11,19 @@ export const ACCENT = '#bc3942';
 const PICKED = '#c83f49';
 const CARD_SHADOW = '0 8px 40px rgba(23, 37, 45, 0.12)';
 const SIZE = { width: SHARE_IMAGE.width, height: SHARE_IMAGE.height };
+/** The map card and the photo that can take its place share one size. */
+const CARD_SIZE = { width: 470, height: 448 };
 
 /** The venue every person travels to, drawn on the map's center pin and in the result row. */
 export interface MapPin {
   icon: IconNode;
   label?: string;
+}
+
+/** A JPEG path relative to the client root, and its credit, like "Phi, CC0". */
+export interface CardPhoto {
+  file: string;
+  credit: string;
 }
 
 /** The final frame of the landing story: three people, routes meeting at the venue. */
@@ -126,13 +134,13 @@ function readClientFile(relativePath: string) {
   return readFile(path.join(process.cwd(), relativePath));
 }
 
-function MapCard({ pin }: { pin: MapPin }) {
+export function MapCard({ pin }: { pin: MapPin }) {
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        width: 470,
+        ...CARD_SIZE,
         padding: 18,
         borderRadius: 28,
         backgroundColor: '#fff',
@@ -204,24 +212,69 @@ function MapCard({ pin }: { pin: MapPin }) {
   );
 }
 
+/** A photo cropped to fill the map card's place, with its credit on the bottom-left. */
+function PhotoCard({ jpeg, credit }: { jpeg: Buffer; credit: string }) {
+  return (
+    <div
+      style={{
+        position: 'relative',
+        display: 'flex',
+        ...CARD_SIZE,
+        borderRadius: 28,
+        overflow: 'hidden',
+        boxShadow: CARD_SHADOW,
+      }}
+    >
+      <img
+        src={`data:image/jpeg;base64,${jpeg.toString('base64')}`}
+        {...CARD_SIZE}
+        style={{ objectFit: 'cover' }}
+        alt=""
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 16,
+          bottom: 16,
+          maxWidth: CARD_SIZE.width - 32,
+          padding: '6px 14px',
+          borderRadius: 12,
+          backgroundColor: 'rgba(0, 0, 0, 0.55)',
+          color: '#fff',
+          fontSize: 18,
+        }}
+      >
+        {`Photo: ${credit}`}
+      </div>
+    </div>
+  );
+}
+
 /**
  * An article's cover: a pill badge, the title and a site address under the logo, with
- * `icon` on the badge and at the map's meeting point.
+ * `icon` on the badge. On the right, `photo` when given, else the map with `icon` at its
+ * meeting point.
  */
-export function renderArticleCover({
+export async function renderArticleCover({
   icon,
   badge,
   title,
   address,
+  photo,
 }: {
   icon: IconNode;
   badge: string;
   title: string;
   /** Shown under the title, like `www.where2meet.org/blog`. */
   address: string;
+  photo?: CardPhoto;
 }) {
   return renderShareCard({
-    pin: { icon },
+    card: photo ? (
+      <PhotoCard jpeg={await readClientFile(photo.file)} credit={photo.credit} />
+    ) : (
+      <MapCard pin={{ icon }} />
+    ),
     text: (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
         <div
@@ -261,9 +314,9 @@ export function renderArticleCover({
 
 /**
  * Draws a 1200x630 share card: the landing backdrop, the cat logo above `text`
- * on the left, and the map card with `pin` at the meeting point on the right.
+ * on the left, and `card` on the right.
  */
-export async function renderShareCard({ text, pin }: { text: ReactElement; pin: MapPin }) {
+export async function renderShareCard({ text, card }: { text: ReactElement; card: ReactElement }) {
   const [logo, regular, semibold, bold] = await Promise.all([
     readClientFile('src/components/cat/logo.svg'),
     readClientFile('node_modules/@fontsource/inter/files/inter-latin-400-normal.woff'),
@@ -310,7 +363,7 @@ export async function renderShareCard({ text, pin }: { text: ReactElement; pin: 
         {text}
       </div>
 
-      <MapCard pin={pin} />
+      {card}
     </div>,
     {
       ...SIZE,
