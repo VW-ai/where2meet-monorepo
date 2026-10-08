@@ -54,8 +54,19 @@ export type Occasion = keyof typeof OCCASIONS;
 
 type IsoDate = `${number}-${number}-${number}`;
 
-/** Share-alike licenses are left out on purpose. */
-type CoverLicense = 'CC0' | 'Public domain' | 'CC BY 2.0' | 'CC BY 3.0' | 'CC BY 4.0';
+/**
+ * The licenses a cover photo may carry. CC BY asks us to link the license and say we
+ * cropped the photo. Share-alike licenses are left out on purpose.
+ */
+export const COVER_LICENSES = {
+  CC0: { url: 'https://creativecommons.org/publicdomain/zero/1.0/', cropNotice: false },
+  'Public domain': { url: null, cropNotice: false },
+  'CC BY 2.0': { url: 'https://creativecommons.org/licenses/by/2.0/', cropNotice: true },
+  'CC BY 3.0': { url: 'https://creativecommons.org/licenses/by/3.0/', cropNotice: true },
+  'CC BY 4.0': { url: 'https://creativecommons.org/licenses/by/4.0/', cropNotice: true },
+} as const satisfies Record<string, { url: string | null; cropNotice: boolean }>;
+
+type CoverLicense = keyof typeof COVER_LICENSES;
 
 /** A freely licensed photo of a place the post names, saved as `src/content/blog/covers/<slug>.jpg`. */
 export interface CoverPhoto {
