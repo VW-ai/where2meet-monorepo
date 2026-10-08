@@ -46,7 +46,7 @@ describe('local guide pages', () => {
       '/where-to-meet/new-york/midtown/a-team-welcome-lunch-in-bryant-park [Weekday lunch | Park | Big group, 7 or more]',
     ]);
     expect(html).toContain(
-      '<p>From the blog: <a href="/blog/how-to-choose-a-team-meeting-location">How to choose a team meeting location everyone can reach</a></p>'
+      '<p>From the blog: <a href="/blog/how-to-choose-a-team-meeting-location">How to choose a team meeting location</a></p>'
     );
   });
 
