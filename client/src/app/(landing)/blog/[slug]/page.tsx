@@ -87,7 +87,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           alt={post.coverAlt}
           width={1200}
           height={630}
-          sizes="(min-width: 672px) 640px, 100vw"
+          sizes="(min-width: 896px) 864px, 100vw"
           priority
           className="mt-6 aspect-[1200/630] w-full rounded-[28px] bg-white shadow-[0_4px_24px_rgba(23,37,45,0.1)]"
         />

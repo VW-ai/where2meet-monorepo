@@ -69,7 +69,7 @@ export function CoverCard({
         alt=""
         width={1200}
         height={630}
-        sizes="(min-width: 672px) 640px, 100vw"
+        sizes="(min-width: 896px) 864px, 100vw"
         className="aspect-[1200/630] w-full bg-[#eef1f4]"
       />
       <div className="p-5 sm:p-6">
