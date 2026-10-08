@@ -12,12 +12,6 @@ on:
       - '.husky/**'
   pull_request:
     branches: [main]
-    paths:
-      - 'server/**'
-      - '.github/workflows/server-ci.yml'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.husky/**'
 
 defaults:
   run:
@@ -135,3 +129,29 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/where2meet?schema=public
           REDIS_URL: redis://localhost:6380
           NODE_ENV: test
+
+  client:
+    uses: ./.github/workflows/client-ci.yml
+
+  required:
+    name: CI required
+    if: ${{ always() }}
+    needs: [lint, build, test, client]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Require all checks to pass
+        env:
+          LINT_RESULT: ${{ needs.lint.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          CLIENT_RESULT: ${{ needs.client.result }}
+        run: |
+          for result in "$LINT_RESULT" "$BUILD_RESULT" "$TEST_RESULT" "$CLIENT_RESULT"; do
+            if [ "$result" != success ]; then
+              echo "A CI check did not pass: $result"
+              exit 1
+            fi
+          done
