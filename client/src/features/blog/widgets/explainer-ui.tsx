@@ -213,8 +213,8 @@ export function Route({ d, color, i, on }: { d: string; color: string; i: number
 export function Rail({ d }: { d: string }) {
   return (
     <>
-      <path d={d} stroke="#c4cbd3" strokeWidth="7" strokeDasharray="1.5 4" />
-      <path d={d} stroke="#8f99a4" strokeWidth="2.5" />
+      <path d={d} fill="none" stroke="#c4cbd3" strokeWidth="7" strokeDasharray="1.5 4" />
+      <path d={d} fill="none" stroke="#8f99a4" strokeWidth="2.5" />
     </>
   );
 }
