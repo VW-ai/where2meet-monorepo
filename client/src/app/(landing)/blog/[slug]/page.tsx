@@ -13,6 +13,7 @@ import {
   type BlogPost,
 } from '@/content/blog/posts';
 import { PlanCta } from '@/features/blog/ui/plan-cta';
+import { CuratedPlaces } from '@/features/guides/ui/curated-places';
 import { PostByline, PostCard } from '@/features/blog/ui/post-card';
 import { StructuredData } from '@/components/seo/structured-data';
 import { createArticleMetadata } from '@/lib/seo/metadata';
@@ -91,7 +92,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           className="mt-6 aspect-[1200/630] w-full rounded-[28px] bg-white shadow-[0_4px_24px_rgba(23,37,45,0.1)]"
         />
         <div className="mt-6 rounded-[28px] bg-white p-5 text-base leading-[1.7] text-[#3a3f46] shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-8 sm:text-[17px]">
-          <Body />
+          <Body components={{ Places: () => <CuratedPlaces {...post.examplePlaces} /> }} />
         </div>
       </article>
 
