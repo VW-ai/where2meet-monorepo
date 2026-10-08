@@ -52,6 +52,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const Body: MDXContent = (await import(`@/content/blog/${post.slug}.mdx`)).default;
   const occasion = OCCASIONS[post.occasion].label.toLowerCase();
   const otherPosts = BLOG_POSTS.filter(({ slug }) => slug !== post.slug);
+  const photo = post.coverPhoto;
 
   return (
     <>
@@ -82,15 +83,26 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           {post.title}
         </h1>
         <PostByline post={post} className="mt-3" />
-        <Image
-          src={coverPath(post.slug)}
-          alt={post.coverAlt}
-          width={1200}
-          height={630}
-          sizes="(min-width: 896px) 864px, 100vw"
-          priority
-          className="mt-6 aspect-[1200/630] w-full rounded-[28px] bg-white shadow-[0_4px_24px_rgba(23,37,45,0.1)]"
-        />
+        <figure className="mt-6">
+          <Image
+            src={coverPath(post.slug)}
+            alt={post.coverAlt}
+            width={1200}
+            height={630}
+            sizes="(min-width: 896px) 864px, 100vw"
+            priority
+            className="aspect-[1200/630] w-full rounded-[28px] bg-white shadow-[0_4px_24px_rgba(23,37,45,0.1)]"
+          />
+          <figcaption className="mt-2 px-1 text-xs text-[#666b73]">
+            {`Cover photo of ${photo.place} by ${photo.author} (${photo.license}), via `}
+            <a
+              href={photo.sourceUrl}
+              className="whitespace-nowrap underline decoration-current/40 underline-offset-2 hover:decoration-current"
+            >
+              Wikimedia Commons
+            </a>
+          </figcaption>
+        </figure>
         <div className="mt-6 rounded-[28px] bg-white p-5 text-base leading-[1.7] text-[#3a3f46] shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-8 sm:text-[17px]">
           <Body components={{ Places: () => <CuratedPlaces {...post.examplePlaces} /> }} />
         </div>

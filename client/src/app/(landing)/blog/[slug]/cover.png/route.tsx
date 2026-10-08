@@ -1,4 +1,4 @@
-import { BLOG_POSTS, OCCASIONS, getPost } from '@/content/blog/posts';
+import { BLOG_POSTS, OCCASIONS, coverPhotoFile, getPost } from '@/content/blog/posts';
 import { renderArticleCover } from '@/lib/og/share-card';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 
@@ -13,11 +13,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   const post = getPost((await params).slug);
   if (!post) return new Response('Not found', { status: 404 });
   const occasion = OCCASIONS[post.occasion];
+  const { author, license } = post.coverPhoto;
 
   return renderArticleCover({
     icon: occasion.icon,
     badge: occasion.label,
     title: post.title,
     address: `${new URL(SITE_CONFIG.url).host}/blog`,
+    photo: { file: coverPhotoFile(post.slug), credit: `${author}, ${license}` },
   });
 }

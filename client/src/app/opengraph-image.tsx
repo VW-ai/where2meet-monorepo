@@ -1,5 +1,5 @@
 import { Coffee } from 'lucide';
-import { ACCENT, MUTED, renderShareCard } from '@/lib/og/share-card';
+import { ACCENT, MUTED, MapCard, renderShareCard } from '@/lib/og/share-card';
 import { SHARE_IMAGE, SITE_CONFIG } from '@/lib/seo/metadata';
 
 export const alt = SHARE_IMAGE.alt;
@@ -8,7 +8,7 @@ export const contentType = 'image/png';
 
 export default function OpengraphImage() {
   return renderShareCard({
-    pin: { icon: Coffee, label: 'Coffee' },
+    card: <MapCard pin={{ icon: Coffee, label: 'Coffee' }} />,
     text: (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div

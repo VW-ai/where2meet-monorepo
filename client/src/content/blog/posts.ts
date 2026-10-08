@@ -54,6 +54,17 @@ export type Occasion = keyof typeof OCCASIONS;
 
 type IsoDate = `${number}-${number}-${number}`;
 
+/** Share-alike licenses are left out on purpose. */
+type CoverLicense = 'CC0' | 'Public domain' | 'CC BY 2.0' | 'CC BY 3.0' | 'CC BY 4.0';
+
+/** A freely licensed photo of a place the post names, saved as `src/content/blog/covers/<slug>.jpg`. */
+export interface CoverPhoto {
+  place: string;
+  author: string;
+  license: CoverLicense;
+  sourceUrl: `https://commons.wikimedia.org/wiki/File:${string}`;
+}
+
 export interface BlogPost {
   /** Also the body's file name: `src/content/blog/<slug>.mdx`. */
   slug: string;
@@ -63,6 +74,7 @@ export interface BlogPost {
   updatedAt: IsoDate;
   occasion: Occasion;
   coverAlt: string;
+  coverPhoto: CoverPhoto;
   /** Real places the post names, all in one city, shown where the body writes `<Places />`. */
   examplePlaces: { title: string; places: readonly [CuratedPlace, ...CuratedPlace[]] };
 }
@@ -79,7 +91,13 @@ const posts: BlogPost[] = [
     updatedAt: '2026-10-08',
     occasion: 'weekend-hangout',
     coverAlt:
-      "Three friends' routes meeting at a sun pin on a city map, next to the article title.",
+      "Bryant Park's lawn and chairs, with the Empire State Building behind them, next to the article title.",
+    coverPhoto: {
+      place: 'Bryant Park',
+      author: 'Phi',
+      license: 'CC0',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bryant_Park_%26_Emp_State.JPG',
+    },
     examplePlaces: {
       title: 'Weekend spots near the subway in New York',
       places: [
@@ -110,7 +128,13 @@ const posts: BlogPost[] = [
     updatedAt: '2026-10-08',
     occasion: 'team-meeting',
     coverAlt:
-      "Three teammates' routes meeting at a briefcase pin on a city map, each trip about 20 minutes, next to the article title.",
+      "Herald Square's plaza and memorial clock in Midtown Manhattan, next to the article title.",
+    coverPhoto: {
+      place: 'Herald Square',
+      author: 'Ypsilonatshared',
+      license: 'Public domain',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Herald_Square_wts.jpg',
+    },
     examplePlaces: {
       title: 'Meeting spots near the subway in New York',
       places: [
@@ -153,4 +177,9 @@ export function postPath(slug: string) {
 
 export function coverPath(slug: string) {
   return `${postPath(slug)}/cover.png`;
+}
+
+/** Relative to the client root, where the cover renderer reads it. */
+export function coverPhotoFile(slug: string) {
+  return `src/content/blog/covers/${slug}.jpg`;
 }
