@@ -83,6 +83,44 @@ export const BLOG_AUTHOR = 'The Where2Meet team';
 
 const posts: BlogPost[] = [
   {
+    slug: 'how-to-pick-a-date-spot',
+    title: 'How to pick a date spot you can both reach',
+    description:
+      'Pick a date spot that is easy for both of you to reach, plan the trip home as well as the trip there, and keep a backup nearby.',
+    publishedAt: '2026-10-08',
+    updatedAt: '2026-10-08',
+    occasion: 'date-night',
+    coverAlt:
+      "Grand Central Terminal's main concourse under its painted ceiling, next to the article title.",
+    coverPhoto: {
+      place: 'Grand Central Terminal',
+      author: 'D. Benjamin Miller',
+      license: 'CC0',
+      sourceUrl:
+        'https://commons.wikimedia.org/wiki/File:Main_Concourse,_Grand_Central_Terminal,_August_30,_2024_-_001.jpg',
+    },
+    examplePlaces: {
+      title: 'Date spots near the subway in New York',
+      places: [
+        {
+          placeId: 'ChIJvQwwiQFZwokRQDZSQpZrTrk',
+          label: 'The Campbell',
+          note: 'A cocktail bar inside Grand Central. The 4, 5, 6, 7 and S trains and Metro-North all leave from the same building.',
+        },
+        {
+          placeId: 'ChIJbfTV15NZwokRSeNM676BEZI',
+          label: 'Blue Note',
+          note: "A jazz club, for a date built around a show. It's about a 1-minute walk from the West 4th St station, where the A, B, C, D, E, F and M stop.",
+        },
+        {
+          placeId: 'ChIJIQntspT8ZUARP3MLeK4a1vA',
+          label: "Pete's Tavern",
+          note: "A restaurant and bar on Irving Place. It's about a 5-minute walk from the Union Square station, where the 4, 5, 6, L, N, Q, R and W stop.",
+        },
+      ],
+    },
+  },
+  {
     slug: 'how-to-plan-a-weekend-hangout-with-friends',
     title: 'How to plan a weekend hangout with friends',
     description:

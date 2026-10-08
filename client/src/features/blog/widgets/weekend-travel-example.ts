@@ -1,4 +1,4 @@
-import { PEOPLE, tripStats, type Point } from './explainer-model';
+import { PEOPLE, route, tripStats, type Point } from './explainer-model';
 
 /**
  * The made-up example behind the weekend travel widget: three friends heading
@@ -37,11 +37,6 @@ export const STOPS = [
   { x: 225, express: false },
   { x: FOOD_HALL.x, express: true },
 ] as const;
-
-/** An SVG path through `points`, in order. */
-function route(...points: readonly Point[]) {
-  return points.map(({ x, y }, i) => `${i === 0 ? 'M' : 'L'}${x} ${y}`).join(' ');
-}
 
 export const FRIENDS = [
   {

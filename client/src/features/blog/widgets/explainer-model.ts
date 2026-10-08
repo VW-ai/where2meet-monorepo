@@ -5,6 +5,11 @@ export interface Point {
   y: number;
 }
 
+/** An SVG path through `points`, in order. */
+export function route(...points: readonly Point[]) {
+  return points.map(({ x, y }, i) => `${i === 0 ? 'M' : 'L'}${x} ${y}`).join(' ');
+}
+
 /** The same three friends, in the same colors, in every post. */
 export const PEOPLE = {
   ana: { id: 'ana', name: 'Ana', color: '#FF6B6B', ink: '#d9474a' },
