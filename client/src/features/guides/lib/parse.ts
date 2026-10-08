@@ -1,6 +1,5 @@
-import { OCCASIONS, type Occasion } from '@/content/blog/posts';
 import { isIsoDate } from '@/lib/seo/site-pages';
-import type { Area, Catalog, City, CuratedPlace, Guide, Seo } from './catalog';
+import type { Area, Catalog, City, CuratedPlace, Guide, Seo, Term } from './catalog';
 
 /** Why each dropped item was dropped, as `cities[0].guides[2]: unknown occasion "brunch"`. */
 export type Issues = string[];
@@ -8,20 +7,33 @@ export type Issues = string[];
 type Fields = Record<string, unknown>;
 type ParseItem<T> = (value: unknown, at: string, issues: Issues) => T | null;
 
+/** The taxonomy's values for each guide field that names one, keyed by value key. */
+type Taxonomy = Record<'occasion' | OptionalParameter, ReadonlyMap<string, Term>>;
+type OptionalParameter = (typeof OPTIONAL_PARAMETERS)[number];
+
+/** The guide fields that may be null, in the order a guide shows them. */
+const OPTIONAL_PARAMETERS = ['time', 'venue_type', 'group_size', 'budget'] as const;
 const SLUG = /^[a-z0-9-]+$/;
+const GUIDE_SLUG_MAX_LENGTH = 80;
 
 /**
- * Parses the control plane's published JSON (contract v1). A bad city, town, guide or
- * place is dropped and reported in `issues` so the rest still renders. Throws only
- * when the payload as a whole isn't v1.
+ * Parses the control plane's published JSON (contract v2). A bad taxonomy value, city,
+ * town, guide or place is dropped and reported in `issues` so the rest still renders.
+ * Throws only when the payload as a whole isn't v2.
  */
 export function parsePublished(raw: unknown): { catalog: Catalog; issues: Issues } {
-  if (!isFields(raw) || raw.version !== 1 || !Array.isArray(raw.cities)) {
-    throw new Error('Published guides are not contract v1 JSON');
+  if (
+    !isFields(raw) ||
+    raw.version !== 2 ||
+    !isFields(raw.taxonomy) ||
+    !Array.isArray(raw.cities)
+  ) {
+    throw new Error('Published guides are not contract v2 JSON');
   }
   const issues: Issues = [];
-  const cities = keepFirst(
-    parseList(raw.cities, 'cities', issues, parseCity),
+  const taxonomy = parseTaxonomy(raw.taxonomy, issues);
+  const cities = keyBy(
+    parseList(raw.cities, 'cities', issues, (city, at) => parseCity(city, at, issues, taxonomy)),
     (city) => city.slug,
     'cities',
     issues
@@ -29,37 +41,67 @@ export function parsePublished(raw: unknown): { catalog: Catalog; issues: Issues
   return { catalog: { cities }, issues };
 }
 
-function parseCity(value: unknown, at: string, issues: Issues): City | null {
-  const area = parseArea(value, at, issues);
-  if (!area || !isFields(value)) return null;
-  const towns = keepFirst(
-    parseList(value.towns, `${at}.towns`, issues, parseArea),
+function parseTaxonomy(value: Fields, issues: Issues): Taxonomy {
+  const terms = (list: string) =>
+    keyBy(
+      parseList(value[list], `taxonomy.${list}`, issues, parseTerm),
+      (term) => term.key,
+      `taxonomy.${list}`,
+      issues
+    );
+  return {
+    occasion: terms('occasions'),
+    time: terms('times'),
+    venue_type: terms('venue_types'),
+    group_size: terms('group_sizes'),
+    budget: terms('budgets'),
+  };
+}
+
+function parseTerm(value: unknown, at: string, issues: Issues): Term | null {
+  if (!isFields(value)) return drop(at, 'not an object', issues);
+  if (!isText(value.key)) return drop(at, 'missing key', issues);
+  if (!isText(value.label)) return drop(at, 'missing label', issues);
+  return { key: value.key, label: value.label };
+}
+
+function parseCity(value: unknown, at: string, issues: Issues, taxonomy: Taxonomy): City | null {
+  const fields = parseAreaFields(value, at, issues);
+  if (!fields || !isFields(value)) return null;
+  const towns = keyBy(
+    parseList(value.towns, `${at}.towns`, issues, (town, townAt) =>
+      parseTown(town, townAt, issues, taxonomy)
+    ),
     (town) => town.slug,
     `${at}.towns`,
     issues
   );
-  return { ...area, region: text(value.region), towns };
+  return {
+    ...fields,
+    region: text(value.region),
+    guides: parseGuides(value.guides, `${at}.guides`, issues, taxonomy, towns),
+    towns,
+  };
 }
 
-function parseArea(value: unknown, at: string, issues: Issues): Area | null {
+function parseTown(value: unknown, at: string, issues: Issues, taxonomy: Taxonomy): Area | null {
+  const fields = parseAreaFields(value, at, issues);
+  if (!fields || !isFields(value)) return null;
+  return { ...fields, guides: parseGuides(value.guides, `${at}.guides`, issues, taxonomy) };
+}
+
+function parseAreaFields(value: unknown, at: string, issues: Issues): Omit<Area, 'guides'> | null {
   if (!isFields(value)) return drop(at, 'not an object', issues);
   const { slug, name, updated_at: updatedAt } = value;
   if (typeof slug !== 'string' || !SLUG.test(slug)) {
     return drop(at, `invalid slug ${JSON.stringify(slug)}`, issues);
   }
-  if (isOccasion(slug)) return drop(at, `slug "${slug}" is an occasion`, issues);
   if (!isText(name)) return drop(at, 'missing name', issues);
   if (typeof updatedAt !== 'string' || !isIsoDate(updatedAt)) {
     return drop(at, 'invalid updated_at', issues);
   }
   const seo = parseSeo(value.seo);
   if (!seo) return drop(at, 'invalid seo', issues);
-  const guides = keepFirst(
-    parseList(value.guides, `${at}.guides`, issues, parseGuide),
-    (guide) => guide.occasion,
-    `${at}.guides`,
-    issues
-  );
   return {
     slug,
     name,
@@ -67,34 +109,71 @@ function parseArea(value: unknown, at: string, issues: Issues): Area | null {
     seo,
     intro: text(value.intro),
     transitNotes: text(value.transit_notes),
-    guides,
   };
 }
 
-function parseGuide(value: unknown, at: string, issues: Issues): Guide | null {
+/** Guide slugs are unique within their area, and a city's guides can't take a town's slug. */
+function parseGuides(
+  value: unknown,
+  at: string,
+  issues: Issues,
+  taxonomy: Taxonomy,
+  towns: ReadonlyMap<string, Area> = new Map()
+): ReadonlyMap<string, Guide> {
+  const guides = parseList(value, at, issues, (item, guideAt) => {
+    const guide = parseGuide(item, guideAt, issues, taxonomy);
+    if (guide && towns.has(guide.slug)) {
+      return drop(guideAt, `slug "${guide.slug}" is taken by a town`, issues);
+    }
+    return guide;
+  });
+  return keyBy(guides, (guide) => guide.slug, at, issues);
+}
+
+function parseGuide(value: unknown, at: string, issues: Issues, taxonomy: Taxonomy): Guide | null {
   if (!isFields(value)) return drop(at, 'not an object', issues);
-  const { occasion, updated_at: updatedAt } = value;
-  if (typeof occasion !== 'string' || !isOccasion(occasion)) {
-    return drop(at, `unknown occasion ${JSON.stringify(occasion)}`, issues);
+  const { slug, updated_at: updatedAt } = value;
+  if (typeof slug !== 'string' || !SLUG.test(slug)) {
+    return drop(at, `invalid slug ${JSON.stringify(slug)}`, issues);
+  }
+  if (slug.length > GUIDE_SLUG_MAX_LENGTH) {
+    return drop(at, `slug is longer than ${GUIDE_SLUG_MAX_LENGTH} characters`, issues);
+  }
+  const occasion = lookUp(taxonomy.occasion, value.occasion);
+  if (!occasion) return drop(at, `unknown occasion ${JSON.stringify(value.occasion)}`, issues);
+  const parameters: Term[] = [];
+  for (const parameter of OPTIONAL_PARAMETERS) {
+    const key = value[parameter] ?? null;
+    if (key === null) continue;
+    const term = lookUp(taxonomy[parameter], key);
+    if (!term) return drop(at, `unknown ${parameter} ${JSON.stringify(key)}`, issues);
+    parameters.push(term);
   }
   if (typeof updatedAt !== 'string' || !isIsoDate(updatedAt)) {
     return drop(at, 'invalid updated_at', issues);
   }
   const seo = parseSeo(value.seo);
   if (!seo) return drop(at, 'invalid seo', issues);
+  const places = keyBy(
+    parseList(value.places, `${at}.places`, issues, parsePlace),
+    (place) => place.placeId,
+    `${at}.places`,
+    issues
+  );
   return {
+    slug,
     occasion,
+    parameters,
     updatedAt,
     seo,
     intro: text(value.intro),
     tips: text(value.tips),
-    places: keepFirst(
-      parseList(value.places, `${at}.places`, issues, parsePlace),
-      (place) => place.placeId,
-      `${at}.places`,
-      issues
-    ),
+    places: [...places.values()],
   };
+}
+
+function lookUp(terms: ReadonlyMap<string, Term>, key: unknown): Term | undefined {
+  return typeof key === 'string' ? terms.get(key) : undefined;
 }
 
 function parsePlace(value: unknown, at: string, issues: Issues): CuratedPlace | null {
@@ -115,27 +194,25 @@ function parseList<T>(value: unknown, at: string, issues: Issues, parseItem: Par
   return value.flatMap((item, index) => parseItem(item, `${at}[${index}]`, issues) ?? []);
 }
 
-/** Slugs are unique within their parent, occasions within their area, places within a guide. */
-function keepFirst<T>(items: T[], key: (item: T) => string, at: string, issues: Issues): T[] {
-  const seen = new Set<string>();
-  return items.filter((item) => {
+/** Keeps the first item for each key, in order, and reports the repeats. */
+function keyBy<T>(
+  items: T[],
+  key: (item: T) => string,
+  at: string,
+  issues: Issues
+): Map<string, T> {
+  const byKey = new Map<string, T>();
+  for (const item of items) {
     const value = key(item);
-    if (seen.has(value)) {
-      drop(at, `repeats "${value}"`, issues);
-      return false;
-    }
-    seen.add(value);
-    return true;
-  });
+    if (byKey.has(value)) drop(at, `repeats "${value}"`, issues);
+    else byKey.set(value, item);
+  }
+  return byKey;
 }
 
 function drop(at: string, reason: string, issues: Issues): null {
   issues.push(`${at}: ${reason}`);
   return null;
-}
-
-function isOccasion(value: string): value is Occasion {
-  return Object.hasOwn(OCCASIONS, value);
 }
 
 function isFields(value: unknown): value is Fields {
