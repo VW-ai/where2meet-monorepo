@@ -1,34 +1,42 @@
-# Where2Meet local guides: control plane ↔ site contract (v1)
+# Where2Meet local guides: what the site reads from the Control Panel (v2)
 
-Owner decisions (2026-10-05):
+The Control Panel owns this contract. Its source of truth is `docs/where2meet-guides-contract.md` in [VW-ai/nomi-control](https://github.com/VW-ai/nomi-control). This page lists only what the site relies on. If the two disagree, the panel's doc wins and the site changes to match.
 
-- URLs on www.where2meet.org:
-  - `/where-to-meet` (index of published cities)
-  - `/where-to-meet/<city>` (city hub)
-  - `/where-to-meet/<city>/<occasion>` (city guide)
-  - `/where-to-meet/<city>/<town>` (town hub)
-  - `/where-to-meet/<city>/<town>/<occasion>` (town guide)
-- One page per place × occasion. First cities: New York, Ann Arbor.
-- No reader-location detection. Each page's location is fixed by its URL.
-- Byline on every guide: "The Where2Meet team".
+Owner decisions (2026-10-08):
 
-## Occasions (fixed list; keys are URL slugs)
+- A city or a town can have many guides. A guide has an occasion and optional parameters: time, venue type, group size and budget.
+- Each guide has one readable slug in its URL. The country is stored on the city and stays out of the URL.
+- The panel suggests guide ideas and prefills drafts. A person writes the intro and tips and publishes. Nothing is published automatically.
+- Byline on every guide: "The Where2Meet team". No reader-location detection. A page's location is fixed by its URL.
 
-`date-night`, `team-meeting`, `group-dinner`, `coffee-catch-up`, `weekend-hangout`, `family-outing`, `team-offsite`, `long-distance-reunion`.
-Labels: Date night, Team meeting, Group dinner, Coffee catch-up, Weekend hangout, Family outing, Team offsite, Long-distance reunion.
-City and town slugs must be lowercase `[a-z0-9-]+`, unique within their parent, and must NOT equal an occasion key.
+## URLs
 
-## Read endpoint (control plane)
+| Path                                   | Page                                                                      |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| `/where-to-meet`                       | Index of published cities                                                 |
+| `/where-to-meet/<city>`                | City hub                                                                  |
+| `/where-to-meet/<city>/<segment>`      | Town hub when a town has that slug, otherwise a city guide, otherwise 404 |
+| `/where-to-meet/<city>/<town>/<guide>` | Town guide                                                                |
 
-`GET /api/control/where2meet/published`
+Every page below the index has a cover at `<page path>/cover.png`. `findPage` in `src/features/guides/lib/catalog.ts` resolves every path. Town slugs and a city's own guide slugs share one namespace, so the panel never publishes both with the same slug. If one arrives anyway, the site keeps the town and drops the guide.
 
-- Auth: `Authorization: Bearer <WHERE2MEET_READ_TOKEN>` (new hashed machine scope; read-only; this path only).
-- Response 200 `application/json`, only PUBLISHED content:
+## Read endpoint
+
+`GET /api/control/where2meet/published/v2` with `Authorization: Bearer <read token>`. The site fetches it from `src/features/guides/lib/source.ts`, caches it for an hour under the tag `where2meet-guides`, and parses it with `parsePublished` in `src/features/guides/lib/parse.ts`.
+
+The response holds published content only:
 
 ```json
 {
-  "version": 1,
-  "generated_at": "2026-10-05T12:00:00Z",
+  "version": 2,
+  "generated_at": "2026-10-08T12:00:00Z",
+  "taxonomy": {
+    "occasions": [{ "key": "team-welcome", "label": "Team welcome" }],
+    "times": [{ "key": "weekday-lunch", "label": "Weekday lunch" }],
+    "venue_types": [{ "key": "chinese-restaurant", "label": "Chinese restaurant" }],
+    "group_sizes": [{ "key": "large", "label": "Big group, 7 or more" }],
+    "budgets": [{ "key": "moderate", "label": "Mid-range" }]
+  },
   "cities": [
     {
       "slug": "new-york",
@@ -36,32 +44,31 @@ City and town slugs must be lowercase `[a-z0-9-]+`, unique within their parent, 
       "region": "NY",
       "country": "US",
       "center": { "lat": 40.7128, "lng": -74.006 },
-      "updated_at": "2026-10-05",
+      "updated_at": "2026-10-08",
       "seo": { "title": "Where to meet in New York", "description": "…" },
       "intro": "markdown",
       "transit_notes": "markdown",
       "guides": [
         {
-          "occasion": "team-meeting",
-          "updated_at": "2026-10-05",
-          "seo": { "title": "Where to hold a team meeting in New York", "description": "…" },
+          "slug": "chinese-restaurants-for-a-team-welcome-lunch",
+          "occasion": "team-welcome",
+          "time": "weekday-lunch",
+          "venue_type": "chinese-restaurant",
+          "group_size": "large",
+          "budget": null,
+          "updated_at": "2026-10-08",
+          "seo": { "title": "…", "description": "…" },
           "intro": "markdown",
           "tips": "markdown",
-          "places": [
-            {
-              "place_id": "ChIJ…",
-              "label": "Editor-written place name",
-              "note": "Editor's own note about why it works"
-            }
-          ]
+          "places": [{ "place_id": "ChIJ…", "label": "Place name", "note": "Editor's own note" }]
         }
       ],
       "towns": [
         {
-          "slug": "williamsburg",
-          "name": "Williamsburg",
-          "center": { "lat": 40.7081, "lng": -73.9571 },
-          "updated_at": "2026-10-05",
+          "slug": "midtown",
+          "name": "Midtown",
+          "center": { "lat": 40.7549, "lng": -73.984 },
+          "updated_at": "2026-10-08",
           "seo": { "title": "…", "description": "…" },
           "intro": "markdown",
           "transit_notes": "markdown",
@@ -73,47 +80,46 @@ City and town slugs must be lowercase `[a-z0-9-]+`, unique within their parent, 
 }
 ```
 
-Rules:
+The site ignores `generated_at`, `country` and `center`.
 
-- A city appears only when published. A town appears only when it and its city are published. A guide appears only when it and its parent are published.
-- Markdown subset the site renders: paragraphs, `-` bullet lists, `1.` lists, `**bold**`, `*italic*`, `[text](https://…)` links, `##`/`###` headings. No raw HTML (the site strips it).
-- `place_id`s are Google Places IDs (storing IDs is allowed by Google's terms). The editor's `label` may start from Google's place name, prefilled when the place is picked from search, and is saved as the label the operator chose. `note` is the editor's own words. Photos, ratings, addresses and any other Google data are never stored.
-- Dates are `YYYY-MM-DD`. `seo.title` ≤ 60 chars, `seo.description` 50–160 chars (validated on publish).
+## How the site uses the fields
 
-## Revalidation webhook (site)
+- Labels come only from `taxonomy`. The site keeps no copy of the occasion or parameter lists.
+- A guide page shows its occasion and each parameter it sets as chips under the title, in the order occasion, time, venue type, group size, budget.
+- A hub lists its guides grouped by occasion. Under each occasion it links the newest blog post written for that occasion, when one exists.
+- The canonical URL, the JSON-LD, `sitemap.xml` and `llms.txt` use each guide's slug URL. The breadcrumbs and `llms.txt` name a guide by its `seo.title`. The sitemap dates every page by its `updated_at`.
+- Text fields use the Markdown subset: paragraphs, `-` and `1.` lists, `**bold**`, `*italic*`, `[text](https://…)` links, and `##` or `###` headings. The site drops raw HTML and shows any link that is not `https://` or a site path as plain text.
+- Place photos, ratings and addresses load live from Google by `place_id`. The site stores none of them.
 
-`POST https://www.where2meet.org/api/revalidate`
+## What the site drops
 
-- Auth: `Authorization: Bearer <WHERE2MEET_REVALIDATE_SECRET>`.
-- Body: `{ "tag": "where2meet-guides" }`. Response 200 `{ "revalidated": true }`; 401 on a bad secret.
-- The control plane calls it after every publish, unpublish or edit to published content. A failed call is reported in the panel; it never blocks the save.
+`parsePublished` throws when the payload is not v2 JSON: `version` is not `2`, `taxonomy` is not an object, or `cities` is not a list. During a build the site then publishes no guides. On a request it keeps serving the last good pages.
 
-## Publish checklist (enforced by the control plane before anything is published)
+Otherwise the site drops each bad item, keeps its siblings, and logs one line per item, such as `[guides] Skipped cities[0].guides[2]: unknown venue_type "sushi-bar"`. It drops:
 
-Guides:
+- a taxonomy value without a `key` or a `label`, or with a repeated `key`
+- a city or town whose slug is not lowercase `[a-z0-9-]+`, or that has no name, a bad `updated_at` (`YYYY-MM-DD`) or no SEO title and description
+- a repeated city slug, or a repeated town slug within a city
+- a guide whose slug is not lowercase `[a-z0-9-]+` or is longer than 80 characters
+- a guide whose `occasion` is missing or not in `taxonomy.occasions`
+- a guide whose `time`, `venue_type`, `group_size` or `budget` is neither `null` nor a key in the matching taxonomy list
+- a guide with a bad `updated_at` or without an SEO title and description
+- a city guide whose slug is a town's slug in the same city
+- a repeated guide slug within a city or within a town
+- a place without a `place_id` or a `label`, or with a repeated `place_id` within a guide
 
-- `intro` ≥ 60 words and `tips` ≥ 150 words, both written for that place.
-- At least 3 places, each with a `label` and a `note` of ≥ 12 words.
-- SEO title and description within limits.
-- Its city (and town) already published or published together.
+The panel's publish checklist covers word counts, SEO limits and brand wording. The site does not check them again.
 
-Cities and towns:
+## Revalidation webhook
 
-- `intro` ≥ 60 words and `transit_notes` ≥ 20 words.
-- SEO title and description within limits.
-- At least one of its own guides (city-level guides for a city, the town's guides for a town) already published or published in the same step. The last published guide of a published city or town cannot be unpublished until the city or town is.
-
-All three:
-
-- Brand wording: no published text field (SEO title and description, intro, transit notes, tips, place notes) may contain a word starting with "fair" (`\bfair`, case-insensitive, so "fairly" and "fairness" too) or the phrase "meet in the middle" (case-insensitive). Place labels are names ("Fairway Market") and are not checked. The failing check names each field and the phrase found.
-
-Content rules are checked again whenever published content is saved, so a live page cannot be edited out of compliance.
+`POST https://www.where2meet.org/api/revalidate` with `Authorization: Bearer <WHERE2MEET_REVALIDATE_SECRET>` and the body `{ "tag": "where2meet-guides" }`. It answers 200 `{ "revalidated": true }`, 401 for a bad secret, and 400 for any other body. The panel calls it after every publish, unpublish or edit of published content.
 
 ## Environment
 
-- Control plane (Doppler `nomi/control_runtime`, allowlisted in `deploy/start.py` `RUNTIME_KEYS`):
-  - `NOMI_CONTROL_WHERE2MEET_READ_TOKEN_SHA256`
-  - `WHERE2MEET_REVALIDATE_URL`
-  - `WHERE2MEET_REVALIDATE_SECRET`
-  - `WHERE2MEET_PLACES_SERVER_KEY` (Google key without referrer restriction, for the panel's place search)
-- Site (Vercel): `CONTROL_PLANE_URL`, `CONTROL_PLANE_READ_TOKEN`, `WHERE2MEET_REVALIDATE_SECRET`.
+Set these on Vercel:
+
+- `CONTROL_PLANE_URL`: the panel's origin.
+- `CONTROL_PLANE_READ_TOKEN`: the read token. Without it or the URL, the site builds and serves with no guides.
+- `WHERE2MEET_REVALIDATE_SECRET`: the webhook secret.
+
+For local development, set `CONTROL_PLANE_FIXTURE` to the absolute path of a v2 JSON file, such as `src/features/guides/__fixtures__/published.json`. The site ignores it when `VERCEL_ENV` is `production`.
