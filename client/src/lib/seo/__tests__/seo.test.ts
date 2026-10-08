@@ -17,7 +17,6 @@ import {
 } from '@/lib/seo/structured-data';
 import { BLOG_POSTS, coverPath, getPost, postPath } from '@/content/blog/posts';
 import fixture from '@/features/guides/__fixtures__/published.json';
-import { listPages, pagePath } from '@/features/guides/lib/catalog';
 import { parsePublished } from '@/features/guides/lib/parse';
 import { buildLlmsTxt } from '@/lib/seo/llms-txt';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
@@ -31,9 +30,13 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const FIXTURE_PATH = path.join(__dirname, '../../../features/guides/__fixtures__/published.json');
 const FIXTURE_GUIDE_URLS = [
   `${CANONICAL_ORIGIN}/where-to-meet`,
-  ...listPages(parsePublished(fixture).catalog).map(
-    (page) => `${CANONICAL_ORIGIN}${pagePath(page)}`
-  ),
+  `${CANONICAL_ORIGIN}/where-to-meet/new-york`,
+  `${CANONICAL_ORIGIN}/where-to-meet/new-york/coffee-shops-for-a-catch-up-near-union-square`,
+  `${CANONICAL_ORIGIN}/where-to-meet/new-york/a-weekend-afternoon-in-bryant-park-with-friends`,
+  `${CANONICAL_ORIGIN}/where-to-meet/new-york/midtown`,
+  `${CANONICAL_ORIGIN}/where-to-meet/new-york/midtown/quiet-places-for-a-small-team-meeting`,
+  `${CANONICAL_ORIGIN}/where-to-meet/new-york/midtown/bookable-rooms-for-a-big-team-meeting`,
+  `${CANONICAL_ORIGIN}/where-to-meet/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
 ];
 const BLOG_URLS = [
   `${CANONICAL_ORIGIN}/blog`,
@@ -199,18 +202,14 @@ describe('sitemap', () => {
     expect(
       guideEntries.map((entry) => [entry.url.slice(CANONICAL_ORIGIN.length), entry.lastModified])
     ).toEqual([
-      ['/where-to-meet', '2026-10-05'],
-      ['/where-to-meet/new-york', '2026-10-05'],
-      ['/where-to-meet/new-york/team-meeting', '2026-10-05'],
-      ['/where-to-meet/new-york/coffee-catch-up', '2026-10-03'],
-      ['/where-to-meet/new-york/williamsburg', '2026-10-04'],
-      ['/where-to-meet/new-york/williamsburg/date-night', '2026-10-04'],
-      ['/where-to-meet/new-york/williamsburg/weekend-hangout', '2026-10-02'],
-      ['/where-to-meet/ann-arbor', '2026-10-05'],
-      ['/where-to-meet/ann-arbor/group-dinner', '2026-10-05'],
-      ['/where-to-meet/ann-arbor/coffee-catch-up', '2026-10-01'],
-      ['/where-to-meet/ann-arbor/kerrytown', '2026-10-03'],
-      ['/where-to-meet/ann-arbor/kerrytown/weekend-hangout', '2026-10-03'],
+      ['/where-to-meet', '2026-10-08'],
+      ['/where-to-meet/new-york', '2026-10-06'],
+      ['/where-to-meet/new-york/coffee-shops-for-a-catch-up-near-union-square', '2026-10-06'],
+      ['/where-to-meet/new-york/a-weekend-afternoon-in-bryant-park-with-friends', '2026-10-05'],
+      ['/where-to-meet/new-york/midtown', '2026-10-07'],
+      ['/where-to-meet/new-york/midtown/quiet-places-for-a-small-team-meeting', '2026-10-07'],
+      ['/where-to-meet/new-york/midtown/bookable-rooms-for-a-big-team-meeting', '2026-10-04'],
+      ['/where-to-meet/new-york/midtown/a-team-welcome-lunch-in-bryant-park', '2026-10-08'],
     ]);
   });
 
@@ -386,7 +385,8 @@ describe('llms.txt', () => {
   it('keeps control plane copy on one list line with its link intact', () => {
     const seo = { title: 'Where to meet [beta]', description: 'Two lines\nof copy.' };
     const { catalog } = parsePublished({
-      version: 1,
+      version: 2,
+      taxonomy: {},
       cities: [{ slug: 'testville', name: 'Testville', updated_at: '2026-10-05', seo }],
     });
     expect(buildLlmsTxt(catalog)).toContain(
