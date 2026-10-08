@@ -7,6 +7,7 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { cn } from '@/shared/lib/cn';
+import { getHexColor } from '@/features/meeting/lib/participant-colors';
 
 // Helper to get initials from name
 const getInitials = (name: string): string => {
@@ -196,10 +197,8 @@ export function ParticipantStats() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0">
                         <div
-                          className={cn(
-                            'w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0',
-                            participant.color || 'bg-gray-400'
-                          )}
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+                          style={{ backgroundColor: getHexColor(participant.color) }}
                         >
                           {getInitials(participant.name)}
                         </div>
@@ -224,11 +223,11 @@ export function ParticipantStats() {
                     {/* Bar */}
                     <div className="h-3 bg-muted/50 rounded-full overflow-hidden">
                       <div
-                        className={cn(
-                          'h-full rounded-full transition-all duration-500 ease-out',
-                          participant.color?.replace('bg-', 'bg-') || 'bg-coral-500'
-                        )}
-                        style={{ width: `${Math.max(percentage, 5)}%` }}
+                        className="h-full rounded-full transition-all duration-500 ease-out"
+                        style={{
+                          width: `${Math.max(percentage, 5)}%`,
+                          backgroundColor: getHexColor(participant.color),
+                        }}
                       />
                     </div>
                   </div>

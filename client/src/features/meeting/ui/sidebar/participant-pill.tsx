@@ -2,6 +2,7 @@
 
 import { MapPin, EyeOff, Edit2, Trash2 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
+import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { TravelTimeBubble } from './travel-time-bubble';
 import type { Participant } from '@/entities';
 
@@ -71,20 +72,16 @@ export function ParticipantPill({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeDasharray="4 6"
-                className={cn(
-                  'opacity-30',
-                  participant.color?.replace('bg-', 'text-') || 'text-gray-400'
-                )}
+                className="opacity-30"
+                style={{ color: getHexColor(participant.color) }}
               />
               {/* Tail Tip */}
               <circle
                 cx="10"
                 cy="35"
                 r="3"
-                className={cn(
-                  'fill-current',
-                  participant.color?.replace('bg-', 'text-') || 'text-gray-400'
-                )}
+                className="fill-current"
+                style={{ color: getHexColor(participant.color) }}
               />
             </svg>
           </div>
@@ -184,10 +181,8 @@ export function ParticipantPill({
 
               {/* Face/Avatar */}
               <div
-                className={cn(
-                  'relative z-10 w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white font-bold text-sm tracking-wider',
-                  participant.color || 'bg-gray-400'
-                )}
+                className="relative z-10 w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white font-bold text-sm tracking-wider"
+                style={{ backgroundColor: getHexColor(participant.color) }}
               >
                 {initials}
               </div>

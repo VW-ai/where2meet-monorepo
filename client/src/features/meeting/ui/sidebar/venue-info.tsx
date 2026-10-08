@@ -26,6 +26,7 @@ import { venueClient } from '@/features/meeting/api';
 import { getVenueCategoryDisplay } from '@/entities';
 import type { Venue } from '@/entities';
 import { cn } from '@/shared/lib/cn';
+import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { VoteButton } from '@/features/voting/ui/vote-button';
 
 // Helper to get initials from name
@@ -321,10 +322,8 @@ export function VenueInfo() {
                             <div className="flex items-center gap-3 min-w-0">
                               {/* Avatar */}
                               <div
-                                className={cn(
-                                  'w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0',
-                                  participant.color || 'bg-gray-400'
-                                )}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                style={{ backgroundColor: getHexColor(participant.color) }}
                               >
                                 {getInitials(participant.name)}
                               </div>
