@@ -84,7 +84,7 @@ export const BLOG_AUTHOR = 'The Where2Meet team';
 const posts: BlogPost[] = [
   {
     slug: 'how-to-plan-a-weekend-hangout-with-friends',
-    title: 'How to plan a weekend hangout with friends across town',
+    title: 'How to plan a weekend hangout with friends',
     description:
       'Your friends live all over town and the group chat never lands on a plan. Pick an activity, find a spot everyone can reach, and lock it in before Friday.',
     publishedAt: '2026-10-05',
@@ -121,7 +121,7 @@ const posts: BlogPost[] = [
   },
   {
     slug: 'how-to-choose-a-team-meeting-location',
-    title: 'How to choose a team meeting location everyone can reach',
+    title: 'How to choose a team meeting location',
     description:
       'Your team is spread across town. Compare travel times, pick a venue that suits the meeting, and settle on a place without a week of back-and-forth.',
     publishedAt: '2026-10-04',

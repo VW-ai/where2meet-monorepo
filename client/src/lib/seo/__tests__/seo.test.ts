@@ -280,7 +280,7 @@ describe('structured data', () => {
     ).toEqual({
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
-      headline: 'How to choose a team meeting location everyone can reach',
+      headline: 'How to choose a team meeting location',
       description:
         'Your team is spread across town. Compare travel times, pick a venue that suits the meeting, and settle on a place without a week of back-and-forth.',
       image: `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location/cover.png`,
