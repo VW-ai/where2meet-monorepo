@@ -45,7 +45,7 @@ describe('tripMinutes', () => {
         midnight
       )
     ).toBe(26);
-    expect(tripMinutes([{ kind: 'walk', minutes: 7 }], midnight)).toBe(7);
+    expect(tripMinutes([{ kind: 'bike', minutes: 7 }], midnight)).toBe(7);
   });
 });
 
@@ -60,19 +60,19 @@ describe('summarizeSpot', () => {
 });
 
 describe('the example', () => {
-  it('grows Ana from 35 to 55 minutes near Ben, and both from 20 to 25 by the station', () => {
+  it('grows Ana from 35 to 55 minutes near Ben and from 20 to 25 by the station, and keeps Ben at 20 by bike', () => {
     expect(summarizeSpot(SPOTS.nearBen, HOURS.evening).minutes).toEqual([35, 5]);
     expect(summarizeSpot(SPOTS.nearBen, HOURS.late).minutes).toEqual([55, 5]);
     expect(summarizeSpot(SPOTS.byStation, HOURS.evening).minutes).toEqual([20, 20]);
-    expect(summarizeSpot(SPOTS.byStation, HOURS.late).minutes).toEqual([25, 25]);
+    expect(summarizeSpot(SPOTS.byStation, HOURS.late).minutes).toEqual([25, 20]);
   });
 
   it('reads out each hour', () => {
     expect(describeHour(HOURS.evening)).toBe(
-      'Getting there at 7 p.m. The local line comes every 10 minutes and the main line every 5. To the bar near Ben, Ana takes 35 minutes (walk 5, wait 10, ride 15, walk 5) and Ben takes 5 minutes. To the bar by the station, Ana takes 20 minutes (walk 5, wait 5, ride 8, walk 2) and Ben takes 20 minutes (walk 3, wait 5, ride 10, walk 2).'
+      'Getting there at 7 p.m. The local line comes every 10 minutes and the main line every 5. To the bar near Ben, Ana takes 35 minutes (walk 5, wait 10, ride 15, walk 5) and Ben takes 5 minutes on foot. To the bar by the station, Ana takes 20 minutes (walk 4, wait 5, ride 7, walk 4) and Ben takes 20 minutes by bike.'
     );
     expect(describeHour(HOURS.late)).toBe(
-      'Getting home at 11 p.m. The local line comes every 30 minutes and the main line every 10. From the bar near Ben, Ana takes 55 minutes (walk 5, wait 30, ride 15, walk 5) and Ben takes 5 minutes. From the bar by the station, Ana takes 25 minutes (walk 5, wait 10, ride 8, walk 2) and Ben takes 25 minutes (walk 3, wait 10, ride 10, walk 2).'
+      'Getting home at 11 p.m. The local line comes every 30 minutes and the main line every 10. From the bar near Ben, Ana takes 55 minutes (walk 5, wait 30, ride 15, walk 5) and Ben takes 5 minutes on foot. From the bar by the station, Ana takes 25 minutes (walk 4, wait 10, ride 7, walk 4) and Ben takes 20 minutes by bike.'
     );
   });
 
@@ -82,14 +82,13 @@ describe('the example', () => {
       'utf8'
     );
     const { evening, late } = HOURS;
-    const benWalk = tripMinutes(SPOTS.nearBen.trips.ben, evening);
-    const [anaThere] = summarizeSpot(SPOTS.nearBen, evening).minutes;
-    const [anaHome] = summarizeSpot(SPOTS.nearBen, late).minutes;
-    const there = summarizeSpot(SPOTS.byStation, evening);
-    const home = summarizeSpot(SPOTS.byStation, late);
-    expect([there.spread, home.spread]).toEqual([0, 0]);
+    const { nearBen, byStation } = SPOTS;
+    const benWalk = tripMinutes(nearBen.trips.ben, evening);
+    const benBike = tripMinutes(byStation.trips.ben, evening);
+    expect(byStation.trips.ben.map(({ kind }) => kind)).toEqual(['bike']);
+    expect(tripMinutes(byStation.trips.ben, late)).toBe(benBike);
     expect(post).toContain(
-      `For example, take a bar that's a ${benWalk}-minute walk from Ben's door. At ${evening.label}, Ana gets there in ${anaThere} minutes. At ${late.label}, her train comes every ${late.every.local} minutes instead of every ${evening.every.local}, so her trip home takes ${anaHome}. A bar by a busier station takes each of them ${there.longest} minutes to get there and ${home.longest} to get home.`
+      `For example, take a bar that's a ${benWalk}-minute walk from Ben's door. At ${evening.label}, Ana gets there in ${tripMinutes(nearBen.trips.ana, evening)} minutes. At ${late.label}, her train comes every ${late.every.local} minutes instead of every ${evening.every.local}, so her trip home takes ${tripMinutes(nearBen.trips.ana, late)}. A bar by a busier station takes Ana ${tripMinutes(byStation.trips.ana, evening)} minutes to get there and ${tripMinutes(byStation.trips.ana, late)} to get home, and Ben ${benBike} minutes by bike either way.`
     );
   });
 });

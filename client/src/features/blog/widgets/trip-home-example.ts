@@ -1,4 +1,4 @@
-import { PEOPLE, tripStats, type Point } from './explainer-model';
+import { PEOPLE, route, tripStats, type Point } from './explainer-model';
 
 /**
  * The made-up example behind the trip home widget: Ana and Ben, two bars and
@@ -12,18 +12,16 @@ const LOCAL_Y = 65;
 const MAIN_Y = 155;
 /** The local's last stop, a short walk from the bar near Ben. */
 const LOCAL_END: Point = { x: 270, y: LOCAL_Y };
+/** The main line's last stop. No train runs from here to Ben's side. */
 const CENTRAL: Point = { x: 180, y: MAIN_Y };
 const NEAR_BEN: Point = { x: BEN_HOME.x, y: 80 };
 const BY_STATION: Point = { x: CENTRAL.x, y: 128 };
-
-/** An SVG path through `points`, in order. */
-function route(...points: readonly Point[]) {
-  return points.map(({ x, y }, i) => `${i === 0 ? 'M' : 'L'}${x} ${y}`).join(' ');
-}
+/** The street Ben bikes along to the bar by the station. */
+const BIKE_Y = 110;
 
 export const LINES = {
   local: { label: 'Local line', rail: route({ x: -10, y: LOCAL_Y }, LOCAL_END) },
-  main: { label: 'Main line', rail: route({ x: -10, y: MAIN_Y }, { x: 370, y: MAIN_Y }) },
+  main: { label: 'Main line', rail: route({ x: -10, y: MAIN_Y }, CENTRAL) },
 } as const;
 
 export type LineId = keyof typeof LINES;
@@ -33,7 +31,6 @@ export const STATIONS: readonly Point[] = [
   LOCAL_END,
   { x: ANA_HOME.x, y: MAIN_Y },
   CENTRAL,
-  { x: BEN_HOME.x, y: MAIN_Y },
 ];
 
 export const COUPLE = [
@@ -43,8 +40,12 @@ export const COUPLE = [
 
 export type PersonId = (typeof COUPLE)[number]['id'];
 
+type Move = { kind: 'walk' | 'bike' | 'ride'; minutes: number };
 /** A wait lasts as long as the gap between trains on its line at that hour. */
-export type Leg = { kind: 'walk' | 'ride'; minutes: number } | { kind: 'wait'; line: LineId };
+export type Leg = Move | { kind: 'wait'; line: LineId };
+
+/** How a trip of a single leg reads out, since it has no parts to list. */
+const BY: Record<Move['kind'], string> = { walk: 'on foot', bike: 'by bike', ride: 'by train' };
 
 const DIRECTIONS = {
   there: { title: 'Getting there', toward: 'To' },
@@ -69,7 +70,11 @@ export type HourId = keyof typeof HOURS;
 export interface Spot {
   label: string;
   at: Point;
-  /** The trip there. The trip home runs it backward in the same minutes. */
+  /**
+   * The trip there. The trip home runs it backward in the same minutes, and the
+   * bars show it in this order, so a trip that starts with a walk ends with one
+   * just as long.
+   */
   trips: Record<PersonId, readonly Leg[]>;
   routes: Record<PersonId, string>;
 }
@@ -103,21 +108,21 @@ export const SPOTS = {
     at: BY_STATION,
     trips: {
       ana: [
-        { kind: 'walk', minutes: 5 },
+        { kind: 'walk', minutes: 4 },
         { kind: 'wait', line: 'main' },
-        { kind: 'ride', minutes: 8 },
-        { kind: 'walk', minutes: 2 },
+        { kind: 'ride', minutes: 7 },
+        { kind: 'walk', minutes: 4 },
       ],
-      ben: [
-        { kind: 'walk', minutes: 3 },
-        { kind: 'wait', line: 'main' },
-        { kind: 'ride', minutes: 10 },
-        { kind: 'walk', minutes: 2 },
-      ],
+      ben: [{ kind: 'bike', minutes: 20 }],
     },
     routes: {
       ana: route(ANA_HOME, { x: ANA_HOME.x, y: MAIN_Y }, CENTRAL, BY_STATION),
-      ben: route(BEN_HOME, { x: BEN_HOME.x, y: MAIN_Y }, CENTRAL, BY_STATION),
+      ben: route(
+        BEN_HOME,
+        { x: BEN_HOME.x, y: BIKE_Y },
+        { x: BY_STATION.x, y: BIKE_Y },
+        BY_STATION
+      ),
     },
   },
 } satisfies Record<string, Spot>;
@@ -153,11 +158,12 @@ export function describeHour(hour: Hour) {
   const spots = Object.values(SPOTS).map((spot: Spot) => {
     const trips = COUPLE.map(({ id, name }) => {
       const legs = spot.trips[id];
-      const parts =
-        legs.length > 1
-          ? ` (${legs.map((leg) => `${leg.kind} ${legMinutes(leg, hour)}`).join(', ')})`
-          : '';
-      return `${name} takes ${tripMinutes(legs, hour)} minutes${parts}`;
+      const [first] = legs;
+      const how =
+        legs.length === 1 && first.kind !== 'wait'
+          ? BY[first.kind]
+          : `(${legs.map((leg) => `${leg.kind} ${legMinutes(leg, hour)}`).join(', ')})`;
+      return `${name} takes ${tripMinutes(legs, hour)} minutes ${how}`;
     }).join(' and ');
     return `${DIRECTIONS[hour.direction].toward} the ${lowerFirst(spot.label)}, ${trips}.`;
   });

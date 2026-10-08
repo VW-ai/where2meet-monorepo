@@ -117,8 +117,10 @@ export function TripHome() {
           comes every {HOURS.late.every.local} minutes instead of every {HOURS.evening.every.local},
           so Ana&apos;s trip home from the bar near Ben takes{' '}
           {tripMinutes(SPOTS.nearBen.trips.ana, HOURS.late)} minutes. The main line comes every{' '}
-          {HOURS.late.every.main}, so both of them get home from the bar by the station in{' '}
-          {summarizeSpot(SPOTS.byStation, HOURS.late).longest}.
+          {HOURS.late.every.main}, so she gets home from the bar by the station in{' '}
+          {tripMinutes(SPOTS.byStation.trips.ana, HOURS.late)}. No train runs from there to
+          Ben&apos;s neighborhood, so he bikes {tripMinutes(SPOTS.byStation.trips.ben, HOURS.late)}{' '}
+          minutes each way.
         </>
       }
     >
@@ -262,7 +264,7 @@ export function TripHome() {
       >
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-4 rounded-full bg-[#9aa1aa]" />
-          Walking or riding
+          Walking, biking or riding
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-4 rounded-full" style={waitingFill('#9aa1aa')} />
