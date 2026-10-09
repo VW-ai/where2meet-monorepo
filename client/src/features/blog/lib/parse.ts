@@ -14,28 +14,20 @@ import {
 } from './catalog';
 import { isLicense, type CommonsImage } from './photos';
 
-/** Why each dropped item was dropped, as `cities[0].posts[2]: unknown occasion "brunch"`. */
 export type Issues = string[];
 
 type Fields = Record<string, unknown>;
 type Taxonomy = Record<'occasion' | OptionalParameter, ReadonlyMap<string, Term>>;
 type OptionalParameter = (typeof OPTIONAL_PARAMETERS)[number];
 
-/**
- * Slugs that share one URL level, each with what holds it. An item checks its slug is
- * free before anything else and takes it only once it is kept, so a dropped item never
- * blocks a later one.
- */
 type Namespace = Map<string, string>;
 
 interface Context {
   issues: Issues;
   taxonomy: Taxonomy;
-  /** Kept images' file names: one file name serves one photo across the whole payload. */
   files: Set<string>;
 }
 
-/** The post fields that may be null, in the order a post shows them. */
 const OPTIONAL_PARAMETERS = ['time', 'venue_type', 'group_size', 'budget'] as const;
 const SLUG = /^[a-z0-9-]+$/;
 const POST_SLUG_MAX_LENGTH = 80;
@@ -43,12 +35,6 @@ const FILE_NAME = /^[a-z0-9-]+\.jpg$/;
 const UPLOAD_HOSTS = ['upload.wikimedia.org', 'thumb.wikimedia.org'];
 const COMMONS_FILE_PAGE = 'https://commons.wikimedia.org/wiki/File:';
 
-/**
- * Parses the panel's published JSON (contract v3). A bad taxonomy value, city, town,
- * post, place or image is dropped and reported in `issues` so the rest still renders.
- * `repoSlugs` are the repo's posts: they hold `/blog/<slug>`, so a city or general post
- * with one of those slugs is dropped. Throws only when the payload as a whole isn't v3.
- */
 export function parsePublished(
   raw: unknown,
   repoSlugs: readonly string[]
@@ -107,7 +93,6 @@ function parseTaxonomy(value: Fields, issues: Issues): Taxonomy {
   };
 }
 
-/** A city, its towns, and the posts in the city and in each town. */
 function parseCity(
   value: unknown,
   at: string,
@@ -253,7 +238,7 @@ function parseImage(value: unknown, at: string, context: Context): CommonsImage 
     return drop(at, `invalid file_name ${JSON.stringify(fileName)}`, issues);
   }
   if (files.has(fileName)) return drop(at, `file_name "${fileName}" is already used`, issues);
-  if (!isUploadUrl(sourceUrl)) return drop(at, 'source_url is not a Wikimedia upload', issues);
+  if (!isUploadUrl(sourceUrl)) return drop(at, 'source_url is not a Wikimedia JPEG upload', issues);
   if (typeof pageUrl !== 'string' || !pageUrl.startsWith(COMMONS_FILE_PAGE)) {
     return drop(at, 'page_url is not a Wikimedia Commons file page', issues);
   }
@@ -287,7 +272,11 @@ function isUploadUrl(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && UPLOAD_HOSTS.includes(url.hostname);
+    return (
+      url.protocol === 'https:' &&
+      UPLOAD_HOSTS.includes(url.hostname) &&
+      /\.jpe?g$/i.test(url.pathname)
+    );
   } catch {
     return false;
   }
@@ -302,7 +291,6 @@ function parseSeo(value: unknown): Seo | null {
   return { title: value.title, description: value.description };
 }
 
-/** A missing list reads as empty. */
 function listOf(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
@@ -332,7 +320,6 @@ function isText(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-/** Markdown and other optional text; anything that isn't a string reads as empty. */
 function text(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }

@@ -25,7 +25,6 @@ function render(path: string) {
     .replaceAll('&#x27;', "'");
 }
 
-/** The article's headings, figures and place-card sections in order, as short lines. */
 function outline(html: string) {
   const article = html.match(/<article>(.*)<\/article>/s)?.[1] ?? '';
   return [

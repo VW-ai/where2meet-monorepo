@@ -34,8 +34,7 @@ function safeUrl(url: string): string | undefined {
 }
 
 /**
- * Renders panel Markdown on the server. Raw HTML is dropped, not escaped, so a stray
- * tag never shows up as text.
+ * Raw HTML is dropped, not escaped, so a stray tag never shows up as text.
  */
 export function PostMarkdown({ source }: { source: string }) {
   return (
@@ -51,7 +50,6 @@ export function PostMarkdown({ source }: { source: string }) {
   );
 }
 
-/** A panel post's body, with its photos and place cards where `layoutBody` puts them. */
 export function PanelBody({
   markdown,
   images,

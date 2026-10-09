@@ -6,7 +6,6 @@ import * as townPost from '@/app/(landing)/blog/[slug]/[segment]/[post]/page';
 
 const FIXTURE_PATH = path.join(__dirname, '../../features/blog/__fixtures__/published.json');
 const ORIGIN = 'https://www.where2meet.org';
-/** What Next's `notFound()` throws in this version, which it turns into a 404 page. */
 const NOT_FOUND = { digest: 'NEXT_HTTP_ERROR_FALLBACK;404' };
 
 async function metadata(segments: string) {

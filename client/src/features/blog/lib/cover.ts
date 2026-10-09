@@ -10,7 +10,6 @@ import { occasionIcon } from './occasion-icon';
 import type { CommonsImage, Photo } from './photos';
 import { fetchPhoto, isBuilding, loadPage, warnOnce } from './source';
 
-/** A page's 1200x630 cover, or a 404 when nothing is published there. */
 export async function coverResponse(segments: readonly string[]): Promise<Response> {
   const page = await loadPage(segments);
   if (!page) return new Response('Not found', { status: 404 });
@@ -23,7 +22,6 @@ export async function coverResponse(segments: readonly string[]): Promise<Respon
   });
 }
 
-/** "Team meeting" on a general post, "Midtown · Team meeting" on a local one, "Midtown, New York" on a town. */
 function coverBadge(page: BlogPage): string {
   if (page.kind === 'post') {
     const { occasion, areas } = page.post;
@@ -34,10 +32,6 @@ function coverBadge(page: BlogPage): string {
   return town ? `${town.name}, ${city.name}` : [city.name, city.region].filter(Boolean).join(', ');
 }
 
-/**
- * A repo post's photo is a file in the repo; a panel photo comes from Wikimedia. A build
- * draws the map when Wikimedia fails, and the cover picks up its photo on revalidation.
- */
 async function coverPhoto(page: BlogPage): Promise<CardPhoto | undefined> {
   if (page.kind === 'post' && page.post.source.kind === 'repo') {
     const file = path.join(process.cwd(), coverPhotoFile(page.post.slug));
@@ -60,7 +54,6 @@ function commonsCover(page: BlogPage): CommonsImage | null {
   return page.post.source.kind === 'panel' ? page.post.source.images[0] : null;
 }
 
-/** "Phi, CC0" */
 function creditLine({ credit }: Photo): string {
   return `${credit.author}, ${credit.license}`;
 }

@@ -1,7 +1,6 @@
 import { toAbsoluteUrl } from '@/lib/seo/metadata';
 import { listPages, pagePath, postPath, type Catalog } from '@/features/blog/lib/catalog';
 
-/** Edit by hand when a page is added. Posts, cities and towns are listed from the catalog. */
 const INTRO = `# Where2Meet
 
 > Where2Meet is a free web app where a group plans where to meet together. Everyone adds where they are starting from, the group looks for places near everyone, compares each person's real travel time to a place by car, transit, walking or bike, and votes on a convenient spot. No account is needed to create a meeting or join one from a shared link.
@@ -34,10 +33,6 @@ const OPTIONAL = `
 - [Sitemap](https://www.where2meet.org/sitemap.xml): Machine-readable list of public pages with last-modified dates.
 `;
 
-/**
- * The /llms.txt summary for AI assistants: the site's pages with every post under the
- * blog, then each published city and town.
- */
 export function buildLlmsTxt(catalog: Catalog): string {
   const posts = catalog.posts.map((post) => link(post.title, postPath(post), post.description));
   const areas = listPages(catalog).flatMap((page) => {

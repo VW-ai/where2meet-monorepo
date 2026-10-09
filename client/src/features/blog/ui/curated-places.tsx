@@ -59,7 +59,6 @@ export function CuratedPlaces({
   const shown = found ? places.flatMap((place) => found.get(place.placeId) ?? []) : [];
 
   return (
-    // Bleeds to the edges of the post's card, which pads its body with p-5 sm:p-8.
     <section
       ref={sectionRef}
       aria-labelledby={headingId}

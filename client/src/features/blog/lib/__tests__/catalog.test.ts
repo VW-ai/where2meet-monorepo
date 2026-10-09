@@ -132,6 +132,23 @@ describe('blog catalog', () => {
     ]);
   });
 
+  it('counts a place as shared only from the city down', () => {
+    const midtownLunch = post('new-york/midtown/a-team-welcome-lunch-in-bryant-park');
+    const [city, town] = midtownLunch.areas;
+    const elsewhere = {
+      ...post('new-york/midtown/quiet-places-for-a-small-team-meeting'),
+      title: 'A post in another city’s Midtown',
+      areas: [{ ...city, slug: 'testville', name: 'Testville' }, town],
+    } as typeof midtownLunch;
+    const withElsewhere = { ...catalog, posts: [...catalog.posts, elsewhere] };
+    expect(relatedPosts(withElsewhere, midtownLunch, 6).map((other) => other.title)).toEqual(
+      relatedPosts(catalog, midtownLunch, 6)
+        .map((other) => other.title)
+        .concat('A post in another city’s Midtown')
+        .slice(0, 6)
+    );
+  });
+
   it('lists a city’s posts with its towns’ posts, and a town’s own posts', () => {
     const city = catalog.cities.get('new-york')!;
     const midtown = city.towns.get('midtown')!;

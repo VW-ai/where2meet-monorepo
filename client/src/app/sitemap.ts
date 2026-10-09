@@ -18,7 +18,6 @@ import { STATIC_PAGES } from '@/lib/seo/site-pages';
  * - URLs use the canonical `www` host from SITE_CONFIG.
  * - `lastModified` values are real content dates (see `src/lib/seo/site-pages.ts`,
  *   `src/content/blog/posts.ts` and the control plane's `updated_at`), never the build time.
- * - Every post, city and town lists the photos it shows, served from this site.
  *
  * Note: Dynamic meeting pages (/meet/[id]) are intentionally excluded because:
  * - They are user-generated and mostly private/temporary

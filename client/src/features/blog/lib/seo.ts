@@ -2,10 +2,8 @@ import type { Metadata } from 'next';
 import { createArticleMetadata, createMetadata } from '@/lib/seo/metadata';
 import { coverPath, pagePath, postCover, type BlogPage } from './catalog';
 
-/** Describes the map a cover shows when its page has no photo. */
 const MAP_COVER_ALT = 'Three routes meeting at a pin on a city map, next to the title.';
 
-/** Posts are articles with their own share image; cities and towns are plain pages. */
 export function blogPageMetadata(page: BlogPage): Metadata {
   const shared = {
     canonical: pagePath(page),
@@ -30,7 +28,6 @@ export function blogPageMetadata(page: BlogPage): Metadata {
   });
 }
 
-/** What `cover.png` shows next to the title: the cover photo, or the map without one. */
 function coverAlt(page: BlogPage): string {
   if (page.kind === 'post' && page.post.source.kind === 'repo') return page.post.source.cover.alt;
   const photo = page.kind === 'post' ? postCover(page.post) : (page.town ?? page.city).image;

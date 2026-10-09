@@ -7,12 +7,10 @@ import { GET as townPostCover } from '@/app/(landing)/blog/[slug]/[segment]/[pos
 
 const FIXTURE_PATH = path.join(__dirname, '../../features/blog/__fixtures__/published.json');
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons';
-/** Any JPEG stands in for Wikimedia's answer. */
 const JPEG = readFileSync(
   path.join(__dirname, '../../content/blog/covers/how-to-pick-a-date-spot.jpg')
 );
 
-/** Calls the cover route for the page `segments.length` levels below /blog. */
 function cover([slug, segment, post]: string[]) {
   const request = new Request('http://localhost');
   if (post) return townPostCover(request, { params: Promise.resolve({ slug, segment, post }) });

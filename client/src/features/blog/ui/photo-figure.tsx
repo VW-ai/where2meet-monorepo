@@ -3,11 +3,6 @@ import { LICENSES, showsCrop, type Photo } from '@/features/blog/lib/photos';
 
 const creditLink = 'underline decoration-current/40 underline-offset-2 hover:decoration-current';
 
-/**
- * A photo at its own size with its caption and credit: the author, the license
- * (linked, and "cropped" for a cropped CC BY photo) and its Commons page.
- * `preload` loads it at once, for the cover; every other photo loads lazily.
- */
 export function PhotoFigure({
   photo,
   sizes,

@@ -20,7 +20,6 @@ export interface MapPin {
   label?: string;
 }
 
-/** A JPEG and its credit, like "Phi, CC0". */
 export interface CardPhoto {
   jpeg: Buffer;
   credit: string;

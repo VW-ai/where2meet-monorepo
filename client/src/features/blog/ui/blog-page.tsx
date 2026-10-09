@@ -29,7 +29,6 @@ import { PlanCta } from './plan-cta';
 import { Byline } from './post-card';
 import { PanelBody, PostMarkdown } from './post-markdown';
 
-/** A linked card in a list of posts, towns or cities. */
 interface LinkCard {
   href: string;
   icon: IconNode;
@@ -46,10 +45,6 @@ const coverImage = 'rounded-[28px] shadow-[0_4px_24px_rgba(23,37,45,0.1)]';
 const coverSizes = '(min-width: 896px) 864px, 100vw';
 const chip = 'rounded-full px-2.5 py-0.5 text-xs font-medium leading-5';
 
-/**
- * Every page below /blog: a post, from the repo or the panel, or a city or town.
- * `Mdx` is a repo post's body.
- */
 export function BlogPageView({
   page,
   catalog,
@@ -193,7 +188,7 @@ export function postCard(post: Post): LinkCard {
     href: postPath(post),
     icon: occasionIcon(post.occasion.key),
     title: post.title,
-    chips: [post.occasion, ...post.parameters],
+    chips: post.areas.length > 0 ? [post.occasion, ...post.parameters] : undefined,
     description: post.description,
   };
 }
@@ -279,7 +274,6 @@ export function LinkCards({ cards }: { cards: LinkCard[] }) {
   );
 }
 
-/** Draws a lucide icon from its shape data, the same data the covers use. */
 function NodeIcon({ icon, size = 20 }: { icon: IconNode; size?: number }) {
   return (
     <svg

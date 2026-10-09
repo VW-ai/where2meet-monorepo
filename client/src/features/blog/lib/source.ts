@@ -15,7 +15,6 @@ import { parsePublished } from './parse';
 import type { CommonsImage } from './photos';
 
 const PUBLISHED_PATH = '/api/control/where2meet/published/v3';
-/** A stalled panel or Wikimedia fails fast instead of holding a build worker or a render. */
 const FETCH_TIMEOUT_MS = 10_000;
 /** Wikimedia asks every client to name itself and give a way to reach its operator. */
 const USER_AGENT = 'Where2Meet/1.0 (https://www.where2meet.org/contact; contact@wayvi-ai.com)';
@@ -23,9 +22,6 @@ const PHOTO_ATTEMPTS = 3;
 const NOTHING_PUBLISHED: Catalog = { posts: [], cities: new Map() };
 
 /**
- * The repo's posts plus everything the panel has published. Without the panel's env
- * vars the site builds and serves the repo's posts alone.
- *
  * When the panel fails, a build goes ahead with the repo's posts, while a request
  * throws so Next keeps serving the last good page instead of caching a 404 for an hour.
  */
@@ -61,17 +57,13 @@ export async function loadPage(segments: readonly string[]): Promise<BlogPage | 
   return findPage(await loadCatalog(), segments);
 }
 
-/** The segments of each page `depth` levels below /blog. */
 export async function segmentsAtDepth(depth: 1 | 2 | 3): Promise<string[][]> {
   return listPages(await loadCatalog())
     .map(pageSegments)
     .filter((segments) => segments.length === depth);
 }
 
-/**
- * A photo's bytes from Wikimedia. Next's data cache keeps each successful answer, so
- * every photo is fetched once. Wikimedia answers bursts with 429, so those are retried.
- */
+/** Next's data cache keeps each successful answer, so every photo is fetched once. */
 export async function fetchPhoto(image: CommonsImage): Promise<Response> {
   for (let attempt = 1; ; attempt++) {
     const response = await fetch(image.sourceUrl, {
@@ -102,7 +94,6 @@ function parse(raw: unknown): Catalog {
 
 const warned = new Set<string>();
 
-/** Every page and cover loads the catalog, so each message prints once per process. */
 export function warnOnce(message: string) {
   if (warned.has(message)) return;
   warned.add(message);

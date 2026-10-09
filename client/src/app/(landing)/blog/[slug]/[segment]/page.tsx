@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { segmentsAtDepth } from '@/features/blog/lib/source';
 import { BlogRoute, blogMetadata } from '@/features/blog/ui/blog-route';
 
-/** `slug` is a city's: a town, or a post in the city. */
 type Params = { slug: string; segment: string };
 
 export const dynamicParams = true;

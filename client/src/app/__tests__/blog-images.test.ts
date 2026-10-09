@@ -67,6 +67,15 @@ describe('GET /blog/images/[file]', () => {
     expect(fetchMock.mock.calls).toEqual([]);
   });
 
+  it('refuses to serve anything but a JPEG from our domain', async () => {
+    fetchMock.mockImplementation(
+      async () =>
+        new Response('<svg onload="alert(1)"/>', { headers: { 'Content-Type': 'image/svg+xml' } })
+    );
+    const response = await getImage('bryant-park-lawn-midtown.jpg');
+    expect([response.status, await response.text()]).toEqual([502, 'Bad gateway']);
+  });
+
   it('retries a rate-limited fetch twice, then fails', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout'] });
     fetchMock.mockImplementation(async () => new Response('slow down', { status: 429 }));

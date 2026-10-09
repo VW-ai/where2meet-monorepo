@@ -62,7 +62,6 @@ interface CoverPhoto {
   sourceUrl: `https://commons.wikimedia.org/wiki/File:${string}`;
 }
 
-/** A post as written in the repo. `toPost` turns it into the blog's `Post`. */
 interface BlogPost {
   /** Also the body's file name: `src/content/blog/<slug>.mdx`. */
   slug: string;

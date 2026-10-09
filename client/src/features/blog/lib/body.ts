@@ -5,18 +5,10 @@ export type BodyBlock =
   | { kind: 'photo'; image: CommonsImage }
   | { kind: 'places' };
 
-/** `![](bryant-park-lawn-midtown.jpg)` on a line of its own. */
 const PHOTO_LINE = /^!\[[^\]]*\]\(([a-z0-9-]+\.jpg)\)$/;
 const PLACES_LINE = ':::places';
 const SECTION_HEADING = /^## /;
 
-/**
- * Splits a panel post's Markdown at its photo and place-card lines. A photo line places
- * the image with that file name. The cover, `images[0]`, already shows above the body,
- * so it appears in the body only where a line places it. Every other image the body
- * doesn't place, and the place cards when no line places them, go after the second
- * `##` section.
- */
 export function layoutBody(
   markdown: string,
   images: readonly CommonsImage[],

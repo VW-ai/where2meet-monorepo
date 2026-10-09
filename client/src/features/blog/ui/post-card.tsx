@@ -15,7 +15,6 @@ function DateTime({ date }: { date: string }) {
   return <time dateTime={date}>{dateFormat.format(new Date(date))}</time>;
 }
 
-/** "The Where2Meet team · Published October 4, 2026 · Updated October 8, 2026" */
 export function Byline({ post, className = '' }: { post: Post; className?: string }) {
   return (
     <p className={`text-[13px] text-[#666b73] ${className}`}>

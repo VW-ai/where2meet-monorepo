@@ -211,7 +211,6 @@ export function generateFAQSchema(faqs: FAQItem[]): WithContext<FAQPage> {
   };
 }
 
-/** A post by the Where2Meet team. Paths are site-relative; `images` start with the cover. */
 export interface Article {
   title: string;
   description: string;
@@ -236,7 +235,6 @@ export function generateBlogPostingSchema(article: Article): WithContext<BlogPos
   };
 }
 
-/** A photo with the credit and license Google shows with it in image results. */
 function imageObject(photo: Photo): ImageObject {
   const { author, license, pageUrl } = photo.credit;
   const licenseUrl = LICENSES[license].url;
@@ -245,7 +243,7 @@ function imageObject(photo: Photo): ImageObject {
     contentUrl: toAbsoluteUrl(photo.src),
     width: pixels(photo.width),
     height: pixels(photo.height),
-    caption: photo.caption,
+    ...(photo.caption && { caption: photo.caption }),
     creditText: author,
     creator: { '@type': 'Person', name: author },
     ...(licenseUrl && { license: licenseUrl }),

@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { segmentsAtDepth } from '@/features/blog/lib/source';
 import { BlogRoute, blogMetadata } from '@/features/blog/ui/blog-route';
 
-/** A repo post, a general post from the panel, or a city. */
 type Params = { slug: string };
 
 export const dynamicParams = true;
