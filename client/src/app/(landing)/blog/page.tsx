@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
-import { BLOG_POSTS } from '@/content/blog/posts';
-import { PostCard } from '@/features/blog/ui/post-card';
 import { StructuredData } from '@/components/seo/structured-data';
+import { postPath } from '@/features/blog/lib/catalog';
+import { loadCatalog } from '@/features/blog/lib/source';
+import { LinkCards, cityCard } from '@/features/blog/ui/blog-page';
+import { PostCard } from '@/features/blog/ui/post-card';
 import { createMetadata } from '@/lib/seo/metadata';
 import { generateBreadcrumbSchema } from '@/lib/seo/structured-data';
 
@@ -13,7 +15,8 @@ export const metadata: Metadata = createMetadata({
   robots: { index: true, follow: true },
 });
 
-export default function BlogIndexPage() {
+export default async function BlogIndexPage() {
+  const { posts, cities } = await loadCatalog();
   return (
     <>
       <StructuredData
@@ -27,12 +30,18 @@ export default function BlogIndexPage() {
         Guides to planning where to meet with friends, family and coworkers.
       </p>
       <ul className="mt-6 space-y-5">
-        {BLOG_POSTS.map((post) => (
-          <li key={post.slug}>
+        {posts.map((post) => (
+          <li key={postPath(post)}>
             <PostCard post={post} />
           </li>
         ))}
       </ul>
+      {cities.size > 0 && (
+        <section className="mt-10">
+          <h2 className="text-lg font-bold tracking-[-0.3px]">Guides by city</h2>
+          <LinkCards cards={[...cities.values()].map(cityCard)} />
+        </section>
+      )}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { loadCatalog } from '@/features/guides/lib/source';
+import { loadCatalog } from '@/features/blog/lib/source';
 import { buildLlmsTxt } from '@/lib/seo/llms-txt';
 
 export const dynamic = 'force-static';

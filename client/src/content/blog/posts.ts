@@ -9,8 +9,10 @@ import {
   Utensils,
   type IconNode,
 } from 'lucide';
-import type { CuratedPlace } from '@/features/guides/lib/catalog';
-import { assertIsoDate } from '@/lib/seo/site-pages';
+import { segmentsPath, type CuratedPlace, type Post } from '@/features/blog/lib/catalog';
+import type { License } from '@/features/blog/lib/photos';
+import { SHARE_IMAGE } from '@/lib/seo/metadata';
+import { assertIsoDate, type IsoDate } from '@/lib/seo/site-pages';
 
 /**
  * The homepage's meeting-type chips, plus occasions only the blog writes about.
@@ -52,31 +54,15 @@ export const OCCASIONS = {
 
 export type Occasion = keyof typeof OCCASIONS;
 
-type IsoDate = `${number}-${number}-${number}`;
-
-/**
- * The licenses a cover photo may carry. CC BY asks us to link the license and say we
- * cropped the photo. Share-alike licenses are left out on purpose.
- */
-export const COVER_LICENSES = {
-  CC0: { url: 'https://creativecommons.org/publicdomain/zero/1.0/', cropNotice: false },
-  'Public domain': { url: null, cropNotice: false },
-  'CC BY 2.0': { url: 'https://creativecommons.org/licenses/by/2.0/', cropNotice: true },
-  'CC BY 3.0': { url: 'https://creativecommons.org/licenses/by/3.0/', cropNotice: true },
-  'CC BY 4.0': { url: 'https://creativecommons.org/licenses/by/4.0/', cropNotice: true },
-} as const satisfies Record<string, { url: string | null; cropNotice: boolean }>;
-
-type CoverLicense = keyof typeof COVER_LICENSES;
-
 /** A freely licensed photo of a place the post names, saved as `src/content/blog/covers/<slug>.jpg`. */
-export interface CoverPhoto {
+interface CoverPhoto {
   place: string;
   author: string;
-  license: CoverLicense;
+  license: License;
   sourceUrl: `https://commons.wikimedia.org/wiki/File:${string}`;
 }
 
-export interface BlogPost {
+interface BlogPost {
   /** Also the body's file name: `src/content/blog/<slug>.mdx`. */
   slug: string;
   title: string;
@@ -246,24 +232,35 @@ const posts: BlogPost[] = [
 ];
 
 /** Newest first. Dates are checked at module load so a typo fails the build. */
-export const BLOG_POSTS: readonly BlogPost[] = posts
-  .map((post) => ({
-    ...post,
-    publishedAt: assertIsoDate(post.publishedAt, `${post.slug}.publishedAt`),
-    updatedAt: assertIsoDate(post.updatedAt, `${post.slug}.updatedAt`),
-  }))
+export const REPO_POSTS: readonly Post[] = posts
+  .map(toPost)
   .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 
-export function getPost(slug: string): BlogPost | undefined {
-  return BLOG_POSTS.find((post) => post.slug === slug);
-}
-
-export function postPath(slug: string) {
-  return `/blog/${slug}`;
-}
-
-export function coverPath(slug: string) {
-  return `${postPath(slug)}/cover.png`;
+function toPost(post: BlogPost): Post {
+  const { place, author, license, sourceUrl } = post.coverPhoto;
+  return {
+    slug: post.slug,
+    areas: [],
+    title: post.title,
+    description: post.description,
+    publishedAt: assertIsoDate(post.publishedAt, `${post.slug}.publishedAt`),
+    updatedAt: assertIsoDate(post.updatedAt, `${post.slug}.updatedAt`),
+    occasion: { key: post.occasion, label: OCCASIONS[post.occasion].label },
+    parameters: [],
+    places: post.examplePlaces.places,
+    placesTitle: post.examplePlaces.title,
+    source: {
+      kind: 'repo',
+      cover: {
+        src: `${segmentsPath([post.slug])}/cover.png`,
+        width: SHARE_IMAGE.width,
+        height: SHARE_IMAGE.height,
+        alt: post.coverAlt,
+        caption: place,
+        credit: { author, license, pageUrl: sourceUrl, cropped: true },
+      },
+    },
+  };
 }
 
 /** Relative to the client root, where the cover renderer reads it. */

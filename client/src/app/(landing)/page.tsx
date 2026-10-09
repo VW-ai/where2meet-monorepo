@@ -300,9 +300,6 @@ export default function LandingPage() {
           <Link href="/blog" className="font-medium text-[#666b73] hover:text-[#bd3843]">
             Blog
           </Link>
-          <Link href="/where-to-meet" className="font-medium text-[#666b73] hover:text-[#bd3843]">
-            Where to meet
-          </Link>
           <Link href="/faq" className="font-medium text-[#666b73] hover:text-[#bd3843]">
             FAQ
           </Link>

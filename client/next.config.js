@@ -72,6 +72,8 @@ const nextConfig = {
       { source: '/how-it-works', destination: '/', permanent: true },
       { source: '/scenarios', destination: '/blog', permanent: true },
       { source: '/scenarios/:slug', destination: '/blog', permanent: true },
+      { source: '/where-to-meet', destination: '/blog', permanent: true },
+      { source: '/where-to-meet/:path*', destination: '/blog/:path*', permanent: true },
     ];
   },
   reactStrictMode: true,
