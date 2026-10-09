@@ -10,13 +10,13 @@ import {
   PlacesCredits,
   cardList,
 } from '@/features/blog/ui/place-card';
-import type { CuratedPlace } from '@/features/guides/lib/catalog';
+import type { CuratedPlace } from '@/features/blog/lib/catalog';
 
 /** Google's details by place ID once it answers. A missing ID means Google had nothing. */
 type Lookup = { status: 'waiting' } | { status: 'done'; found: ReadonlyMap<string, PlaceSummary> };
 
 /**
- * The editor's picks for a guide. Labels and notes render on the server; each card's
+ * The editor's picks for a post. Labels and notes render on the server; each card's
  * photo, type, rating, address and Maps link load live from Google near the viewport
  * and are never stored, per Google's terms.
  */
@@ -59,7 +59,7 @@ export function CuratedPlaces({
   const shown = found ? places.flatMap((place) => found.get(place.placeId) ?? []) : [];
 
   return (
-    // Bleeds to the edges of the guide's card, which pads its body with p-5 sm:p-8.
+    // Bleeds to the edges of the post's card, which pads its body with p-5 sm:p-8.
     <section
       ref={sectionRef}
       aria-labelledby={headingId}

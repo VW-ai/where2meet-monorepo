@@ -15,9 +15,10 @@ import {
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
-import { BLOG_POSTS, coverPath, getPost, postPath } from '@/content/blog/posts';
-import fixture from '@/features/guides/__fixtures__/published.json';
-import { parsePublished } from '@/features/guides/lib/parse';
+import { REPO_POSTS } from '@/content/blog/posts';
+import fixture from '@/features/blog/__fixtures__/published.json';
+import { postPath, postPhotos, withRepoPosts } from '@/features/blog/lib/catalog';
+import { parsePublished } from '@/features/blog/lib/parse';
 import { buildLlmsTxt } from '@/lib/seo/llms-txt';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
 import { GET as getLlmsTxt } from '@/app/llms.txt/route';
@@ -27,20 +28,13 @@ import nextConfig from '../../../../next.config.js';
 
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const FIXTURE_PATH = path.join(__dirname, '../../../features/guides/__fixtures__/published.json');
-const FIXTURE_GUIDE_URLS = [
-  `${CANONICAL_ORIGIN}/where-to-meet`,
-  `${CANONICAL_ORIGIN}/where-to-meet/new-york`,
-  `${CANONICAL_ORIGIN}/where-to-meet/new-york/coffee-shops-for-a-catch-up-near-union-square`,
-  `${CANONICAL_ORIGIN}/where-to-meet/new-york/a-weekend-afternoon-in-bryant-park-with-friends`,
-  `${CANONICAL_ORIGIN}/where-to-meet/new-york/midtown`,
-  `${CANONICAL_ORIGIN}/where-to-meet/new-york/midtown/quiet-places-for-a-small-team-meeting`,
-  `${CANONICAL_ORIGIN}/where-to-meet/new-york/midtown/bookable-rooms-for-a-big-team-meeting`,
-  `${CANONICAL_ORIGIN}/where-to-meet/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
-];
-const BLOG_URLS = [
-  `${CANONICAL_ORIGIN}/blog`,
-  ...BLOG_POSTS.map((post) => `${CANONICAL_ORIGIN}${postPath(post.slug)}`),
+const FIXTURE_PATH = path.join(__dirname, '../../../features/blog/__fixtures__/published.json');
+const IMAGES = `${CANONICAL_ORIGIN}/blog/images`;
+const REPO_URLS = [
+  `${CANONICAL_ORIGIN}/blog/how-to-pick-a-restaurant-for-a-group-dinner`,
+  `${CANONICAL_ORIGIN}/blog/how-to-pick-a-date-spot`,
+  `${CANONICAL_ORIGIN}/blog/how-to-plan-a-weekend-hangout-with-friends`,
+  `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
 ];
 
 function readPostBody(slug: string) {
@@ -166,50 +160,84 @@ describe('createMetadata', () => {
 });
 
 describe('sitemap', () => {
-  it('lists every public page exactly once', async () => {
-    const urls = (await sitemap()).map((entry) => entry.url);
-    expect(new Set(urls).size).toBe(urls.length);
-    expect(urls).toEqual([
-      CANONICAL_ORIGIN,
-      `${CANONICAL_ORIGIN}/faq`,
-      `${CANONICAL_ORIGIN}/contact`,
-      `${CANONICAL_ORIGIN}/blog`,
-      `${CANONICAL_ORIGIN}/blog/how-to-pick-a-restaurant-for-a-group-dinner`,
-      `${CANONICAL_ORIGIN}/blog/how-to-pick-a-date-spot`,
-      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-weekend-hangout-with-friends`,
-      `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
+  it('lists every public page and repo post once, each post with its cover', async () => {
+    const entries = await sitemap();
+    expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
+      [CANONICAL_ORIGIN, '2026-10-04', undefined],
+      [`${CANONICAL_ORIGIN}/faq`, '2026-10-02', undefined],
+      [`${CANONICAL_ORIGIN}/contact`, '2026-09-29', undefined],
+      [`${CANONICAL_ORIGIN}/blog`, '2026-10-08', undefined],
+      ...REPO_URLS.map((url) => [url, '2026-10-08', [`${url}/cover.png`]]),
     ]);
   });
 
-  it('dates each post by its update and the blog by its newest post', async () => {
+  it('lists every post, city and town at its /blog URL with its update date and its photos', async () => {
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
     const blogEntries = (await sitemap()).filter((entry) =>
       entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`)
     );
-    expect(blogEntries.map((entry) => entry.lastModified)).toEqual([
-      '2026-10-08',
-      '2026-10-08',
-      '2026-10-08',
-      '2026-10-08',
-      '2026-10-08',
-    ]);
-  });
-
-  it('lists the guides index, every hub and every guide by its update date', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
-    const guideEntries = (await sitemap()).filter((entry) =>
-      entry.url.startsWith(`${CANONICAL_ORIGIN}/where-to-meet`)
-    );
     expect(
-      guideEntries.map((entry) => [entry.url.slice(CANONICAL_ORIGIN.length), entry.lastModified])
+      blogEntries.map(({ url, lastModified, images }) => [
+        url.slice(CANONICAL_ORIGIN.length),
+        lastModified,
+        images?.map((image) => image.replace(CANONICAL_ORIGIN, '')),
+      ])
     ).toEqual([
-      ['/where-to-meet', '2026-10-08'],
-      ['/where-to-meet/new-york', '2026-10-06'],
-      ['/where-to-meet/new-york/coffee-shops-for-a-catch-up-near-union-square', '2026-10-06'],
-      ['/where-to-meet/new-york/a-weekend-afternoon-in-bryant-park-with-friends', '2026-10-05'],
-      ['/where-to-meet/new-york/midtown', '2026-10-07'],
-      ['/where-to-meet/new-york/midtown/quiet-places-for-a-small-team-meeting', '2026-10-07'],
-      ['/where-to-meet/new-york/midtown/bookable-rooms-for-a-big-team-meeting', '2026-10-04'],
-      ['/where-to-meet/new-york/midtown/a-team-welcome-lunch-in-bryant-park', '2026-10-08'],
+      ['/blog', '2026-10-08', undefined],
+      [
+        '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
+        '2026-10-08',
+        ['/blog/how-to-pick-a-restaurant-for-a-group-dinner/cover.png'],
+      ],
+      ['/blog/how-to-pick-a-date-spot', '2026-10-08', ['/blog/how-to-pick-a-date-spot/cover.png']],
+      [
+        '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
+        '2026-10-08',
+        [
+          '/blog/images/bryant-park-carousel-midtown.jpg',
+          '/blog/images/midtown-view-from-empire-state-building.jpg',
+          '/blog/images/seventh-avenue-times-square-north.jpg',
+        ],
+      ],
+      [
+        '/blog/how-to-plan-a-team-welcome-lunch',
+        '2026-10-08',
+        [
+          '/blog/images/grand-central-main-concourse-new-york.jpg',
+          '/blog/images/rockefeller-center-concourse.jpg',
+          '/blog/images/rockefeller-center-lights-at-sunset.jpg',
+        ],
+      ],
+      [
+        '/blog/new-york/group-dinner-spots-near-herald-square',
+        '2026-10-07',
+        [
+          '/blog/images/herald-square-plaza-new-york.jpg',
+          '/blog/images/times-square-crowds-new-york.jpg',
+          '/blog/images/hot-dog-stand-times-square.jpg',
+        ],
+      ],
+      [
+        '/blog/how-to-plan-a-weekend-hangout-with-friends',
+        '2026-10-08',
+        ['/blog/how-to-plan-a-weekend-hangout-with-friends/cover.png'],
+      ],
+      [
+        '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
+        '2026-10-07',
+        [
+          '/blog/images/new-york-public-library-lion-midtown.jpg',
+          '/blog/images/bryant-park-from-one-vanderbilt.jpg',
+          '/blog/images/grand-central-concourse-windows.jpg',
+        ],
+      ],
+      [
+        '/blog/how-to-choose-a-team-meeting-location',
+        '2026-10-08',
+        ['/blog/how-to-choose-a-team-meeting-location/cover.png'],
+      ],
+      ['/blog/new-york', '2026-10-07', ['/blog/images/midtown-manhattan-skyline-new-york.jpg']],
+      ['/blog/new-york/midtown', '2026-10-07', ['/blog/images/bryant-park-lawn-midtown.jpg']],
     ]);
   });
 
@@ -272,30 +300,81 @@ describe('structured data', () => {
     expect(organization.logo).toBe(`${CANONICAL_ORIGIN}/logo.png`);
   });
 
-  it('describes a blog post as a BlogPosting by the Where2Meet team', () => {
-    const post = getPost('how-to-choose-a-team-meeting-location')!;
+  it('describes a post as a BlogPosting with each photo as a credited, licensed ImageObject', () => {
+    const catalog = withRepoPosts(REPO_POSTS, parsePublished(fixture, []).catalog);
+    const post = catalog.posts.find(
+      ({ slug }) => slug === 'group-dinner-spots-near-herald-square'
+    )!;
     expect(
       generateBlogPostingSchema({
-        ...post,
-        path: postPath(post.slug),
-        coverPath: coverPath(post.slug),
+        title: post.title,
+        description: post.description,
+        path: postPath(post),
+        publishedAt: post.publishedAt,
+        updatedAt: post.updatedAt,
+        images: postPhotos(post).slice(0, 2),
       })
     ).toEqual({
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
-      headline: 'How to choose a team meeting location',
+      headline: 'Group dinner spots near Herald Square',
       description:
-        'Your team is spread across town. Compare travel times, pick a venue that suits the meeting, and settle on a place without a week of back-and-forth.',
-      image: `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location/cover.png`,
-      datePublished: '2026-10-04',
-      dateModified: '2026-10-08',
+        'Sample post: group dinner spots near Herald Square that a big group can reach on one train, with tips on booking and getting home late.',
+      image: [
+        {
+          '@type': 'ImageObject',
+          contentUrl: `${IMAGES}/herald-square-plaza-new-york.jpg`,
+          width: { '@type': 'QuantitativeValue', value: 1280, unitCode: 'E37' },
+          height: { '@type': 'QuantitativeValue', value: 960, unitCode: 'E37' },
+          caption: "Herald Square's plaza",
+          creditText: 'Ypsilonatshared',
+          creator: { '@type': 'Person', name: 'Ypsilonatshared' },
+          acquireLicensePage: 'https://commons.wikimedia.org/wiki/File:Herald_Square_wts.jpg',
+        },
+        {
+          '@type': 'ImageObject',
+          contentUrl: `${IMAGES}/times-square-crowds-new-york.jpg`,
+          width: { '@type': 'QuantitativeValue', value: 1280, unitCode: 'E37' },
+          height: { '@type': 'QuantitativeValue', value: 854, unitCode: 'E37' },
+          caption: 'Times Square, a few blocks north',
+          creditText: 'Larry D. Moore',
+          creator: { '@type': 'Person', name: 'Larry D. Moore' },
+          license: 'https://creativecommons.org/licenses/by/4.0/',
+          acquireLicensePage:
+            'https://commons.wikimedia.org/wiki/File:Times_Square_New_York_May_2022.jpg',
+        },
+      ],
+      datePublished: '2026-10-06',
+      dateModified: '2026-10-07',
       author: { '@type': 'Organization', name: 'The Where2Meet team', url: CANONICAL_ORIGIN },
       publisher: { '@id': `${CANONICAL_ORIGIN}/#organization` },
       mainEntityOfPage: {
         '@type': 'WebPage',
-        '@id': `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
+        '@id': `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
       },
     });
+  });
+
+  it('credits a repo post’s cover photo on its cover image', () => {
+    const post = REPO_POSTS.find(
+      ({ slug }) => slug === 'how-to-pick-a-restaurant-for-a-group-dinner'
+    )!;
+    expect(
+      generateBlogPostingSchema({ ...post, path: postPath(post), images: postPhotos(post) }).image
+    ).toEqual([
+      {
+        '@type': 'ImageObject',
+        contentUrl: `${CANONICAL_ORIGIN}/blog/how-to-pick-a-restaurant-for-a-group-dinner/cover.png`,
+        width: { '@type': 'QuantitativeValue', value: 1200, unitCode: 'E37' },
+        height: { '@type': 'QuantitativeValue', value: 630, unitCode: 'E37' },
+        caption: 'Koreatown',
+        creditText: 'Jazz Guy',
+        creator: { '@type': 'Person', name: 'Jazz Guy' },
+        license: 'https://creativecommons.org/licenses/by/2.0/',
+        acquireLicensePage:
+          'https://commons.wikimedia.org/wiki/File:West_32nd_Street_(Korea_Way)_@_Broadway_(2559336247).jpg',
+      },
+    ]);
   });
 
   it('numbers breadcrumbs from 1 with absolute www URLs', () => {
@@ -344,6 +423,14 @@ describe('next.config redirects and headers', () => {
     }
   });
 
+  it('moves /where-to-meet and every path under it to the same path under /blog for good', async () => {
+    const redirects = await nextConfig.redirects();
+    expect(redirects.filter(({ source }) => source.startsWith('/where-to-meet'))).toEqual([
+      { source: '/where-to-meet', destination: '/blog', permanent: true },
+      { source: '/where-to-meet/:path*', destination: '/blog/:path*', permanent: true },
+    ]);
+  });
+
   it('marks the debug pages noindex', async () => {
     const headers = await nextConfig.headers();
     for (const source of ['/debug-claim-tokens.html', '/clear-invalid-tokens.html']) {
@@ -364,47 +451,52 @@ describe('llms.txt', () => {
     expect((await getLlmsTxt()).headers.get('content-type')).toBe('text/plain; charset=utf-8');
   });
 
-  it('only links to live pages on the www host', async () => {
+  it('links the pages, then every post by its /blog URL newest first, then cities and towns', async () => {
     vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
-    const links = linksIn(await llmsTxt());
-    expect(links.length).toBeGreaterThan(0);
-    for (const link of links) {
-      expect([
-        ...pageUrls,
-        ...BLOG_URLS,
-        ...FIXTURE_GUIDE_URLS,
-        `${CANONICAL_ORIGIN}/sitemap.xml`,
-      ]).toContain(link);
-    }
+    expect(linksIn(await llmsTxt())).toEqual([
+      ...pageUrls.slice(0, 2),
+      `${CANONICAL_ORIGIN}/blog`,
+      `${CANONICAL_ORIGIN}/blog/how-to-pick-a-restaurant-for-a-group-dinner`,
+      `${CANONICAL_ORIGIN}/blog/how-to-pick-a-date-spot`,
+      `${CANONICAL_ORIGIN}/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
+      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-team-welcome-lunch`,
+      `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
+      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-weekend-hangout-with-friends`,
+      `${CANONICAL_ORIGIN}/blog/new-york/midtown/quiet-places-for-a-small-team-meeting`,
+      `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
+      `${CANONICAL_ORIGIN}/contact`,
+      `${CANONICAL_ORIGIN}/blog/new-york`,
+      `${CANONICAL_ORIGIN}/blog/new-york/midtown`,
+      `${CANONICAL_ORIGIN}/sitemap.xml`,
+    ]);
   });
 
-  it('links the blog and every post', async () => {
-    expect(linksIn(await llmsTxt())).toEqual(expect.arrayContaining(BLOG_URLS));
+  it('links only the repo posts and leaves out the cities section when the panel has nothing', async () => {
+    const text = await llmsTxt();
+    expect(text).not.toContain('## Cities and towns');
+    expect(linksIn(text)).toEqual([
+      ...pageUrls.slice(0, 2),
+      `${CANONICAL_ORIGIN}/blog`,
+      ...REPO_URLS,
+      `${CANONICAL_ORIGIN}/contact`,
+      `${CANONICAL_ORIGIN}/sitemap.xml`,
+    ]);
   });
 
-  it('keeps control plane copy on one list line with its link intact', () => {
+  it('keeps panel copy on one list line with its link intact', () => {
     const seo = { title: 'Where to meet [beta]', description: 'Two lines\nof copy.' };
-    const { catalog } = parsePublished({
-      version: 2,
-      taxonomy: {},
-      cities: [{ slug: 'testville', name: 'Testville', updated_at: '2026-10-05', seo }],
-    });
-    expect(buildLlmsTxt(catalog)).toContain(
-      `- [Where to meet \\[beta\\]](${CANONICAL_ORIGIN}/where-to-meet/testville): Two lines of copy.\n`
+    const { catalog } = parsePublished(
+      {
+        version: 3,
+        taxonomy: {},
+        posts: [],
+        cities: [{ slug: 'testville', name: 'Testville', updated_at: '2026-10-05', seo }],
+      },
+      []
     );
-  });
-
-  it('lists every published guide between the pages and the sitemap', async () => {
-    const withoutGuides = await llmsTxt();
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
-    const withGuides = await llmsTxt();
-
-    expect(withoutGuides).not.toContain('## Local guides');
-    const [pages, optional] = withoutGuides.split('\n## Optional\n');
-    const [before, guides] = withGuides.split('\n## Local guides\n');
-    expect(before).toBe(pages);
-    expect(guides.endsWith(`\n## Optional\n${optional}`)).toBe(true);
-    expect(linksIn(guides).slice(0, -1)).toEqual(FIXTURE_GUIDE_URLS);
+    expect(buildLlmsTxt(catalog)).toContain(
+      `- [Where to meet \\[beta\\]](${CANONICAL_ORIGIN}/blog/testville): Two lines of copy.\n`
+    );
   });
 });
 
@@ -417,7 +509,7 @@ describe('positioning copy', () => {
       SITE_CONFIG.tagline,
       SITE_CONFIG.pitch,
       await llmsTxt(),
-      ...BLOG_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
+      ...REPO_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
       ...strings(fixture),
     ]) {
       expect(text).not.toMatch(/\bfair/i);

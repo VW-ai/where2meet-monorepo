@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BLOG_AUTHOR, coverPath, postPath, type BlogPost } from '@/content/blog/posts';
+import { BLOG_AUTHOR } from '@/content/blog/posts';
+import { coverPath, postPath, type Post } from '@/features/blog/lib/catalog';
 
 const dateFormat = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -10,37 +11,29 @@ const dateFormat = new Intl.DateTimeFormat('en-US', {
   timeZone: 'UTC',
 });
 
-/** "The Where2Meet team · October 4, 2026", with an optional word before the date. */
-export function Byline({
-  date,
-  prefix = '',
-  className = '',
-}: {
-  date: string;
-  prefix?: string;
-  className?: string;
-}) {
+function DateTime({ date }: { date: string }) {
+  return <time dateTime={date}>{dateFormat.format(new Date(date))}</time>;
+}
+
+/** "The Where2Meet team · Published October 4, 2026 · Updated October 8, 2026" */
+export function Byline({ post, className = '' }: { post: Post; className?: string }) {
   return (
     <p className={`text-[13px] text-[#666b73] ${className}`}>
-      {BLOG_AUTHOR} · {prefix && `${prefix} `}
-      <time dateTime={date}>{dateFormat.format(new Date(date))}</time>
+      {BLOG_AUTHOR} · Published <DateTime date={post.publishedAt} /> · Updated{' '}
+      <DateTime date={post.updatedAt} />
     </p>
   );
 }
 
-export function PostByline({ post, className = '' }: { post: BlogPost; className?: string }) {
-  return <Byline date={post.publishedAt} className={className} />;
-}
-
-export function PostCard({ post }: { post: BlogPost }) {
+export function PostCard({ post }: { post: Post }) {
   return (
     <CoverCard
-      href={postPath(post.slug)}
-      cover={coverPath(post.slug)}
+      href={postPath(post)}
+      cover={coverPath({ kind: 'post', post })}
       title={post.title}
       description={post.description}
     >
-      <PostByline post={post} className="mt-3" />
+      <Byline post={post} className="mt-3" />
     </CoverCard>
   );
 }

@@ -20,9 +20,9 @@ export interface MapPin {
   label?: string;
 }
 
-/** A JPEG path relative to the client root, and its credit, like "Phi, CC0". */
+/** A JPEG and its credit, like "Phi, CC0". */
 export interface CardPhoto {
-  file: string;
+  jpeg: Buffer;
   credit: string;
 }
 
@@ -271,7 +271,7 @@ export async function renderArticleCover({
 }) {
   return renderShareCard({
     card: photo ? (
-      <PhotoCard jpeg={await readClientFile(photo.file)} credit={photo.credit} />
+      <PhotoCard jpeg={photo.jpeg} credit={photo.credit} />
     ) : (
       <MapCard pin={{ icon }} />
     ),

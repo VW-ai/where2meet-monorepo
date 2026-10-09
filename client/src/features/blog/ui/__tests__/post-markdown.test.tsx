@@ -1,12 +1,12 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GuideMarkdown } from '../guide-markdown';
+import { PostMarkdown } from '../post-markdown';
 
 function render(source: string) {
-  return renderToStaticMarkup(<GuideMarkdown source={source} />).replace(/ class="[^"]*"/g, '');
+  return renderToStaticMarkup(<PostMarkdown source={source} />).replace(/ class="[^"]*"/g, '');
 }
 
-describe('GuideMarkdown', () => {
+describe('PostMarkdown', () => {
   it('renders the contract subset', () => {
     expect(
       render(

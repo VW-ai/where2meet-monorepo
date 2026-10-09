@@ -1,5 +1,10 @@
 import Markdown, { type Components } from 'react-markdown';
+import { layoutBody } from '@/features/blog/lib/body';
+import type { CuratedPlace } from '@/features/blog/lib/catalog';
+import type { CommonsImage } from '@/features/blog/lib/photos';
 import { proseComponents as prose } from '@/mdx-components';
+import { CuratedPlaces } from './curated-places';
+import { PhotoFigure } from './photo-figure';
 
 /** The contract's Markdown subset. Anything else keeps its text and loses its markup. */
 const ALLOWED_ELEMENTS = ['p', 'ul', 'ol', 'li', 'strong', 'em', 'a', 'h2', 'h3'];
@@ -29,10 +34,10 @@ function safeUrl(url: string): string | undefined {
 }
 
 /**
- * Renders editor Markdown from the control plane on the server. Raw HTML is dropped,
- * not escaped, so a stray tag never shows up as text.
+ * Renders panel Markdown on the server. Raw HTML is dropped, not escaped, so a stray
+ * tag never shows up as text.
  */
-export function GuideMarkdown({ source }: { source: string }) {
+export function PostMarkdown({ source }: { source: string }) {
   return (
     <Markdown
       allowedElements={ALLOWED_ELEMENTS}
@@ -44,4 +49,35 @@ export function GuideMarkdown({ source }: { source: string }) {
       {source}
     </Markdown>
   );
+}
+
+/** A panel post's body, with its photos and place cards where `layoutBody` puts them. */
+export function PanelBody({
+  markdown,
+  images,
+  places,
+  placesTitle,
+}: {
+  markdown: string;
+  images: readonly CommonsImage[];
+  places: readonly CuratedPlace[];
+  placesTitle: string;
+}) {
+  return layoutBody(markdown, images, places.length > 0).map((block, index) => {
+    if (block.kind === 'photo') {
+      return (
+        <PhotoFigure
+          key={index}
+          photo={block.image}
+          sizes="(min-width: 896px) 800px, 100vw"
+          className="my-8"
+          imageClassName="rounded-[20px]"
+        />
+      );
+    }
+    if (block.kind === 'places') {
+      return <CuratedPlaces key={index} title={placesTitle} places={places} />;
+    }
+    return <PostMarkdown key={index} source={block.source} />;
+  });
 }

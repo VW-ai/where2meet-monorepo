@@ -1,10 +1,11 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { revalidateTag } from 'next/cache';
-import { GUIDES_TAG } from '@/features/guides/lib/catalog';
+import { PANEL_TAG } from '@/features/blog/lib/catalog';
 
 /**
  * POST /api/revalidate: the control plane calls this after it publishes, unpublishes or
- * edits a guide. The guides expire at once, so the next request renders fresh content.
+ * edits a post, city or town. The panel's content expires at once, so the next request
+ * renders fresh pages.
  */
 export async function POST(request: Request) {
   const secret = process.env.WHERE2MEET_REVALIDATE_SECRET;
@@ -12,10 +13,10 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const body: unknown = await request.json().catch(() => null);
-  if (!body || typeof body !== 'object' || !('tag' in body) || body.tag !== GUIDES_TAG) {
-    return Response.json({ error: `Expected {"tag":"${GUIDES_TAG}"}` }, { status: 400 });
+  if (!body || typeof body !== 'object' || !('tag' in body) || body.tag !== PANEL_TAG) {
+    return Response.json({ error: `Expected {"tag":"${PANEL_TAG}"}` }, { status: 400 });
   }
-  revalidateTag(GUIDES_TAG, { expire: 0 });
+  revalidateTag(PANEL_TAG, { expire: 0 });
   return Response.json({ revalidated: true });
 }
 
