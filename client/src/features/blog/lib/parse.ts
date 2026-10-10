@@ -74,7 +74,7 @@ const POST_SLUG_MAX_LENGTH = 80;
 const FILE_NAME = /^[a-z0-9-]+\.jpg$/;
 const UPLOAD_HOSTS = ['upload.wikimedia.org', 'thumb.wikimedia.org'];
 const COMMONS_FILE_PAGE = 'https://commons.wikimedia.org/wiki/File:';
-const GETTING_AROUND = '## Getting around';
+export const GETTING_AROUND = '## Getting around';
 
 const TAXONOMY_FIELDS = {
   occasions: ['key', 'label', 'times', 'venue_types', 'group_sizes'],
@@ -307,7 +307,8 @@ function readArea(
   if (!isDate(updatedAt)) return drop('invalid updated_at');
   const seo = parseSeo(frontMatter.seo);
   if (!seo) return drop('invalid seo');
-  return { slug, name, updatedAt, seo, center, ...placeBody(body) };
+  const { intro, transitNotes } = placeBody(body);
+  return { slug, name, updatedAt, seo, center, intro, transitNotes: transitNotes ?? '' };
 }
 
 /** A place takes its slug and photo only once nothing else can drop it. */
@@ -330,10 +331,11 @@ function claimArea(
   return { ...area, image: photo };
 }
 
-function placeBody(body: string): { intro: string; transitNotes: string } {
+/** A place page's body: its intro, then the transit notes below `## Getting around`, if any. */
+export function placeBody(body: string): { intro: string; transitNotes: string | null } {
   const lines = body.split('\n');
   const heading = lines.findIndex((line) => line.trim() === GETTING_AROUND);
-  if (heading === -1) return { intro: body.trim(), transitNotes: '' };
+  if (heading === -1) return { intro: body.trim(), transitNotes: null };
   return {
     intro: lines.slice(0, heading).join('\n').trim(),
     transitNotes: lines

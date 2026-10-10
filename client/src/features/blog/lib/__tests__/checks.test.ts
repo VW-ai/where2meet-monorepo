@@ -348,3 +348,133 @@ describe('checkContent on a post', () => {
     ]);
   });
 });
+
+describe('checkContent on a place', () => {
+  const CITY = 'src/content/places/new-york.md';
+  const TOWN = 'src/content/places/new-york/midtown.md';
+  const [newYork, midtown] = fixtureContent().places;
+  const CITY_IMAGE_URL =
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Midtown_Manhattan_2019.jpg/1280px-Midtown_Manhattan_2019.jpg';
+
+  function checkPlaces(
+    places: readonly ContentFile[],
+    heads: ReadonlyMap<string, ImageHead> = new Map()
+  ): string[] {
+    return checkContent({ ...fixtureContent(), places, posts: [] }, { heads }).map(formatProblem);
+  }
+
+  function editedPlace(file: ContentFile, edits: readonly [from: string, to: string][]) {
+    let text = file.text;
+    for (const [from, to] of edits) {
+      if (!text.includes(from)) throw new Error(`${file.name} has no ${JSON.stringify(from)}`);
+      text = text.replaceAll(from, to);
+    }
+    return { ...file, text };
+  }
+
+  it('passes the fixture city and town', () => {
+    expect([newYork.name, midtown.name]).toEqual(['new-york.md', 'new-york/midtown.md']);
+    expect(checkPlaces([newYork, midtown])).toEqual([]);
+  });
+
+  it('reports a field a city, a town or its image does not have', () => {
+    const city = editedPlace(newYork, [
+      [
+        '  license: CC0\n',
+        '  license: CC0\n  license_url: https://creativecommons.org/publicdomain/zero/1.0/\n',
+      ],
+    ]);
+    const town = editedPlace(midtown, [['name: Midtown\n', 'name: Midtown\nregion: NY\n']]);
+    expect(checkPlaces([city, town])).toEqual([
+      `${CITY}: fields: image: unknown field "license_url"; an image has only file_name, source_url, page_url, width, height, alt, caption, author, license and cropped`,
+      `${TOWN}: fields: unknown field "region"; a town has only name, center, updated_at, seo and image`,
+    ]);
+  });
+
+  it('reports what the parser drops a city for, and drops its towns with it', () => {
+    const city = editedPlace(newYork, [['country: US\n', '']]);
+    expect(checkPlaces([city, midtown])).toEqual([
+      `${CITY}: fields: missing country`,
+      `${TOWN}: fields: city "new-york" has a place file the site skips, ${CITY}`,
+    ]);
+  });
+
+  it('needs an intro of 60 words', () => {
+    const town = editedPlace(midtown, [
+      [
+        "Midtown is where many New York offices are, so it's the default for anything work-related.",
+        'Midtown is busy.',
+      ],
+      [
+        ' Grand Central, Times Square and Herald Square stations put most of the city within one train, and Bryant Park sits between them as an easy landmark. Most of these posts are about weekday plans, like a team lunch, a quick meeting near the office or drinks after work, chosen so the whole group can arrive within a short walk of one station.',
+        '',
+      ],
+    ]);
+    expect(checkPlaces([newYork, town])).toEqual([
+      `${TOWN}: intro: the intro has 7 words; a place page needs at least 60`,
+    ]);
+  });
+
+  it('needs a "## Getting around" heading with 20 words of transit notes below it', () => {
+    const noHeading = editedPlace(midtown, [['## Getting around\n\n', '']]);
+    expect(checkPlaces([newYork, noHeading])).toEqual([
+      `${TOWN}: getting-around: the body has no "## Getting around" heading; a place page needs it before its transit notes`,
+    ]);
+    const shortNotes = editedPlace(midtown, [
+      [
+        '_Sample copy._ Grand Central, Times Square and Herald Square stations serve most subway lines, and PATH and commuter trains stop nearby. Streets are busiest from 8 to 10 a.m. and 5 to 7 p.m.',
+        'Take the subway.',
+      ],
+    ]);
+    expect(checkPlaces([newYork, shortNotes])).toEqual([
+      `${TOWN}: getting-around: the transit notes have 3 words; they need at least 20`,
+    ]);
+  });
+
+  it('needs a usable image', () => {
+    const town = editedPlace(midtown, [['license: Public domain', 'license: CC BY-SA 4.0']]);
+    expect(checkPlaces([newYork, town])).toEqual([
+      `${TOWN}: fields: image: license "CC BY-SA 4.0" is not allowed`,
+      `${TOWN}: image: the page has no usable image; a place page needs one`,
+    ]);
+  });
+
+  it('measures its image like a post photo, and leaves an unmeasured one alone', () => {
+    const heads = new Map([
+      [CITY_IMAGE_URL, { status: 404, bytes: 1_234, contentType: 'text/html' }],
+    ]);
+    expect(checkPlaces([newYork, midtown], heads)).toEqual([
+      `${CITY}: image-size: midtown-manhattan-skyline-new-york.jpg: its source_url answered HTTP 404; it needs to load`,
+    ]);
+  });
+
+  it('holds its SEO title and description to the post limits', () => {
+    const city = editedPlace(newYork, [
+      [
+        'title: Where to meet in New York\n',
+        'title: Where to meet in New York City with friends, family and coworkers\n',
+      ],
+    ]);
+    const town = editedPlace(midtown, [
+      [
+        "description: 'Sample page: places in Midtown Manhattan for team meetings and welcome lunches, a short walk from Grand Central and Bryant Park.'",
+        'description: Places in Midtown for team lunches.',
+      ],
+    ]);
+    expect(checkPlaces([city, town])).toEqual([
+      `${CITY}: title: the title is 78 characters with its " | Where2Meet" suffix; it needs at most 60`,
+      `${TOWN}: description: the description is 35 characters; it needs 120 to 155`,
+    ]);
+  });
+
+  it('blocks off-brand wording and style marks in its copy', () => {
+    const city = editedPlace(newYork, [['the most convenient pick', 'the fairest pick']]);
+    const town = editedPlace(midtown, [
+      ["caption: Bryant Park's lawn in Midtown", 'caption: Bryant Park\u2019s lawn in Midtown'],
+    ]);
+    expect(checkPlaces([city, town])).toEqual([
+      `${CITY}: wording: the Getting around section says "fairest"; write "convenient", and never a word starting with "fair" or "meet in the middle"`,
+      `${TOWN}: style: the caption of bryant-park-lawn-midtown.jpg has a curly quote; use straight quotes instead of "\u2019"`,
+    ]);
+  });
+});

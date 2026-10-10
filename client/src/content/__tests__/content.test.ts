@@ -7,6 +7,7 @@ import {
   type Problem,
 } from '@/features/blog/lib/checks';
 import {
+  PLACES_DIR,
   POSTS_DIR,
   TAXONOMY_FILE,
   filePath,
@@ -31,6 +32,13 @@ function postPhotos(file: ContentFile): readonly CommonsImage[] {
   return post?.source.kind === 'markdown' ? post.source.images : [];
 }
 
+function placePhotos(file: ContentFile): readonly CommonsImage[] {
+  const [citySlug, townSlug] = fileSegments(file.name);
+  const city = catalog.cities.get(citySlug);
+  const area = townSlug === undefined ? city : city?.towns.get(townSlug);
+  return area?.image ? [area.image] : [];
+}
+
 /** What a HEAD request says, or null when the network or Wikimedia can't answer right now. */
 async function measure(url: string): Promise<ImageHead | null> {
   try {
@@ -52,7 +60,8 @@ async function measure(url: string): Promise<ImageHead | null> {
 }
 
 beforeAll(async () => {
-  const urls = new Set(repo.posts.flatMap(postPhotos).map(({ sourceUrl }) => sourceUrl));
+  const photos = [...repo.posts.flatMap(postPhotos), ...repo.places.flatMap(placePhotos)];
+  const urls = new Set(photos.map(({ sourceUrl }) => sourceUrl));
   const measured = await Promise.all([...urls].map(async (url) => [url, await measure(url)]));
   heads = new Map(
     measured.flatMap(([url, head]) => (head ? [[url, head] as [string, ImageHead]] : []))
@@ -107,6 +116,23 @@ describe('repo posts', () => {
     it('has photos the site can cache', ({ skip }) => {
       expect(linesFor(path, true)).toEqual([]);
       photosMeasured(file.name, postPhotos(file), skip);
+    });
+  });
+});
+
+describe('repo places', () => {
+  if (repo.places.length === 0) it.skip('no places in src/content/places yet');
+
+  describe.each(repo.places)('$name', (file) => {
+    const path = filePath(PLACES_DIR, file.name);
+
+    it('passes the place checks', () => {
+      expect(linesFor(path)).toEqual([]);
+    });
+
+    it('has a photo the site can cache', ({ skip }) => {
+      expect(linesFor(path, true)).toEqual([]);
+      photosMeasured(file.name, placePhotos(file), skip);
     });
   });
 });

@@ -1,6 +1,6 @@
 import { buildPageTitle } from '@/lib/seo/metadata';
 import { PLACES_LINE } from './body';
-import type { Catalog, Post } from './catalog';
+import type { Area, Catalog, Post } from './catalog';
 import {
   PLACES_DIR,
   POSTS_DIR,
@@ -14,16 +14,17 @@ import {
   type ContentFile,
   type Fields,
 } from './content-file';
-import { parseCatalog, type RepoContent } from './parse';
+import { GETTING_AROUND, parseCatalog, placeBody, type RepoContent } from './parse';
 import type { CommonsImage } from './photos';
 
 /**
- * The checks CI runs on the repo's content. Every file gets `fields`, and each post the site
- * keeps gets the panel's publish checklist (nomi-control `where2meet/publishing.py`), ported
- * rule for rule.
+ * The checks CI runs on the repo's content. Every file gets `fields`. Each post the site keeps
+ * gets the panel's publish checklist (nomi-control `where2meet/publishing.py`), ported rule for
+ * rule, and each city and town the site keeps gets the place rules.
  */
-export type Rule =
-  | 'fields'
+export type Rule = 'fields' | PostRule | PlaceRule;
+
+type PostRule =
   | 'word-count'
   | 'places'
   | 'images'
@@ -35,6 +36,16 @@ export type Rule =
   | 'wording'
   | 'style'
   | 'dates';
+
+type PlaceRule =
+  | 'intro'
+  | 'getting-around'
+  | 'image'
+  | 'image-size'
+  | 'title'
+  | 'description'
+  | 'wording'
+  | 'style';
 
 export interface Problem {
   file: string;
@@ -53,13 +64,28 @@ export interface CheckOptions {
   heads: ReadonlyMap<string, ImageHead>;
 }
 
-type PostRule = Exclude<Rule, 'fields'>;
-
-interface Parsed {
+interface ParsedPost {
   post: Post;
   body: string;
   images: readonly CommonsImage[];
   mainKeyword: unknown;
+}
+
+interface ParsedPlace {
+  area: Area;
+  /** Null when the body has no `## Getting around` line. */
+  transitNotes: string | null;
+}
+
+type Check<P> = (parsed: P, options: CheckOptions) => Messages;
+type FrontMatter = { frontMatter: Fields; body: string };
+
+/** One folder of Markdown files: the fields each may have, and the rules for one the site keeps. */
+interface ContentKind<P, R extends Rule> {
+  dir: string;
+  shape: (frontMatter: Fields, file: ContentFile) => string[];
+  kept: (file: ContentFile, content: FrontMatter, catalog: Catalog) => P | null;
+  rules: { [_ in R]: Check<P> };
 }
 
 const SEO_TITLE_MAX = 60;
@@ -71,6 +97,8 @@ const IMAGES_MIN = 3;
 /** The site caches a photo only up to this many bytes. */
 const IMAGE_BYTES_MAX = 2_000_000;
 const HEADINGS = ['## How to do it in Where2Meet', '## Common questions'];
+const INTRO_MIN_WORDS = 60;
+const TRANSIT_NOTES_MIN_WORDS = 20;
 
 /** Python's `\w`: a Unicode letter, digit or underscore. */
 const WORD_CHAR = String.raw`[\p{L}\p{N}_]`;
@@ -141,7 +169,7 @@ const POST_FIELDS: Schema = {
   places: LIST,
   images: LIST,
 };
-const PLACE_FIELDS: Schema = { place_id: PARSED, label: PARSED, note: TEXT };
+const CURATED_PLACE_FIELDS: Schema = { place_id: PARSED, label: PARSED, note: TEXT };
 const IMAGE_FIELDS: Schema = {
   file_name: PARSED,
   source_url: PARSED,
@@ -154,11 +182,19 @@ const IMAGE_FIELDS: Schema = {
   license: PARSED,
   cropped: FLAG,
 };
+const TOWN_FIELDS: Schema = {
+  name: PARSED,
+  center: PARSED,
+  updated_at: PARSED,
+  seo: PARSED,
+  image: PARSED,
+};
+const CITY_FIELDS: Schema = { name: PARSED, region: PARSED, country: PARSED, ...TOWN_FIELDS };
 
 type Messages = (string | false)[];
 
 /** Rules for a post the site keeps. */
-const POST_RULES: { [R in PostRule]: (parsed: Parsed, options: CheckOptions) => Messages } = {
+const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
   'word-count': ({ post, body }) => {
     const kind = post.areas.length === 0 ? 'general' : 'local';
     const [min, max] = BODY_WORDS[kind];
@@ -193,28 +229,11 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, options: CheckOptions) => 
     ];
   },
 
-  'image-size': ({ images }, { heads }) =>
-    images.flatMap(({ fileName, sourceUrl }) => {
-      const head = heads.get(sourceUrl);
-      return head ? sizeProblems(fileName, head) : [];
-    }),
+  'image-size': ({ images }, { heads }) => sizeProblems(images, heads),
 
-  title: ({ post }) => {
-    const length = codePoints(buildPageTitle(post.title));
-    return [
-      length > SEO_TITLE_MAX &&
-        `the title is ${count(length, 'character')} with its " | Where2Meet" suffix; it needs at most ${SEO_TITLE_MAX}`,
-    ];
-  },
+  title: ({ post }) => titleProblems(post.title),
 
-  description: ({ post }) => {
-    const length = codePoints(post.description);
-    const [min, max] = DESCRIPTION_RANGE;
-    return [
-      !within(length, min, max) &&
-        `the description is ${count(length, 'character')}; it needs ${min} to ${max}`,
-    ];
-  },
+  description: ({ post }) => descriptionProblems(post.description),
 
   'main-keyword': ({ post, body, mainKeyword }) => {
     if (!isText(mainKeyword)) return [];
@@ -233,16 +252,9 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, options: CheckOptions) => 
     );
   },
 
-  wording: (parsed) =>
-    found(OFF_BRAND, parsed).map(
-      ({ field, phrase }) =>
-        `${field} says "${phrase}"; write "convenient", and never a word starting with "fair" or "meet in the middle"`
-    ),
+  wording: (parsed) => wordingProblems(postText(parsed)),
 
-  style: (parsed) =>
-    found(STYLE_MARK, parsed).map(
-      ({ field, phrase }) => `${field} has ${STYLE_MARKS[phrase]} instead of "${phrase}"`
-    ),
+  style: (parsed) => styleProblems(postText(parsed)),
 
   dates: ({ post: { publishedAt, updatedAt } }) => [
     updatedAt < publishedAt &&
@@ -250,34 +262,84 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, options: CheckOptions) => 
   ],
 };
 
+/** Rules for a city or town page the site keeps. */
+const PLACE_RULES: { [R in PlaceRule]: Check<ParsedPlace> } = {
+  intro: ({ area }) => {
+    const words = wordCount(area.intro);
+    return [
+      words < INTRO_MIN_WORDS &&
+        `the intro has ${count(words, 'word')}; a place page needs at least ${INTRO_MIN_WORDS}`,
+    ];
+  },
+
+  'getting-around': ({ transitNotes }) => {
+    if (transitNotes === null) {
+      return [
+        `the body has no "${GETTING_AROUND}" heading; a place page needs it before its transit notes`,
+      ];
+    }
+    const words = wordCount(transitNotes);
+    return [
+      words < TRANSIT_NOTES_MIN_WORDS &&
+        `the transit notes have ${count(words, 'word')}; they need at least ${TRANSIT_NOTES_MIN_WORDS}`,
+    ];
+  },
+
+  image: ({ area }) => [!area.image && 'the page has no usable image; a place page needs one'],
+
+  'image-size': ({ area }, { heads }) => sizeProblems(area.image ? [area.image] : [], heads),
+
+  title: ({ area }) => titleProblems(area.seo.title),
+
+  description: ({ area }) => descriptionProblems(area.seo.description),
+
+  wording: (parsed) => wordingProblems(placeText(parsed)),
+
+  style: (parsed) => styleProblems(placeText(parsed)),
+};
+
+const POSTS: ContentKind<ParsedPost, PostRule> = {
+  dir: POSTS_DIR,
+  shape: postFieldProblems,
+  kept: keptPost,
+  rules: POST_RULES,
+};
+
+const PLACES: ContentKind<ParsedPlace, PlaceRule> = {
+  dir: PLACES_DIR,
+  shape: placeFieldProblems,
+  kept: keptPlace,
+  rules: PLACE_RULES,
+};
+
 /**
  * Every problem in the repo's content, per file: `fields` holds why the site skips the file or
- * part of it, and a post the site keeps gets the rest in the order of `Rule`.
+ * part of it, and a post or place the site keeps gets the rest in rule order.
  */
 export function checkContent(repo: RepoContent, options: CheckOptions): Problem[] {
   const { catalog, issues } = parseCatalog(repo);
   const skipped = (file: string) =>
     issues.filter((issue) => issue.file === file).map(({ message }) => message);
-  return [
-    ...problems(TAXONOMY_FILE, 'fields', skipped(TAXONOMY_FILE)),
-    ...repo.places.flatMap((file) => {
-      const path = filePath(PLACES_DIR, file.name);
-      return problems(path, 'fields', skipped(path));
-    }),
-    ...repo.posts.flatMap((file) => {
-      const path = filePath(POSTS_DIR, file.name);
+  const checkFile =
+    <P, R extends Rule>(kind: ContentKind<P, R>) =>
+    (file: ContentFile): Problem[] => {
+      const path = filePath(kind.dir, file.name);
       const content = readFrontMatter(file.text);
       if (!content.ok) return problems(path, 'fields', skipped(path));
-      const parsed = keptPost(file, content.frontMatter, catalog);
+      const parsed = kind.kept(file, content, catalog);
       return [
-        ...problems(path, 'fields', [...skipped(path), ...fieldProblems(content.frontMatter)]),
+        ...problems(path, 'fields', [...skipped(path), ...kind.shape(content.frontMatter, file)]),
         ...(parsed
-          ? entries(POST_RULES).flatMap(([rule, check]) =>
+          ? entries(kind.rules).flatMap(([rule, check]) =>
               problems(path, rule, check(parsed, options))
             )
           : []),
       ];
-    }),
+    };
+  return [
+    ...problems(TAXONOMY_FILE, 'fields', skipped(TAXONOMY_FILE)),
+    ...repo.places.flatMap(checkFile(PLACES)),
+    ...repo.posts.flatMap(checkFile(POSTS)),
   ];
 }
 
@@ -289,7 +351,11 @@ function problems(file: string, rule: Rule, messages: Messages): Problem[] {
   return messages.flatMap((message) => (message ? [{ file, rule, message }] : []));
 }
 
-function keptPost(file: ContentFile, frontMatter: Fields, catalog: Catalog): Parsed | null {
+function keptPost(
+  file: ContentFile,
+  { frontMatter }: FrontMatter,
+  catalog: Catalog
+): ParsedPost | null {
   const [slug] = fileSegments(file.name);
   for (const post of catalog.posts) {
     if (post.source.kind !== 'markdown' || post.slug !== slug) continue;
@@ -299,15 +365,35 @@ function keptPost(file: ContentFile, frontMatter: Fields, catalog: Catalog): Par
   return null;
 }
 
-function fieldProblems(frontMatter: Fields): string[] {
+function keptPlace(file: ContentFile, { body }: FrontMatter, catalog: Catalog): ParsedPlace | null {
+  const [citySlug, townSlug, ...deeper] = fileSegments(file.name);
+  if (deeper.length > 0) return null;
+  const city = catalog.cities.get(citySlug);
+  const area = townSlug === undefined ? city : city?.towns.get(townSlug);
+  return area ? { area, transitNotes: placeBody(body).transitNotes } : null;
+}
+
+function postFieldProblems(frontMatter: Fields): string[] {
   const nested = (name: string, schema: Schema, noun: string) =>
     listOf(frontMatter[name]).flatMap((item, index) =>
       isFields(item) ? shapeProblems(item, schema, noun, `${name}[${index}]`) : []
     );
   return [
     ...shapeProblems(frontMatter, POST_FIELDS, 'a post'),
-    ...nested('places', PLACE_FIELDS, 'a place'),
+    ...nested('places', CURATED_PLACE_FIELDS, 'a place'),
     ...nested('images', IMAGE_FIELDS, 'an image'),
+  ];
+}
+
+function placeFieldProblems(frontMatter: Fields, file: ContentFile): string[] {
+  const depth = fileSegments(file.name).length;
+  if (depth > 2) return [];
+  const { image } = frontMatter;
+  return [
+    ...(depth === 1
+      ? shapeProblems(frontMatter, CITY_FIELDS, 'a city')
+      : shapeProblems(frontMatter, TOWN_FIELDS, 'a town')),
+    ...(isFields(image) ? shapeProblems(image, IMAGE_FIELDS, 'an image', 'image') : []),
   ];
 }
 
@@ -327,7 +413,34 @@ function shapeProblems(fields: Fields, schema: Schema, noun: string, at?: string
   return [...unknown, ...mistyped];
 }
 
-function sizeProblems(fileName: string, { status, bytes, contentType }: ImageHead): Messages {
+function titleProblems(title: string): Messages {
+  const length = codePoints(buildPageTitle(title));
+  return [
+    length > SEO_TITLE_MAX &&
+      `the title is ${count(length, 'character')} with its " | Where2Meet" suffix; it needs at most ${SEO_TITLE_MAX}`,
+  ];
+}
+
+function descriptionProblems(description: string): Messages {
+  const length = codePoints(description);
+  const [min, max] = DESCRIPTION_RANGE;
+  return [
+    !within(length, min, max) &&
+      `the description is ${count(length, 'character')}; it needs ${min} to ${max}`,
+  ];
+}
+
+function sizeProblems(
+  images: readonly CommonsImage[],
+  heads: ReadonlyMap<string, ImageHead>
+): Messages {
+  return images.flatMap(({ fileName, sourceUrl }) => {
+    const head = heads.get(sourceUrl);
+    return head ? headProblems(fileName, head) : [];
+  });
+}
+
+function headProblems(fileName: string, { status, bytes, contentType }: ImageHead): Messages {
   if (status < 200 || status > 299) {
     return [`${fileName}: its source_url answered HTTP ${status}; it needs to load`];
   }
@@ -343,22 +456,54 @@ function sizeProblems(fileName: string, { status, bytes, contentType }: ImageHea
   ];
 }
 
-/** The free text the site renders. Labels and author names are proper nouns, not copy. */
-function publishedText({ post, body, images }: Parsed): [field: string, text: string][] {
+/** The free text the site renders, by where it shows. */
+type PublishedText = [field: string, text: string][];
+
+/** Labels and author names are proper nouns, not copy. */
+function postText({ post, body, images }: ParsedPost): PublishedText {
   return [
     ['the title', post.title],
     ['the description', post.description],
     ['the body', body],
     ...post.places.map(({ label, note }): [string, string] => [`the note for "${label}"`, note]),
-    ...images.flatMap(({ fileName, alt, caption }): [string, string][] => [
-      [`the alt text of ${fileName}`, alt],
-      [`the caption of ${fileName}`, caption],
-    ]),
+    ...imageText(images),
   ];
 }
 
-function found(pattern: RegExp, parsed: Parsed): { field: string; phrase: string }[] {
-  return publishedText(parsed).flatMap(([field, text]) =>
+function placeText({ area }: ParsedPlace): PublishedText {
+  return [
+    ['the title', area.seo.title],
+    ['the description', area.seo.description],
+    ['the intro', area.intro],
+    ['the Getting around section', area.transitNotes],
+    ...imageText(area.image ? [area.image] : []),
+  ];
+}
+
+function imageText(images: readonly CommonsImage[]): PublishedText {
+  return images.flatMap(
+    ({ fileName, alt, caption }): PublishedText => [
+      [`the alt text of ${fileName}`, alt],
+      [`the caption of ${fileName}`, caption],
+    ]
+  );
+}
+
+function wordingProblems(texts: PublishedText): Messages {
+  return found(OFF_BRAND, texts).map(
+    ({ field, phrase }) =>
+      `${field} says "${phrase}"; write "convenient", and never a word starting with "fair" or "meet in the middle"`
+  );
+}
+
+function styleProblems(texts: PublishedText): Messages {
+  return found(STYLE_MARK, texts).map(
+    ({ field, phrase }) => `${field} has ${STYLE_MARKS[phrase]} instead of "${phrase}"`
+  );
+}
+
+function found(pattern: RegExp, texts: PublishedText): { field: string; phrase: string }[] {
+  return texts.flatMap(([field, text]) =>
     [...new Set([...asRead(text).matchAll(pattern)].map(([phrase]) => phrase))].map((phrase) => ({
       field,
       phrase,
