@@ -73,13 +73,6 @@ export interface Crumb {
   path: string;
 }
 
-export function withRepoPosts(repoPosts: readonly Post[], panel: Catalog): Catalog {
-  const posts = [...repoPosts, ...panel.posts].sort((a, b) =>
-    b.publishedAt.localeCompare(a.publishedAt)
-  );
-  return { posts, cities: panel.cities };
-}
-
 export function imagePath(fileName: string): string {
   return `${BLOG_PATH}/${IMAGES_SEGMENT}/${fileName}`;
 }

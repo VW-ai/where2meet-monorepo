@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { parsePublished } from '../parse';
+import { stringify } from 'yaml';
+import { MDX_POSTS } from '@/content/blog/posts';
+import { checkTaxonomy, parseCatalog, readTaxonomy } from '../parse';
+import { markdownPostFile } from '../../__fixtures__/repo-posts';
 
 const seo = { title: 'Where to meet in Testville', description: 'A description long enough.' };
 
@@ -13,6 +16,27 @@ const taxonomy = {
   group_sizes: [{ key: 'large', label: 'Big group, 7 or more' }],
   budgets: [{ key: 'moderate', label: 'Mid-range' }],
 };
+
+const repoTaxonomy = {
+  occasions: [
+    { key: 'team-welcome', label: 'Team welcome', times: [], venue_types: [], group_sizes: [] },
+    {
+      key: 'coffee-catch-up',
+      label: 'Coffee catch-up',
+      times: ['weekday-lunch'],
+      venue_types: [],
+      group_sizes: ['large'],
+    },
+  ],
+  times: [{ key: 'weekday-lunch', label: 'Weekday lunch' }],
+  venue_types: [
+    { key: 'chinese-restaurant', label: 'Chinese restaurant', google_type: 'chinese_restaurant' },
+  ],
+  group_sizes: [{ key: 'large', label: 'Big group, 7 or more' }],
+  budgets: [{ key: 'moderate', label: 'Mid-range', price_level: 'PRICE_LEVEL_MODERATE' }],
+};
+const TAXONOMY_YAML = stringify(repoTaxonomy);
+const NO_REPO = { mdx: [], files: [], taxonomyText: TAXONOMY_YAML };
 
 function image(fileName: unknown, fields: Record<string, unknown> = {}) {
   return {
@@ -98,9 +122,10 @@ const lawn = {
   },
 };
 
-describe('parsePublished', () => {
+describe('parseCatalog', () => {
   it('maps general and local posts, cities, towns and images to the catalog', () => {
-    const { catalog, issues } = parsePublished(
+    const { catalog, issues } = parseCatalog(
+      NO_REPO,
       published({
         posts: [post('plan-a-team-welcome', { images: [image('lawn.jpg')] })],
         cities: [
@@ -138,8 +163,7 @@ describe('parsePublished', () => {
             ],
           }),
         ],
-      }),
-      []
+      })
     );
 
     expect(issues).toEqual([]);
@@ -246,7 +270,8 @@ describe('parsePublished', () => {
   });
 
   it('drops each bad image and keeps the post while it has one left for its cover', () => {
-    const { catalog, issues } = parsePublished(
+    const { catalog, issues } = parseCatalog(
+      NO_REPO,
       published({
         posts: [
           post('photos', {
@@ -276,8 +301,7 @@ describe('parsePublished', () => {
           post('no-photos', { images: [] }),
           post('reuses-a-photo', { images: [image('lawn.jpg')] }),
         ],
-      }),
-      []
+      })
     );
 
     expect(issues).toEqual([
@@ -308,7 +332,12 @@ describe('parsePublished', () => {
   });
 
   it('gives /blog/<segment> to repo posts first, then the photo route, cities and general posts', () => {
-    const { catalog, issues } = parsePublished(
+    const { catalog, issues } = parseCatalog(
+      {
+        mdx: MDX_POSTS.filter(({ slug }) => slug === 'how-to-pick-a-date-spot'),
+        files: [],
+        taxonomyText: TAXONOMY_YAML,
+      },
       published({
         posts: [
           post('how-to-pick-a-date-spot'),
@@ -318,8 +347,7 @@ describe('parsePublished', () => {
           post('team-welcome', { images: [image('team-welcome-2.jpg')] }),
         ],
         cities: [area('how-to-pick-a-date-spot'), area('testville'), area('testville')],
-      }),
-      ['how-to-pick-a-date-spot']
+      })
     );
 
     expect(issues).toEqual([
@@ -331,11 +359,15 @@ describe('parsePublished', () => {
       'posts[4]: slug "team-welcome" is taken by a post',
     ]);
     expect([...catalog.cities.keys()]).toEqual(['testville']);
-    expect(catalog.posts.map(({ slug }) => slug)).toEqual(['team-welcome']);
+    expect(catalog.posts.map(({ slug }) => slug)).toEqual([
+      'how-to-pick-a-date-spot',
+      'team-welcome',
+    ]);
   });
 
   it('gives a town its slug over a city post, and keeps post slugs unique in each area', () => {
-    const { catalog, issues } = parsePublished(
+    const { catalog, issues } = parseCatalog(
+      NO_REPO,
       published({
         cities: [
           area(
@@ -353,8 +385,7 @@ describe('parsePublished', () => {
             }
           ),
         ],
-      }),
-      []
+      })
     );
 
     expect(issues).toEqual([
@@ -372,7 +403,8 @@ describe('parsePublished', () => {
 
   it('drops each bad post, place, area and taxonomy value, and says why', () => {
     const longest = 'a'.repeat(80);
-    const { catalog, issues } = parsePublished(
+    const { catalog, issues } = parseCatalog(
+      NO_REPO,
       published({
         posts: [
           post('brunch-spots', { occasion: 'brunch' }),
@@ -406,8 +438,7 @@ describe('parsePublished', () => {
             { key: 'weekday-lunch', label: 'Lunch on a weekday' },
           ],
         },
-      }),
-      []
+      })
     );
 
     expect(issues).toEqual([
@@ -445,7 +476,278 @@ describe('parsePublished', () => {
       { version: 3, posts: [], cities: [] },
       '<html>',
     ]) {
-      expect(() => parsePublished(raw, [])).toThrow('Published posts are not contract v3 JSON');
+      expect(() => parseCatalog(NO_REPO, raw)).toThrow('Published posts are not contract v3 JSON');
     }
+  });
+});
+
+function markdownFile(slug: string, fields: Record<string, unknown> = {}, body = 'Body') {
+  const frontMatter = {
+    title: `Title of ${slug}`,
+    description: `Description of ${slug}`,
+    main_keyword: 'team welcome lunch',
+    occasion: 'team-welcome',
+    time: null,
+    venue_type: null,
+    group_size: null,
+    budget: null,
+    city: null,
+    town: null,
+    published_at: '2026-10-09',
+    updated_at: '2026-10-10',
+    places: [],
+    images: [image(`${slug}.jpg`)],
+    ...fields,
+  };
+  return markdownPostFile(slug, frontMatter, `${body}\n`);
+}
+
+const testville = area('testville', [], {
+  towns: [area('harbor', [], { name: 'Harbor' })],
+});
+
+function paths(posts: readonly { slug: string; areas: readonly { slug: string }[] }[]) {
+  return posts.map(({ areas, slug }) => [...areas.map((a) => a.slug), slug].join('/'));
+}
+
+describe('parseCatalog with repo Markdown posts', () => {
+  it('parses a Markdown file into the same post a panel post becomes, labeled by the panel', () => {
+    const { catalog, issues } = parseCatalog(
+      {
+        mdx: [],
+        taxonomyText: TAXONOMY_YAML,
+        files: [
+          markdownFile(
+            'welcome-lunch',
+            {
+              city: 'testville',
+              town: 'harbor',
+              time: 'weekday-lunch',
+              group_size: 'large',
+              places: [{ place_id: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
+              images: [image('lawn.jpg')],
+            },
+            'Start here.\n\n![](lawn.jpg)\n\n:::places'
+          ),
+        ],
+      },
+      published({ cities: [testville] })
+    );
+
+    expect(issues).toEqual([]);
+    expect(catalog.posts).toEqual([
+      {
+        slug: 'welcome-lunch',
+        areas: [
+          { slug: 'testville', name: 'Testville' },
+          { slug: 'harbor', name: 'Harbor' },
+        ],
+        title: 'Title of welcome-lunch',
+        description: 'Description of welcome-lunch',
+        publishedAt: '2026-10-09',
+        updatedAt: '2026-10-10',
+        occasion: { key: 'team-welcome', label: 'Team welcome' },
+        parameters: [
+          { key: 'weekday-lunch', label: 'Weekday lunch' },
+          { key: 'large', label: 'Big group, 7 or more' },
+        ],
+        places: [{ placeId: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
+        placesTitle: 'Our picks in Harbor',
+        source: {
+          kind: 'markdown',
+          markdown: 'Start here.\n\n![](lawn.jpg)\n\n:::places\n',
+          images: [lawn],
+        },
+      },
+    ]);
+  });
+
+  it('takes a repo post’s keys and labels from the taxonomy file, not the panel’s lists', () => {
+    const { catalog, issues } = parseCatalog(
+      {
+        mdx: [],
+        taxonomyText: TAXONOMY_YAML,
+        files: [
+          markdownFile('coffee-ideas', { occasion: 'coffee-catch-up' }),
+          markdownFile('date-ideas', { occasion: 'date-night' }),
+        ],
+      },
+      published({})
+    );
+
+    expect(issues).toEqual(['src/content/posts/date-ideas.md: unknown occasion "date-night"']);
+    expect(catalog.posts.map(({ slug, occasion }) => [slug, occasion])).toEqual([
+      ['coffee-ideas', { key: 'coffee-catch-up', label: 'Coffee catch-up' }],
+    ]);
+  });
+
+  it('gives repo posts every path and photo name they claim, and drops the panel item instead', () => {
+    const { catalog, issues } = parseCatalog(
+      {
+        mdx: [],
+        taxonomyText: TAXONOMY_YAML,
+        files: [
+          markdownFile('meetups', { images: [image('shared.jpg')] }),
+          markdownFile('old-town', { city: 'testville' }),
+          markdownFile('dinner', { city: 'testville' }),
+          markdownFile('lunch', { city: 'testville', town: 'harbor' }),
+        ],
+      },
+      published({
+        posts: [post('meetups'), post('brunch', { images: [image('shared.jpg')] })],
+        cities: [
+          area('testville', [post('dinner')], {
+            towns: [area('old-town'), area('harbor', [post('lunch')], { name: 'Harbor' })],
+          }),
+        ],
+      })
+    );
+
+    expect(issues).toEqual([
+      'cities[0].towns[0]: slug "old-town" is taken by a repo post',
+      'cities[0].towns[1].posts[0]: slug "lunch" is taken by a repo post',
+      'cities[0].posts[0]: slug "dinner" is taken by a repo post',
+      'posts[0]: slug "meetups" is taken by a repo post',
+      'posts[1].images[0]: file_name "shared.jpg" is already used',
+      'posts[1]: no image to use as its cover',
+    ]);
+    expect(paths(catalog.posts)).toEqual([
+      'meetups',
+      'testville/old-town',
+      'testville/dinner',
+      'testville/harbor/lunch',
+    ]);
+    expect([...catalog.cities.get('testville')!.towns.keys()]).toEqual(['harbor']);
+  });
+
+  it('drops each bad Markdown file and says why, keeping the rest', () => {
+    const { catalog, issues } = parseCatalog(
+      {
+        mdx: MDX_POSTS.filter(({ slug }) => slug === 'how-to-pick-a-date-spot'),
+        taxonomyText: TAXONOMY_YAML,
+        files: [
+          markdownFile('boston-dinner', { city: 'boston' }),
+          markdownFile('pier-lunch', { city: 'testville', town: 'pier' }),
+          markdownFile('orphan', { town: 'harbor' }),
+          { name: 'no-front-matter.md', text: 'Just a body.\n' },
+          { name: 'bad-yaml.md', text: '---\nnote: A cafe: near the park\n---\nBody\n' },
+          { name: 'a-list.md', text: '---\n- title\n---\nBody\n' },
+          markdownFile('brunch', { occasion: 'brunch' }),
+          markdownFile('how-to-pick-a-date-spot'),
+          markdownFile('images'),
+          markdownFile('Upper'),
+          markdownFile('first', { images: [image('shared.jpg')] }),
+          markdownFile('second', { images: [image('shared.jpg')] }),
+        ],
+      },
+      published({ cities: [testville] })
+    );
+
+    expect(issues).toEqual([
+      'src/content/posts/boston-dinner.md: city "boston" is not published',
+      'src/content/posts/pier-lunch.md: town "pier" is not published in testville',
+      'src/content/posts/orphan.md: town is set without a city',
+      'src/content/posts/no-front-matter.md: no front matter between two --- lines at the top',
+      'src/content/posts/bad-yaml.md: front matter is not valid YAML: Nested mappings are not allowed in compact mappings at line 1, column 7:',
+      'src/content/posts/a-list.md: front matter is not a YAML mapping of fields',
+      'src/content/posts/brunch.md: unknown occasion "brunch"',
+      'src/content/posts/how-to-pick-a-date-spot.md: slug "how-to-pick-a-date-spot" is taken by an MDX post',
+      'src/content/posts/images.md: slug "images" is taken by the photo route',
+      'src/content/posts/Upper.md: invalid slug "Upper"',
+      'src/content/posts/second.md.images[0]: file_name "shared.jpg" is already used',
+      'src/content/posts/second.md: no image to use as its cover',
+    ]);
+    expect(paths(catalog.posts)).toEqual(['first', 'how-to-pick-a-date-spot']);
+  });
+
+  it('keeps a general post with its labels when the panel is down, and drops a local one', () => {
+    const { catalog, issues } = parseCatalog({
+      mdx: [],
+      taxonomyText: TAXONOMY_YAML,
+      files: [
+        markdownFile('coffee-ideas', { occasion: 'coffee-catch-up', group_size: 'large' }),
+        markdownFile('dinner', { city: 'testville' }),
+      ],
+    });
+
+    expect(issues).toEqual(['src/content/posts/dinner.md: city "testville" is not published']);
+    expect(
+      catalog.posts.map(({ slug, occasion, parameters }) => [slug, occasion, parameters])
+    ).toEqual([
+      [
+        'coffee-ideas',
+        { key: 'coffee-catch-up', label: 'Coffee catch-up' },
+        [{ key: 'large', label: 'Big group, 7 or more' }],
+      ],
+    ]);
+  });
+});
+
+describe('readTaxonomy and checkTaxonomy', () => {
+  function issues(yaml: string) {
+    return checkTaxonomy(yaml);
+  }
+
+  it('reads a well-formed file with no issues and names each key by its label', () => {
+    const { taxonomy, issues: found } = readTaxonomy(TAXONOMY_YAML);
+    expect(found).toEqual([]);
+    expect([taxonomy('occasion', 'coffee-catch-up'), taxonomy('budget', 'moderate')]).toEqual([
+      { key: 'coffee-catch-up', label: 'Coffee catch-up' },
+      { key: 'moderate', label: 'Mid-range' },
+    ]);
+    expect(taxonomy('occasion', 'date-night')).toBe(undefined);
+  });
+
+  it('says why a file is not a taxonomy at all', () => {
+    expect(issues('occasions: [')).toEqual([
+      'src/content/taxonomy.yaml: not valid YAML: Flow sequence in block collection must be sufficiently indented and end with a ] at line 1, column 13:',
+    ]);
+    expect(issues('- occasions')).toEqual([
+      'src/content/taxonomy.yaml: not a YAML mapping of lists',
+      'src/content/taxonomy.yaml: "occasions" is not a list',
+      'src/content/taxonomy.yaml: "times" is not a list',
+      'src/content/taxonomy.yaml: "venue_types" is not a list',
+      'src/content/taxonomy.yaml: "group_sizes" is not a list',
+      'src/content/taxonomy.yaml: "budgets" is not a list',
+    ]);
+    expect(issues(stringify({ ...repoTaxonomy, budgets: undefined, prices: [] }))).toEqual([
+      'src/content/taxonomy.yaml: unknown list "prices"',
+      'src/content/taxonomy.yaml: "budgets" is not a list',
+    ]);
+  });
+
+  it('reports each bad value, while the site drops only a value without a key or label', () => {
+    const [welcome, coffee] = repoTaxonomy.occasions;
+    const [chinese] = repoTaxonomy.venue_types;
+    const [moderate] = repoTaxonomy.budgets;
+    const yaml = stringify({
+      ...repoTaxonomy,
+      occasions: [
+        welcome,
+        { ...coffee, times: ['late-night'], group_sizes: 'large' },
+        { ...welcome, key: 'Team Welcome' },
+        { ...welcome, label: '' },
+        welcome,
+        { ...welcome, key: 'farewell', note: 'Retired' },
+        'birthday',
+      ],
+      venue_types: [chinese, { ...chinese, key: 'cafe', google_type: 'Cafe' }],
+      budgets: [moderate, { ...moderate, key: 'free', price_level: 'PRICE_LEVEL_FREE' }],
+    });
+    expect(issues(yaml)).toEqual([
+      'src/content/taxonomy.yaml.occasions[3]: missing label',
+      'src/content/taxonomy.yaml.occasions[4]: repeats "team-welcome"',
+      'src/content/taxonomy.yaml.occasions[6]: not an object',
+      'src/content/taxonomy.yaml.occasions[2]: invalid key "Team Welcome"',
+      'src/content/taxonomy.yaml.occasions[5]: unknown field "note"',
+      'src/content/taxonomy.yaml.venue_types[1]: invalid google_type "Cafe"',
+      'src/content/taxonomy.yaml.budgets[1]: invalid price_level "PRICE_LEVEL_FREE"',
+      'src/content/taxonomy.yaml.occasions[1].times: unknown time "late-night"',
+      'src/content/taxonomy.yaml.occasions[1].group_sizes: is not a list',
+    ]);
+    expect(readTaxonomy(yaml).taxonomy('budget', 'free')).toEqual({
+      key: 'free',
+      label: 'Mid-range',
+    });
   });
 });

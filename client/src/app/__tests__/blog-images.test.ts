@@ -1,6 +1,14 @@
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '@/app/(landing)/blog/images/[file]/route';
+import { REPO_POST_FILES } from '@/features/blog/__fixtures__/repo-posts';
+import type { PostFile } from '@/features/blog/lib/post-file';
+
+const disk = vi.hoisted(() => ({ postFiles: [] as PostFile[] }));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const { withPostFiles } = await import('@/features/blog/__fixtures__/repo-posts');
+  return withPostFiles(await importOriginal(), () => disk.postFiles);
+});
 
 const FIXTURE_PATH = path.join(__dirname, '../../features/blog/__fixtures__/published.json');
 const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
@@ -25,6 +33,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  disk.postFiles = [];
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -52,6 +61,17 @@ describe('GET /blog/images/[file]', () => {
           signal: expect.any(AbortSignal),
         },
       ],
+    ]);
+  });
+
+  it('serves a repo Markdown post’s photo the same way', async () => {
+    disk.postFiles = [...REPO_POST_FILES];
+    const response = await getImage('union-square-farmers-market.jpg');
+
+    expect(response.status).toBe(200);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(JPEG_BYTES);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Union_Square_Greenmarket.jpg/1280px-Union_Square_Greenmarket.jpg',
     ]);
   });
 
