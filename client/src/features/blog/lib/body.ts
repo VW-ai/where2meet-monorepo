@@ -6,7 +6,7 @@ export type BodyBlock =
   | { kind: 'places' };
 
 const PHOTO_LINE = /^!\[[^\]]*\]\(([a-z0-9-]+\.jpg)\)$/;
-const PLACES_LINE = ':::places';
+export const PLACES_LINE = ':::places';
 const SECTION_HEADING = /^## /;
 
 export function layoutBody(
