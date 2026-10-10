@@ -7,6 +7,7 @@ import {
   type Problem,
 } from '@/features/blog/lib/checks';
 import {
+  KEYWORDS_FILE,
   PLACES_DIR,
   POSTS_DIR,
   TAXONOMY_FILE,
@@ -101,6 +102,12 @@ describe(TAXONOMY_FILE, () => {
       expect(catalog.taxonomy.occasions.map((occasion) => occasion.key)).toContain(key);
     }
   );
+});
+
+describe(KEYWORDS_FILE, () => {
+  it('follows its schema, with each phrase once', () => {
+    expect(linesFor(KEYWORDS_FILE)).toEqual([]);
+  });
 });
 
 describe('repo posts', () => {

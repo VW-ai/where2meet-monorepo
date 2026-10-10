@@ -26,14 +26,16 @@ const repoTaxonomy = {
   budgets: [{ key: 'moderate', label: 'Mid-range', price_level: 'PRICE_LEVEL_MODERATE' }],
 };
 const TAXONOMY_YAML = stringify(repoTaxonomy);
+const KEYWORDS_YAML = '- phrase: team welcome lunch\n';
 
 function content({
   places = [],
   posts = [],
   mdx = [],
   taxonomyText = TAXONOMY_YAML,
+  keywordsText = KEYWORDS_YAML,
 }: Partial<RepoContent>): RepoContent {
-  return { mdx, taxonomyText, places, posts };
+  return { mdx, taxonomyText, keywordsText, places, posts };
 }
 
 function skipped(repo: RepoContent): string[] {
@@ -218,6 +220,7 @@ describe('parseCatalog', () => {
         updatedAt: '2026-10-10',
         occasion: { key: 'team-welcome', label: 'Team welcome' },
         parameters: [],
+        mainKeyword: 'team welcome lunch',
         places: [],
         placesTitle: 'Our picks',
         source: { kind: 'markdown', markdown: 'Body\n', images: [lawn] },
@@ -239,6 +242,7 @@ describe('parseCatalog', () => {
           { key: 'large', label: 'Big group, 7 or more' },
           { key: 'moderate', label: 'Mid-range' },
         ],
+        mainKeyword: 'team welcome lunch',
         places: [{ placeId: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
         placesTitle: 'Our picks in Old Town',
         source: {
@@ -503,6 +507,7 @@ describe('parseCatalog with post files', () => {
           { key: 'weekday-lunch', label: 'Weekday lunch' },
           { key: 'large', label: 'Big group, 7 or more' },
         ],
+        mainKeyword: 'team welcome lunch',
         places: [{ placeId: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
         placesTitle: 'Our picks in Harbor',
         source: {
@@ -688,5 +693,63 @@ describe('parseCatalog on taxonomy.yaml', () => {
       groupSizes: [{ key: 'large', label: 'Big group, 7 or more' }],
       budgets: [{ key: 'moderate', label: 'Mid-range', priceLevel: 'PRICE_LEVEL_MODERATE' }],
     });
+  });
+});
+
+describe('parseCatalog on keywords.yaml', () => {
+  it('reads each phrase with its occasion and note, or null', () => {
+    const { catalog, issues } = parseCatalog(
+      content({
+        keywordsText: stringify([
+          { phrase: 'where to meet' },
+          { phrase: 'coffee meeting spot', occasion: 'coffee-catch-up', note: 'Asked by Pat' },
+          { phrase: 'team welcome lunch', occasion: null, note: '' },
+        ]),
+      })
+    );
+    expect(issues).toEqual([]);
+    expect(catalog.keywords).toEqual([
+      { phrase: 'where to meet', occasion: null, note: null },
+      { phrase: 'coffee meeting spot', occasion: 'coffee-catch-up', note: 'Asked by Pat' },
+      { phrase: 'team welcome lunch', occasion: null, note: null },
+    ]);
+  });
+
+  it('says why a file is not a list of keywords', () => {
+    expect(skipped(content({ keywordsText: '- phrase: [' }))).toEqual([
+      'src/content/keywords.yaml: not valid YAML: Flow sequence in block collection must be sufficiently indented and end with a ] at line 1, column 12:',
+    ]);
+    expect(skipped(content({ keywordsText: 'phrase: where to meet\n' }))).toEqual([
+      'src/content/keywords.yaml: not a YAML list of keywords',
+    ]);
+  });
+
+  it('drops each entry that breaks the schema or repeats a phrase, and says why', () => {
+    const repo = content({
+      keywordsText: stringify([
+        { phrase: 'Date  Spot' },
+        'first date spot',
+        { phrase: 'date spot near me', notes: 'Typo' },
+        { phrase: ' ' },
+        { occasion: 'team-welcome' },
+        { phrase: 'date spot' },
+        { phrase: 'brunch spot', occasion: 'brunch' },
+        { phrase: 'team lunch', note: 7 },
+        { phrase: 'coffee meeting spot', occasion: 'coffee-catch-up' },
+      ]),
+    });
+    expect(skipped(repo)).toEqual([
+      'src/content/keywords.yaml: [1]: not an object',
+      'src/content/keywords.yaml: [2]: unknown field "notes"',
+      'src/content/keywords.yaml: [3]: missing phrase',
+      'src/content/keywords.yaml: [4]: missing phrase',
+      'src/content/keywords.yaml: [5]: repeats "Date  Spot"',
+      'src/content/keywords.yaml: [6]: unknown occasion "brunch"',
+      'src/content/keywords.yaml: [7]: invalid note 7',
+    ]);
+    expect(parseCatalog(repo).catalog.keywords.map(({ phrase }) => phrase)).toEqual([
+      'Date  Spot',
+      'coffee meeting spot',
+    ]);
   });
 });

@@ -31,12 +31,18 @@ const ATLANTIC_IMAGE = `  - file_name: atlantic-avenue-barclays-center-station-e
     cropped: false
 `;
 
+/** The example's main keyword, spelled another way, and one more. */
+const KEYWORDS =
+  '- phrase: Group  Dinner after work\n  occasion: group-dinner\n- phrase: group dinner\n';
+
 /** The posts with the fixture's places, so a post can be local to New York or Midtown. */
 function check(
   posts: readonly ContentFile[],
   heads: ReadonlyMap<string, ImageHead> = new Map()
 ): string[] {
-  return checkContent({ ...fixtureContent(), posts }, { heads }).map(formatProblem);
+  return checkContent({ ...fixtureContent(), keywordsText: KEYWORDS, posts }, { heads }).map(
+    formatProblem
+  );
 }
 
 function edited(edits: readonly [from: string, to: string][], name = NAME): ContentFile {
@@ -269,6 +275,19 @@ describe('checkContent on a post', () => {
   });
 
   describe('main-keyword', () => {
+    it('needs a phrase from keywords.yaml', () => {
+      const file = edited([
+        ['main_keyword: group dinner after work', 'main_keyword: group dinner'],
+        ['A group dinner after work goes best', 'A group dinner goes best'],
+      ]);
+      expect(check([file])).toEqual([]);
+      expect(
+        check([edited([['main_keyword: group dinner after work', 'main_keyword: dinner']])])
+      ).toEqual([
+        `${FILE}: main-keyword: the main keyword "dinner" is not a phrase in src/content/keywords.yaml; it must be one, so add it there or pick one of its phrases`,
+      ]);
+    });
+
     it('needs it in the title', () => {
       const file = edited([
         [

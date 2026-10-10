@@ -2,14 +2,17 @@ import { buildPageTitle } from '@/lib/seo/metadata';
 import { PLACES_LINE } from './body';
 import type { Area, Catalog, Post } from './catalog';
 import {
+  KEYWORDS_FILE,
   PLACES_DIR,
   POSTS_DIR,
+  SPACE,
   TAXONOMY_FILE,
   filePath,
   fileSegments,
   isFields,
   isText,
   listOf,
+  normalize,
   readFrontMatter,
   type ContentFile,
   type Fields,
@@ -68,7 +71,8 @@ interface ParsedPost {
   post: Post;
   body: string;
   images: readonly CommonsImage[];
-  mainKeyword: unknown;
+  /** Normalized, as a main keyword matches one. */
+  keywords: ReadonlySet<string>;
 }
 
 interface ParsedPlace {
@@ -84,7 +88,7 @@ type FrontMatter = { frontMatter: Fields; body: string };
 interface ContentKind<P, R extends Rule> {
   dir: string;
   shape: (frontMatter: Fields, file: ContentFile) => string[];
-  kept: (file: ContentFile, content: FrontMatter, catalog: Catalog) => P | null;
+  kept: (file: ContentFile, catalog: Catalog, content: FrontMatter) => P | null;
   rules: { [_ in R]: Check<P> };
 }
 
@@ -102,8 +106,6 @@ const TRANSIT_NOTES_MIN_WORDS = 20;
 
 /** Python's `\w`: a Unicode letter, digit or underscore. */
 const WORD_CHAR = String.raw`[\p{L}\p{N}_]`;
-/** Python's `\s`, which also counts \x1c to \x1f and \x85 and leaves out \ufeff. */
-const SPACE = String.raw`[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]`;
 /** Brand wording: "convenient", never "fair" (or fairly, fairness) or "meet in the middle". */
 const OFF_BRAND = new RegExp(
   String.raw`(?<!${WORD_CHAR})fair${WORD_CHAR}*|(?<!${WORD_CHAR})meet(?:s|ing)?(?:${SPACE}|-)+in(?:${SPACE}|-)+the(?:${SPACE}|-)+middle(?!${WORD_CHAR})`,
@@ -235,10 +237,12 @@ const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
 
   description: ({ post }) => descriptionProblems(post.description),
 
-  'main-keyword': ({ post, body, mainKeyword }) => {
-    if (!isText(mainKeyword)) return [];
+  'main-keyword': ({ post: { title, mainKeyword }, body, keywords }) => {
+    if (mainKeyword === null) return [];
     return [
-      !says(post.title, mainKeyword) &&
+      !keywords.has(normalize(mainKeyword)) &&
+        `the main keyword "${mainKeyword}" is not a phrase in ${KEYWORDS_FILE}; it must be one, so add it there or pick one of its phrases`,
+      !says(title, mainKeyword) &&
         `the title does not say the main keyword "${mainKeyword}"; it must, as whole words`,
       !says(opening(body), mainKeyword) &&
         `the body's first two sentences do not say the main keyword "${mainKeyword}"; they must, as whole words`,
@@ -326,7 +330,7 @@ export function checkContent(repo: RepoContent, options: CheckOptions): Problem[
       const path = filePath(kind.dir, file.name);
       const content = readFrontMatter(file.text);
       if (!content.ok) return problems(path, 'fields', skipped(path));
-      const parsed = kind.kept(file, content, catalog);
+      const parsed = kind.kept(file, catalog, content);
       return [
         ...problems(path, 'fields', [...skipped(path), ...kind.shape(content.frontMatter, file)]),
         ...(parsed
@@ -338,6 +342,7 @@ export function checkContent(repo: RepoContent, options: CheckOptions): Problem[
     };
   return [
     ...problems(TAXONOMY_FILE, 'fields', skipped(TAXONOMY_FILE)),
+    ...problems(KEYWORDS_FILE, 'fields', skipped(KEYWORDS_FILE)),
     ...repo.places.flatMap(checkFile(PLACES)),
     ...repo.posts.flatMap(checkFile(POSTS)),
   ];
@@ -351,21 +356,18 @@ function problems(file: string, rule: Rule, messages: Messages): Problem[] {
   return messages.flatMap((message) => (message ? [{ file, rule, message }] : []));
 }
 
-function keptPost(
-  file: ContentFile,
-  { frontMatter }: FrontMatter,
-  catalog: Catalog
-): ParsedPost | null {
+function keptPost(file: ContentFile, catalog: Catalog): ParsedPost | null {
   const [slug] = fileSegments(file.name);
   for (const post of catalog.posts) {
     if (post.source.kind !== 'markdown' || post.slug !== slug) continue;
     const { markdown, images } = post.source;
-    return { post, body: markdown, images, mainKeyword: frontMatter.main_keyword };
+    const keywords = new Set(catalog.keywords.map(({ phrase }) => normalize(phrase)));
+    return { post, body: markdown, images, keywords };
   }
   return null;
 }
 
-function keptPlace(file: ContentFile, { body }: FrontMatter, catalog: Catalog): ParsedPlace | null {
+function keptPlace(file: ContentFile, catalog: Catalog, { body }: FrontMatter): ParsedPlace | null {
   const [citySlug, townSlug, ...deeper] = fileSegments(file.name);
   if (deeper.length > 0) return null;
   const city = catalog.cities.get(citySlug);
@@ -547,18 +549,6 @@ function headings(body: string): Set<string> {
 /** Words a reader sees: a Markdown link counts its text, not its URL. */
 function wordCount(text: string): number {
   return text.replace(LINK_TARGET, '] ').match(WORD)?.length ?? 0;
-}
-
-/** Python's `casefold`, closely enough for matching: upper then lower also folds ß to ss. */
-function normalize(text: string): string {
-  return text
-    .replace(/[\u2018\u2019\u201a\u201b\u2032]/gu, "'")
-    .replace(/[\u201c-\u201f\u2033]/gu, '"')
-    .toUpperCase()
-    .toLowerCase()
-    .split(new RegExp(`${SPACE}+`, 'u'))
-    .filter(Boolean)
-    .join(' ');
 }
 
 function says(text: string, phrase: string): boolean {

@@ -3,7 +3,13 @@ import type * as FsPromises from 'node:fs/promises';
 import path from 'node:path';
 import { stringify } from 'yaml';
 import { MDX_POSTS } from '@/content/blog/posts';
-import { PLACES_DIR, POSTS_DIR, TAXONOMY_FILE, type ContentFile } from '../lib/content-file';
+import {
+  KEYWORDS_FILE,
+  PLACES_DIR,
+  POSTS_DIR,
+  TAXONOMY_FILE,
+  type ContentFile,
+} from '../lib/content-file';
 import type { RepoContent } from '../lib/parse';
 
 /** A file at `path` from the client root, as the site would find it there. */
@@ -24,8 +30,9 @@ export const FIXTURE_FILES: readonly FixtureFile[] = readdirSync(FIXTURE_ROOT, {
   .map((name) => ({ path: name, text: readFileSync(path.join(FIXTURE_ROOT, name), 'utf8') }));
 
 export const REPO_TAXONOMY = readFileSync(path.join(process.cwd(), TAXONOMY_FILE), 'utf8');
+export const REPO_KEYWORDS = readFileSync(path.join(process.cwd(), KEYWORDS_FILE), 'utf8');
 
-/** What `readRepoContent` reads when the client root holds `files` and the repo's taxonomy. */
+/** What `readRepoContent` reads when the client root holds `files` and the repo's lists. */
 export function fixtureContent(files: readonly FixtureFile[] = FIXTURE_FILES): RepoContent {
   const under = (dir: string): ContentFile[] =>
     files.flatMap((file) =>
@@ -36,6 +43,7 @@ export function fixtureContent(files: readonly FixtureFile[] = FIXTURE_FILES): R
   return {
     mdx: MDX_POSTS,
     taxonomyText: REPO_TAXONOMY,
+    keywordsText: REPO_KEYWORDS,
     places: under(PLACES_DIR),
     posts: under(POSTS_DIR),
   };

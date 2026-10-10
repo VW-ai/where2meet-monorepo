@@ -4,7 +4,13 @@ import path from 'node:path';
 import { cache } from 'react';
 import { MDX_POSTS } from '@/content/blog/posts';
 import { findPage, listPages, pageSegments, type BlogPage, type Catalog } from './catalog';
-import { PLACES_DIR, POSTS_DIR, TAXONOMY_FILE, type ContentFile } from './content-file';
+import {
+  KEYWORDS_FILE,
+  PLACES_DIR,
+  POSTS_DIR,
+  TAXONOMY_FILE,
+  type ContentFile,
+} from './content-file';
 import { parseCatalog, type RepoContent } from './parse';
 import { USER_AGENT, type CommonsImage } from './photos';
 
@@ -20,12 +26,14 @@ export const loadCatalog = cache(async (): Promise<Catalog> => {
 
 /** Everything the blog is built from, read relative to the client root. */
 export async function readRepoContent(): Promise<RepoContent> {
-  const [taxonomyText, places, posts] = await Promise.all([
-    readFile(path.join(process.cwd(), TAXONOMY_FILE), 'utf8'),
+  const read = (file: string) => readFile(path.join(process.cwd(), file), 'utf8');
+  const [taxonomyText, keywordsText, places, posts] = await Promise.all([
+    read(TAXONOMY_FILE),
+    read(KEYWORDS_FILE),
     contentFiles(PLACES_DIR, true),
     contentFiles(POSTS_DIR, false),
   ]);
-  return { mdx: MDX_POSTS, taxonomyText, places, posts };
+  return { mdx: MDX_POSTS, taxonomyText, keywordsText, places, posts };
 }
 
 async function contentFiles(dir: string, recursive: boolean): Promise<ContentFile[]> {

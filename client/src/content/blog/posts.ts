@@ -247,6 +247,7 @@ function toPost(post: BlogPost): Post {
     updatedAt: assertIsoDate(post.updatedAt, `${post.slug}.updatedAt`),
     occasion: { key: post.occasion, label: OCCASIONS[post.occasion].label },
     parameters: [],
+    mainKeyword: null,
     places: post.examplePlaces.places,
     placesTitle: post.examplePlaces.title,
     source: {

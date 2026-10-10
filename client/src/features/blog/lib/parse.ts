@@ -8,6 +8,7 @@ import {
   type Catalog,
   type City,
   type CuratedPlace,
+  type Keyword,
   type LatLng,
   type OccasionTerm,
   type Post,
@@ -18,6 +19,7 @@ import {
   type VenueTypeTerm,
 } from './catalog';
 import {
+  KEYWORDS_FILE,
   PLACES_DIR,
   POSTS_DIR,
   TAXONOMY_FILE,
@@ -26,6 +28,7 @@ import {
   isFields,
   isText,
   listOf,
+  normalize,
   readFrontMatter,
   readYaml,
   type ContentFile,
@@ -42,6 +45,7 @@ export interface Issue {
 export interface RepoContent {
   mdx: readonly Post[];
   taxonomyText: string;
+  keywordsText: string;
   /** Named relative to `PLACES_DIR`: `new-york.md` or `new-york/midtown.md`. */
   places: readonly ContentFile[];
   /** Named relative to `POSTS_DIR`: `<slug>.md`. */
@@ -91,6 +95,7 @@ const EMPTY_TAXONOMY: Taxonomy = {
   groupSizes: [],
   budgets: [],
 };
+const KEYWORD_FIELDS = ['phrase', 'occasion', 'note'];
 const GOOGLE_TYPE = /^[a-z]+(?:_[a-z]+)*$/;
 const TEXT_SEARCH_PRICE_LEVELS = [
   'PRICE_LEVEL_INEXPENSIVE',
@@ -102,6 +107,7 @@ const TEXT_SEARCH_PRICE_LEVELS = [
 export function parseCatalog(repo: RepoContent): { catalog: Catalog; issues: Issue[] } {
   const issues: Issue[] = [];
   const taxonomy = parseTaxonomy(repo.taxonomyText, dropper(issues, TAXONOMY_FILE));
+  const keywords = parseKeywords(repo.keywordsText, taxonomy, dropper(issues, KEYWORDS_FILE));
   const general: Namespace = new Map([
     [IMAGES_SEGMENT, 'the photo route'],
     ...repo.mdx.map(({ slug }): [string, string] => [slug, 'an MDX post']),
@@ -121,7 +127,7 @@ export function parseCatalog(repo: RepoContent): { catalog: Catalog; issues: Iss
   const posts = [...repo.mdx, ...markdown].sort((a, b) =>
     b.publishedAt.localeCompare(a.publishedAt)
   );
-  return { catalog: { taxonomy, posts, cities }, issues };
+  return { catalog: { taxonomy, keywords, posts, cities }, issues };
 }
 
 /** Keeps every value that fits the schema, and drops each one that doesn't with a reason. */
@@ -217,6 +223,40 @@ function knownKeys(
     drop(`unknown ${parameter} ${JSON.stringify(key)}`);
     return false;
   });
+}
+
+function parseKeywords(text: string, { occasions }: Taxonomy, drop: Drop): Keyword[] {
+  const yaml = readYaml(text);
+  if (!yaml.ok) {
+    drop(`not valid YAML: ${yaml.problem}`);
+    return [];
+  }
+  if (!Array.isArray(yaml.value)) {
+    drop('not a YAML list of keywords');
+    return [];
+  }
+  const byPhrase = new Map<string, Keyword>();
+  yaml.value.forEach((item, index) => {
+    const itemDrop = within(drop, `[${index}]`);
+    if (!isFields(item)) return itemDrop('not an object');
+    const unknown = Object.keys(item).find((field) => !KEYWORD_FIELDS.includes(field));
+    if (unknown) return itemDrop(`unknown field "${unknown}"`);
+    const { phrase, occasion = null, note = null } = item;
+    if (!isText(phrase)) return itemDrop('missing phrase');
+    const earlier = byPhrase.get(normalize(phrase));
+    if (earlier) return itemDrop(`repeats "${earlier.phrase}"`);
+    const term = occasion === null ? null : occasions.find(({ key }) => key === occasion);
+    if (term === undefined) return itemDrop(`unknown occasion ${JSON.stringify(occasion)}`);
+    if (note !== null && typeof note !== 'string') {
+      return itemDrop(`invalid note ${JSON.stringify(note)}`);
+    }
+    byPhrase.set(normalize(phrase), {
+      phrase,
+      occasion: term ? term.key : null,
+      note: isText(note) ? note : null,
+    });
+  });
+  return [...byPhrase.values()];
 }
 
 function termLookup(taxonomy: Taxonomy): TermLookup {
@@ -453,6 +493,7 @@ function parsePost(
     updatedAt,
     occasion,
     parameters,
+    mainKeyword: isText(value.main_keyword) ? value.main_keyword : null,
     places,
     placesTitle: area ? `Our picks in ${area.name}` : 'Our picks',
     source: { kind: 'markdown', markdown: body, images: [cover, ...images] },

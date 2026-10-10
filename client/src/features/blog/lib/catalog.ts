@@ -29,6 +29,13 @@ export interface BudgetTerm extends Term {
   priceLevel: string;
 }
 
+/** A search phrase a post can target, from `keywords.yaml`. */
+export interface Keyword {
+  phrase: string;
+  occasion: string | null;
+  note: string | null;
+}
+
 export interface Taxonomy {
   occasions: readonly OccasionTerm[];
   times: readonly Term[];
@@ -83,6 +90,8 @@ export interface Post {
   updatedAt: IsoDate;
   occasion: Term;
   parameters: readonly Term[];
+  /** The phrase from `keywords.yaml` the post targets. MDX posts have none. */
+  mainKeyword: string | null;
   places: readonly CuratedPlace[];
   placesTitle: string;
   source: PostSource;
@@ -90,6 +99,7 @@ export interface Post {
 
 export interface Catalog {
   taxonomy: Taxonomy;
+  keywords: readonly Keyword[];
   posts: readonly Post[];
   cities: ReadonlyMap<string, City>;
 }
