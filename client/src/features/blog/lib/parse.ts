@@ -213,7 +213,7 @@ function parsePost(
     parameters,
     places,
     placesTitle: area ? `Our picks in ${area.name}` : 'Our picks',
-    source: { kind: 'panel', markdown: text(value.body), images: [cover, ...images] },
+    source: { kind: 'markdown', markdown: text(value.body), images: [cover, ...images] },
   };
 }
 

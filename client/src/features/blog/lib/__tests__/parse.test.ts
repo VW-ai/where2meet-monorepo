@@ -165,7 +165,7 @@ describe('parsePublished', () => {
           places: [{ placeId: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
           placesTitle: 'Our picks in Old Town',
           source: {
-            kind: 'panel',
+            kind: 'markdown',
             markdown: 'Body',
             images: [
               {
@@ -198,7 +198,7 @@ describe('parsePublished', () => {
           parameters: [],
           places: [],
           placesTitle: 'Our picks',
-          source: { kind: 'panel', markdown: 'Body', images: [lawn] },
+          source: { kind: 'markdown', markdown: 'Body', images: [lawn] },
         },
       ],
       cities: new Map([
@@ -302,7 +302,7 @@ describe('parsePublished', () => {
     expect(
       catalog.posts.map((kept) => [
         kept.slug,
-        kept.source.kind === 'panel' && kept.source.images.map((kept) => kept.fileName),
+        kept.source.kind === 'markdown' && kept.source.images.map((kept) => kept.fileName),
       ])
     ).toEqual([['photos', ['lawn.jpg']]]);
   });

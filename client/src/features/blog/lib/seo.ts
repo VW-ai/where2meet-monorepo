@@ -29,7 +29,7 @@ export function blogPageMetadata(page: BlogPage): Metadata {
 }
 
 function coverAlt(page: BlogPage): string {
-  if (page.kind === 'post' && page.post.source.kind === 'repo') return page.post.source.cover.alt;
+  if (page.kind === 'post' && page.post.source.kind === 'mdx') return page.post.source.cover.alt;
   const photo = page.kind === 'post' ? postCover(page.post) : (page.town ?? page.city).image;
   return photo ? `${photo.alt.replace(/\.$/, '')}, next to the title.` : MAP_COVER_ALT;
 }

@@ -232,7 +232,7 @@ const posts: BlogPost[] = [
 ];
 
 /** Newest first. Dates are checked at module load so a typo fails the build. */
-export const REPO_POSTS: readonly Post[] = posts
+export const MDX_POSTS: readonly Post[] = posts
   .map(toPost)
   .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 
@@ -250,7 +250,7 @@ function toPost(post: BlogPost): Post {
     places: post.examplePlaces.places,
     placesTitle: post.examplePlaces.title,
     source: {
-      kind: 'repo',
+      kind: 'mdx',
       cover: {
         src: `${segmentsPath([post.slug])}/cover.png`,
         width: SHARE_IMAGE.width,

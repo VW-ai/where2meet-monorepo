@@ -1,7 +1,7 @@
 import 'server-only';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { REPO_POSTS } from '@/content/blog/posts';
+import { MDX_POSTS } from '@/content/blog/posts';
 import {
   PANEL_TAG,
   findPage,
@@ -26,7 +26,7 @@ const NOTHING_PUBLISHED: Catalog = { posts: [], cities: new Map() };
  * throws so Next keeps serving the last good page instead of caching a 404 for an hour.
  */
 export async function loadCatalog(): Promise<Catalog> {
-  return withRepoPosts(REPO_POSTS, await loadPanel());
+  return withRepoPosts(MDX_POSTS, await loadPanel());
 }
 
 async function loadPanel(): Promise<Catalog> {
@@ -86,7 +86,7 @@ export function isBuilding(): boolean {
 function parse(raw: unknown): Catalog {
   const { catalog, issues } = parsePublished(
     raw,
-    REPO_POSTS.map(({ slug }) => slug)
+    MDX_POSTS.map(({ slug }) => slug)
   );
   for (const issue of issues) warnOnce(`Skipped ${issue}`);
   return catalog;

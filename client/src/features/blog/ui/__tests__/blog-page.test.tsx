@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { REPO_POSTS } from '@/content/blog/posts';
+import { MDX_POSTS } from '@/content/blog/posts';
 import fixture from '../../__fixtures__/published.json';
 import { findPage, withRepoPosts } from '../../lib/catalog';
 import { parsePublished } from '../../lib/parse';
@@ -8,10 +8,10 @@ import { BlogPageView } from '../blog-page';
 
 const ORIGIN = 'https://www.where2meet.org';
 const catalog = withRepoPosts(
-  REPO_POSTS,
+  MDX_POSTS,
   parsePublished(
     fixture,
-    REPO_POSTS.map(({ slug }) => slug)
+    MDX_POSTS.map(({ slug }) => slug)
   ).catalog
 );
 

@@ -15,7 +15,7 @@ import {
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
-import { REPO_POSTS } from '@/content/blog/posts';
+import { MDX_POSTS } from '@/content/blog/posts';
 import fixture from '@/features/blog/__fixtures__/published.json';
 import { postPath, postPhotos, withRepoPosts } from '@/features/blog/lib/catalog';
 import { parsePublished } from '@/features/blog/lib/parse';
@@ -301,7 +301,7 @@ describe('structured data', () => {
   });
 
   it('describes a post as a BlogPosting with each photo as a credited, licensed ImageObject', () => {
-    const catalog = withRepoPosts(REPO_POSTS, parsePublished(fixture, []).catalog);
+    const catalog = withRepoPosts(MDX_POSTS, parsePublished(fixture, []).catalog);
     const post = catalog.posts.find(
       ({ slug }) => slug === 'group-dinner-spots-near-herald-square'
     )!;
@@ -356,7 +356,7 @@ describe('structured data', () => {
   });
 
   it('credits a repo post’s cover photo on its cover image', () => {
-    const post = REPO_POSTS.find(
+    const post = MDX_POSTS.find(
       ({ slug }) => slug === 'how-to-pick-a-restaurant-for-a-group-dinner'
     )!;
     expect(
@@ -509,7 +509,7 @@ describe('positioning copy', () => {
       SITE_CONFIG.tagline,
       SITE_CONFIG.pitch,
       await llmsTxt(),
-      ...REPO_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
+      ...MDX_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
       ...strings(fixture),
     ]) {
       expect(text).not.toMatch(/\bfair/i);

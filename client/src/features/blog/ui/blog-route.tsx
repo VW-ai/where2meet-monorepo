@@ -18,6 +18,6 @@ export async function blogMetadata(segments: readonly string[]): Promise<Metadat
 }
 
 async function repoBody(page: BlogPage): Promise<MDXContent | undefined> {
-  if (page.kind !== 'post' || page.post.source.kind !== 'repo') return undefined;
+  if (page.kind !== 'post' || page.post.source.kind !== 'mdx') return undefined;
   return (await import(`@/content/blog/${page.post.slug}.mdx`)).default;
 }

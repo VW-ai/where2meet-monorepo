@@ -33,7 +33,7 @@ function coverBadge(page: BlogPage): string {
 }
 
 async function coverPhoto(page: BlogPage): Promise<CardPhoto | undefined> {
-  if (page.kind === 'post' && page.post.source.kind === 'repo') {
+  if (page.kind === 'post' && page.post.source.kind === 'mdx') {
     const file = path.join(process.cwd(), coverPhotoFile(page.post.slug));
     return { jpeg: await readFile(file), credit: creditLine(page.post.source.cover) };
   }
@@ -51,7 +51,7 @@ async function coverPhoto(page: BlogPage): Promise<CardPhoto | undefined> {
 
 function commonsCover(page: BlogPage): CommonsImage | null {
   if (page.kind === 'area') return (page.town ?? page.city).image;
-  return page.post.source.kind === 'panel' ? page.post.source.images[0] : null;
+  return page.post.source.kind === 'markdown' ? page.post.source.images[0] : null;
 }
 
 function creditLine({ credit }: Photo): string {

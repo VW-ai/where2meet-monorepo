@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REPO_POSTS } from '@/content/blog/posts';
+import { MDX_POSTS } from '@/content/blog/posts';
 import fixture from '../../__fixtures__/published.json';
 import {
   areaPosts,
@@ -17,10 +17,10 @@ import {
 import { parsePublished } from '../parse';
 
 const catalog = withRepoPosts(
-  REPO_POSTS,
+  MDX_POSTS,
   parsePublished(
     fixture,
-    REPO_POSTS.map(({ slug }) => slug)
+    MDX_POSTS.map(({ slug }) => slug)
   ).catalog
 );
 
@@ -59,10 +59,10 @@ describe('blog catalog', () => {
 
   it('resolves one segment to a repo post, a general post or a city', () => {
     expect(resolve('how-to-pick-a-date-spot')).toBe(
-      'repo post How to pick a date spot you can both reach'
+      'mdx post How to pick a date spot you can both reach'
     );
     expect(resolve('how-to-plan-a-team-welcome-lunch')).toBe(
-      'panel post How to plan a team welcome lunch'
+      'markdown post How to plan a team welcome lunch'
     );
     expect(resolve('new-york')).toBe('city New York');
   });
@@ -70,10 +70,10 @@ describe('blog catalog', () => {
   it('resolves two segments to a town or a city post, and three to a town post', () => {
     expect(resolve('new-york/midtown')).toBe('town Midtown');
     expect(resolve('new-york/group-dinner-spots-near-herald-square')).toBe(
-      'panel post Group dinner spots near Herald Square'
+      'markdown post Group dinner spots near Herald Square'
     );
     expect(resolve('new-york/midtown/quiet-places-for-a-small-team-meeting')).toBe(
-      'panel post Quiet places for a small team meeting in Midtown'
+      'markdown post Quiet places for a small team meeting in Midtown'
     );
   });
 
