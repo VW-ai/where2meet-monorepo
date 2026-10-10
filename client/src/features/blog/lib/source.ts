@@ -25,7 +25,6 @@ export const loadCatalog = cache(async (): Promise<Catalog> => {
   return catalog;
 });
 
-/** Everything the blog is built from, read relative to the client root. */
 export async function readRepoContent(): Promise<RepoContent> {
   const [taxonomyText, keywordsText, places, posts] = await Promise.all([
     read(TAXONOMY_FILE),
@@ -40,7 +39,6 @@ export async function readWritingRules(): Promise<string> {
   return read(WRITING_RULES_FILE);
 }
 
-/** Relative to the client root, where the build runs. */
 function read(file: string): Promise<string> {
   return readFile(path.join(process.cwd(), file), 'utf8');
 }

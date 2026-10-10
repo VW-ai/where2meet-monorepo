@@ -39,7 +39,6 @@ import {
 } from './content-file';
 import { isLicense, type CommonsImage } from './photos';
 
-/** Why the site skips a file or part of one. `file` is relative to the client root. */
 export interface Issue {
   file: string;
   message: string;
@@ -49,9 +48,7 @@ export interface RepoContent {
   mdx: readonly Post[];
   taxonomyText: string;
   keywordsText: string;
-  /** Named relative to `PLACES_DIR`: `new-york.md` or `new-york/midtown.md`. */
   places: readonly ContentFile[];
-  /** Named relative to `POSTS_DIR`: `<slug>.md`. */
   posts: readonly ContentFile[];
 }
 
@@ -60,16 +57,13 @@ type TermLookup = (parameter: Parameter, key: unknown) => Term | undefined;
 
 type Drop = (reason: string) => null;
 type Reason = string;
-/** Who holds each segment below one path. */
 type Namespace = Map<string, string>;
 type ParsedCity = City & { towns: Map<string, Area> };
 type AreaLookup = (frontMatter: Fields) => PostAreas | Reason;
 
 interface Context {
   terms: TermLookup;
-  /** Every photo's file name so far, since /blog/images serves them side by side. */
   fileNames: Set<string>;
-  /** Keyed by the parent's segments joined with "/", so "" is /blog itself. */
   namespaces: Map<string, Namespace>;
   placeFiles: ReadonlySet<string>;
 }
@@ -131,7 +125,6 @@ export function parseCatalog(repo: RepoContent): { catalog: Catalog; issues: Iss
   return { catalog: { taxonomy, keywords, posts, cities }, issues };
 }
 
-/** Keeps every value that fits the schema, and drops each one that doesn't with a reason. */
 function parseTaxonomy(text: string, drop: Drop): Taxonomy {
   const yaml = readYaml(text);
   if (!yaml.ok) {
@@ -206,7 +199,6 @@ function baseTerm(item: Fields, fields: readonly string[], drop: Drop): Term | n
   return { key: item.key, label: item.label };
 }
 
-/** An occasion's suggested keys, without any its list doesn't define. */
 function knownKeys(
   occasion: Fields,
   list: 'times' | 'venue_types' | 'group_sizes',
@@ -273,7 +265,6 @@ function termLookup(taxonomy: Taxonomy): TermLookup {
   return (parameter, key) => (typeof key === 'string' ? lists[parameter].get(key) : undefined);
 }
 
-/** Cities first, so each town finds its city whatever order the files come in. */
 function parsePlaces(
   files: readonly ContentFile[],
   context: Context,
@@ -351,7 +342,6 @@ function readArea(
   return { slug, name, updatedAt, seo, center, ...placeBody(body) };
 }
 
-/** A place takes its slug and photo only once nothing else can drop it. */
 function claimArea(
   area: Omit<Area, 'image'>,
   image: unknown,
@@ -371,7 +361,6 @@ function claimArea(
   return { ...area, image: photo };
 }
 
-/** A place page's body: its intro, then the transit notes below `## Getting around`, if any. */
 function placeBody(body: string): { intro: string; transitNotes: string | null } {
   const lines = body.split('\n');
   const heading = lines.findIndex((line) => line.trim() === GETTING_AROUND);

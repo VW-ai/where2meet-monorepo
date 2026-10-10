@@ -12,7 +12,6 @@ import {
 } from '../lib/content-file';
 import type { RepoContent } from '../lib/parse';
 
-/** A file at `path` from the client root, as the site would find it there. */
 export interface FixtureFile {
   path: string;
   text: string;
@@ -20,7 +19,6 @@ export interface FixtureFile {
 
 const FIXTURE_ROOT = path.join(__dirname, 'content');
 
-/** New York, Midtown and four posts on them, laid out as in the client root. */
 export const FIXTURE_FILES: readonly FixtureFile[] = readdirSync(FIXTURE_ROOT, {
   recursive: true,
   encoding: 'utf8',
@@ -32,7 +30,6 @@ export const FIXTURE_FILES: readonly FixtureFile[] = readdirSync(FIXTURE_ROOT, {
 export const REPO_TAXONOMY = readFileSync(path.join(process.cwd(), TAXONOMY_FILE), 'utf8');
 export const REPO_KEYWORDS = readFileSync(path.join(process.cwd(), KEYWORDS_FILE), 'utf8');
 
-/** What `readRepoContent` reads when the client root holds `files` and the repo's lists. */
 export function fixtureContent(files: readonly FixtureFile[] = FIXTURE_FILES): RepoContent {
   const under = (dir: string): ContentFile[] =>
     files.flatMap((file) =>
@@ -57,7 +54,6 @@ export function markdownFile(
   return { name, text: `---\n${stringify(frontMatter)}---\n${body}` };
 }
 
-/** `fs` as if `files` were in the client root too: listed by `readdir`, served by `readFile`. */
 export function withContentFiles(
   fs: typeof FsPromises,
   files: () => readonly FixtureFile[]

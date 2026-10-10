@@ -40,7 +40,6 @@ function placePhotos(file: ContentFile): readonly CommonsImage[] {
   return area?.image ? [area.image] : [];
 }
 
-/** What a HEAD request says, or null when the network or Wikimedia can't answer right now. */
 async function measure(url: string): Promise<ImageHead | null> {
   try {
     const response = await fetch(url, {

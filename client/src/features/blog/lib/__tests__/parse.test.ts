@@ -58,7 +58,6 @@ function image(fileName: unknown, fields: Record<string, unknown> = {}) {
   };
 }
 
-/** `<city>.md` gets a region and a country, `<city>/<town>.md` doesn't. */
 function placeFile(
   name: string,
   fields: Record<string, unknown> = {},

@@ -13,7 +13,6 @@ type PlaceJson =
   | { path: string; kind: 'city'; slug: string; name: string; center: LatLng }
   | { path: string; kind: 'town'; slug: string; city: string; name: string; center: LatLng };
 
-/** Every parameter key, so a new parameter can't compile without its field here. */
 type PostJson = {
   path: string;
   title: string;

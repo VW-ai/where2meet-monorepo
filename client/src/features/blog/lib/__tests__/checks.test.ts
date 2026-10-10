@@ -31,11 +31,9 @@ const ATLANTIC_IMAGE = `  - file_name: atlantic-avenue-barclays-center-station-e
     cropped: false
 `;
 
-/** The example's main keyword, spelled another way, and one more. */
 const KEYWORDS =
   '- phrase: Group  Dinner after work\n  occasion: group-dinner\n- phrase: group dinner\n';
 
-/** The posts with the fixture's places, so a post can be local to New York or Midtown. */
 function check(
   posts: readonly ContentFile[],
   heads: ReadonlyMap<string, ImageHead> = new Map()

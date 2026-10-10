@@ -20,11 +20,6 @@ import {
 import { GETTING_AROUND, parseCatalog, type RepoContent } from './parse';
 import type { CommonsImage } from './photos';
 
-/**
- * The checks CI runs on the repo's content. Every file gets `fields`. Each post the site keeps
- * gets the panel's publish checklist (nomi-control `where2meet/publishing.py`), ported rule for
- * rule, and each city and town the site keeps gets the place rules.
- */
 export type Rule = 'fields' | PostRule | PlaceRule;
 
 type PostRule =
@@ -74,13 +69,11 @@ interface ParsedPost {
 }
 
 interface RuleContext extends CheckOptions {
-  /** The phrases in `keywords.yaml`, normalized as a main keyword matches one. */
   keywords: ReadonlySet<string>;
 }
 
 type Check<P> = (parsed: P, context: RuleContext) => Messages;
 
-/** One folder of Markdown files: the fields each may have, and the rules for one the site keeps. */
 interface ContentKind<P, R extends Rule> {
   dir: string;
   shape: (frontMatter: Fields, file: ContentFile) => string[];
@@ -262,7 +255,6 @@ const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
   ],
 };
 
-/** Rules for a city or town page the site keeps. */
 const PLACE_RULES: { [R in PlaceRule]: Check<Area> } = {
   intro: (area) => {
     const words = wordCount(area.intro);
@@ -312,10 +304,6 @@ const PLACES: ContentKind<Area, PlaceRule> = {
   rules: PLACE_RULES,
 };
 
-/**
- * Every problem in the repo's content, per file: `fields` holds why the site skips the file or
- * part of it, and a post or place the site keeps gets the rest in rule order.
- */
 export function checkContent(repo: RepoContent, options: CheckOptions): Problem[] {
   const { catalog, issues } = parseCatalog(repo);
   const context: RuleContext = {
@@ -456,10 +444,8 @@ function headProblems(fileName: string, { status, bytes, contentType }: ImageHea
   ];
 }
 
-/** The free text the site renders, by where it shows. */
 type PublishedText = [field: string, text: string][];
 
-/** Labels and author names are proper nouns, not copy. */
 function postText({ post, body, images }: ParsedPost): PublishedText {
   return [
     ['the title', post.title],

@@ -9,7 +9,6 @@ const ICONS: Readonly<Record<string, IconNode>> = {
   birthday: Cake,
 };
 
-/** An occasion's icon. `taxonomy.yaml` can add occasions, so an unknown key gets a pin. */
 export function occasionIcon(key: string): IconNode {
   return Object.hasOwn(ICONS, key) ? ICONS[key] : MapPin;
 }

@@ -2,7 +2,6 @@ import { parse as parseYaml } from 'yaml';
 
 export type Fields = Record<string, unknown>;
 
-/** A file the site reads from the repo, named relative to the folder it was listed in. */
 export interface ContentFile {
   name: string;
   text: string;
@@ -12,7 +11,6 @@ export type FrontMatterContent =
   | { ok: true; frontMatter: Fields; body: string }
   | { ok: false; problem: string };
 
-/** Relative to the client root, where the site and CI read them. */
 export const CONTENT_DIR = 'src/content';
 export const POSTS_DIR = `${CONTENT_DIR}/posts`;
 export const PLACES_DIR = `${CONTENT_DIR}/places`;
@@ -29,7 +27,6 @@ export function filePath(dir: string, name: string): string {
   return `${dir}/${name}`;
 }
 
-/** `new-york/midtown.md` is `['new-york', 'midtown']`. */
 export function fileSegments(name: string): string[] {
   return name.replace(/\.md$/, '').split('/');
 }

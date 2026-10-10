@@ -4,7 +4,6 @@ import type { CommonsImage, Photo } from './photos';
 export const BLOG_PATH = '/blog';
 export const IMAGES_SEGMENT = 'images';
 
-/** The parameters a post may set besides its occasion, in the order its chips show them. */
 export const OPTIONAL_PARAMETERS = ['time', 'venue_type', 'group_size', 'budget'] as const;
 export type OptionalParameter = (typeof OPTIONAL_PARAMETERS)[number];
 
@@ -18,7 +17,6 @@ export interface Term {
   label: string;
 }
 
-/** The parameter keys an occasion suggests, from `taxonomy.yaml`. */
 export interface OccasionTerm extends Term {
   times: readonly string[];
   venueTypes: readonly string[];
@@ -33,7 +31,6 @@ export interface BudgetTerm extends Term {
   priceLevel: string;
 }
 
-/** A search phrase a post can target, from `keywords.yaml`. */
 export interface Keyword {
   phrase: string;
   occasion: string | null;
@@ -69,7 +66,6 @@ export interface Area extends AreaRef {
   seo: Seo;
   center: LatLng;
   intro: string;
-  /** Null when the body has no `## Getting around` line. */
   transitNotes: string | null;
   image: CommonsImage | null;
 }
@@ -95,7 +91,6 @@ export interface Post {
   updatedAt: IsoDate;
   occasion: Term;
   parameters: Readonly<Record<OptionalParameter, Term | null>>;
-  /** The phrase from `keywords.yaml` the post targets. MDX posts have none. */
   mainKeyword: string | null;
   places: readonly CuratedPlace[];
   placesTitle: string;

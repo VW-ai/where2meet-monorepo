@@ -59,7 +59,6 @@ function linksIn(text: string) {
   return [...text.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((match) => match[1]);
 }
 
-/** The repo's own content unless a test adds the fixture files. */
 afterEach(() => {
   disk.files = [];
 });
