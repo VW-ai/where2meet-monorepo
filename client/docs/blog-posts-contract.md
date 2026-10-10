@@ -15,6 +15,7 @@ Owner decisions (2026-10-10):
 
 - Agents write posts as Markdown files in `src/content/posts/` and open a pull request. The owner reviews and merges, and the merge publishes the post.
 - Post parameters live in `src/content/taxonomy.yaml`, copied from the panel's seed. Repo posts take their keys and labels from it.
+- The writing rules live in [writing-rules.md](writing-rules.md), copied exactly from the owner's rules.
 
 ## URLs
 
@@ -218,7 +219,7 @@ The body uses the Markdown subset in [How the site uses the fields](#how-the-sit
 - `![](<file_name>)` places that image, with its alt text, caption and credit.
 - `:::places` places the place cards.
 
-Photos the body doesn't place, other than the cover, and the cards without a `:::places` line, render after the second `##` section. Follow the writing rules for everything else.
+Photos the body doesn't place, other than the cover, and the cards without a `:::places` line, render after the second `##` section. Follow the [writing rules](writing-rules.md) for everything else.
 
 ### Run the checks
 
