@@ -4,7 +4,7 @@ import { BlogRoute, blogMetadata } from '@/features/blog/ui/blog-route';
 
 type Params = { slug: string; segment: string };
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 
 export async function generateStaticParams(): Promise<Params[]> {
   return (await segmentsAtDepth(2)).map(([slug, segment]) => ({ slug, segment }));

@@ -1,10 +1,15 @@
-import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as oneSegment from '@/app/(landing)/blog/[slug]/page';
 import * as twoSegments from '@/app/(landing)/blog/[slug]/[segment]/page';
 import * as townPost from '@/app/(landing)/blog/[slug]/[segment]/[post]/page';
+import { FIXTURE_FILES, type FixtureFile } from '@/features/blog/__fixtures__/content-files';
 
-const FIXTURE_PATH = path.join(__dirname, '../../features/blog/__fixtures__/published.json');
+const disk = vi.hoisted(() => ({ files: [] as FixtureFile[] }));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const { withContentFiles } = await import('@/features/blog/__fixtures__/content-files');
+  return withContentFiles(await importOriginal(), () => disk.files);
+});
+
 const ORIGIN = 'https://www.where2meet.org';
 const NOT_FOUND = { digest: 'NEXT_HTTP_ERROR_FALLBACK;404' };
 
@@ -23,15 +28,15 @@ async function metadata(segments: string) {
 }
 
 beforeEach(() => {
-  vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+  disk.files = [...FIXTURE_FILES];
 });
 
 afterEach(() => {
-  vi.unstubAllEnvs();
+  disk.files = [];
 });
 
 describe('/blog routes', () => {
-  it('prerenders repo posts, general posts and cities one level below /blog', async () => {
+  it('prerenders MDX posts, general posts and cities one level below /blog', async () => {
     expect(await oneSegment.generateStaticParams()).toEqual([
       { slug: 'how-to-pick-a-restaurant-for-a-group-dinner' },
       { slug: 'how-to-pick-a-date-spot' },
@@ -53,17 +58,17 @@ describe('/blog routes', () => {
     ]);
   });
 
-  it('prerenders only the repo posts when the panel is not configured', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', '');
-    vi.stubEnv('CONTROL_PLANE_URL', '');
-    vi.stubEnv('CONTROL_PLANE_READ_TOKEN', '');
+  it('prerenders no city or local post when the repo has no place files', async () => {
+    disk.files = FIXTURE_FILES.filter((file) => !file.path.startsWith('src/content/places/'));
     expect(await oneSegment.generateStaticParams()).toEqual([
       { slug: 'how-to-pick-a-restaurant-for-a-group-dinner' },
       { slug: 'how-to-pick-a-date-spot' },
+      { slug: 'how-to-plan-a-team-welcome-lunch' },
       { slug: 'how-to-plan-a-weekend-hangout-with-friends' },
       { slug: 'how-to-choose-a-team-meeting-location' },
     ]);
     expect(await twoSegments.generateStaticParams()).toEqual([]);
+    expect(await townPost.generateStaticParams()).toEqual([]);
   });
 
   it.each([

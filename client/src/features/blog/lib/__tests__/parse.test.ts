@@ -1,21 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { stringify } from 'yaml';
 import { MDX_POSTS } from '@/content/blog/posts';
-import { checkTaxonomy, parseCatalog, readTaxonomy } from '../parse';
-import { markdownPostFile } from '../../__fixtures__/repo-posts';
+import type { ContentFile } from '../content-file';
+import { parseCatalog, type RepoContent } from '../parse';
+import { markdownFile } from '../../__fixtures__/content-files';
 
 const seo = { title: 'Where to meet in Testville', description: 'A description long enough.' };
-
-const taxonomy = {
-  occasions: [
-    { key: 'team-welcome', label: 'Team welcome' },
-    { key: 'date-night', label: 'Date night' },
-  ],
-  times: [{ key: 'weekday-lunch', label: 'Weekday lunch' }],
-  venue_types: [{ key: 'chinese-restaurant', label: 'Chinese restaurant' }],
-  group_sizes: [{ key: 'large', label: 'Big group, 7 or more' }],
-  budgets: [{ key: 'moderate', label: 'Mid-range' }],
-};
 
 const repoTaxonomy = {
   occasions: [
@@ -36,7 +26,19 @@ const repoTaxonomy = {
   budgets: [{ key: 'moderate', label: 'Mid-range', price_level: 'PRICE_LEVEL_MODERATE' }],
 };
 const TAXONOMY_YAML = stringify(repoTaxonomy);
-const NO_REPO = { mdx: [], files: [], taxonomyText: TAXONOMY_YAML };
+
+function content({
+  places = [],
+  posts = [],
+  mdx = [],
+  taxonomyText = TAXONOMY_YAML,
+}: Partial<RepoContent>): RepoContent {
+  return { mdx, taxonomyText, places, posts };
+}
+
+function skipped(repo: RepoContent): string[] {
+  return parseCatalog(repo).issues.map(({ file, message }) => `${file}: ${message}`);
+}
 
 function image(fileName: unknown, fields: Record<string, unknown> = {}) {
   return {
@@ -49,61 +51,59 @@ function image(fileName: unknown, fields: Record<string, unknown> = {}) {
     caption: 'The lawn',
     author: 'Phi',
     license: 'CC0',
-    license_url: 'https://creativecommons.org/publicdomain/zero/1.0/',
     cropped: false,
     ...fields,
   };
 }
 
-function post(slug: unknown, fields: Record<string, unknown> = {}) {
-  return {
-    slug,
-    occasion: 'team-welcome',
-    time: null,
-    venue_type: null,
-    group_size: null,
-    budget: null,
-    main_keyword: 'team welcome lunch',
-    published_at: '2026-10-08',
-    updated_at: '2026-10-08',
-    seo,
-    body: 'Body',
-    places: [],
-    images: [image(`${slug}.jpg`)],
-    ...fields,
-  };
+/** `<city>.md` gets a region and a country, `<city>/<town>.md` doesn't. */
+function placeFile(
+  name: string,
+  fields: Record<string, unknown> = {},
+  body = 'Hello\n\n## Getting around\n\nBus\n'
+): ContentFile {
+  const city = !name.includes('/');
+  return markdownFile(
+    name,
+    {
+      name: 'Testville',
+      ...(city ? { region: 'TV', country: 'US' } : {}),
+      center: { lat: 42.36, lng: -71.06 },
+      updated_at: '2026-10-08',
+      seo,
+      image: null,
+      ...fields,
+    },
+    body
+  );
 }
 
-function area(slug: unknown, posts: unknown[] = [], extra: Record<string, unknown> = {}) {
-  return {
-    slug,
-    name: 'Testville',
-    updated_at: '2026-10-08',
-    seo,
-    intro: 'Hello',
-    transit_notes: 'Bus',
-    image: null,
-    posts,
-    ...extra,
-  };
+function postFile(slug: string, fields: Record<string, unknown> = {}, body = 'Body') {
+  return markdownFile(
+    `${slug}.md`,
+    {
+      title: `Title of ${slug}`,
+      description: `Description of ${slug}`,
+      main_keyword: 'team welcome lunch',
+      occasion: 'team-welcome',
+      time: null,
+      venue_type: null,
+      group_size: null,
+      budget: null,
+      city: null,
+      town: null,
+      published_at: '2026-10-09',
+      updated_at: '2026-10-10',
+      places: [],
+      images: [image(`${slug}.jpg`)],
+      ...fields,
+    },
+    `${body}\n`
+  );
 }
 
-function published({
-  posts = [],
-  cities = [],
-  taxonomyLists = taxonomy,
-}: {
-  posts?: unknown[];
-  cities?: unknown[];
-  taxonomyLists?: Record<string, unknown>;
-}) {
-  return {
-    version: 3,
-    generated_at: '2026-10-08T12:00:00Z',
-    taxonomy: taxonomyLists,
-    posts,
-    cities,
-  };
+function paths(posts: readonly { slug: string; areas: readonly { slug: string }[] }[]) {
+  return posts.map(({ areas, slug }) => [...areas.map((a) => a.slug), slug].join('/'));
 }
 
 const lawn = {
@@ -123,43 +123,38 @@ const lawn = {
 };
 
 describe('parseCatalog', () => {
-  it('maps general and local posts, cities, towns and images to the catalog', () => {
+  it('maps place files to cities and towns, and post files to posts in them', () => {
     const { catalog, issues } = parseCatalog(
-      NO_REPO,
-      published({
-        posts: [post('plan-a-team-welcome', { images: [image('lawn.jpg')] })],
-        cities: [
-          area('testville', [], {
-            region: 'TV',
-            country: 'US',
-            towns: [
-              area(
-                'old-town',
-                [
-                  post('chinese-restaurants-for-a-team-welcome-lunch', {
-                    budget: 'moderate',
-                    group_size: 'large',
-                    venue_type: 'chinese-restaurant',
-                    time: 'weekday-lunch',
-                    places: [{ place_id: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
-                    images: [
-                      image('golden-duck.jpg', {
-                        license: 'CC BY 4.0',
-                        author: 'Ann',
-                        cropped: true,
-                        caption: undefined,
-                      }),
-                    ],
-                  }),
-                ],
-                {
-                  name: 'Old Town',
-                  image: image('old-town-square.jpg', {
-                    license: 'Public domain',
-                    license_url: null,
-                  }),
-                }
-              ),
+      content({
+        places: [
+          placeFile('testville.md'),
+          placeFile(
+            'testville/old-town.md',
+            {
+              name: 'Old Town',
+              center: { lat: 42.35, lng: -71.05 },
+              image: image('old-town-square.jpg', { license: 'Public domain' }),
+            },
+            'Cobbled lanes.\n\n## Getting around\n\nWalk from the ferry.\n'
+          ),
+        ],
+        posts: [
+          postFile('plan-a-team-welcome', { images: [image('lawn.jpg')] }),
+          postFile('chinese-restaurants-for-a-team-welcome-lunch', {
+            city: 'testville',
+            town: 'old-town',
+            budget: 'moderate',
+            group_size: 'large',
+            venue_type: 'chinese-restaurant',
+            time: 'weekday-lunch',
+            places: [{ place_id: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
+            images: [
+              image('golden-duck.jpg', {
+                license: 'CC BY 4.0',
+                author: 'Ann',
+                cropped: true,
+                caption: undefined,
+              }),
             ],
           }),
         ],
@@ -167,71 +162,16 @@ describe('parseCatalog', () => {
     );
 
     expect(issues).toEqual([]);
-    expect(catalog).toEqual({
-      posts: [
-        {
-          slug: 'chinese-restaurants-for-a-team-welcome-lunch',
-          areas: [
-            { slug: 'testville', name: 'Testville' },
-            { slug: 'old-town', name: 'Old Town' },
-          ],
-          title: 'Where to meet in Testville',
-          description: 'A description long enough.',
-          publishedAt: '2026-10-08',
-          updatedAt: '2026-10-08',
-          occasion: { key: 'team-welcome', label: 'Team welcome' },
-          parameters: [
-            { key: 'weekday-lunch', label: 'Weekday lunch' },
-            { key: 'chinese-restaurant', label: 'Chinese restaurant' },
-            { key: 'large', label: 'Big group, 7 or more' },
-            { key: 'moderate', label: 'Mid-range' },
-          ],
-          places: [{ placeId: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
-          placesTitle: 'Our picks in Old Town',
-          source: {
-            kind: 'markdown',
-            markdown: 'Body',
-            images: [
-              {
-                fileName: 'golden-duck.jpg',
-                sourceUrl:
-                  'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/golden-duck.jpg/1280px-golden-duck.jpg',
-                src: '/blog/images/golden-duck.jpg',
-                width: 1280,
-                height: 960,
-                alt: 'A lawn with chairs',
-                caption: '',
-                credit: {
-                  author: 'Ann',
-                  license: 'CC BY 4.0',
-                  pageUrl: 'https://commons.wikimedia.org/wiki/File:golden-duck.jpg',
-                  cropped: true,
-                },
-              },
-            ],
-          },
-        },
-        {
-          slug: 'plan-a-team-welcome',
-          areas: [],
-          title: 'Where to meet in Testville',
-          description: 'A description long enough.',
-          publishedAt: '2026-10-08',
-          updatedAt: '2026-10-08',
-          occasion: { key: 'team-welcome', label: 'Team welcome' },
-          parameters: [],
-          places: [],
-          placesTitle: 'Our picks',
-          source: { kind: 'markdown', markdown: 'Body', images: [lawn] },
-        },
-      ],
-      cities: new Map([
+    expect(catalog.cities).toEqual(
+      new Map([
         [
           'testville',
           {
             slug: 'testville',
             name: 'Testville',
             region: 'TV',
+            country: 'US',
+            center: { lat: 42.36, lng: -71.06 },
             updatedAt: '2026-10-08',
             seo,
             intro: 'Hello',
@@ -243,10 +183,11 @@ describe('parseCatalog', () => {
                 {
                   slug: 'old-town',
                   name: 'Old Town',
+                  center: { lat: 42.35, lng: -71.05 },
                   updatedAt: '2026-10-08',
                   seo,
-                  intro: 'Hello',
-                  transitNotes: 'Bus',
+                  intro: 'Cobbled lanes.',
+                  transitNotes: 'Walk from the ferry.',
                   image: {
                     ...lawn,
                     fileName: 'old-town-square.jpg',
@@ -265,261 +206,273 @@ describe('parseCatalog', () => {
             ]),
           },
         ],
-      ]),
+      ])
+    );
+    expect(catalog.posts).toEqual([
+      {
+        slug: 'plan-a-team-welcome',
+        areas: [],
+        title: 'Title of plan-a-team-welcome',
+        description: 'Description of plan-a-team-welcome',
+        publishedAt: '2026-10-09',
+        updatedAt: '2026-10-10',
+        occasion: { key: 'team-welcome', label: 'Team welcome' },
+        parameters: [],
+        places: [],
+        placesTitle: 'Our picks',
+        source: { kind: 'markdown', markdown: 'Body\n', images: [lawn] },
+      },
+      {
+        slug: 'chinese-restaurants-for-a-team-welcome-lunch',
+        areas: [
+          { slug: 'testville', name: 'Testville' },
+          { slug: 'old-town', name: 'Old Town' },
+        ],
+        title: 'Title of chinese-restaurants-for-a-team-welcome-lunch',
+        description: 'Description of chinese-restaurants-for-a-team-welcome-lunch',
+        publishedAt: '2026-10-09',
+        updatedAt: '2026-10-10',
+        occasion: { key: 'team-welcome', label: 'Team welcome' },
+        parameters: [
+          { key: 'weekday-lunch', label: 'Weekday lunch' },
+          { key: 'chinese-restaurant', label: 'Chinese restaurant' },
+          { key: 'large', label: 'Big group, 7 or more' },
+          { key: 'moderate', label: 'Mid-range' },
+        ],
+        places: [{ placeId: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
+        placesTitle: 'Our picks in Old Town',
+        source: {
+          kind: 'markdown',
+          markdown: 'Body\n',
+          images: [
+            {
+              fileName: 'golden-duck.jpg',
+              sourceUrl:
+                'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/golden-duck.jpg/1280px-golden-duck.jpg',
+              src: '/blog/images/golden-duck.jpg',
+              width: 1280,
+              height: 960,
+              alt: 'A lawn with chairs',
+              caption: '',
+              credit: {
+                author: 'Ann',
+                license: 'CC BY 4.0',
+                pageUrl: 'https://commons.wikimedia.org/wiki/File:golden-duck.jpg',
+                cropped: true,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it('splits a place body at its first "## Getting around" line, or keeps it all as the intro', () => {
+    const { catalog } = parseCatalog(
+      content({
+        places: [
+          placeFile(
+            'testville.md',
+            {},
+            '\nIntro.\n\n## Getting around town\n\nStill intro.\n\n  ## Getting around  \n\nTake the bus.\n\n## Getting around\n\nStill transit.\n'
+          ),
+          placeFile('testville/harbor.md', {}, 'Just an intro.\n'),
+        ],
+      })
+    );
+    const city = catalog.cities.get('testville')!;
+    expect([city.intro, city.transitNotes]).toEqual([
+      'Intro.\n\n## Getting around town\n\nStill intro.',
+      'Take the bus.\n\n## Getting around\n\nStill transit.',
+    ]);
+    const harbor = city.towns.get('harbor')!;
+    expect([harbor.intro, harbor.transitNotes]).toEqual(['Just an intro.', '']);
+  });
+
+  it('drops each bad place file and says why, and a town whose city has no place file', () => {
+    const repo = content({
+      places: [
+        placeFile('pier.md', { seo: { title: 'No description' } }),
+        placeFile('bay.md', { image: image('bay.jpg', { license: 'CC BY-SA 2.0' }) }),
+        placeFile('Upper.md'),
+        placeFile('nameless.md', { name: ' ' }),
+        placeFile('no-region.md', { region: undefined }),
+        placeFile('no-country.md', { country: '' }),
+        placeFile('off-the-map.md', { center: { lat: 91, lng: 0 } }),
+        placeFile('half-a-center.md', { center: { lat: 40 } }),
+        placeFile('undated.md', { updated_at: '2026-13-45' }),
+        { name: 'no-front-matter.md', text: 'Just a body.\n' },
+        placeFile('boston/back-bay.md'),
+        placeFile('pier/dock.md'),
+        placeFile('bay/a/b.md'),
+      ],
     });
+
+    expect(skipped(repo)).toEqual([
+      'src/content/places/pier.md: invalid seo',
+      'src/content/places/bay.md: image: license "CC BY-SA 2.0" is not allowed',
+      'src/content/places/Upper.md: invalid slug "Upper"',
+      'src/content/places/nameless.md: missing name',
+      'src/content/places/no-region.md: missing region',
+      'src/content/places/no-country.md: missing country',
+      'src/content/places/off-the-map.md: invalid center',
+      'src/content/places/half-a-center.md: invalid center',
+      'src/content/places/undated.md: invalid updated_at',
+      'src/content/places/no-front-matter.md: no front matter between two --- lines at the top',
+      'src/content/places/boston/back-bay.md: city "boston" has no place file, src/content/places/boston.md',
+      'src/content/places/pier/dock.md: city "pier" has a place file the site skips, src/content/places/pier.md',
+      'src/content/places/bay/a/b.md: a place file is <city>.md or <city>/<town>.md',
+    ]);
+    expect(
+      [...parseCatalog(repo).catalog.cities.values()].map(({ slug, image, towns }) => [
+        slug,
+        image,
+        [...towns.keys()],
+      ])
+    ).toEqual([['bay', null, []]]);
+  });
+
+  it('gives /blog/<segment> to the photo route, then MDX posts, cities and general posts', () => {
+    const repo = content({
+      mdx: MDX_POSTS.filter(({ slug }) => slug === 'how-to-pick-a-date-spot'),
+      places: [
+        placeFile('how-to-pick-a-date-spot.md'),
+        placeFile('images.md'),
+        placeFile('testville.md'),
+        placeFile('testville/harbor.md', { name: 'Harbor' }),
+      ],
+      posts: [
+        postFile('harbor', { city: 'testville' }),
+        postFile('how-to-pick-a-date-spot'),
+        postFile('images'),
+        postFile('lunch', { city: 'testville', town: 'harbor' }),
+        postFile('testville'),
+      ],
+    });
+
+    expect(skipped(repo)).toEqual([
+      'src/content/places/how-to-pick-a-date-spot.md: slug "how-to-pick-a-date-spot" is taken by an MDX post',
+      'src/content/places/images.md: slug "images" is taken by the photo route',
+      'src/content/posts/harbor.md: slug "harbor" is taken by a town',
+      'src/content/posts/how-to-pick-a-date-spot.md: slug "how-to-pick-a-date-spot" is taken by an MDX post',
+      'src/content/posts/images.md: slug "images" is taken by the photo route',
+      'src/content/posts/testville.md: slug "testville" is taken by a city',
+    ]);
+    const { catalog } = parseCatalog(repo);
+    expect([...catalog.cities.keys()]).toEqual(['testville']);
+    expect(paths(catalog.posts)).toEqual(['testville/harbor/lunch', 'how-to-pick-a-date-spot']);
+  });
+
+  it('gives each photo file name to places first, cities before towns, then posts in file order', () => {
+    const repo = content({
+      places: [
+        placeFile('testville/harbor.md', { image: image('shared.jpg') }),
+        placeFile('testville/old-town.md', { image: image('town-photo.jpg') }),
+        placeFile('testville.md', { image: image('shared.jpg') }),
+      ],
+      posts: [
+        postFile('first', { images: [image('shared.jpg'), image('first.jpg')] }),
+        postFile('second', { images: [image('town-photo.jpg'), image('first.jpg')] }),
+      ],
+    });
+
+    expect(skipped(repo)).toEqual([
+      'src/content/places/testville/harbor.md: image: file_name "shared.jpg" is already used',
+      'src/content/posts/first.md: images[0]: file_name "shared.jpg" is already used',
+      'src/content/posts/second.md: images[0]: file_name "town-photo.jpg" is already used',
+      'src/content/posts/second.md: images[1]: file_name "first.jpg" is already used',
+      'src/content/posts/second.md: no image to use as its cover',
+    ]);
+    const { catalog } = parseCatalog(repo);
+    const testville = catalog.cities.get('testville')!;
+    expect(
+      [testville, ...testville.towns.values()].map(({ slug, image }) => [slug, image?.fileName])
+    ).toEqual([
+      ['testville', 'shared.jpg'],
+      ['harbor', undefined],
+      ['old-town', 'town-photo.jpg'],
+    ]);
+    expect(
+      catalog.posts.map((post) => [
+        post.slug,
+        post.source.kind === 'markdown' && post.source.images.map((kept) => kept.fileName),
+      ])
+    ).toEqual([['first', ['first.jpg']]]);
   });
 
   it('drops each bad image and keeps the post while it has one left for its cover', () => {
-    const { catalog, issues } = parseCatalog(
-      NO_REPO,
-      published({
-        posts: [
-          post('photos', {
-            images: [
-              image('share-alike.jpg', { license: 'CC BY-SA 4.0' }),
-              image('IMG_1234.JPG'),
-              image('lawn.jpg'),
-              image('lawn.jpg', { caption: 'Listed twice' }),
-              image('hotlinked.jpg', { source_url: 'https://example.com/lawn.jpg' }),
-              image('plain-http.jpg', {
-                source_url: 'http://upload.wikimedia.org/wikipedia/commons/a/ab/x.jpg',
-              }),
-              image('not-commons.jpg', { page_url: 'https://example.com/wiki/File:x.jpg' }),
-              image('no-size.jpg', { width: 0 }),
-              image('no-alt.jpg', { alt: ' ' }),
-              image('no-author.jpg', { author: null }),
-              image('unlicensed.jpg', { license: 'All rights reserved' }),
-              image('a-png.jpg', {
-                source_url: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/x.png',
-              }),
-              'not an image',
-            ],
-          }),
-          post('only-bad-photos', {
-            images: [image('share-alike-2.jpg', { license: 'CC BY-SA 3.0' })],
-          }),
-          post('no-photos', { images: [] }),
-          post('reuses-a-photo', { images: [image('lawn.jpg')] }),
-        ],
-      })
-    );
+    const repo = content({
+      posts: [
+        postFile('photos', {
+          images: [
+            image('share-alike.jpg', { license: 'CC BY-SA 4.0' }),
+            image('IMG_1234.JPG'),
+            image('lawn.jpg'),
+            image('lawn.jpg', { caption: 'Listed twice' }),
+            image('hotlinked.jpg', { source_url: 'https://example.com/lawn.jpg' }),
+            image('plain-http.jpg', {
+              source_url: 'http://upload.wikimedia.org/wikipedia/commons/a/ab/x.jpg',
+            }),
+            image('not-commons.jpg', { page_url: 'https://example.com/wiki/File:x.jpg' }),
+            image('no-size.jpg', { width: 0 }),
+            image('no-alt.jpg', { alt: ' ' }),
+            image('no-author.jpg', { author: null }),
+            image('unlicensed.jpg', { license: 'All rights reserved' }),
+            image('a-png.jpg', {
+              source_url: 'https://upload.wikimedia.org/wikipedia/commons/a/ab/x.png',
+            }),
+            'not an image',
+          ],
+        }),
+        postFile('only-bad-photos', {
+          images: [image('share-alike-2.jpg', { license: 'CC BY-SA 3.0' })],
+        }),
+        postFile('no-photos', { images: [] }),
+      ],
+    });
 
-    expect(issues).toEqual([
-      'posts[0].images[0]: license "CC BY-SA 4.0" is not allowed',
-      'posts[0].images[1]: invalid file_name "IMG_1234.JPG"',
-      'posts[0].images[3]: file_name "lawn.jpg" is already used',
-      'posts[0].images[4]: source_url is not a Wikimedia JPEG upload',
-      'posts[0].images[5]: source_url is not a Wikimedia JPEG upload',
-      'posts[0].images[6]: page_url is not a Wikimedia Commons file page',
-      'posts[0].images[7]: invalid width or height',
-      'posts[0].images[8]: missing alt',
-      'posts[0].images[9]: missing author',
-      'posts[0].images[10]: license "All rights reserved" is not allowed',
-      'posts[0].images[11]: source_url is not a Wikimedia JPEG upload',
-      'posts[0].images[12]: not an object',
-      'posts[1].images[0]: license "CC BY-SA 3.0" is not allowed',
-      'posts[1]: no image to use as its cover',
-      'posts[2]: no image to use as its cover',
-      'posts[3].images[0]: file_name "lawn.jpg" is already used',
-      'posts[3]: no image to use as its cover',
+    expect(skipped(repo)).toEqual([
+      'src/content/posts/photos.md: images[0]: license "CC BY-SA 4.0" is not allowed',
+      'src/content/posts/photos.md: images[1]: invalid file_name "IMG_1234.JPG"',
+      'src/content/posts/photos.md: images[3]: file_name "lawn.jpg" is already used',
+      'src/content/posts/photos.md: images[4]: source_url is not a Wikimedia JPEG upload',
+      'src/content/posts/photos.md: images[5]: source_url is not a Wikimedia JPEG upload',
+      'src/content/posts/photos.md: images[6]: page_url is not a Wikimedia Commons file page',
+      'src/content/posts/photos.md: images[7]: invalid width or height',
+      'src/content/posts/photos.md: images[8]: missing alt',
+      'src/content/posts/photos.md: images[9]: missing author',
+      'src/content/posts/photos.md: images[10]: license "All rights reserved" is not allowed',
+      'src/content/posts/photos.md: images[11]: source_url is not a Wikimedia JPEG upload',
+      'src/content/posts/photos.md: images[12]: not an object',
+      'src/content/posts/only-bad-photos.md: images[0]: license "CC BY-SA 3.0" is not allowed',
+      'src/content/posts/only-bad-photos.md: no image to use as its cover',
+      'src/content/posts/no-photos.md: no image to use as its cover',
     ]);
     expect(
-      catalog.posts.map((kept) => [
+      parseCatalog(repo).catalog.posts.map((kept) => [
         kept.slug,
-        kept.source.kind === 'markdown' && kept.source.images.map((kept) => kept.fileName),
+        kept.source.kind === 'markdown' && kept.source.images.map((photo) => photo.fileName),
       ])
     ).toEqual([['photos', ['lawn.jpg']]]);
   });
-
-  it('gives /blog/<segment> to repo posts first, then the photo route, cities and general posts', () => {
-    const { catalog, issues } = parseCatalog(
-      {
-        mdx: MDX_POSTS.filter(({ slug }) => slug === 'how-to-pick-a-date-spot'),
-        files: [],
-        taxonomyText: TAXONOMY_YAML,
-      },
-      published({
-        posts: [
-          post('how-to-pick-a-date-spot'),
-          post('images'),
-          post('testville'),
-          post('team-welcome'),
-          post('team-welcome', { images: [image('team-welcome-2.jpg')] }),
-        ],
-        cities: [area('how-to-pick-a-date-spot'), area('testville'), area('testville')],
-      })
-    );
-
-    expect(issues).toEqual([
-      'cities[0]: slug "how-to-pick-a-date-spot" is taken by a repo post',
-      'cities[2]: slug "testville" is taken by a city',
-      'posts[0]: slug "how-to-pick-a-date-spot" is taken by a repo post',
-      'posts[1]: slug "images" is taken by the photo route',
-      'posts[2]: slug "testville" is taken by a city',
-      'posts[4]: slug "team-welcome" is taken by a post',
-    ]);
-    expect([...catalog.cities.keys()]).toEqual(['testville']);
-    expect(catalog.posts.map(({ slug }) => slug)).toEqual([
-      'how-to-pick-a-date-spot',
-      'team-welcome',
-    ]);
-  });
-
-  it('gives a town its slug over a city post, and keeps post slugs unique in each area', () => {
-    const { catalog, issues } = parseCatalog(
-      NO_REPO,
-      published({
-        cities: [
-          area(
-            'testville',
-            [post('harbor'), post('lunch'), post('lunch', { images: [image('lunch-2.jpg')] })],
-            {
-              towns: [
-                area('harbor', [
-                  post('lunch', { images: [image('harbor-lunch.jpg')] }),
-                  post('lunch', { images: [image('harbor-lunch-2.jpg')] }),
-                ]),
-                area('harbor'),
-                area('Old Town'),
-              ],
-            }
-          ),
-        ],
-      })
-    );
-
-    expect(issues).toEqual([
-      'cities[0].towns[0].posts[1]: slug "lunch" is taken by a post',
-      'cities[0].towns[1]: slug "harbor" is taken by a town',
-      'cities[0].towns[2]: invalid slug "Old Town"',
-      'cities[0].posts[0]: slug "harbor" is taken by a town',
-      'cities[0].posts[2]: slug "lunch" is taken by a post',
-    ]);
-    expect(catalog.posts.map(({ areas, slug }) => [...areas.map((a) => a.slug), slug])).toEqual([
-      ['testville', 'harbor', 'lunch'],
-      ['testville', 'lunch'],
-    ]);
-  });
-
-  it('drops each bad post, place, area and taxonomy value, and says why', () => {
-    const longest = 'a'.repeat(80);
-    const { catalog, issues } = parseCatalog(
-      NO_REPO,
-      published({
-        posts: [
-          post('brunch-spots', { occasion: 'brunch' }),
-          post('sushi', { venue_type: 'sushi-bar' }),
-          post('big-group', { group_size: 7 }),
-          post('Team-Lunch'),
-          post(`${longest}b`),
-          post(longest),
-          post('stale', { updated_at: '2026-13-45' }),
-          post('undated', { published_at: null }),
-          post('no-seo', { seo: { title: 'No description' } }),
-          post('lunch', {
-            places: [
-              { label: 'No id' },
-              { place_id: 'ChIJ2', label: '  ' },
-              { place_id: 'ChIJ3', label: 'Kept' },
-              { place_id: 'ChIJ3', label: 'Listed twice' },
-            ],
-          }),
-        ],
-        cities: [
-          area('pier', [], { seo: { title: 'No description' } }),
-          area('bay', [], { image: image('bay.jpg', { license: 'CC BY-SA 2.0' }) }),
-          'not a city',
-        ],
-        taxonomyLists: {
-          ...taxonomy,
-          times: [
-            { key: 'after-work' },
-            { key: 'weekday-lunch', label: 'Weekday lunch' },
-            { key: 'weekday-lunch', label: 'Lunch on a weekday' },
-          ],
-        },
-      })
-    );
-
-    expect(issues).toEqual([
-      'taxonomy.times[0]: missing label',
-      'taxonomy.times[2]: repeats "weekday-lunch"',
-      'cities[0]: invalid seo',
-      'cities[1].image: license "CC BY-SA 2.0" is not allowed',
-      'cities[2]: not an object',
-      'posts[0]: unknown occasion "brunch"',
-      'posts[1]: unknown venue_type "sushi-bar"',
-      'posts[2]: unknown group_size 7',
-      'posts[3]: invalid slug "Team-Lunch"',
-      'posts[4]: slug is longer than 80 characters',
-      'posts[6]: invalid updated_at',
-      'posts[7]: invalid published_at',
-      'posts[8]: invalid seo',
-      'posts[9].places[0]: missing place_id',
-      'posts[9].places[1]: missing label',
-      'posts[9].places[3]: repeats "ChIJ3"',
-    ]);
-    expect([...catalog.cities.values()].map(({ slug, image }) => [slug, image])).toEqual([
-      ['bay', null],
-    ]);
-    expect(catalog.posts.map(({ slug, places }) => [slug, places.map((p) => p.placeId)])).toEqual([
-      [longest, []],
-      ['lunch', ['ChIJ3']],
-    ]);
-  });
-
-  it('rejects a payload that is not contract v3', () => {
-    for (const raw of [
-      { version: 2, taxonomy, cities: [] },
-      { version: 3, taxonomy, cities: [] },
-      { version: 3, taxonomy, posts: [], cities: {} },
-      { version: 3, posts: [], cities: [] },
-      '<html>',
-    ]) {
-      expect(() => parseCatalog(NO_REPO, raw)).toThrow('Published posts are not contract v3 JSON');
-    }
-  });
 });
 
-function markdownFile(slug: string, fields: Record<string, unknown> = {}, body = 'Body') {
-  const frontMatter = {
-    title: `Title of ${slug}`,
-    description: `Description of ${slug}`,
-    main_keyword: 'team welcome lunch',
-    occasion: 'team-welcome',
-    time: null,
-    venue_type: null,
-    group_size: null,
-    budget: null,
-    city: null,
-    town: null,
-    published_at: '2026-10-09',
-    updated_at: '2026-10-10',
-    places: [],
-    images: [image(`${slug}.jpg`)],
-    ...fields,
-  };
-  return markdownPostFile(slug, frontMatter, `${body}\n`);
-}
+describe('parseCatalog with post files', () => {
+  const places = [
+    placeFile('testville.md'),
+    placeFile('testville/harbor.md', { name: 'Harbor' }),
+    placeFile('pier.md', { seo: null }),
+  ];
 
-const testville = area('testville', [], {
-  towns: [area('harbor', [], { name: 'Harbor' })],
-});
-
-function paths(posts: readonly { slug: string; areas: readonly { slug: string }[] }[]) {
-  return posts.map(({ areas, slug }) => [...areas.map((a) => a.slug), slug].join('/'));
-}
-
-describe('parseCatalog with repo Markdown posts', () => {
-  it('parses a Markdown file into the same post a panel post becomes, labeled by the panel', () => {
+  it('parses a local post with its place names and its labels from the taxonomy', () => {
     const { catalog, issues } = parseCatalog(
-      {
-        mdx: [],
-        taxonomyText: TAXONOMY_YAML,
-        files: [
-          markdownFile(
+      content({
+        places,
+        posts: [
+          postFile(
             'welcome-lunch',
             {
+              occasion: 'coffee-catch-up',
               city: 'testville',
               town: 'harbor',
               time: 'weekday-lunch',
@@ -530,11 +483,10 @@ describe('parseCatalog with repo Markdown posts', () => {
             'Start here.\n\n![](lawn.jpg)\n\n:::places'
           ),
         ],
-      },
-      published({ cities: [testville] })
+      })
     );
 
-    expect(issues).toEqual([]);
+    expect(issues).toEqual([{ file: 'src/content/places/pier.md', message: 'invalid seo' }]);
     expect(catalog.posts).toEqual([
       {
         slug: 'welcome-lunch',
@@ -546,7 +498,7 @@ describe('parseCatalog with repo Markdown posts', () => {
         description: 'Description of welcome-lunch',
         publishedAt: '2026-10-09',
         updatedAt: '2026-10-10',
-        occasion: { key: 'team-welcome', label: 'Team welcome' },
+        occasion: { key: 'coffee-catch-up', label: 'Coffee catch-up' },
         parameters: [
           { key: 'weekday-lunch', label: 'Weekday lunch' },
           { key: 'large', label: 'Big group, 7 or more' },
@@ -562,192 +514,179 @@ describe('parseCatalog with repo Markdown posts', () => {
     ]);
   });
 
-  it('takes a repo post’s keys and labels from the taxonomy file, not the panel’s lists', () => {
-    const { catalog, issues } = parseCatalog(
-      {
-        mdx: [],
-        taxonomyText: TAXONOMY_YAML,
-        files: [
-          markdownFile('coffee-ideas', { occasion: 'coffee-catch-up' }),
-          markdownFile('date-ideas', { occasion: 'date-night' }),
-        ],
-      },
-      published({})
-    );
+  it('drops each bad post file and says why, keeping the rest', () => {
+    const longest = 'a'.repeat(80);
+    const repo = content({
+      places,
+      posts: [
+        postFile('boston-dinner', { city: 'boston' }),
+        postFile('pier-lunch', { city: 'testville', town: 'pier' }),
+        postFile('pier-dinner', { city: 'pier' }),
+        postFile('orphan', { town: 'harbor' }),
+        postFile('nowhere', { city: 'Testville' }),
+        { name: 'no-front-matter.md', text: 'Just a body.\n' },
+        { name: 'bad-yaml.md', text: '---\nnote: A cafe: near the park\n---\nBody\n' },
+        { name: 'a-list.md', text: '---\n- title\n---\nBody\n' },
+        postFile('brunch', { occasion: 'brunch' }),
+        postFile('sushi', { venue_type: 'sushi-bar' }),
+        postFile('big-group', { group_size: 7 }),
+        postFile('Upper'),
+        postFile(`${longest}b`),
+        postFile(longest),
+        postFile('stale', { updated_at: '2026-13-45' }),
+        postFile('undated', { published_at: null }),
+        postFile('untitled', { title: ' ' }),
+        postFile('undescribed', { description: undefined }),
+        postFile('lunch', {
+          places: [
+            { label: 'No id' },
+            { place_id: 'ChIJ2', label: '  ' },
+            { place_id: 'ChIJ3', label: 'Kept' },
+            { place_id: 'ChIJ3', label: 'Listed twice' },
+            'a place',
+          ],
+        }),
+      ],
+    });
 
-    expect(issues).toEqual(['src/content/posts/date-ideas.md: unknown occasion "date-night"']);
-    expect(catalog.posts.map(({ slug, occasion }) => [slug, occasion])).toEqual([
-      ['coffee-ideas', { key: 'coffee-catch-up', label: 'Coffee catch-up' }],
-    ]);
-  });
-
-  it('gives repo posts every path and photo name they claim, and drops the panel item instead', () => {
-    const { catalog, issues } = parseCatalog(
-      {
-        mdx: [],
-        taxonomyText: TAXONOMY_YAML,
-        files: [
-          markdownFile('meetups', { images: [image('shared.jpg')] }),
-          markdownFile('old-town', { city: 'testville' }),
-          markdownFile('dinner', { city: 'testville' }),
-          markdownFile('lunch', { city: 'testville', town: 'harbor' }),
-        ],
-      },
-      published({
-        posts: [post('meetups'), post('brunch', { images: [image('shared.jpg')] })],
-        cities: [
-          area('testville', [post('dinner')], {
-            towns: [area('old-town'), area('harbor', [post('lunch')], { name: 'Harbor' })],
-          }),
-        ],
-      })
-    );
-
-    expect(issues).toEqual([
-      'cities[0].towns[0]: slug "old-town" is taken by a repo post',
-      'cities[0].towns[1].posts[0]: slug "lunch" is taken by a repo post',
-      'cities[0].posts[0]: slug "dinner" is taken by a repo post',
-      'posts[0]: slug "meetups" is taken by a repo post',
-      'posts[1].images[0]: file_name "shared.jpg" is already used',
-      'posts[1]: no image to use as its cover',
-    ]);
-    expect(paths(catalog.posts)).toEqual([
-      'meetups',
-      'testville/old-town',
-      'testville/dinner',
-      'testville/harbor/lunch',
-    ]);
-    expect([...catalog.cities.get('testville')!.towns.keys()]).toEqual(['harbor']);
-  });
-
-  it('drops each bad Markdown file and says why, keeping the rest', () => {
-    const { catalog, issues } = parseCatalog(
-      {
-        mdx: MDX_POSTS.filter(({ slug }) => slug === 'how-to-pick-a-date-spot'),
-        taxonomyText: TAXONOMY_YAML,
-        files: [
-          markdownFile('boston-dinner', { city: 'boston' }),
-          markdownFile('pier-lunch', { city: 'testville', town: 'pier' }),
-          markdownFile('orphan', { town: 'harbor' }),
-          { name: 'no-front-matter.md', text: 'Just a body.\n' },
-          { name: 'bad-yaml.md', text: '---\nnote: A cafe: near the park\n---\nBody\n' },
-          { name: 'a-list.md', text: '---\n- title\n---\nBody\n' },
-          markdownFile('brunch', { occasion: 'brunch' }),
-          markdownFile('how-to-pick-a-date-spot'),
-          markdownFile('images'),
-          markdownFile('Upper'),
-          markdownFile('first', { images: [image('shared.jpg')] }),
-          markdownFile('second', { images: [image('shared.jpg')] }),
-        ],
-      },
-      published({ cities: [testville] })
-    );
-
-    expect(issues).toEqual([
-      'src/content/posts/boston-dinner.md: city "boston" is not published',
-      'src/content/posts/pier-lunch.md: town "pier" is not published in testville',
+    expect(skipped(repo)).toEqual([
+      'src/content/places/pier.md: invalid seo',
+      'src/content/posts/boston-dinner.md: city "boston" has no place file, src/content/places/boston.md',
+      'src/content/posts/pier-lunch.md: town "pier" has no place file, src/content/places/testville/pier.md',
+      'src/content/posts/pier-dinner.md: city "pier" has a place file the site skips, src/content/places/pier.md',
       'src/content/posts/orphan.md: town is set without a city',
+      'src/content/posts/nowhere.md: invalid city "Testville"',
       'src/content/posts/no-front-matter.md: no front matter between two --- lines at the top',
       'src/content/posts/bad-yaml.md: front matter is not valid YAML: Nested mappings are not allowed in compact mappings at line 1, column 7:',
       'src/content/posts/a-list.md: front matter is not a YAML mapping of fields',
       'src/content/posts/brunch.md: unknown occasion "brunch"',
-      'src/content/posts/how-to-pick-a-date-spot.md: slug "how-to-pick-a-date-spot" is taken by an MDX post',
-      'src/content/posts/images.md: slug "images" is taken by the photo route',
+      'src/content/posts/sushi.md: unknown venue_type "sushi-bar"',
+      'src/content/posts/big-group.md: unknown group_size 7',
       'src/content/posts/Upper.md: invalid slug "Upper"',
-      'src/content/posts/second.md.images[0]: file_name "shared.jpg" is already used',
-      'src/content/posts/second.md: no image to use as its cover',
+      `src/content/posts/${longest}b.md: slug is longer than 80 characters`,
+      'src/content/posts/stale.md: invalid updated_at',
+      'src/content/posts/undated.md: invalid published_at',
+      'src/content/posts/untitled.md: missing title',
+      'src/content/posts/undescribed.md: missing description',
+      'src/content/posts/lunch.md: places[0]: missing place_id',
+      'src/content/posts/lunch.md: places[1]: missing label',
+      'src/content/posts/lunch.md: places[3]: repeats "ChIJ3"',
+      'src/content/posts/lunch.md: places[4]: not an object',
     ]);
-    expect(paths(catalog.posts)).toEqual(['first', 'how-to-pick-a-date-spot']);
-  });
-
-  it('keeps a general post with its labels when the panel is down, and drops a local one', () => {
-    const { catalog, issues } = parseCatalog({
-      mdx: [],
-      taxonomyText: TAXONOMY_YAML,
-      files: [
-        markdownFile('coffee-ideas', { occasion: 'coffee-catch-up', group_size: 'large' }),
-        markdownFile('dinner', { city: 'testville' }),
-      ],
-    });
-
-    expect(issues).toEqual(['src/content/posts/dinner.md: city "testville" is not published']);
     expect(
-      catalog.posts.map(({ slug, occasion, parameters }) => [slug, occasion, parameters])
+      parseCatalog(repo).catalog.posts.map(({ slug, places }) => [
+        slug,
+        places.map((place) => place.placeId),
+      ])
     ).toEqual([
-      [
-        'coffee-ideas',
-        { key: 'coffee-catch-up', label: 'Coffee catch-up' },
-        [{ key: 'large', label: 'Big group, 7 or more' }],
-      ],
+      [longest, []],
+      ['lunch', ['ChIJ3']],
     ]);
   });
 });
 
-describe('readTaxonomy and checkTaxonomy', () => {
-  function issues(yaml: string) {
-    return checkTaxonomy(yaml);
-  }
-
-  it('reads a well-formed file with no issues and names each key by its label', () => {
-    const { taxonomy, issues: found } = readTaxonomy(TAXONOMY_YAML);
-    expect(found).toEqual([]);
-    expect([taxonomy('occasion', 'coffee-catch-up'), taxonomy('budget', 'moderate')]).toEqual([
-      { key: 'coffee-catch-up', label: 'Coffee catch-up' },
-      { key: 'moderate', label: 'Mid-range' },
-    ]);
-    expect(taxonomy('occasion', 'date-night')).toBe(undefined);
+describe('parseCatalog on taxonomy.yaml', () => {
+  it('reads each list into typed terms', () => {
+    const { catalog, issues } = parseCatalog(content({}));
+    expect(issues).toEqual([]);
+    expect(catalog.taxonomy).toEqual({
+      occasions: [
+        { key: 'team-welcome', label: 'Team welcome', times: [], venueTypes: [], groupSizes: [] },
+        {
+          key: 'coffee-catch-up',
+          label: 'Coffee catch-up',
+          times: ['weekday-lunch'],
+          venueTypes: [],
+          groupSizes: ['large'],
+        },
+      ],
+      times: [{ key: 'weekday-lunch', label: 'Weekday lunch' }],
+      venueTypes: [
+        {
+          key: 'chinese-restaurant',
+          label: 'Chinese restaurant',
+          googleType: 'chinese_restaurant',
+        },
+      ],
+      groupSizes: [{ key: 'large', label: 'Big group, 7 or more' }],
+      budgets: [{ key: 'moderate', label: 'Mid-range', priceLevel: 'PRICE_LEVEL_MODERATE' }],
+    });
   });
 
   it('says why a file is not a taxonomy at all', () => {
-    expect(issues('occasions: [')).toEqual([
+    expect(skipped(content({ taxonomyText: 'occasions: [' }))).toEqual([
       'src/content/taxonomy.yaml: not valid YAML: Flow sequence in block collection must be sufficiently indented and end with a ] at line 1, column 13:',
     ]);
-    expect(issues('- occasions')).toEqual([
+    expect(skipped(content({ taxonomyText: '- occasions' }))).toEqual([
       'src/content/taxonomy.yaml: not a YAML mapping of lists',
-      'src/content/taxonomy.yaml: "occasions" is not a list',
-      'src/content/taxonomy.yaml: "times" is not a list',
-      'src/content/taxonomy.yaml: "venue_types" is not a list',
-      'src/content/taxonomy.yaml: "group_sizes" is not a list',
-      'src/content/taxonomy.yaml: "budgets" is not a list',
     ]);
-    expect(issues(stringify({ ...repoTaxonomy, budgets: undefined, prices: [] }))).toEqual([
+    expect(
+      skipped(
+        content({ taxonomyText: stringify({ ...repoTaxonomy, budgets: undefined, prices: [] }) })
+      )
+    ).toEqual([
       'src/content/taxonomy.yaml: unknown list "prices"',
       'src/content/taxonomy.yaml: "budgets" is not a list',
     ]);
   });
 
-  it('reports each bad value, while the site drops only a value without a key or label', () => {
+  it('drops each value that breaks the schema, and a post that names a dropped key', () => {
     const [welcome, coffee] = repoTaxonomy.occasions;
     const [chinese] = repoTaxonomy.venue_types;
     const [moderate] = repoTaxonomy.budgets;
-    const yaml = stringify({
-      ...repoTaxonomy,
-      occasions: [
-        welcome,
-        { ...coffee, times: ['late-night'], group_sizes: 'large' },
-        { ...welcome, key: 'Team Welcome' },
-        { ...welcome, label: '' },
-        welcome,
-        { ...welcome, key: 'farewell', note: 'Retired' },
-        'birthday',
-      ],
-      venue_types: [chinese, { ...chinese, key: 'cafe', google_type: 'Cafe' }],
-      budgets: [moderate, { ...moderate, key: 'free', price_level: 'PRICE_LEVEL_FREE' }],
+    const repo = content({
+      taxonomyText: stringify({
+        ...repoTaxonomy,
+        occasions: [
+          welcome,
+          { ...coffee, times: ['late-night', 'weekday-lunch'], group_sizes: 'large' },
+          { ...welcome, key: 'Team Welcome' },
+          { ...welcome, label: '' },
+          welcome,
+          { ...welcome, key: 'farewell', note: 'Retired' },
+          'birthday',
+        ],
+        times: [...repoTaxonomy.times, { key: 'late-lunch' }],
+        venue_types: [chinese, { ...chinese, key: 'cafe', google_type: 'Cafe' }],
+        budgets: [moderate, { ...moderate, key: 'free', price_level: 'PRICE_LEVEL_FREE' }],
+      }),
+      posts: [postFile('free-lunch', { budget: 'free' })],
     });
-    expect(issues(yaml)).toEqual([
-      'src/content/taxonomy.yaml.occasions[3]: missing label',
-      'src/content/taxonomy.yaml.occasions[4]: repeats "team-welcome"',
-      'src/content/taxonomy.yaml.occasions[6]: not an object',
-      'src/content/taxonomy.yaml.occasions[2]: invalid key "Team Welcome"',
-      'src/content/taxonomy.yaml.occasions[5]: unknown field "note"',
-      'src/content/taxonomy.yaml.venue_types[1]: invalid google_type "Cafe"',
-      'src/content/taxonomy.yaml.budgets[1]: invalid price_level "PRICE_LEVEL_FREE"',
-      'src/content/taxonomy.yaml.occasions[1].times: unknown time "late-night"',
-      'src/content/taxonomy.yaml.occasions[1].group_sizes: is not a list',
+
+    expect(skipped(repo)).toEqual([
+      'src/content/taxonomy.yaml: times[1]: missing label',
+      'src/content/taxonomy.yaml: venue_types[1]: invalid google_type "Cafe"',
+      'src/content/taxonomy.yaml: budgets[1]: invalid price_level "PRICE_LEVEL_FREE"',
+      'src/content/taxonomy.yaml: occasions[1]: unknown time "late-night"',
+      'src/content/taxonomy.yaml: occasions[1]: group_sizes is not a list',
+      'src/content/taxonomy.yaml: occasions[2]: invalid key "Team Welcome"',
+      'src/content/taxonomy.yaml: occasions[3]: missing label',
+      'src/content/taxonomy.yaml: occasions[4]: repeats "team-welcome"',
+      'src/content/taxonomy.yaml: occasions[5]: unknown field "note"',
+      'src/content/taxonomy.yaml: occasions[6]: not an object',
+      'src/content/posts/free-lunch.md: unknown budget "free"',
     ]);
-    expect(readTaxonomy(yaml).taxonomy('budget', 'free')).toEqual({
-      key: 'free',
-      label: 'Mid-range',
+    expect(parseCatalog(repo).catalog.taxonomy).toEqual({
+      occasions: [
+        { key: 'team-welcome', label: 'Team welcome', times: [], venueTypes: [], groupSizes: [] },
+        {
+          key: 'coffee-catch-up',
+          label: 'Coffee catch-up',
+          times: ['weekday-lunch'],
+          venueTypes: [],
+          groupSizes: [],
+        },
+      ],
+      times: [{ key: 'weekday-lunch', label: 'Weekday lunch' }],
+      venueTypes: [
+        {
+          key: 'chinese-restaurant',
+          label: 'Chinese restaurant',
+          googleType: 'chinese_restaurant',
+        },
+      ],
+      groupSizes: [{ key: 'large', label: 'Big group, 7 or more' }],
+      budgets: [{ key: 'moderate', label: 'Mid-range', priceLevel: 'PRICE_LEVEL_MODERATE' }],
     });
   });
 });

@@ -1,16 +1,16 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { checkPosts, formatProblem, type ImageHead } from '../post-checks';
-import { REPO_TAXONOMY } from '../../__fixtures__/repo-posts';
-import { postFilePath, type PostFile } from '../post-file';
+import { checkContent, formatProblem, type ImageHead } from '../checks';
+import type { ContentFile } from '../content-file';
+import { fixtureContent } from '../../__fixtures__/content-files';
 
 const NAME = 'group-dinner-after-work.md';
-const example: PostFile = {
+const example: ContentFile = {
   name: NAME,
   text: readFileSync(path.join(__dirname, '../../__fixtures__/posts', NAME), 'utf8'),
 };
-const FILE = postFilePath(example);
+const FILE = `src/content/posts/${NAME}`;
 
 const COVER_URL =
   'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Koreatown%2C_Manhattan_%2851877264332%29.jpg/1280px-Koreatown%2C_Manhattan_%2851877264332%29.jpg';
@@ -31,18 +31,15 @@ const ATLANTIC_IMAGE = `  - file_name: atlantic-avenue-barclays-center-station-e
     cropped: false
 `;
 
+/** The posts with the fixture's places, so a post can be local to New York or Midtown. */
 function check(
-  files: readonly PostFile[],
+  posts: readonly ContentFile[],
   heads: ReadonlyMap<string, ImageHead> = new Map()
 ): string[] {
-  return checkPosts(files, {
-    mdxSlugs: ['how-to-pick-a-date-spot'],
-    heads,
-    taxonomyText: REPO_TAXONOMY,
-  }).map(formatProblem);
+  return checkContent({ ...fixtureContent(), posts }, { heads }).map(formatProblem);
 }
 
-function edited(edits: readonly [from: string, to: string][], name = NAME): PostFile {
+function edited(edits: readonly [from: string, to: string][], name = NAME): ContentFile {
   let text = example.text;
   for (const [from, to] of edits) {
     if (!text.includes(from)) throw new Error(`the example has no ${JSON.stringify(from)}`);
@@ -51,8 +48,8 @@ function edited(edits: readonly [from: string, to: string][], name = NAME): Post
   return { name, text };
 }
 
-describe('checkPosts', () => {
-  it('passes the example, and fails it only on the slug under a taken name', () => {
+describe('checkContent on a post', () => {
+  it('passes the example, and drops it under a taken name with only that problem', () => {
     const heads = new Map<string, ImageHead>([
       [COVER_URL, { status: 200, bytes: 486_621, contentType: 'image/jpeg' }],
       [FULTON_URL, { status: 200, bytes: 389_396, contentType: 'image/jpeg' }],
@@ -60,7 +57,7 @@ describe('checkPosts', () => {
     ]);
     expect(check([example], heads)).toEqual([]);
     expect(check([{ ...example, name: 'how-to-pick-a-date-spot.md' }], heads)).toEqual([
-      'src/content/posts/how-to-pick-a-date-spot.md: slug: the slug "how-to-pick-a-date-spot" is taken by an MDX post; a post needs a slug no other post has',
+      'src/content/posts/how-to-pick-a-date-spot.md: fields: slug "how-to-pick-a-date-spot" is taken by an MDX post',
     ]);
   });
 
@@ -79,13 +76,13 @@ describe('checkPosts', () => {
 
     it('reports what the parser drops the post for', () => {
       expect(check([edited([['published_at: 2026-10-10', 'published_at: 10/10/2026']])])).toEqual([
-        `${FILE}: fields: front matter: invalid published_at`,
+        `${FILE}: fields: invalid published_at`,
       ]);
     });
 
     it('reports a parameter key the taxonomy does not have', () => {
       expect(check([edited([['venue_type: null', 'venue_type: sushi-bar']])])).toEqual([
-        `${FILE}: fields: front matter: unknown venue_type "sushi-bar"`,
+        `${FILE}: fields: unknown venue_type "sushi-bar"`,
       ]);
     });
 
@@ -97,7 +94,7 @@ describe('checkPosts', () => {
         ],
       ]);
       expect(check([file])).toEqual([
-        `${FILE}: fields: front matter.images[1]: license "CC BY-SA 4.0" is not allowed`,
+        `${FILE}: fields: images[1]: license "CC BY-SA 4.0" is not allowed`,
         `${FILE}: images: the post has 2 usable images; it needs at least 3, a cover and two for the body`,
         `${FILE}: images: the body places ![](fulton-center-lower-manhattan.jpg), but no usable image has that file_name`,
       ]);
@@ -111,7 +108,7 @@ describe('checkPosts', () => {
         ],
       ]);
       expect(check([file])).toEqual([
-        `${FILE}: fields: front matter.images[0]: unknown field "license_url"; an image has only file_name, source_url, page_url, width, height, alt, caption, author, license and cropped`,
+        `${FILE}: fields: images[0]: unknown field "license_url"; an image has only file_name, source_url, page_url, width, height, alt, caption, author, license and cropped`,
       ]);
     });
 
@@ -123,37 +120,35 @@ describe('checkPosts', () => {
         ],
       ]);
       expect(check([file])).toEqual([
-        `${FILE}: fields: front matter.images[0]: cropped is "no"; it must be true or false`,
+        `${FILE}: fields: images[0]: cropped is "no"; it must be true or false`,
       ]);
     });
 
     it('needs a main keyword', () => {
       expect(
         check([edited([['main_keyword: group dinner after work', 'main_keyword: ""']])])
-      ).toEqual([`${FILE}: fields: front matter: main_keyword is ""; it must be non-empty text`]);
+      ).toEqual([`${FILE}: fields: main_keyword is ""; it must be non-empty text`]);
     });
   });
 
-  describe('slug', () => {
-    it('keeps the photo route free', () => {
-      expect(check([{ ...example, name: 'images.md' }])).toEqual([
-        `src/content/posts/images.md: slug: the slug "images" is the site's photo route, /blog/images; a post needs another slug`,
-      ]);
-    });
+  it('keeps the photo route free', () => {
+    expect(check([{ ...example, name: 'images.md' }])).toEqual([
+      'src/content/posts/images.md: fields: slug "images" is taken by the photo route',
+    ]);
+  });
 
-    it('is the only check besides fields on a file the site drops', () => {
-      const file = edited(
-        [
-          ['published_at: 2026-10-10', 'published_at: 10/10/2026'],
-          ['## Common questions', '## Questions people ask'],
-        ],
-        'images.md'
-      );
-      expect(check([file])).toEqual([
-        'src/content/posts/images.md: fields: front matter: invalid published_at',
-        `src/content/posts/images.md: slug: the slug "images" is the site's photo route, /blog/images; a post needs another slug`,
-      ]);
-    });
+  it('is the only check on a file the site drops', () => {
+    const file = edited([
+      ['published_at: 2026-10-10', 'published_at: 10/10/2026'],
+      ['## Common questions', '## Questions people ask'],
+    ]);
+    expect(check([file])).toEqual([`${FILE}: fields: invalid published_at`]);
+  });
+
+  it('reports a local post whose city has no place file', () => {
+    expect(check([edited([['city: null', 'city: boston']])])).toEqual([
+      `${FILE}: fields: city "boston" has no place file, src/content/places/boston.md`,
+    ]);
   });
 
   describe('word-count', () => {
@@ -206,7 +201,7 @@ describe('checkPosts', () => {
       ]);
     });
 
-    it('keeps each file name to one post', () => {
+    it('keeps each file name to the first file that lists it', () => {
       const other = edited(
         [
           ['fulton-center-lower-manhattan.jpg', 'fulton-center-station.jpg'],
@@ -215,8 +210,8 @@ describe('checkPosts', () => {
         'group-dinner-in-brooklyn.md'
       );
       expect(check([example, other])).toEqual([
-        `${FILE}: images: file_name "west-32nd-street-koreatown-manhattan.jpg" is also used by src/content/posts/group-dinner-in-brooklyn.md; every photo needs a file name of its own`,
-        `src/content/posts/group-dinner-in-brooklyn.md: images: file_name "west-32nd-street-koreatown-manhattan.jpg" is also used by ${FILE}; every photo needs a file name of its own`,
+        'src/content/posts/group-dinner-in-brooklyn.md: fields: images[0]: file_name "west-32nd-street-koreatown-manhattan.jpg" is already used',
+        'src/content/posts/group-dinner-in-brooklyn.md: images: the post has 2 usable images; it needs at least 3, a cover and two for the body',
       ]);
     });
   });

@@ -1,28 +1,29 @@
 import { buildPageTitle } from '@/lib/seo/metadata';
 import { PLACES_LINE } from './body';
-import { IMAGES_SEGMENT, type Post } from './catalog';
-import { parseStandalone, readTaxonomy, type TermLookup } from './parse';
-import type { CommonsImage } from './photos';
+import type { Catalog, Post } from './catalog';
 import {
+  PLACES_DIR,
+  POSTS_DIR,
+  TAXONOMY_FILE,
+  filePath,
+  fileSegments,
   isFields,
   isText,
   listOf,
-  postFilePath,
-  postFileSlug,
-  readPostFile,
-  writtenFileNames,
+  readFrontMatter,
+  type ContentFile,
   type Fields,
-  type PostFile,
-  type PostFileContent,
-} from './post-file';
+} from './content-file';
+import { parseCatalog, type RepoContent } from './parse';
+import type { CommonsImage } from './photos';
 
 /**
- * The checks CI runs on every repo post: the panel's publish checklist
- * (nomi-control `where2meet/publishing.py`), ported rule for rule.
+ * The checks CI runs on the repo's content. Every file gets `fields`, and each post the site
+ * keeps gets the panel's publish checklist (nomi-control `where2meet/publishing.py`), ported
+ * rule for rule.
  */
 export type Rule =
   | 'fields'
-  | 'slug'
   | 'word-count'
   | 'places'
   | 'images'
@@ -48,38 +49,19 @@ export interface ImageHead {
 }
 
 export interface CheckOptions {
-  mdxSlugs: readonly string[];
   /** Keyed by source_url. An image without an entry was not measured, and its size goes unchecked. */
   heads: ReadonlyMap<string, ImageHead>;
-  taxonomyText: string;
 }
 
-type FileRule = 'fields' | 'slug';
-type PostRule = Exclude<Rule, FileRule>;
-
-interface Draft {
-  path: string;
-  slug: string;
-  content: PostFileContent;
-  post: Post | null;
-  issues: readonly string[];
-}
+type PostRule = Exclude<Rule, 'fields'>;
 
 interface Parsed {
-  path: string;
   post: Post;
   body: string;
   images: readonly CommonsImage[];
   mainKeyword: unknown;
 }
 
-interface Repo {
-  mdxSlugs: ReadonlySet<string>;
-  fileNames: ReadonlyMap<string, readonly string[]>;
-  heads: ReadonlyMap<string, ImageHead>;
-}
-
-const AT = 'front matter';
 const SEO_TITLE_MAX = 60;
 const DESCRIPTION_RANGE = [120, 155] as const;
 const BODY_WORDS = { general: [700, 1000], local: [400, 800] } as const;
@@ -175,21 +157,8 @@ const IMAGE_FIELDS: Schema = {
 
 type Messages = (string | false)[];
 
-/** Rules every file gets, even one whose post the site would drop. */
-const FILE_RULES: { [R in FileRule]: (draft: Draft, repo: Repo) => Messages } = {
-  fields: ({ content, issues }) =>
-    content.ok ? [...issues, ...fieldProblems(content.frontMatter)] : [content.problem],
-
-  slug: ({ slug }, { mdxSlugs }) => [
-    slug === IMAGES_SEGMENT &&
-      `the slug "${slug}" is the site's photo route, /blog/${slug}; a post needs another slug`,
-    mdxSlugs.has(slug) &&
-      `the slug "${slug}" is taken by an MDX post; a post needs a slug no other post has`,
-  ],
-};
-
 /** Rules for a post the site keeps. */
-const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } = {
+const POST_RULES: { [R in PostRule]: (parsed: Parsed, options: CheckOptions) => Messages } = {
   'word-count': ({ post, body }) => {
     const kind = post.areas.length === 0 ? 'general' : 'local';
     const [min, max] = BODY_WORDS[kind];
@@ -212,7 +181,7 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } 
     }),
   ],
 
-  images: ({ path, body, images }, { fileNames }) => {
+  images: ({ body, images }) => {
     const listed = new Set(images.map(({ fileName }) => fileName));
     const placed = new Set(lines(body).flatMap((line) => PHOTO_LINE.exec(line.trim())?.[1] ?? []));
     return [
@@ -221,14 +190,6 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } 
       ...[...placed]
         .filter((name) => !listed.has(name))
         .map((name) => `the body places ![](${name}), but no usable image has that file_name`),
-      ...images.flatMap(({ fileName }) =>
-        (fileNames.get(fileName) ?? [])
-          .filter((other) => other !== path)
-          .map(
-            (other) =>
-              `file_name "${fileName}" is also used by ${other}; every photo needs a file name of its own`
-          )
-      ),
     ];
   },
 
@@ -289,82 +250,78 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } 
   ],
 };
 
-/** Every problem in the repo's Markdown posts: per file, in the order of `Rule`. */
-export function checkPosts(files: readonly PostFile[], options: CheckOptions): Problem[] {
-  const { taxonomy } = readTaxonomy(options.taxonomyText);
-  const drafts = files.map((file) => draft(file, taxonomy));
-  const repo: Repo = {
-    mdxSlugs: new Set(options.mdxSlugs),
-    fileNames: listedFileNames(drafts),
-    heads: options.heads,
-  };
-  return drafts.flatMap((current) => {
-    const parsed = parsedPost(current);
-    const report = (rule: Rule, messages: Messages): Problem[] =>
-      messages.flatMap((message) => (message ? [{ file: current.path, rule, message }] : []));
-    return [
-      ...entries(FILE_RULES).flatMap(([rule, check]) => report(rule, check(current, repo))),
-      ...(parsed
-        ? entries(POST_RULES).flatMap(([rule, check]) => report(rule, check(parsed, repo)))
-        : []),
-    ];
-  });
+/**
+ * Every problem in the repo's content, per file: `fields` holds why the site skips the file or
+ * part of it, and a post the site keeps gets the rest in the order of `Rule`.
+ */
+export function checkContent(repo: RepoContent, options: CheckOptions): Problem[] {
+  const { catalog, issues } = parseCatalog(repo);
+  const skipped = (file: string) =>
+    issues.filter((issue) => issue.file === file).map(({ message }) => message);
+  return [
+    ...problems(TAXONOMY_FILE, 'fields', skipped(TAXONOMY_FILE)),
+    ...repo.places.flatMap((file) => {
+      const path = filePath(PLACES_DIR, file.name);
+      return problems(path, 'fields', skipped(path));
+    }),
+    ...repo.posts.flatMap((file) => {
+      const path = filePath(POSTS_DIR, file.name);
+      const content = readFrontMatter(file.text);
+      if (!content.ok) return problems(path, 'fields', skipped(path));
+      const parsed = keptPost(file, content.frontMatter, catalog);
+      return [
+        ...problems(path, 'fields', [...skipped(path), ...fieldProblems(content.frontMatter)]),
+        ...(parsed
+          ? entries(POST_RULES).flatMap(([rule, check]) =>
+              problems(path, rule, check(parsed, options))
+            )
+          : []),
+      ];
+    }),
+  ];
 }
 
 export function formatProblem({ file, rule, message }: Problem): string {
   return `${file}: ${rule}: ${message}`;
 }
 
-function draft(file: PostFile, taxonomy: TermLookup): Draft {
-  const content = readPostFile(file.text);
-  return {
-    path: postFilePath(file),
-    slug: postFileSlug(file),
-    content,
-    ...parseStandalone(file, content, taxonomy, AT),
-  };
+function problems(file: string, rule: Rule, messages: Messages): Problem[] {
+  return messages.flatMap((message) => (message ? [{ file, rule, message }] : []));
 }
 
-function parsedPost({ path, content, post }: Draft): Parsed | null {
-  if (!post || !content.ok || post.source.kind !== 'markdown') return null;
-  const { markdown, images } = post.source;
-  return { path, post, body: markdown, images, mainKeyword: content.frontMatter.main_keyword };
-}
-
-/** Read from the front matter as written, so a photo the site drops still holds its name. */
-function listedFileNames(drafts: readonly Draft[]): Map<string, string[]> {
-  const holders = new Map<string, string[]>();
-  for (const { path, content } of drafts) {
-    if (!content.ok) continue;
-    for (const name of new Set(writtenFileNames(content.frontMatter))) {
-      holders.set(name, [...(holders.get(name) ?? []), path]);
-    }
+function keptPost(file: ContentFile, frontMatter: Fields, catalog: Catalog): Parsed | null {
+  const [slug] = fileSegments(file.name);
+  for (const post of catalog.posts) {
+    if (post.source.kind !== 'markdown' || post.slug !== slug) continue;
+    const { markdown, images } = post.source;
+    return { post, body: markdown, images, mainKeyword: frontMatter.main_keyword };
   }
-  return holders;
+  return null;
 }
 
 function fieldProblems(frontMatter: Fields): string[] {
   const nested = (name: string, schema: Schema, noun: string) =>
     listOf(frontMatter[name]).flatMap((item, index) =>
-      isFields(item) ? shapeProblems(item, schema, `${AT}.${name}[${index}]`, noun) : []
+      isFields(item) ? shapeProblems(item, schema, noun, `${name}[${index}]`) : []
     );
   return [
-    ...shapeProblems(frontMatter, POST_FIELDS, AT, 'a post'),
+    ...shapeProblems(frontMatter, POST_FIELDS, 'a post'),
     ...nested('places', PLACE_FIELDS, 'a place'),
     ...nested('images', IMAGE_FIELDS, 'an image'),
   ];
 }
 
-function shapeProblems(fields: Fields, schema: Schema, at: string, noun: string): string[] {
+function shapeProblems(fields: Fields, schema: Schema, noun: string, at?: string): string[] {
+  const prefix = at ? `${at}: ` : '';
   const unknown = Object.keys(fields)
     .filter((name) => !Object.hasOwn(schema, name))
     .map(
       (name) =>
-        `${at}: unknown field "${name}"; ${noun} has only ${sentenceList(Object.keys(schema))}`
+        `${prefix}unknown field "${name}"; ${noun} has only ${sentenceList(Object.keys(schema))}`
     );
   const mistyped = Object.entries(schema).flatMap(([name, type]) =>
     type && !type.test(fields[name])
-      ? [`${at}: ${name} is ${described(fields[name])}; it must be ${type.wants}`]
+      ? [`${prefix}${name} is ${described(fields[name])}; it must be ${type.wants}`]
       : []
   );
   return [...unknown, ...mistyped];

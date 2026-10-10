@@ -2,7 +2,6 @@ import type { IsoDate } from '@/lib/seo/site-pages';
 import type { CommonsImage, Photo } from './photos';
 
 export const BLOG_PATH = '/blog';
-export const PANEL_TAG = 'where2meet-guides';
 export const IMAGES_SEGMENT = 'images';
 
 export interface Seo {
@@ -13,6 +12,29 @@ export interface Seo {
 export interface Term {
   key: string;
   label: string;
+}
+
+/** The parameter keys an occasion suggests, from `taxonomy.yaml`. */
+export interface OccasionTerm extends Term {
+  times: readonly string[];
+  venueTypes: readonly string[];
+  groupSizes: readonly string[];
+}
+
+export interface VenueTypeTerm extends Term {
+  googleType: string;
+}
+
+export interface BudgetTerm extends Term {
+  priceLevel: string;
+}
+
+export interface Taxonomy {
+  occasions: readonly OccasionTerm[];
+  times: readonly Term[];
+  venueTypes: readonly VenueTypeTerm[];
+  groupSizes: readonly Term[];
+  budgets: readonly BudgetTerm[];
 }
 
 export interface CuratedPlace {
@@ -26,9 +48,15 @@ export interface AreaRef {
   name: string;
 }
 
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
 export interface Area extends AreaRef {
   updatedAt: IsoDate;
   seo: Seo;
+  center: LatLng;
   intro: string;
   transitNotes: string;
   image: CommonsImage | null;
@@ -36,6 +64,7 @@ export interface Area extends AreaRef {
 
 export interface City extends Area {
   region: string;
+  country: string;
   towns: ReadonlyMap<string, Area>;
 }
 
@@ -60,6 +89,7 @@ export interface Post {
 }
 
 export interface Catalog {
+  taxonomy: Taxonomy;
   posts: readonly Post[];
   cities: ReadonlyMap<string, City>;
 }

@@ -45,7 +45,7 @@ export function buildLlmsTxt(catalog: Catalog): string {
   return `${site}\n## Cities and towns\n\n${areas.join('\n')}\n${OPTIONAL}`;
 }
 
-/** One list line. Line breaks and brackets in control plane copy can't break the list or link. */
+/** One list line. Line breaks and brackets in post and place copy can't break the list or link. */
 function link(title: string, path: string, description: string) {
   const linkText = oneLine(title).replace(/[[\]]/g, '\\$&');
   return `- [${linkText}](${toAbsoluteUrl(path)}): ${oneLine(description)}`;

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   SITE_CONFIG,
   buildPageTitle,
@@ -16,11 +16,14 @@ import {
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
 import { MDX_POSTS } from '@/content/blog/posts';
-import fixture from '@/features/blog/__fixtures__/published.json';
-import { REPO_POST_FILES, REPO_TAXONOMY } from '@/features/blog/__fixtures__/repo-posts';
+import {
+  FIXTURE_FILES,
+  fixtureContent,
+  markdownFile,
+  type FixtureFile,
+} from '@/features/blog/__fixtures__/content-files';
 import { postPath, postPhotos } from '@/features/blog/lib/catalog';
 import { parseCatalog } from '@/features/blog/lib/parse';
-import type { PostFile } from '@/features/blog/lib/post-file';
 import { buildLlmsTxt } from '@/lib/seo/llms-txt';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
 import { GET as getLlmsTxt } from '@/app/llms.txt/route';
@@ -28,15 +31,14 @@ import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
 import nextConfig from '../../../../next.config.js';
 
-const disk = vi.hoisted(() => ({ postFiles: [] as PostFile[] }));
+const disk = vi.hoisted(() => ({ files: [] as FixtureFile[] }));
 vi.mock('node:fs/promises', async (importOriginal) => {
-  const { withPostFiles } = await import('@/features/blog/__fixtures__/repo-posts');
-  return withPostFiles(await importOriginal(), () => disk.postFiles);
+  const { withContentFiles } = await import('@/features/blog/__fixtures__/content-files');
+  return withContentFiles(await importOriginal(), () => disk.files);
 });
 
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const FIXTURE_PATH = path.join(__dirname, '../../../features/blog/__fixtures__/published.json');
 const IMAGES = `${CANONICAL_ORIGIN}/blog/images`;
 const REPO_URLS = [
   `${CANONICAL_ORIGIN}/blog/how-to-pick-a-restaurant-for-a-group-dinner`,
@@ -57,23 +59,9 @@ function linksIn(text: string) {
   return [...text.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((match) => match[1]);
 }
 
-/** Every string in a JSON value, for scanning copy. */
-function strings(value: unknown): string[] {
-  if (typeof value === 'string') return [value];
-  if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
-  return [];
-}
-
-/** No published guides unless a test points the loader at the fixture. */
-beforeEach(() => {
-  vi.stubEnv('CONTROL_PLANE_FIXTURE', '');
-  vi.stubEnv('CONTROL_PLANE_URL', '');
-  vi.stubEnv('CONTROL_PLANE_READ_TOKEN', '');
-});
-
+/** The repo's own content unless a test adds the fixture files. */
 afterEach(() => {
-  vi.unstubAllEnvs();
-  disk.postFiles = [];
+  disk.files = [];
 });
 
 /** Strip Next.js metadata union types by round-tripping through JSON. */
@@ -181,7 +169,7 @@ describe('sitemap', () => {
   });
 
   it('lists every post, city and town at its /blog URL with its update date and its photos', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    disk.files = [...FIXTURE_FILES];
     const blogEntries = (await sitemap()).filter((entry) =>
       entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`)
     );
@@ -250,30 +238,8 @@ describe('sitemap', () => {
     ]);
   });
 
-  it('lists a repo Markdown post with its photos, general or local', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
-    disk.postFiles = [...REPO_POST_FILES];
-    const entries = (await sitemap()).filter(({ url }) =>
-      ['how-to-plan-a-coffee-catch-up', 'after-work-drinks-near-bryant-park'].some((slug) =>
-        url.endsWith(slug)
-      )
-    );
-    expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
-      [
-        `${CANONICAL_ORIGIN}/blog/how-to-plan-a-coffee-catch-up`,
-        '2026-10-10',
-        [`${IMAGES}/union-square-park-lawn.jpg`, `${IMAGES}/union-square-farmers-market.jpg`],
-      ],
-      [
-        `${CANONICAL_ORIGIN}/blog/new-york/midtown/after-work-drinks-near-bryant-park`,
-        '2026-10-07',
-        [`${IMAGES}/bryant-park-terrace-evening.jpg`],
-      ],
-    ]);
-  });
-
   it('uses fixed ISO content dates for lastModified, never the build time', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    disk.files = [...FIXTURE_FILES];
     const entries = await sitemap();
     for (const entry of entries) {
       expect(typeof entry.lastModified).toBe('string');
@@ -283,7 +249,7 @@ describe('sitemap', () => {
   });
 
   it('never exposes meeting, dashboard or auth pages', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    disk.files = [...FIXTURE_FILES];
     for (const entry of await sitemap()) {
       expect(entry.url).not.toMatch(/\/(meet|dashboard|auth|api)\b/);
     }
@@ -332,10 +298,7 @@ describe('structured data', () => {
   });
 
   it('describes a post as a BlogPosting with each photo as a credited, licensed ImageObject', () => {
-    const catalog = parseCatalog(
-      { mdx: MDX_POSTS, files: [], taxonomyText: REPO_TAXONOMY },
-      fixture
-    ).catalog;
+    const catalog = parseCatalog(fixtureContent()).catalog;
     const post = catalog.posts.find(
       ({ slug }) => slug === 'group-dinner-spots-near-herald-square'
     )!;
@@ -486,7 +449,7 @@ describe('llms.txt', () => {
   });
 
   it('links the pages, then every post by its /blog URL newest first, then cities and towns', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    disk.files = [...FIXTURE_FILES];
     expect(linksIn(await llmsTxt())).toEqual([
       ...pageUrls.slice(0, 2),
       `${CANONICAL_ORIGIN}/blog`,
@@ -505,17 +468,16 @@ describe('llms.txt', () => {
     ]);
   });
 
-  it('links a repo Markdown post with its description', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
-    disk.postFiles = [...REPO_POST_FILES];
+  it('links a post and a place with their descriptions', async () => {
+    disk.files = [...FIXTURE_FILES];
     const lines = (await llmsTxt()).split('\n');
-    expect(lines.filter((line) => /coffee-catch-up|after-work-drinks/.test(line))).toEqual([
-      `- [How to plan a coffee catch-up](${CANONICAL_ORIGIN}/blog/how-to-plan-a-coffee-catch-up): Pick a coffee shop you can both reach.`,
-      `- [After-work drinks near Bryant Park](${CANONICAL_ORIGIN}/blog/new-york/midtown/after-work-drinks-near-bryant-park): Where a team can meet after work in Midtown.`,
+    expect(lines.filter((line) => /herald-square|new-york\)/.test(line))).toEqual([
+      `- [Group dinner spots near Herald Square](${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square): Sample post: group dinner spots near Herald Square that a big group can reach on one train, with tips on booking and getting home late.`,
+      `- [Where to meet in New York](${CANONICAL_ORIGIN}/blog/new-york): Sample page: places in New York that work for groups, from team lunches to group dinners, plus how to get around by subway.`,
     ]);
   });
 
-  it('links only the repo posts and leaves out the cities section when the panel has nothing', async () => {
+  it('links only the MDX posts and leaves out the cities section without place files', async () => {
     const text = await llmsTxt();
     expect(text).not.toContain('## Cities and towns');
     expect(linksIn(text)).toEqual([
@@ -527,17 +489,20 @@ describe('llms.txt', () => {
     ]);
   });
 
-  it('keeps panel copy on one list line with its link intact', () => {
-    const seo = { title: 'Where to meet [beta]', description: 'Two lines\nof copy.' };
-    const { catalog } = parseCatalog(
-      { mdx: [], files: [], taxonomyText: REPO_TAXONOMY },
+  it('keeps place copy on one list line with its link intact', () => {
+    const testville = markdownFile(
+      'testville.md',
       {
-        version: 3,
-        taxonomy: {},
-        posts: [],
-        cities: [{ slug: 'testville', name: 'Testville', updated_at: '2026-10-05', seo }],
-      }
+        name: 'Testville',
+        region: 'TV',
+        country: 'US',
+        center: { lat: 42.36, lng: -71.06 },
+        updated_at: '2026-10-05',
+        seo: { title: 'Where to meet [beta]', description: 'Two lines\nof copy.' },
+      },
+      'Hello\n'
     );
+    const { catalog } = parseCatalog({ ...fixtureContent([]), mdx: [], places: [testville] });
     expect(buildLlmsTxt(catalog)).toContain(
       `- [Where to meet \\[beta\\]](${CANONICAL_ORIGIN}/blog/testville): Two lines of copy.\n`
     );
@@ -546,7 +511,7 @@ describe('llms.txt', () => {
 
 describe('positioning copy', () => {
   it('never calls the spot fair or says "meet in the middle"', async () => {
-    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    disk.files = [...FIXTURE_FILES];
     for (const text of [
       SITE_CONFIG.defaultTitle,
       SITE_CONFIG.description,
@@ -554,7 +519,7 @@ describe('positioning copy', () => {
       SITE_CONFIG.pitch,
       await llmsTxt(),
       ...MDX_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
-      ...strings(fixture),
+      ...FIXTURE_FILES.map(({ text }) => text),
     ]) {
       expect(text).not.toMatch(/\bfair/i);
       expect(text).not.toMatch(/meet in the middle/i);

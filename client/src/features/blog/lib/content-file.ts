@@ -2,28 +2,34 @@ import { parse as parseYaml } from 'yaml';
 
 export type Fields = Record<string, unknown>;
 
-export interface PostFile {
+/** A file the site reads from the repo, named relative to the folder it was listed in. */
+export interface ContentFile {
   name: string;
   text: string;
 }
 
-export type PostFileContent =
+export type FrontMatterContent =
   | { ok: true; frontMatter: Fields; body: string }
   | { ok: false; problem: string };
 
-export const POSTS_DIR = 'src/content/posts';
+/** Relative to the client root, where the site and CI read them. */
+export const CONTENT_DIR = 'src/content';
+export const POSTS_DIR = `${CONTENT_DIR}/posts`;
+export const PLACES_DIR = `${CONTENT_DIR}/places`;
+export const TAXONOMY_FILE = `${CONTENT_DIR}/taxonomy.yaml`;
 
 const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 
-export function postFilePath({ name }: PostFile): string {
-  return `${POSTS_DIR}/${name}`;
+export function filePath(dir: string, name: string): string {
+  return `${dir}/${name}`;
 }
 
-export function postFileSlug({ name }: PostFile): string {
-  return name.replace(/\.md$/, '');
+/** `new-york/midtown.md` is `['new-york', 'midtown']`. */
+export function fileSegments(name: string): string[] {
+  return name.replace(/\.md$/, '').split('/');
 }
 
-export function readPostFile(text: string): PostFileContent {
+export function readFrontMatter(text: string): FrontMatterContent {
   const match = FRONT_MATTER.exec(text);
   if (!match) return { ok: false, problem: 'no front matter between two --- lines at the top' };
   const yaml = readYaml(match[1]);
@@ -46,13 +52,6 @@ export function readYaml(
       problem: error instanceof Error ? error.message.split('\n')[0] : String(error),
     };
   }
-}
-
-/** The `file_name` of every image the front matter lists, before any image is checked. */
-export function writtenFileNames(frontMatter: Fields): string[] {
-  return listOf(frontMatter.images).flatMap((image) =>
-    isFields(image) && typeof image.file_name === 'string' ? [image.file_name] : []
-  );
 }
 
 export function isFields(value: unknown): value is Fields {
