@@ -348,8 +348,7 @@ function readArea(
   if (!isDate(updatedAt)) return drop('invalid updated_at');
   const seo = parseSeo(frontMatter.seo);
   if (!seo) return drop('invalid seo');
-  const { intro, transitNotes } = placeBody(body);
-  return { slug, name, updatedAt, seo, center, intro, transitNotes: transitNotes ?? '' };
+  return { slug, name, updatedAt, seo, center, ...placeBody(body) };
 }
 
 /** A place takes its slug and photo only once nothing else can drop it. */
@@ -373,7 +372,7 @@ function claimArea(
 }
 
 /** A place page's body: its intro, then the transit notes below `## Getting around`, if any. */
-export function placeBody(body: string): { intro: string; transitNotes: string | null } {
+function placeBody(body: string): { intro: string; transitNotes: string | null } {
   const lines = body.split('\n');
   const heading = lines.findIndex((line) => line.trim() === GETTING_AROUND);
   if (heading === -1) return { intro: body.trim(), transitNotes: null };

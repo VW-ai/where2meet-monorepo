@@ -69,7 +69,8 @@ export interface Area extends AreaRef {
   seo: Seo;
   center: LatLng;
   intro: string;
-  transitNotes: string;
+  /** Null when the body has no `## Getting around` line. */
+  transitNotes: string | null;
   image: CommonsImage | null;
 }
 

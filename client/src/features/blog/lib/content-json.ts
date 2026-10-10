@@ -1,47 +1,48 @@
 import type { IsoDate } from '@/lib/seo/site-pages';
-import { pagePath, postPath, type Catalog, type LatLng } from './catalog';
-
-interface TermJson {
-  key: string;
-  label: string;
-}
+import {
+  pagePath,
+  postPath,
+  type Catalog,
+  type Keyword,
+  type LatLng,
+  type OptionalParameter,
+  type Term,
+} from './catalog';
 
 type PlaceJson =
   | { path: string; kind: 'city'; slug: string; name: string; center: LatLng }
   | { path: string; kind: 'town'; slug: string; city: string; name: string; center: LatLng };
 
-interface PostJson {
+/** Every parameter key, so a new parameter can't compile without its field here. */
+type PostJson = {
   path: string;
   title: string;
   source: 'mdx' | 'markdown';
   occasion: string;
-  time: string | null;
-  venue_type: string | null;
-  group_size: string | null;
-  budget: string | null;
-  main_keyword: string | null;
-  city: string | null;
-  town: string | null;
-  published_at: IsoDate;
-  updated_at: IsoDate;
-}
+} & Record<OptionalParameter, string | null> & {
+    main_keyword: string | null;
+    city: string | null;
+    town: string | null;
+    published_at: IsoDate;
+    updated_at: IsoDate;
+  };
 
 /** `GET /blog/content.json`: the repo's blog content, as the Control Panel reads it. */
 export interface ContentJson {
   version: 1;
   generated_at: string;
   taxonomy: {
-    occasions: (TermJson & {
+    occasions: (Term & {
       times: readonly string[];
       venue_types: readonly string[];
       group_sizes: readonly string[];
     })[];
-    times: TermJson[];
-    venue_types: (TermJson & { google_type: string })[];
-    group_sizes: TermJson[];
-    budgets: (TermJson & { price_level: string })[];
+    times: Term[];
+    venue_types: (Term & { google_type: string })[];
+    group_sizes: Term[];
+    budgets: (Term & { price_level: string })[];
   };
-  keywords: { phrase: string; occasion: string | null; note: string | null }[];
+  keywords: Keyword[];
   /** Each city, then its towns. */
   places: PlaceJson[];
   /** Newest first, as the blog lists them. */
@@ -53,7 +54,7 @@ export function buildContentJson(
   { taxonomy, keywords, posts, cities }: Catalog,
   input: { generatedAt: Date; writingRules: string }
 ): ContentJson {
-  const term = ({ key, label }: TermJson): TermJson => ({ key, label });
+  const term = ({ key, label }: Term): Term => ({ key, label });
   return {
     version: 1,
     generated_at: input.generatedAt.toISOString().replace(/\.\d{3}Z$/, 'Z'),

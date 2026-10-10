@@ -290,7 +290,7 @@ describe('parseCatalog', () => {
       'Take the bus.\n\n## Getting around\n\nStill transit.',
     ]);
     const harbor = city.towns.get('harbor')!;
-    expect([harbor.intro, harbor.transitNotes]).toEqual(['Just an intro.', '']);
+    expect([harbor.intro, harbor.transitNotes]).toEqual(['Just an intro.', null]);
   });
 
   it('drops each bad place file and says why, and a town whose city has no place file', () => {

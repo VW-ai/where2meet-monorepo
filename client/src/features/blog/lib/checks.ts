@@ -17,7 +17,7 @@ import {
   type ContentFile,
   type Fields,
 } from './content-file';
-import { GETTING_AROUND, parseCatalog, placeBody, type RepoContent } from './parse';
+import { GETTING_AROUND, parseCatalog, type RepoContent } from './parse';
 import type { CommonsImage } from './photos';
 
 /**
@@ -71,24 +71,20 @@ interface ParsedPost {
   post: Post;
   body: string;
   images: readonly CommonsImage[];
-  /** Normalized, as a main keyword matches one. */
+}
+
+interface RuleContext extends CheckOptions {
+  /** The phrases in `keywords.yaml`, normalized as a main keyword matches one. */
   keywords: ReadonlySet<string>;
 }
 
-interface ParsedPlace {
-  area: Area;
-  /** Null when the body has no `## Getting around` line. */
-  transitNotes: string | null;
-}
-
-type Check<P> = (parsed: P, options: CheckOptions) => Messages;
-type FrontMatter = { frontMatter: Fields; body: string };
+type Check<P> = (parsed: P, context: RuleContext) => Messages;
 
 /** One folder of Markdown files: the fields each may have, and the rules for one the site keeps. */
 interface ContentKind<P, R extends Rule> {
   dir: string;
   shape: (frontMatter: Fields, file: ContentFile) => string[];
-  kept: (file: ContentFile, catalog: Catalog, content: FrontMatter) => P | null;
+  kept: (file: ContentFile, catalog: Catalog) => P | null;
   rules: { [_ in R]: Check<P> };
 }
 
@@ -237,7 +233,7 @@ const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
 
   description: ({ post }) => descriptionProblems(post.description),
 
-  'main-keyword': ({ post: { title, mainKeyword }, body, keywords }) => {
+  'main-keyword': ({ post: { title, mainKeyword }, body }, { keywords }) => {
     if (mainKeyword === null) return [];
     return [
       !keywords.has(normalize(mainKeyword)) &&
@@ -267,8 +263,8 @@ const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
 };
 
 /** Rules for a city or town page the site keeps. */
-const PLACE_RULES: { [R in PlaceRule]: Check<ParsedPlace> } = {
-  intro: ({ area }) => {
+const PLACE_RULES: { [R in PlaceRule]: Check<Area> } = {
+  intro: (area) => {
     const words = wordCount(area.intro);
     return [
       words < INTRO_MIN_WORDS &&
@@ -289,17 +285,17 @@ const PLACE_RULES: { [R in PlaceRule]: Check<ParsedPlace> } = {
     ];
   },
 
-  image: ({ area }) => [!area.image && 'the page has no usable image; a place page needs one'],
+  image: (area) => [!area.image && 'the page has no usable image; a place page needs one'],
 
-  'image-size': ({ area }, { heads }) => sizeProblems(area.image ? [area.image] : [], heads),
+  'image-size': (area, { heads }) => sizeProblems(area.image ? [area.image] : [], heads),
 
-  title: ({ area }) => titleProblems(area.seo.title),
+  title: (area) => titleProblems(area.seo.title),
 
-  description: ({ area }) => descriptionProblems(area.seo.description),
+  description: (area) => descriptionProblems(area.seo.description),
 
-  wording: (parsed) => wordingProblems(placeText(parsed)),
+  wording: (area) => wordingProblems(placeText(area)),
 
-  style: (parsed) => styleProblems(placeText(parsed)),
+  style: (area) => styleProblems(placeText(area)),
 };
 
 const POSTS: ContentKind<ParsedPost, PostRule> = {
@@ -309,7 +305,7 @@ const POSTS: ContentKind<ParsedPost, PostRule> = {
   rules: POST_RULES,
 };
 
-const PLACES: ContentKind<ParsedPlace, PlaceRule> = {
+const PLACES: ContentKind<Area, PlaceRule> = {
   dir: PLACES_DIR,
   shape: placeFieldProblems,
   kept: keptPlace,
@@ -322,6 +318,10 @@ const PLACES: ContentKind<ParsedPlace, PlaceRule> = {
  */
 export function checkContent(repo: RepoContent, options: CheckOptions): Problem[] {
   const { catalog, issues } = parseCatalog(repo);
+  const context: RuleContext = {
+    ...options,
+    keywords: new Set(catalog.keywords.map(({ phrase }) => normalize(phrase))),
+  };
   const skipped = (file: string) =>
     issues.filter((issue) => issue.file === file).map(({ message }) => message);
   const checkFile =
@@ -330,12 +330,12 @@ export function checkContent(repo: RepoContent, options: CheckOptions): Problem[
       const path = filePath(kind.dir, file.name);
       const content = readFrontMatter(file.text);
       if (!content.ok) return problems(path, 'fields', skipped(path));
-      const parsed = kind.kept(file, catalog, content);
+      const parsed = kind.kept(file, catalog);
       return [
         ...problems(path, 'fields', [...skipped(path), ...kind.shape(content.frontMatter, file)]),
         ...(parsed
           ? entries(kind.rules).flatMap(([rule, check]) =>
-              problems(path, rule, check(parsed, options))
+              problems(path, rule, check(parsed, context))
             )
           : []),
       ];
@@ -361,18 +361,16 @@ function keptPost(file: ContentFile, catalog: Catalog): ParsedPost | null {
   for (const post of catalog.posts) {
     if (post.source.kind !== 'markdown' || post.slug !== slug) continue;
     const { markdown, images } = post.source;
-    const keywords = new Set(catalog.keywords.map(({ phrase }) => normalize(phrase)));
-    return { post, body: markdown, images, keywords };
+    return { post, body: markdown, images };
   }
   return null;
 }
 
-function keptPlace(file: ContentFile, catalog: Catalog, { body }: FrontMatter): ParsedPlace | null {
+function keptPlace(file: ContentFile, catalog: Catalog): Area | null {
   const [citySlug, townSlug, ...deeper] = fileSegments(file.name);
   if (deeper.length > 0) return null;
   const city = catalog.cities.get(citySlug);
-  const area = townSlug === undefined ? city : city?.towns.get(townSlug);
-  return area ? { area, transitNotes: placeBody(body).transitNotes } : null;
+  return (townSlug === undefined ? city : city?.towns.get(townSlug)) ?? null;
 }
 
 function postFieldProblems(frontMatter: Fields): string[] {
@@ -472,12 +470,12 @@ function postText({ post, body, images }: ParsedPost): PublishedText {
   ];
 }
 
-function placeText({ area }: ParsedPlace): PublishedText {
+function placeText(area: Area): PublishedText {
   return [
     ['the title', area.seo.title],
     ['the description', area.seo.description],
     ['the intro', area.intro],
-    ['the Getting around section', area.transitNotes],
+    ['the Getting around section', area.transitNotes ?? ''],
     ...imageText(area.image ? [area.image] : []),
   ];
 }
