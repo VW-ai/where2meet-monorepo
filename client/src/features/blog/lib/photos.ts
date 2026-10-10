@@ -1,3 +1,7 @@
+/** Wikimedia asks every client to name itself and give a way to reach its operator. */
+export const USER_AGENT =
+  'Where2Meet/1.0 (https://www.where2meet.org/contact; contact@wayvi-ai.com)';
+
 /** CC BY asks us to credit the author, link the license and say when we cropped the photo. */
 export const LICENSES = {
   CC0: { url: 'https://creativecommons.org/publicdomain/zero/1.0/', attribution: false },

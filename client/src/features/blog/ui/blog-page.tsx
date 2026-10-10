@@ -97,7 +97,7 @@ function PostView({ post, catalog, Mdx }: { post: Post; catalog: Catalog; Mdx?: 
           imageClassName={coverImage}
         />
         <div className={articleCard}>
-          {source.kind === 'repo' ? (
+          {source.kind === 'mdx' ? (
             Mdx && (
               <Mdx
                 components={{

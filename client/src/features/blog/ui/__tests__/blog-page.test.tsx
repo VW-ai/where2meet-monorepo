@@ -1,24 +1,22 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { REPO_POSTS } from '@/content/blog/posts';
+import { MDX_POSTS } from '@/content/blog/posts';
 import fixture from '../../__fixtures__/published.json';
-import { findPage, withRepoPosts } from '../../lib/catalog';
-import { parsePublished } from '../../lib/parse';
+import { REPO_POST_FILES, REPO_TAXONOMY } from '../../__fixtures__/repo-posts';
+import { findPage, type Catalog } from '../../lib/catalog';
+import { parseCatalog } from '../../lib/parse';
 import { BlogPageView } from '../blog-page';
 
 const ORIGIN = 'https://www.where2meet.org';
-const catalog = withRepoPosts(
-  REPO_POSTS,
-  parsePublished(
-    fixture,
-    REPO_POSTS.map(({ slug }) => slug)
-  ).catalog
-);
+const catalog = parseCatalog(
+  { mdx: MDX_POSTS, files: [], taxonomyText: REPO_TAXONOMY },
+  fixture
+).catalog;
 
-function render(path: string) {
-  const page = findPage(catalog, path.split('/'));
+function render(path: string, from: Catalog = catalog) {
+  const page = findPage(from, path.split('/'));
   if (!page) throw new Error(`Nothing is published at /blog/${path}`);
-  return renderToStaticMarkup(<BlogPageView page={page} catalog={catalog} />)
+  return renderToStaticMarkup(<BlogPageView page={page} catalog={from} />)
     .replace(/ class="[^"]*"/g, '')
     .replace(/ (srcSet|sizes|decoding|style|data-nimg)="[^"]*"/g, '')
     .replaceAll('&amp;', '&')
@@ -161,5 +159,51 @@ describe('BlogPageView', () => {
       'figure /_next/image?url=/blog/how-to-choose-a-team-meeting-location/cover.png&w=3840&q=75 "Herald Square\'s plaza and memorial clock in Midtown Manhattan, next to the article title." | Herald Square. Photo by Ypsilonatshared (Public domain) via Wikimedia Commons',
     ]);
     expect(html).toContain('<h2>Plan your team meeting on Where2Meet</h2>');
+  });
+});
+
+describe('BlogPageView for a repo Markdown post', () => {
+  const withMarkdown = parseCatalog(
+    { mdx: MDX_POSTS, files: REPO_POST_FILES, taxonomyText: REPO_TAXONOMY },
+    fixture
+  ).catalog;
+
+  it('renders it like a panel post: photos from /blog/images with credits, then place cards', () => {
+    const html = render('how-to-plan-a-coffee-catch-up', withMarkdown);
+    expect(html).not.toContain('<h1>How to plan a coffee catch-up</h1><ul>');
+    expect(outline(html)).toEqual([
+      'h1 How to plan a coffee catch-up',
+      'figure /_next/image?url=/blog/images/union-square-park-lawn.jpg&w=3840&q=75 "Union Square Park lawn" | A place the post names. Photo by Phi (CC0) via Wikimedia Commons',
+      'h2 Where should we meet?',
+      'figure /_next/image?url=/blog/images/union-square-farmers-market.jpg&w=3840&q=75 "Union Square Greenmarket" | A place the post names. Photo by Ann (CC BY 4.0) via Wikimedia Commons',
+      'places: Our picks',
+    ]);
+    expect(html).toContain('Think Coffee');
+    expect(html).toContain('<h2>Plan your coffee catch-up on Where2Meet</h2>');
+    const [, posting] = structuredData(html);
+    expect(posting.image.map(({ contentUrl }: { contentUrl: string }) => contentUrl)).toEqual([
+      `${ORIGIN}/blog/images/union-square-park-lawn.jpg`,
+      `${ORIGIN}/blog/images/union-square-farmers-market.jpg`,
+    ]);
+  });
+
+  it('shows a local post’s chips with the repo taxonomy’s labels', () => {
+    expect(render('new-york/midtown/after-work-drinks-near-bryant-park', withMarkdown)).toContain(
+      '<h1>After-work drinks near Bryant Park</h1><ul><li>Team welcome</li><li>After work</li><li>Big group, 7 or more</li></ul>'
+    );
+  });
+
+  it('keeps a general post and its labels when the panel is down, and drops a local one', () => {
+    const panelDown = parseCatalog({
+      mdx: MDX_POSTS,
+      files: REPO_POST_FILES,
+      taxonomyText: REPO_TAXONOMY,
+    }).catalog;
+    const html = render('how-to-plan-a-coffee-catch-up', panelDown);
+    expect(html).not.toContain('<h1>How to plan a coffee catch-up</h1><ul>');
+    expect(html).toContain('<h2>Plan your coffee catch-up on Where2Meet</h2>');
+    expect(findPage(panelDown, ['new-york', 'midtown', 'after-work-drinks-near-bryant-park'])).toBe(
+      null
+    );
   });
 });

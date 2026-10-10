@@ -1,0 +1,129 @@
+occasions:
+  - key: date-night
+    label: Date night
+    times: [after-work, late-night]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, wine-bar, bar, museum]
+    group_sizes: [two]
+  - key: team-meeting
+    label: Team meeting
+    times: [weekday-lunch, after-work]
+    venue_types: [coffee-shop, cafe, chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant]
+    group_sizes: [small, large]
+  - key: group-dinner
+    label: Group dinner
+    times: [after-work, late-night]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant]
+    group_sizes: [small, large]
+  - key: coffee-catch-up
+    label: Coffee catch-up
+    times: [weekday-lunch, weekend-brunch, weekend-afternoon]
+    venue_types: [coffee-shop, cafe]
+    group_sizes: [two, small]
+  - key: weekend-hangout
+    label: Weekend hangout
+    times: [weekend-brunch, weekend-afternoon]
+    venue_types: [brunch-restaurant, cafe, park, museum, bowling-alley, bar]
+    group_sizes: [small, large]
+  - key: family-outing
+    label: Family outing
+    times: [weekend-brunch, weekend-afternoon]
+    venue_types: [park, museum, bowling-alley, brunch-restaurant, italian-restaurant, mexican-restaurant, chinese-restaurant]
+    group_sizes: [small, large]
+  - key: team-offsite
+    label: Team offsite
+    times: [weekday-lunch]
+    venue_types: [park, museum, bowling-alley, chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant]
+    group_sizes: [small, large]
+  - key: long-distance-reunion
+    label: Long-distance reunion
+    times: []
+    venue_types: []
+    group_sizes: [two, small]
+  - key: team-welcome
+    label: Team welcome
+    times: [weekday-lunch, after-work]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, bar, wine-bar, bowling-alley]
+    group_sizes: [small, large]
+  - key: farewell
+    label: Farewell
+    times: [weekday-lunch, after-work]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, bar, wine-bar]
+    group_sizes: [small, large]
+  - key: client-meeting
+    label: Client meeting
+    times: [weekday-lunch, after-work]
+    venue_types: [coffee-shop, cafe, chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, wine-bar]
+    group_sizes: [two, small]
+  - key: birthday
+    label: Birthday
+    times: [after-work, late-night, weekend-brunch, weekend-afternoon]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, brunch-restaurant, bar, wine-bar, bowling-alley]
+    group_sizes: [small, large]
+times:
+  - key: weekday-lunch
+    label: Weekday lunch
+  - key: after-work
+    label: After work
+  - key: late-night
+    label: Late night
+  - key: weekend-brunch
+    label: Weekend brunch
+  - key: weekend-afternoon
+    label: Weekend afternoon
+venue_types:
+  - key: chinese-restaurant
+    label: Chinese restaurant
+    google_type: chinese_restaurant
+  - key: korean-restaurant
+    label: Korean restaurant
+    google_type: korean_restaurant
+  - key: italian-restaurant
+    label: Italian restaurant
+    google_type: italian_restaurant
+  - key: mexican-restaurant
+    label: Mexican restaurant
+    google_type: mexican_restaurant
+  - key: japanese-restaurant
+    label: Japanese restaurant
+    google_type: japanese_restaurant
+  - key: brunch-restaurant
+    label: Brunch restaurant
+    google_type: brunch_restaurant
+  - key: coffee-shop
+    label: Coffee shop
+    google_type: coffee_shop
+  - key: cafe
+    label: Cafe
+    google_type: cafe
+  - key: bar
+    label: Bar
+    google_type: bar
+  - key: wine-bar
+    label: Wine bar
+    google_type: wine_bar
+  - key: park
+    label: Park
+    google_type: park
+  - key: museum
+    label: Museum
+    google_type: museum
+  - key: bowling-alley
+    label: Bowling alley
+    google_type: bowling_alley
+group_sizes:
+  - key: two
+    label: Two people
+  - key: small
+    label: Small group, 3 to 6
+  - key: large
+    label: Big group, 7 or more
+budgets:
+  - key: inexpensive
+    label: Inexpensive
+    price_level: PRICE_LEVEL_INEXPENSIVE
+  - key: moderate
+    label: Mid-range
+    price_level: PRICE_LEVEL_MODERATE
+  - key: expensive
+    label: Splurge
+    price_level: PRICE_LEVEL_EXPENSIVE

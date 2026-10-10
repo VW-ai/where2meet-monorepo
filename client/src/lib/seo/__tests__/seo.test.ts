@@ -15,16 +15,24 @@ import {
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
-import { REPO_POSTS } from '@/content/blog/posts';
+import { MDX_POSTS } from '@/content/blog/posts';
 import fixture from '@/features/blog/__fixtures__/published.json';
-import { postPath, postPhotos, withRepoPosts } from '@/features/blog/lib/catalog';
-import { parsePublished } from '@/features/blog/lib/parse';
+import { REPO_POST_FILES, REPO_TAXONOMY } from '@/features/blog/__fixtures__/repo-posts';
+import { postPath, postPhotos } from '@/features/blog/lib/catalog';
+import { parseCatalog } from '@/features/blog/lib/parse';
+import type { PostFile } from '@/features/blog/lib/post-file';
 import { buildLlmsTxt } from '@/lib/seo/llms-txt';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
 import { GET as getLlmsTxt } from '@/app/llms.txt/route';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
 import nextConfig from '../../../../next.config.js';
+
+const disk = vi.hoisted(() => ({ postFiles: [] as PostFile[] }));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const { withPostFiles } = await import('@/features/blog/__fixtures__/repo-posts');
+  return withPostFiles(await importOriginal(), () => disk.postFiles);
+});
 
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -65,6 +73,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  disk.postFiles = [];
 });
 
 /** Strip Next.js metadata union types by round-tripping through JSON. */
@@ -241,6 +250,28 @@ describe('sitemap', () => {
     ]);
   });
 
+  it('lists a repo Markdown post with its photos, general or local', async () => {
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    disk.postFiles = [...REPO_POST_FILES];
+    const entries = (await sitemap()).filter(({ url }) =>
+      ['how-to-plan-a-coffee-catch-up', 'after-work-drinks-near-bryant-park'].some((slug) =>
+        url.endsWith(slug)
+      )
+    );
+    expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
+      [
+        `${CANONICAL_ORIGIN}/blog/how-to-plan-a-coffee-catch-up`,
+        '2026-10-10',
+        [`${IMAGES}/union-square-park-lawn.jpg`, `${IMAGES}/union-square-farmers-market.jpg`],
+      ],
+      [
+        `${CANONICAL_ORIGIN}/blog/new-york/midtown/after-work-drinks-near-bryant-park`,
+        '2026-10-07',
+        [`${IMAGES}/bryant-park-terrace-evening.jpg`],
+      ],
+    ]);
+  });
+
   it('uses fixed ISO content dates for lastModified, never the build time', async () => {
     vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
     const entries = await sitemap();
@@ -301,7 +332,10 @@ describe('structured data', () => {
   });
 
   it('describes a post as a BlogPosting with each photo as a credited, licensed ImageObject', () => {
-    const catalog = withRepoPosts(REPO_POSTS, parsePublished(fixture, []).catalog);
+    const catalog = parseCatalog(
+      { mdx: MDX_POSTS, files: [], taxonomyText: REPO_TAXONOMY },
+      fixture
+    ).catalog;
     const post = catalog.posts.find(
       ({ slug }) => slug === 'group-dinner-spots-near-herald-square'
     )!;
@@ -356,7 +390,7 @@ describe('structured data', () => {
   });
 
   it('credits a repo post’s cover photo on its cover image', () => {
-    const post = REPO_POSTS.find(
+    const post = MDX_POSTS.find(
       ({ slug }) => slug === 'how-to-pick-a-restaurant-for-a-group-dinner'
     )!;
     expect(
@@ -471,6 +505,16 @@ describe('llms.txt', () => {
     ]);
   });
 
+  it('links a repo Markdown post with its description', async () => {
+    vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+    disk.postFiles = [...REPO_POST_FILES];
+    const lines = (await llmsTxt()).split('\n');
+    expect(lines.filter((line) => /coffee-catch-up|after-work-drinks/.test(line))).toEqual([
+      `- [How to plan a coffee catch-up](${CANONICAL_ORIGIN}/blog/how-to-plan-a-coffee-catch-up): Pick a coffee shop you can both reach.`,
+      `- [After-work drinks near Bryant Park](${CANONICAL_ORIGIN}/blog/new-york/midtown/after-work-drinks-near-bryant-park): Where a team can meet after work in Midtown.`,
+    ]);
+  });
+
   it('links only the repo posts and leaves out the cities section when the panel has nothing', async () => {
     const text = await llmsTxt();
     expect(text).not.toContain('## Cities and towns');
@@ -485,14 +529,14 @@ describe('llms.txt', () => {
 
   it('keeps panel copy on one list line with its link intact', () => {
     const seo = { title: 'Where to meet [beta]', description: 'Two lines\nof copy.' };
-    const { catalog } = parsePublished(
+    const { catalog } = parseCatalog(
+      { mdx: [], files: [], taxonomyText: REPO_TAXONOMY },
       {
         version: 3,
         taxonomy: {},
         posts: [],
         cities: [{ slug: 'testville', name: 'Testville', updated_at: '2026-10-05', seo }],
-      },
-      []
+      }
     );
     expect(buildLlmsTxt(catalog)).toContain(
       `- [Where to meet \\[beta\\]](${CANONICAL_ORIGIN}/blog/testville): Two lines of copy.\n`
@@ -509,7 +553,7 @@ describe('positioning copy', () => {
       SITE_CONFIG.tagline,
       SITE_CONFIG.pitch,
       await llmsTxt(),
-      ...REPO_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
+      ...MDX_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
       ...strings(fixture),
     ]) {
       expect(text).not.toMatch(/\bfair/i);

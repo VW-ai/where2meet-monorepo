@@ -40,8 +40,8 @@ export interface City extends Area {
 }
 
 export type PostSource =
-  | { kind: 'repo'; cover: Photo }
-  | { kind: 'panel'; markdown: string; images: readonly [CommonsImage, ...CommonsImage[]] };
+  | { kind: 'mdx'; cover: Photo }
+  | { kind: 'markdown'; markdown: string; images: readonly [CommonsImage, ...CommonsImage[]] };
 
 export type PostAreas = readonly [] | readonly [AreaRef] | readonly [AreaRef, AreaRef];
 
@@ -71,13 +71,6 @@ export type BlogPage = PostPage | AreaPage;
 export interface Crumb {
   name: string;
   path: string;
-}
-
-export function withRepoPosts(repoPosts: readonly Post[], panel: Catalog): Catalog {
-  const posts = [...repoPosts, ...panel.posts].sort((a, b) =>
-    b.publishedAt.localeCompare(a.publishedAt)
-  );
-  return { posts, cities: panel.cities };
 }
 
 export function imagePath(fileName: string): string {
@@ -121,11 +114,11 @@ export function findPage(catalog: Catalog, segments: readonly string[]): BlogPag
 }
 
 export function postCover(post: Post): Photo {
-  return post.source.kind === 'repo' ? post.source.cover : post.source.images[0];
+  return post.source.kind === 'mdx' ? post.source.cover : post.source.images[0];
 }
 
 export function postPhotos(post: Post): readonly Photo[] {
-  return post.source.kind === 'repo' ? [post.source.cover] : post.source.images;
+  return post.source.kind === 'mdx' ? [post.source.cover] : post.source.images;
 }
 
 export function pagePhotos(page: BlogPage): readonly Photo[] {
@@ -145,7 +138,7 @@ export function latestUpdate(catalog: Catalog): IsoDate | undefined {
 export function catalogImages(catalog: Catalog): ReadonlyMap<string, CommonsImage> {
   const areas = [...catalog.cities.values()].flatMap((city) => [city, ...city.towns.values()]);
   const images = [
-    ...catalog.posts.flatMap((post) => (post.source.kind === 'panel' ? post.source.images : [])),
+    ...catalog.posts.flatMap((post) => (post.source.kind === 'markdown' ? post.source.images : [])),
     ...areas.flatMap((area) => area.image ?? []),
   ];
   return new Map(images.map((image) => [image.fileName, image]));
