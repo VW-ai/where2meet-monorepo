@@ -1,28 +1,28 @@
 import { buildPageTitle } from '@/lib/seo/metadata';
 import { PLACES_LINE } from './body';
-import { IMAGES_SEGMENT, type Post } from './catalog';
-import { parseStandalone, readTaxonomy, type TermLookup } from './parse';
-import type { CommonsImage } from './photos';
+import type { Area, Catalog, Post } from './catalog';
 import {
+  KEYWORDS_FILE,
+  PLACES_DIR,
+  POSTS_DIR,
+  SPACE,
+  TAXONOMY_FILE,
+  filePath,
+  fileSegments,
   isFields,
   isText,
   listOf,
-  postFilePath,
-  postFileSlug,
-  readPostFile,
-  writtenFileNames,
+  normalize,
+  readFrontMatter,
+  type ContentFile,
   type Fields,
-  type PostFile,
-  type PostFileContent,
-} from './post-file';
+} from './content-file';
+import { GETTING_AROUND, parseCatalog, type RepoContent } from './parse';
+import type { CommonsImage } from './photos';
 
-/**
- * The checks CI runs on every repo post: the panel's publish checklist
- * (nomi-control `where2meet/publishing.py`), ported rule for rule.
- */
-export type Rule =
-  | 'fields'
-  | 'slug'
+export type Rule = 'fields' | PostRule | PlaceRule;
+
+type PostRule =
   | 'word-count'
   | 'places'
   | 'images'
@@ -34,6 +34,16 @@ export type Rule =
   | 'wording'
   | 'style'
   | 'dates';
+
+type PlaceRule =
+  | 'intro'
+  | 'getting-around'
+  | 'image'
+  | 'image-size'
+  | 'title'
+  | 'description'
+  | 'wording'
+  | 'style';
 
 export interface Problem {
   file: string;
@@ -48,38 +58,29 @@ export interface ImageHead {
 }
 
 export interface CheckOptions {
-  mdxSlugs: readonly string[];
   /** Keyed by source_url. An image without an entry was not measured, and its size goes unchecked. */
   heads: ReadonlyMap<string, ImageHead>;
-  taxonomyText: string;
 }
 
-type FileRule = 'fields' | 'slug';
-type PostRule = Exclude<Rule, FileRule>;
-
-interface Draft {
-  path: string;
-  slug: string;
-  content: PostFileContent;
-  post: Post | null;
-  issues: readonly string[];
-}
-
-interface Parsed {
-  path: string;
+interface ParsedPost {
   post: Post;
   body: string;
   images: readonly CommonsImage[];
-  mainKeyword: unknown;
 }
 
-interface Repo {
-  mdxSlugs: ReadonlySet<string>;
-  fileNames: ReadonlyMap<string, readonly string[]>;
-  heads: ReadonlyMap<string, ImageHead>;
+interface RuleContext extends CheckOptions {
+  keywords: ReadonlySet<string>;
 }
 
-const AT = 'front matter';
+type Check<P> = (parsed: P, context: RuleContext) => Messages;
+
+interface ContentKind<P, R extends Rule> {
+  dir: string;
+  shape: (frontMatter: Fields, file: ContentFile) => string[];
+  kept: (file: ContentFile, catalog: Catalog) => P | null;
+  rules: { [_ in R]: Check<P> };
+}
+
 const SEO_TITLE_MAX = 60;
 const DESCRIPTION_RANGE = [120, 155] as const;
 const BODY_WORDS = { general: [700, 1000], local: [400, 800] } as const;
@@ -89,11 +90,11 @@ const IMAGES_MIN = 3;
 /** The site caches a photo only up to this many bytes. */
 const IMAGE_BYTES_MAX = 2_000_000;
 const HEADINGS = ['## How to do it in Where2Meet', '## Common questions'];
+const INTRO_MIN_WORDS = 60;
+const TRANSIT_NOTES_MIN_WORDS = 20;
 
 /** Python's `\w`: a Unicode letter, digit or underscore. */
 const WORD_CHAR = String.raw`[\p{L}\p{N}_]`;
-/** Python's `\s`, which also counts \x1c to \x1f and \x85 and leaves out \ufeff. */
-const SPACE = String.raw`[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]`;
 /** Brand wording: "convenient", never "fair" (or fairly, fairness) or "meet in the middle". */
 const OFF_BRAND = new RegExp(
   String.raw`(?<!${WORD_CHAR})fair${WORD_CHAR}*|(?<!${WORD_CHAR})meet(?:s|ing)?(?:${SPACE}|-)+in(?:${SPACE}|-)+the(?:${SPACE}|-)+middle(?!${WORD_CHAR})`,
@@ -159,7 +160,7 @@ const POST_FIELDS: Schema = {
   places: LIST,
   images: LIST,
 };
-const PLACE_FIELDS: Schema = { place_id: PARSED, label: PARSED, note: TEXT };
+const CURATED_PLACE_FIELDS: Schema = { place_id: PARSED, label: PARSED, note: TEXT };
 const IMAGE_FIELDS: Schema = {
   file_name: PARSED,
   source_url: PARSED,
@@ -172,24 +173,19 @@ const IMAGE_FIELDS: Schema = {
   license: PARSED,
   cropped: FLAG,
 };
+const TOWN_FIELDS: Schema = {
+  name: PARSED,
+  center: PARSED,
+  updated_at: PARSED,
+  seo: PARSED,
+  image: PARSED,
+};
+const CITY_FIELDS: Schema = { name: PARSED, region: PARSED, country: PARSED, ...TOWN_FIELDS };
 
 type Messages = (string | false)[];
 
-/** Rules every file gets, even one whose post the site would drop. */
-const FILE_RULES: { [R in FileRule]: (draft: Draft, repo: Repo) => Messages } = {
-  fields: ({ content, issues }) =>
-    content.ok ? [...issues, ...fieldProblems(content.frontMatter)] : [content.problem],
-
-  slug: ({ slug }, { mdxSlugs }) => [
-    slug === IMAGES_SEGMENT &&
-      `the slug "${slug}" is the site's photo route, /blog/${slug}; a post needs another slug`,
-    mdxSlugs.has(slug) &&
-      `the slug "${slug}" is taken by an MDX post; a post needs a slug no other post has`,
-  ],
-};
-
 /** Rules for a post the site keeps. */
-const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } = {
+const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
   'word-count': ({ post, body }) => {
     const kind = post.areas.length === 0 ? 'general' : 'local';
     const [min, max] = BODY_WORDS[kind];
@@ -212,7 +208,7 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } 
     }),
   ],
 
-  images: ({ path, body, images }, { fileNames }) => {
+  images: ({ body, images }) => {
     const listed = new Set(images.map(({ fileName }) => fileName));
     const placed = new Set(lines(body).flatMap((line) => PHOTO_LINE.exec(line.trim())?.[1] ?? []));
     return [
@@ -221,44 +217,21 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } 
       ...[...placed]
         .filter((name) => !listed.has(name))
         .map((name) => `the body places ![](${name}), but no usable image has that file_name`),
-      ...images.flatMap(({ fileName }) =>
-        (fileNames.get(fileName) ?? [])
-          .filter((other) => other !== path)
-          .map(
-            (other) =>
-              `file_name "${fileName}" is also used by ${other}; every photo needs a file name of its own`
-          )
-      ),
     ];
   },
 
-  'image-size': ({ images }, { heads }) =>
-    images.flatMap(({ fileName, sourceUrl }) => {
-      const head = heads.get(sourceUrl);
-      return head ? sizeProblems(fileName, head) : [];
-    }),
+  'image-size': ({ images }, { heads }) => sizeProblems(images, heads),
 
-  title: ({ post }) => {
-    const length = codePoints(buildPageTitle(post.title));
-    return [
-      length > SEO_TITLE_MAX &&
-        `the title is ${count(length, 'character')} with its " | Where2Meet" suffix; it needs at most ${SEO_TITLE_MAX}`,
-    ];
-  },
+  title: ({ post }) => titleProblems(post.title),
 
-  description: ({ post }) => {
-    const length = codePoints(post.description);
-    const [min, max] = DESCRIPTION_RANGE;
-    return [
-      !within(length, min, max) &&
-        `the description is ${count(length, 'character')}; it needs ${min} to ${max}`,
-    ];
-  },
+  description: ({ post }) => descriptionProblems(post.description),
 
-  'main-keyword': ({ post, body, mainKeyword }) => {
-    if (!isText(mainKeyword)) return [];
+  'main-keyword': ({ post: { title, mainKeyword }, body }, { keywords }) => {
+    if (mainKeyword === null) return [];
     return [
-      !says(post.title, mainKeyword) &&
+      !keywords.has(normalize(mainKeyword)) &&
+        `the main keyword "${mainKeyword}" is not a phrase in ${KEYWORDS_FILE}; it must be one, so add it there or pick one of its phrases`,
+      !says(title, mainKeyword) &&
         `the title does not say the main keyword "${mainKeyword}"; it must, as whole words`,
       !says(opening(body), mainKeyword) &&
         `the body's first two sentences do not say the main keyword "${mainKeyword}"; they must, as whole words`,
@@ -272,16 +245,9 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } 
     );
   },
 
-  wording: (parsed) =>
-    found(OFF_BRAND, parsed).map(
-      ({ field, phrase }) =>
-        `${field} says "${phrase}"; write "convenient", and never a word starting with "fair" or "meet in the middle"`
-    ),
+  wording: (parsed) => wordingProblems(postText(parsed)),
 
-  style: (parsed) =>
-    found(STYLE_MARK, parsed).map(
-      ({ field, phrase }) => `${field} has ${STYLE_MARKS[phrase]} instead of "${phrase}"`
-    ),
+  style: (parsed) => styleProblems(postText(parsed)),
 
   dates: ({ post: { publishedAt, updatedAt } }) => [
     updatedAt < publishedAt &&
@@ -289,88 +255,180 @@ const POST_RULES: { [R in PostRule]: (parsed: Parsed, repo: Repo) => Messages } 
   ],
 };
 
-/** Every problem in the repo's Markdown posts: per file, in the order of `Rule`. */
-export function checkPosts(files: readonly PostFile[], options: CheckOptions): Problem[] {
-  const { taxonomy } = readTaxonomy(options.taxonomyText);
-  const drafts = files.map((file) => draft(file, taxonomy));
-  const repo: Repo = {
-    mdxSlugs: new Set(options.mdxSlugs),
-    fileNames: listedFileNames(drafts),
-    heads: options.heads,
-  };
-  return drafts.flatMap((current) => {
-    const parsed = parsedPost(current);
-    const report = (rule: Rule, messages: Messages): Problem[] =>
-      messages.flatMap((message) => (message ? [{ file: current.path, rule, message }] : []));
+const PLACE_RULES: { [R in PlaceRule]: Check<Area> } = {
+  intro: (area) => {
+    const words = wordCount(area.intro);
     return [
-      ...entries(FILE_RULES).flatMap(([rule, check]) => report(rule, check(current, repo))),
-      ...(parsed
-        ? entries(POST_RULES).flatMap(([rule, check]) => report(rule, check(parsed, repo)))
-        : []),
+      words < INTRO_MIN_WORDS &&
+        `the intro has ${count(words, 'word')}; a place page needs at least ${INTRO_MIN_WORDS}`,
     ];
-  });
+  },
+
+  'getting-around': ({ transitNotes }) => {
+    if (transitNotes === null) {
+      return [
+        `the body has no "${GETTING_AROUND}" heading; a place page needs it before its transit notes`,
+      ];
+    }
+    const words = wordCount(transitNotes);
+    return [
+      words < TRANSIT_NOTES_MIN_WORDS &&
+        `the transit notes have ${count(words, 'word')}; they need at least ${TRANSIT_NOTES_MIN_WORDS}`,
+    ];
+  },
+
+  image: (area) => [!area.image && 'the page has no usable image; a place page needs one'],
+
+  'image-size': (area, { heads }) => sizeProblems(area.image ? [area.image] : [], heads),
+
+  title: (area) => titleProblems(area.seo.title),
+
+  description: (area) => descriptionProblems(area.seo.description),
+
+  wording: (area) => wordingProblems(placeText(area)),
+
+  style: (area) => styleProblems(placeText(area)),
+};
+
+const POSTS: ContentKind<ParsedPost, PostRule> = {
+  dir: POSTS_DIR,
+  shape: postFieldProblems,
+  kept: keptPost,
+  rules: POST_RULES,
+};
+
+const PLACES: ContentKind<Area, PlaceRule> = {
+  dir: PLACES_DIR,
+  shape: placeFieldProblems,
+  kept: keptPlace,
+  rules: PLACE_RULES,
+};
+
+export function checkContent(repo: RepoContent, options: CheckOptions): Problem[] {
+  const { catalog, issues } = parseCatalog(repo);
+  const context: RuleContext = {
+    ...options,
+    keywords: new Set(catalog.keywords.map(({ phrase }) => normalize(phrase))),
+  };
+  const skipped = (file: string) =>
+    issues.filter((issue) => issue.file === file).map(({ message }) => message);
+  const checkFile =
+    <P, R extends Rule>(kind: ContentKind<P, R>) =>
+    (file: ContentFile): Problem[] => {
+      const path = filePath(kind.dir, file.name);
+      const content = readFrontMatter(file.text);
+      if (!content.ok) return problems(path, 'fields', skipped(path));
+      const parsed = kind.kept(file, catalog);
+      return [
+        ...problems(path, 'fields', [...skipped(path), ...kind.shape(content.frontMatter, file)]),
+        ...(parsed
+          ? entries(kind.rules).flatMap(([rule, check]) =>
+              problems(path, rule, check(parsed, context))
+            )
+          : []),
+      ];
+    };
+  return [
+    ...problems(TAXONOMY_FILE, 'fields', skipped(TAXONOMY_FILE)),
+    ...problems(KEYWORDS_FILE, 'fields', skipped(KEYWORDS_FILE)),
+    ...repo.places.flatMap(checkFile(PLACES)),
+    ...repo.posts.flatMap(checkFile(POSTS)),
+  ];
 }
 
 export function formatProblem({ file, rule, message }: Problem): string {
   return `${file}: ${rule}: ${message}`;
 }
 
-function draft(file: PostFile, taxonomy: TermLookup): Draft {
-  const content = readPostFile(file.text);
-  return {
-    path: postFilePath(file),
-    slug: postFileSlug(file),
-    content,
-    ...parseStandalone(file, content, taxonomy, AT),
-  };
+function problems(file: string, rule: Rule, messages: Messages): Problem[] {
+  return messages.flatMap((message) => (message ? [{ file, rule, message }] : []));
 }
 
-function parsedPost({ path, content, post }: Draft): Parsed | null {
-  if (!post || !content.ok || post.source.kind !== 'markdown') return null;
-  const { markdown, images } = post.source;
-  return { path, post, body: markdown, images, mainKeyword: content.frontMatter.main_keyword };
-}
-
-/** Read from the front matter as written, so a photo the site drops still holds its name. */
-function listedFileNames(drafts: readonly Draft[]): Map<string, string[]> {
-  const holders = new Map<string, string[]>();
-  for (const { path, content } of drafts) {
-    if (!content.ok) continue;
-    for (const name of new Set(writtenFileNames(content.frontMatter))) {
-      holders.set(name, [...(holders.get(name) ?? []), path]);
-    }
+function keptPost(file: ContentFile, catalog: Catalog): ParsedPost | null {
+  const [slug] = fileSegments(file.name);
+  for (const post of catalog.posts) {
+    if (post.source.kind !== 'markdown' || post.slug !== slug) continue;
+    const { markdown, images } = post.source;
+    return { post, body: markdown, images };
   }
-  return holders;
+  return null;
 }
 
-function fieldProblems(frontMatter: Fields): string[] {
+function keptPlace(file: ContentFile, catalog: Catalog): Area | null {
+  const [citySlug, townSlug, ...deeper] = fileSegments(file.name);
+  if (deeper.length > 0) return null;
+  const city = catalog.cities.get(citySlug);
+  return (townSlug === undefined ? city : city?.towns.get(townSlug)) ?? null;
+}
+
+function postFieldProblems(frontMatter: Fields): string[] {
   const nested = (name: string, schema: Schema, noun: string) =>
     listOf(frontMatter[name]).flatMap((item, index) =>
-      isFields(item) ? shapeProblems(item, schema, `${AT}.${name}[${index}]`, noun) : []
+      isFields(item) ? shapeProblems(item, schema, noun, `${name}[${index}]`) : []
     );
   return [
-    ...shapeProblems(frontMatter, POST_FIELDS, AT, 'a post'),
-    ...nested('places', PLACE_FIELDS, 'a place'),
+    ...shapeProblems(frontMatter, POST_FIELDS, 'a post'),
+    ...nested('places', CURATED_PLACE_FIELDS, 'a place'),
     ...nested('images', IMAGE_FIELDS, 'an image'),
   ];
 }
 
-function shapeProblems(fields: Fields, schema: Schema, at: string, noun: string): string[] {
+function placeFieldProblems(frontMatter: Fields, file: ContentFile): string[] {
+  const depth = fileSegments(file.name).length;
+  if (depth > 2) return [];
+  const { image } = frontMatter;
+  return [
+    ...(depth === 1
+      ? shapeProblems(frontMatter, CITY_FIELDS, 'a city')
+      : shapeProblems(frontMatter, TOWN_FIELDS, 'a town')),
+    ...(isFields(image) ? shapeProblems(image, IMAGE_FIELDS, 'an image', 'image') : []),
+  ];
+}
+
+function shapeProblems(fields: Fields, schema: Schema, noun: string, at?: string): string[] {
+  const prefix = at ? `${at}: ` : '';
   const unknown = Object.keys(fields)
     .filter((name) => !Object.hasOwn(schema, name))
     .map(
       (name) =>
-        `${at}: unknown field "${name}"; ${noun} has only ${sentenceList(Object.keys(schema))}`
+        `${prefix}unknown field "${name}"; ${noun} has only ${sentenceList(Object.keys(schema))}`
     );
   const mistyped = Object.entries(schema).flatMap(([name, type]) =>
     type && !type.test(fields[name])
-      ? [`${at}: ${name} is ${described(fields[name])}; it must be ${type.wants}`]
+      ? [`${prefix}${name} is ${described(fields[name])}; it must be ${type.wants}`]
       : []
   );
   return [...unknown, ...mistyped];
 }
 
-function sizeProblems(fileName: string, { status, bytes, contentType }: ImageHead): Messages {
+function titleProblems(title: string): Messages {
+  const length = codePoints(buildPageTitle(title));
+  return [
+    length > SEO_TITLE_MAX &&
+      `the title is ${count(length, 'character')} with its " | Where2Meet" suffix; it needs at most ${SEO_TITLE_MAX}`,
+  ];
+}
+
+function descriptionProblems(description: string): Messages {
+  const length = codePoints(description);
+  const [min, max] = DESCRIPTION_RANGE;
+  return [
+    !within(length, min, max) &&
+      `the description is ${count(length, 'character')}; it needs ${min} to ${max}`,
+  ];
+}
+
+function sizeProblems(
+  images: readonly CommonsImage[],
+  heads: ReadonlyMap<string, ImageHead>
+): Messages {
+  return images.flatMap(({ fileName, sourceUrl }) => {
+    const head = heads.get(sourceUrl);
+    return head ? headProblems(fileName, head) : [];
+  });
+}
+
+function headProblems(fileName: string, { status, bytes, contentType }: ImageHead): Messages {
   if (status < 200 || status > 299) {
     return [`${fileName}: its source_url answered HTTP ${status}; it needs to load`];
   }
@@ -386,22 +444,52 @@ function sizeProblems(fileName: string, { status, bytes, contentType }: ImageHea
   ];
 }
 
-/** The free text the site renders. Labels and author names are proper nouns, not copy. */
-function publishedText({ post, body, images }: Parsed): [field: string, text: string][] {
+type PublishedText = [field: string, text: string][];
+
+function postText({ post, body, images }: ParsedPost): PublishedText {
   return [
     ['the title', post.title],
     ['the description', post.description],
     ['the body', body],
     ...post.places.map(({ label, note }): [string, string] => [`the note for "${label}"`, note]),
-    ...images.flatMap(({ fileName, alt, caption }): [string, string][] => [
-      [`the alt text of ${fileName}`, alt],
-      [`the caption of ${fileName}`, caption],
-    ]),
+    ...imageText(images),
   ];
 }
 
-function found(pattern: RegExp, parsed: Parsed): { field: string; phrase: string }[] {
-  return publishedText(parsed).flatMap(([field, text]) =>
+function placeText(area: Area): PublishedText {
+  return [
+    ['the title', area.seo.title],
+    ['the description', area.seo.description],
+    ['the intro', area.intro],
+    ['the Getting around section', area.transitNotes ?? ''],
+    ...imageText(area.image ? [area.image] : []),
+  ];
+}
+
+function imageText(images: readonly CommonsImage[]): PublishedText {
+  return images.flatMap(
+    ({ fileName, alt, caption }): PublishedText => [
+      [`the alt text of ${fileName}`, alt],
+      [`the caption of ${fileName}`, caption],
+    ]
+  );
+}
+
+function wordingProblems(texts: PublishedText): Messages {
+  return found(OFF_BRAND, texts).map(
+    ({ field, phrase }) =>
+      `${field} says "${phrase}"; write "convenient", and never a word starting with "fair" or "meet in the middle"`
+  );
+}
+
+function styleProblems(texts: PublishedText): Messages {
+  return found(STYLE_MARK, texts).map(
+    ({ field, phrase }) => `${field} has ${STYLE_MARKS[phrase]} instead of "${phrase}"`
+  );
+}
+
+function found(pattern: RegExp, texts: PublishedText): { field: string; phrase: string }[] {
+  return texts.flatMap(([field, text]) =>
     [...new Set([...asRead(text).matchAll(pattern)].map(([phrase]) => phrase))].map((phrase) => ({
       field,
       phrase,
@@ -445,18 +533,6 @@ function headings(body: string): Set<string> {
 /** Words a reader sees: a Markdown link counts its text, not its URL. */
 function wordCount(text: string): number {
   return text.replace(LINK_TARGET, '] ').match(WORD)?.length ?? 0;
-}
-
-/** Python's `casefold`, closely enough for matching: upper then lower also folds ß to ss. */
-function normalize(text: string): string {
-  return text
-    .replace(/[\u2018\u2019\u201a\u201b\u2032]/gu, "'")
-    .replace(/[\u201c-\u201f\u2033]/gu, '"')
-    .toUpperCase()
-    .toLowerCase()
-    .split(new RegExp(`${SPACE}+`, 'u'))
-    .filter(Boolean)
-    .join(' ');
 }
 
 function says(text: string, phrase: string): boolean {

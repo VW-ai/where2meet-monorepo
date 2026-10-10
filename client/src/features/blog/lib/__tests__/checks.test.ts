@@ -1,16 +1,16 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { checkPosts, formatProblem, type ImageHead } from '../post-checks';
-import { REPO_TAXONOMY } from '../../__fixtures__/repo-posts';
-import { postFilePath, type PostFile } from '../post-file';
+import { checkContent, formatProblem, type ImageHead } from '../checks';
+import type { ContentFile } from '../content-file';
+import { fixtureContent } from '../../__fixtures__/content-files';
 
 const NAME = 'group-dinner-after-work.md';
-const example: PostFile = {
+const example: ContentFile = {
   name: NAME,
   text: readFileSync(path.join(__dirname, '../../__fixtures__/posts', NAME), 'utf8'),
 };
-const FILE = postFilePath(example);
+const FILE = `src/content/posts/${NAME}`;
 
 const COVER_URL =
   'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Koreatown%2C_Manhattan_%2851877264332%29.jpg/1280px-Koreatown%2C_Manhattan_%2851877264332%29.jpg';
@@ -31,18 +31,19 @@ const ATLANTIC_IMAGE = `  - file_name: atlantic-avenue-barclays-center-station-e
     cropped: false
 `;
 
+const KEYWORDS =
+  '- phrase: Group  Dinner after work\n  occasion: group-dinner\n- phrase: group dinner\n';
+
 function check(
-  files: readonly PostFile[],
+  posts: readonly ContentFile[],
   heads: ReadonlyMap<string, ImageHead> = new Map()
 ): string[] {
-  return checkPosts(files, {
-    mdxSlugs: ['how-to-pick-a-date-spot'],
-    heads,
-    taxonomyText: REPO_TAXONOMY,
-  }).map(formatProblem);
+  return checkContent({ ...fixtureContent(), keywordsText: KEYWORDS, posts }, { heads }).map(
+    formatProblem
+  );
 }
 
-function edited(edits: readonly [from: string, to: string][], name = NAME): PostFile {
+function edited(edits: readonly [from: string, to: string][], name = NAME): ContentFile {
   let text = example.text;
   for (const [from, to] of edits) {
     if (!text.includes(from)) throw new Error(`the example has no ${JSON.stringify(from)}`);
@@ -51,8 +52,8 @@ function edited(edits: readonly [from: string, to: string][], name = NAME): Post
   return { name, text };
 }
 
-describe('checkPosts', () => {
-  it('passes the example, and fails it only on the slug under a taken name', () => {
+describe('checkContent on a post', () => {
+  it('passes the example, and drops it under a taken name with only that problem', () => {
     const heads = new Map<string, ImageHead>([
       [COVER_URL, { status: 200, bytes: 486_621, contentType: 'image/jpeg' }],
       [FULTON_URL, { status: 200, bytes: 389_396, contentType: 'image/jpeg' }],
@@ -60,7 +61,7 @@ describe('checkPosts', () => {
     ]);
     expect(check([example], heads)).toEqual([]);
     expect(check([{ ...example, name: 'how-to-pick-a-date-spot.md' }], heads)).toEqual([
-      'src/content/posts/how-to-pick-a-date-spot.md: slug: the slug "how-to-pick-a-date-spot" is taken by an MDX post; a post needs a slug no other post has',
+      'src/content/posts/how-to-pick-a-date-spot.md: fields: slug "how-to-pick-a-date-spot" is taken by an MDX post',
     ]);
   });
 
@@ -79,13 +80,13 @@ describe('checkPosts', () => {
 
     it('reports what the parser drops the post for', () => {
       expect(check([edited([['published_at: 2026-10-10', 'published_at: 10/10/2026']])])).toEqual([
-        `${FILE}: fields: front matter: invalid published_at`,
+        `${FILE}: fields: invalid published_at`,
       ]);
     });
 
     it('reports a parameter key the taxonomy does not have', () => {
       expect(check([edited([['venue_type: null', 'venue_type: sushi-bar']])])).toEqual([
-        `${FILE}: fields: front matter: unknown venue_type "sushi-bar"`,
+        `${FILE}: fields: unknown venue_type "sushi-bar"`,
       ]);
     });
 
@@ -97,7 +98,7 @@ describe('checkPosts', () => {
         ],
       ]);
       expect(check([file])).toEqual([
-        `${FILE}: fields: front matter.images[1]: license "CC BY-SA 4.0" is not allowed`,
+        `${FILE}: fields: images[1]: license "CC BY-SA 4.0" is not allowed`,
         `${FILE}: images: the post has 2 usable images; it needs at least 3, a cover and two for the body`,
         `${FILE}: images: the body places ![](fulton-center-lower-manhattan.jpg), but no usable image has that file_name`,
       ]);
@@ -111,7 +112,7 @@ describe('checkPosts', () => {
         ],
       ]);
       expect(check([file])).toEqual([
-        `${FILE}: fields: front matter.images[0]: unknown field "license_url"; an image has only file_name, source_url, page_url, width, height, alt, caption, author, license and cropped`,
+        `${FILE}: fields: images[0]: unknown field "license_url"; an image has only file_name, source_url, page_url, width, height, alt, caption, author, license and cropped`,
       ]);
     });
 
@@ -123,37 +124,35 @@ describe('checkPosts', () => {
         ],
       ]);
       expect(check([file])).toEqual([
-        `${FILE}: fields: front matter.images[0]: cropped is "no"; it must be true or false`,
+        `${FILE}: fields: images[0]: cropped is "no"; it must be true or false`,
       ]);
     });
 
     it('needs a main keyword', () => {
       expect(
         check([edited([['main_keyword: group dinner after work', 'main_keyword: ""']])])
-      ).toEqual([`${FILE}: fields: front matter: main_keyword is ""; it must be non-empty text`]);
+      ).toEqual([`${FILE}: fields: main_keyword is ""; it must be non-empty text`]);
     });
   });
 
-  describe('slug', () => {
-    it('keeps the photo route free', () => {
-      expect(check([{ ...example, name: 'images.md' }])).toEqual([
-        `src/content/posts/images.md: slug: the slug "images" is the site's photo route, /blog/images; a post needs another slug`,
-      ]);
-    });
+  it('keeps the photo route free', () => {
+    expect(check([{ ...example, name: 'images.md' }])).toEqual([
+      'src/content/posts/images.md: fields: slug "images" is taken by the photo route',
+    ]);
+  });
 
-    it('is the only check besides fields on a file the site drops', () => {
-      const file = edited(
-        [
-          ['published_at: 2026-10-10', 'published_at: 10/10/2026'],
-          ['## Common questions', '## Questions people ask'],
-        ],
-        'images.md'
-      );
-      expect(check([file])).toEqual([
-        'src/content/posts/images.md: fields: front matter: invalid published_at',
-        `src/content/posts/images.md: slug: the slug "images" is the site's photo route, /blog/images; a post needs another slug`,
-      ]);
-    });
+  it('is the only check on a file the site drops', () => {
+    const file = edited([
+      ['published_at: 2026-10-10', 'published_at: 10/10/2026'],
+      ['## Common questions', '## Questions people ask'],
+    ]);
+    expect(check([file])).toEqual([`${FILE}: fields: invalid published_at`]);
+  });
+
+  it('reports a local post whose city has no place file', () => {
+    expect(check([edited([['city: null', 'city: boston']])])).toEqual([
+      `${FILE}: fields: city "boston" has no place file, src/content/places/boston.md`,
+    ]);
   });
 
   describe('word-count', () => {
@@ -206,7 +205,7 @@ describe('checkPosts', () => {
       ]);
     });
 
-    it('keeps each file name to one post', () => {
+    it('keeps each file name to the first file that lists it', () => {
       const other = edited(
         [
           ['fulton-center-lower-manhattan.jpg', 'fulton-center-station.jpg'],
@@ -215,8 +214,8 @@ describe('checkPosts', () => {
         'group-dinner-in-brooklyn.md'
       );
       expect(check([example, other])).toEqual([
-        `${FILE}: images: file_name "west-32nd-street-koreatown-manhattan.jpg" is also used by src/content/posts/group-dinner-in-brooklyn.md; every photo needs a file name of its own`,
-        `src/content/posts/group-dinner-in-brooklyn.md: images: file_name "west-32nd-street-koreatown-manhattan.jpg" is also used by ${FILE}; every photo needs a file name of its own`,
+        'src/content/posts/group-dinner-in-brooklyn.md: fields: images[0]: file_name "west-32nd-street-koreatown-manhattan.jpg" is already used',
+        'src/content/posts/group-dinner-in-brooklyn.md: images: the post has 2 usable images; it needs at least 3, a cover and two for the body',
       ]);
     });
   });
@@ -274,6 +273,19 @@ describe('checkPosts', () => {
   });
 
   describe('main-keyword', () => {
+    it('needs a phrase from keywords.yaml', () => {
+      const file = edited([
+        ['main_keyword: group dinner after work', 'main_keyword: group dinner'],
+        ['A group dinner after work goes best', 'A group dinner goes best'],
+      ]);
+      expect(check([file])).toEqual([]);
+      expect(
+        check([edited([['main_keyword: group dinner after work', 'main_keyword: dinner']])])
+      ).toEqual([
+        `${FILE}: main-keyword: the main keyword "dinner" is not a phrase in src/content/keywords.yaml; it must be one, so add it there or pick one of its phrases`,
+      ]);
+    });
+
     it('needs it in the title', () => {
       const file = edited([
         [
@@ -350,6 +362,136 @@ describe('checkPosts', () => {
   it('needs updated_at on or after published_at', () => {
     expect(check([edited([['updated_at: 2026-10-10', 'updated_at: 2026-10-09']])])).toEqual([
       `${FILE}: dates: updated_at 2026-10-09 is before published_at 2026-10-10; it must be on or after it`,
+    ]);
+  });
+});
+
+describe('checkContent on a place', () => {
+  const CITY = 'src/content/places/new-york.md';
+  const TOWN = 'src/content/places/new-york/midtown.md';
+  const [newYork, midtown] = fixtureContent().places;
+  const CITY_IMAGE_URL =
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Midtown_Manhattan_2019.jpg/1280px-Midtown_Manhattan_2019.jpg';
+
+  function checkPlaces(
+    places: readonly ContentFile[],
+    heads: ReadonlyMap<string, ImageHead> = new Map()
+  ): string[] {
+    return checkContent({ ...fixtureContent(), places, posts: [] }, { heads }).map(formatProblem);
+  }
+
+  function editedPlace(file: ContentFile, edits: readonly [from: string, to: string][]) {
+    let text = file.text;
+    for (const [from, to] of edits) {
+      if (!text.includes(from)) throw new Error(`${file.name} has no ${JSON.stringify(from)}`);
+      text = text.replaceAll(from, to);
+    }
+    return { ...file, text };
+  }
+
+  it('passes the fixture city and town', () => {
+    expect([newYork.name, midtown.name]).toEqual(['new-york.md', 'new-york/midtown.md']);
+    expect(checkPlaces([newYork, midtown])).toEqual([]);
+  });
+
+  it('reports a field a city, a town or its image does not have', () => {
+    const city = editedPlace(newYork, [
+      [
+        '  license: CC0\n',
+        '  license: CC0\n  license_url: https://creativecommons.org/publicdomain/zero/1.0/\n',
+      ],
+    ]);
+    const town = editedPlace(midtown, [['name: Midtown\n', 'name: Midtown\nregion: NY\n']]);
+    expect(checkPlaces([city, town])).toEqual([
+      `${CITY}: fields: image: unknown field "license_url"; an image has only file_name, source_url, page_url, width, height, alt, caption, author, license and cropped`,
+      `${TOWN}: fields: unknown field "region"; a town has only name, center, updated_at, seo and image`,
+    ]);
+  });
+
+  it('reports what the parser drops a city for, and drops its towns with it', () => {
+    const city = editedPlace(newYork, [['country: US\n', '']]);
+    expect(checkPlaces([city, midtown])).toEqual([
+      `${CITY}: fields: missing country`,
+      `${TOWN}: fields: city "new-york" has a place file the site skips, ${CITY}`,
+    ]);
+  });
+
+  it('needs an intro of 60 words', () => {
+    const town = editedPlace(midtown, [
+      [
+        "Midtown is where many New York offices are, so it's the default for anything work-related.",
+        'Midtown is busy.',
+      ],
+      [
+        ' Grand Central, Times Square and Herald Square stations put most of the city within one train, and Bryant Park sits between them as an easy landmark. Most of these posts are about weekday plans, like a team lunch, a quick meeting near the office or drinks after work, chosen so the whole group can arrive within a short walk of one station.',
+        '',
+      ],
+    ]);
+    expect(checkPlaces([newYork, town])).toEqual([
+      `${TOWN}: intro: the intro has 7 words; a place page needs at least 60`,
+    ]);
+  });
+
+  it('needs a "## Getting around" heading with 20 words of transit notes below it', () => {
+    const noHeading = editedPlace(midtown, [['## Getting around\n\n', '']]);
+    expect(checkPlaces([newYork, noHeading])).toEqual([
+      `${TOWN}: getting-around: the body has no "## Getting around" heading; a place page needs it before its transit notes`,
+    ]);
+    const shortNotes = editedPlace(midtown, [
+      [
+        '_Sample copy._ Grand Central, Times Square and Herald Square stations serve most subway lines, and PATH and commuter trains stop nearby. Streets are busiest from 8 to 10 a.m. and 5 to 7 p.m.',
+        'Take the subway.',
+      ],
+    ]);
+    expect(checkPlaces([newYork, shortNotes])).toEqual([
+      `${TOWN}: getting-around: the transit notes have 3 words; they need at least 20`,
+    ]);
+  });
+
+  it('needs a usable image', () => {
+    const town = editedPlace(midtown, [['license: Public domain', 'license: CC BY-SA 4.0']]);
+    expect(checkPlaces([newYork, town])).toEqual([
+      `${TOWN}: fields: image: license "CC BY-SA 4.0" is not allowed`,
+      `${TOWN}: image: the page has no usable image; a place page needs one`,
+    ]);
+  });
+
+  it('measures its image like a post photo, and leaves an unmeasured one alone', () => {
+    const heads = new Map([
+      [CITY_IMAGE_URL, { status: 404, bytes: 1_234, contentType: 'text/html' }],
+    ]);
+    expect(checkPlaces([newYork, midtown], heads)).toEqual([
+      `${CITY}: image-size: midtown-manhattan-skyline-new-york.jpg: its source_url answered HTTP 404; it needs to load`,
+    ]);
+  });
+
+  it('holds its SEO title and description to the post limits', () => {
+    const city = editedPlace(newYork, [
+      [
+        'title: Where to meet in New York\n',
+        'title: Where to meet in New York City with friends, family and coworkers\n',
+      ],
+    ]);
+    const town = editedPlace(midtown, [
+      [
+        "description: 'Sample page: places in Midtown Manhattan for team meetings and welcome lunches, a short walk from Grand Central and Bryant Park.'",
+        'description: Places in Midtown for team lunches.',
+      ],
+    ]);
+    expect(checkPlaces([city, town])).toEqual([
+      `${CITY}: title: the title is 78 characters with its " | Where2Meet" suffix; it needs at most 60`,
+      `${TOWN}: description: the description is 35 characters; it needs 120 to 155`,
+    ]);
+  });
+
+  it('blocks off-brand wording and style marks in its copy', () => {
+    const city = editedPlace(newYork, [['the most convenient pick', 'the fairest pick']]);
+    const town = editedPlace(midtown, [
+      ["caption: Bryant Park's lawn in Midtown", 'caption: Bryant Park\u2019s lawn in Midtown'],
+    ]);
+    expect(checkPlaces([city, town])).toEqual([
+      `${CITY}: wording: the Getting around section says "fairest"; write "convenient", and never a word starting with "fair" or "meet in the middle"`,
+      `${TOWN}: style: the caption of bryant-park-lawn-midtown.jpg has a curly quote; use straight quotes instead of "\u2019"`,
     ]);
   });
 });

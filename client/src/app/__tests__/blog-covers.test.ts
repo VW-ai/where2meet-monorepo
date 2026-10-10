@@ -4,8 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET as oneSegmentCover } from '@/app/(landing)/blog/[slug]/cover.png/route';
 import { GET as twoSegmentCover } from '@/app/(landing)/blog/[slug]/[segment]/cover.png/route';
 import { GET as townPostCover } from '@/app/(landing)/blog/[slug]/[segment]/[post]/cover.png/route';
+import { FIXTURE_FILES, type FixtureFile } from '@/features/blog/__fixtures__/content-files';
 
-const FIXTURE_PATH = path.join(__dirname, '../../features/blog/__fixtures__/published.json');
+const disk = vi.hoisted(() => ({ files: [] as FixtureFile[] }));
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const { withContentFiles } = await import('@/features/blog/__fixtures__/content-files');
+  return withContentFiles(await importOriginal(), () => disk.files);
+});
+
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons';
 const JPEG = readFileSync(
   path.join(__dirname, '../../content/blog/covers/how-to-pick-a-date-spot.jpg')
@@ -28,13 +34,13 @@ async function pngSize(response: Response) {
 const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JPEG));
 
 beforeEach(() => {
-  vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+  disk.files = [...FIXTURE_FILES];
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockClear();
 });
 
 afterEach(() => {
-  vi.unstubAllEnvs();
+  disk.files = [];
   vi.unstubAllGlobals();
 });
 

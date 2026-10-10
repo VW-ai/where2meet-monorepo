@@ -1,0 +1,30 @@
+- phrase: where to meet
+- phrase: find a place to meet
+- phrase: plan where to meet
+- phrase: group meetup planner
+- phrase: date spot
+  occasion: date-night
+- phrase: where to go on a date
+  occasion: date-night
+- phrase: first date spot
+  occasion: date-night
+- phrase: team meeting location
+  occasion: team-meeting
+- phrase: where to hold a team meeting
+  occasion: team-meeting
+- phrase: group dinner
+  occasion: group-dinner
+- phrase: restaurant for a big group
+  occasion: group-dinner
+- phrase: coffee meeting spot
+  occasion: coffee-catch-up
+- phrase: weekend hangout
+  occasion: weekend-hangout
+- phrase: where to hang out with friends
+  occasion: weekend-hangout
+- phrase: family outing
+  occasion: family-outing
+- phrase: team offsite location
+  occasion: team-offsite
+- phrase: where to meet a friend from another city
+  occasion: long-distance-reunion
