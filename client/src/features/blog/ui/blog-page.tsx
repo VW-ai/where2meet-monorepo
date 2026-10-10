@@ -28,7 +28,7 @@ import { CuratedPlaces } from './curated-places';
 import { PhotoFigure } from './photo-figure';
 import { PlanCta } from './plan-cta';
 import { Byline } from './post-card';
-import { PanelBody, PostMarkdown } from './post-markdown';
+import { MarkdownBody, PostMarkdown } from './post-markdown';
 
 interface LinkCard {
   href: string;
@@ -105,7 +105,7 @@ function PostView({ post, catalog, Mdx }: { post: Post; catalog: Catalog; Mdx?: 
               />
             )
           ) : (
-            <PanelBody
+            <MarkdownBody
               markdown={source.markdown}
               images={source.images}
               places={places}
