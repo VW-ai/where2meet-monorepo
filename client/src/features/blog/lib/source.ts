@@ -9,6 +9,7 @@ import {
   PLACES_DIR,
   POSTS_DIR,
   TAXONOMY_FILE,
+  WRITING_RULES_FILE,
   type ContentFile,
 } from './content-file';
 import { parseCatalog, type RepoContent } from './parse';
@@ -34,6 +35,10 @@ export async function readRepoContent(): Promise<RepoContent> {
     contentFiles(POSTS_DIR, false),
   ]);
   return { mdx: MDX_POSTS, taxonomyText, keywordsText, places, posts };
+}
+
+export async function readWritingRules(): Promise<string> {
+  return readFile(path.join(process.cwd(), WRITING_RULES_FILE), 'utf8');
 }
 
 async function contentFiles(dir: string, recursive: boolean): Promise<ContentFile[]> {

@@ -238,6 +238,16 @@ describe('sitemap', () => {
     ]);
   });
 
+  it('lists the place pages and leaves out /blog/content.json, which is data', async () => {
+    disk.files = [...FIXTURE_FILES];
+    const urls = (await sitemap()).map(({ url }) => url);
+    expect(
+      [`${CANONICAL_ORIGIN}/blog/new-york`, `${CANONICAL_ORIGIN}/blog/content.json`].map((url) =>
+        urls.includes(url)
+      )
+    ).toEqual([true, false]);
+  });
+
   it('uses fixed ISO content dates for lastModified, never the build time', async () => {
     disk.files = [...FIXTURE_FILES];
     const entries = await sitemap();
@@ -466,6 +476,16 @@ describe('llms.txt', () => {
       `${CANONICAL_ORIGIN}/blog/new-york/midtown`,
       `${CANONICAL_ORIGIN}/sitemap.xml`,
     ]);
+  });
+
+  it('links the place pages and leaves out /blog/content.json, which is data', async () => {
+    disk.files = [...FIXTURE_FILES];
+    const links = linksIn(await llmsTxt());
+    expect(
+      [`${CANONICAL_ORIGIN}/blog/new-york`, `${CANONICAL_ORIGIN}/blog/content.json`].map((url) =>
+        links.includes(url)
+      )
+    ).toEqual([true, false]);
   });
 
   it('links a post and a place with their descriptions', async () => {

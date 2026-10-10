@@ -8,6 +8,7 @@ import {
   areaPosts,
   pagePath,
   pageTrail,
+  postChips,
   postCover,
   postPath,
   postPhotos,
@@ -85,9 +86,7 @@ function PostView({ post, catalog, Mdx }: { post: Post; catalog: Catalog; Mdx?: 
       />
       <article>
         <h1 className={heading}>{post.title}</h1>
-        {post.areas.length > 0 && (
-          <Chips terms={[post.occasion, ...post.parameters]} className="mt-3" />
-        )}
+        {post.areas.length > 0 && <Chips terms={postChips(post)} className="mt-3" />}
         <Byline post={post} className="mt-3" />
         <PhotoFigure
           photo={postCover(post)}
@@ -188,7 +187,7 @@ export function postCard(post: Post): LinkCard {
     href: postPath(post),
     icon: occasionIcon(post.occasion.key),
     title: post.title,
-    chips: post.areas.length > 0 ? [post.occasion, ...post.parameters] : undefined,
+    chips: post.areas.length > 0 ? postChips(post) : undefined,
     description: post.description,
   };
 }

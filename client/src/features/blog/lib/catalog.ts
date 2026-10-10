@@ -4,6 +4,10 @@ import type { CommonsImage, Photo } from './photos';
 export const BLOG_PATH = '/blog';
 export const IMAGES_SEGMENT = 'images';
 
+/** The parameters a post may set besides its occasion, in the order its chips show them. */
+export const OPTIONAL_PARAMETERS = ['time', 'venue_type', 'group_size', 'budget'] as const;
+export type OptionalParameter = (typeof OPTIONAL_PARAMETERS)[number];
+
 export interface Seo {
   title: string;
   description: string;
@@ -89,7 +93,7 @@ export interface Post {
   publishedAt: IsoDate;
   updatedAt: IsoDate;
   occasion: Term;
-  parameters: readonly Term[];
+  parameters: Readonly<Record<OptionalParameter, Term | null>>;
   /** The phrase from `keywords.yaml` the post targets. MDX posts have none. */
   mainKeyword: string | null;
   places: readonly CuratedPlace[];
@@ -103,6 +107,13 @@ export interface Catalog {
   posts: readonly Post[];
   cities: ReadonlyMap<string, City>;
 }
+
+export const NO_PARAMETERS: Post['parameters'] = {
+  time: null,
+  venue_type: null,
+  group_size: null,
+  budget: null,
+};
 
 export type AreaPage = { kind: 'area'; city: City; town: Area | null };
 export type PostPage = { kind: 'post'; post: Post };
@@ -151,6 +162,13 @@ export function listPages(catalog: Catalog): BlogPage[] {
 export function findPage(catalog: Catalog, segments: readonly string[]): BlogPage | null {
   const path = segmentsPath(segments);
   return listPages(catalog).find((page) => pagePath(page) === path) ?? null;
+}
+
+export function postChips(post: Post): Term[] {
+  return [
+    post.occasion,
+    ...OPTIONAL_PARAMETERS.flatMap((parameter) => post.parameters[parameter] ?? []),
+  ];
 }
 
 export function postCover(post: Post): Photo {

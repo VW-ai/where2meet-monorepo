@@ -18,6 +18,7 @@ export const POSTS_DIR = `${CONTENT_DIR}/posts`;
 export const PLACES_DIR = `${CONTENT_DIR}/places`;
 export const TAXONOMY_FILE = `${CONTENT_DIR}/taxonomy.yaml`;
 export const KEYWORDS_FILE = `${CONTENT_DIR}/keywords.yaml`;
+export const WRITING_RULES_FILE = 'docs/writing-rules.md';
 
 /** Python's `\s`, which also counts \x1c to \x1f and \x85 and leaves out \ufeff. */
 export const SPACE = String.raw`[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]`;

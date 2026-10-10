@@ -9,7 +9,12 @@ import {
   Utensils,
   type IconNode,
 } from 'lucide';
-import { segmentsPath, type CuratedPlace, type Post } from '@/features/blog/lib/catalog';
+import {
+  NO_PARAMETERS,
+  segmentsPath,
+  type CuratedPlace,
+  type Post,
+} from '@/features/blog/lib/catalog';
 import type { License } from '@/features/blog/lib/photos';
 import { SHARE_IMAGE } from '@/lib/seo/metadata';
 import { assertIsoDate, type IsoDate } from '@/lib/seo/site-pages';
@@ -246,7 +251,7 @@ function toPost(post: BlogPost): Post {
     publishedAt: assertIsoDate(post.publishedAt, `${post.slug}.publishedAt`),
     updatedAt: assertIsoDate(post.updatedAt, `${post.slug}.updatedAt`),
     occasion: { key: post.occasion, label: OCCASIONS[post.occasion].label },
-    parameters: [],
+    parameters: NO_PARAMETERS,
     mainKeyword: null,
     places: post.examplePlaces.places,
     placesTitle: post.examplePlaces.title,

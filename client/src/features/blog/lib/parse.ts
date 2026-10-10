@@ -1,6 +1,8 @@
 import { isIsoDate, type IsoDate } from '@/lib/seo/site-pages';
 import {
   IMAGES_SEGMENT,
+  NO_PARAMETERS,
+  OPTIONAL_PARAMETERS,
   imagePath,
   type Area,
   type AreaRef,
@@ -11,6 +13,7 @@ import {
   type Keyword,
   type LatLng,
   type OccasionTerm,
+  type OptionalParameter,
   type Post,
   type PostAreas,
   type Seo,
@@ -52,7 +55,6 @@ export interface RepoContent {
   posts: readonly ContentFile[];
 }
 
-type OptionalParameter = (typeof OPTIONAL_PARAMETERS)[number];
 type Parameter = 'occasion' | OptionalParameter;
 type TermLookup = (parameter: Parameter, key: unknown) => Term | undefined;
 
@@ -72,7 +74,6 @@ interface Context {
   placeFiles: ReadonlySet<string>;
 }
 
-const OPTIONAL_PARAMETERS = ['time', 'venue_type', 'group_size', 'budget'] as const;
 const SLUG = /^[a-z0-9-]+$/;
 const POST_SLUG_MAX_LENGTH = 80;
 const FILE_NAME = /^[a-z0-9-]+\.jpg$/;
@@ -464,13 +465,13 @@ function parsePost(
   if (taken) return drop(`slug "${slug}" is taken by ${taken}`);
   const occasion = context.terms('occasion', value.occasion);
   if (!occasion) return drop(`unknown occasion ${JSON.stringify(value.occasion)}`);
-  const parameters: Term[] = [];
+  const parameters: Record<OptionalParameter, Term | null> = { ...NO_PARAMETERS };
   for (const parameter of OPTIONAL_PARAMETERS) {
     const key = value[parameter] ?? null;
     if (key === null) continue;
     const term = context.terms(parameter, key);
     if (!term) return drop(`unknown ${parameter} ${JSON.stringify(key)}`);
-    parameters.push(term);
+    parameters[parameter] = term;
   }
   const { title, description, published_at: publishedAt, updated_at: updatedAt } = value;
   if (!isDate(publishedAt)) return drop('invalid published_at');
