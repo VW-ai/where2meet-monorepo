@@ -27,7 +27,6 @@ export const loadCatalog = cache(async (): Promise<Catalog> => {
 
 /** Everything the blog is built from, read relative to the client root. */
 export async function readRepoContent(): Promise<RepoContent> {
-  const read = (file: string) => readFile(path.join(process.cwd(), file), 'utf8');
   const [taxonomyText, keywordsText, places, posts] = await Promise.all([
     read(TAXONOMY_FILE),
     read(KEYWORDS_FILE),
@@ -38,7 +37,12 @@ export async function readRepoContent(): Promise<RepoContent> {
 }
 
 export async function readWritingRules(): Promise<string> {
-  return readFile(path.join(process.cwd(), WRITING_RULES_FILE), 'utf8');
+  return read(WRITING_RULES_FILE);
+}
+
+/** Relative to the client root, where the build runs. */
+function read(file: string): Promise<string> {
+  return readFile(path.join(process.cwd(), file), 'utf8');
 }
 
 async function contentFiles(dir: string, recursive: boolean): Promise<ContentFile[]> {
@@ -73,10 +77,6 @@ export async function fetchPhoto(image: CommonsImage): Promise<Response> {
     }
     await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
   }
-}
-
-export function isBuilding(): boolean {
-  return process.env.NEXT_PHASE === 'phase-production-build';
 }
 
 const warned = new Set<string>();
