@@ -7,7 +7,7 @@ import { renderArticleCover, type CardPhoto } from '@/lib/og/share-card';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { BLOG_PATH, type BlogPage } from './catalog';
 import { occasionIcon } from './occasion-icon';
-import type { CommonsImage, Photo } from './photos';
+import { creditLine, type CommonsImage } from './photos';
 import { fetchPhoto, loadPage } from './source';
 
 export async function coverResponse(segments: readonly string[]): Promise<Response> {
@@ -46,8 +46,4 @@ async function coverPhoto(page: BlogPage): Promise<CardPhoto | undefined> {
 function commonsCover(page: BlogPage): CommonsImage | null {
   if (page.kind === 'area') return (page.town ?? page.city).image;
   return page.post.source.kind === 'markdown' ? page.post.source.images[0] : null;
-}
-
-function creditLine({ credit }: Photo): string {
-  return `${credit.author}, ${credit.license}`;
 }

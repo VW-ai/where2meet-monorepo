@@ -11,7 +11,7 @@ import type {
   WithContext,
 } from 'schema-dts';
 import { BLOG_AUTHOR } from '@/content/blog/posts';
-import { LICENSES, type Photo } from '@/features/blog/lib/photos';
+import { creditLine, LICENSES, type Photo } from '@/features/blog/lib/photos';
 import { SITE_CONFIG, toAbsoluteUrl } from './metadata';
 
 /**
@@ -246,6 +246,7 @@ function imageObject(photo: Photo): ImageObject {
     ...(photo.caption && { caption: photo.caption }),
     creditText: author,
     creator: { '@type': 'Person', name: author },
+    copyrightNotice: creditLine(photo),
     ...(licenseUrl && { license: licenseUrl }),
     acquireLicensePage: pageUrl,
   };

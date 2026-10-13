@@ -335,6 +335,7 @@ describe('structured data', () => {
           caption: "Herald Square's plaza",
           creditText: 'Ypsilonatshared',
           creator: { '@type': 'Person', name: 'Ypsilonatshared' },
+          copyrightNotice: 'Ypsilonatshared, Public domain',
           acquireLicensePage: 'https://commons.wikimedia.org/wiki/File:Herald_Square_wts.jpg',
         },
         {
@@ -345,6 +346,7 @@ describe('structured data', () => {
           caption: 'Times Square, a few blocks north',
           creditText: 'Larry D. Moore',
           creator: { '@type': 'Person', name: 'Larry D. Moore' },
+          copyrightNotice: 'Larry D. Moore, CC BY 4.0',
           license: 'https://creativecommons.org/licenses/by/4.0/',
           acquireLicensePage:
             'https://commons.wikimedia.org/wiki/File:Times_Square_New_York_May_2022.jpg',
@@ -376,6 +378,7 @@ describe('structured data', () => {
         caption: 'Koreatown',
         creditText: 'Jazz Guy',
         creator: { '@type': 'Person', name: 'Jazz Guy' },
+        copyrightNotice: 'Jazz Guy, CC BY 2.0',
         license: 'https://creativecommons.org/licenses/by/2.0/',
         acquireLicensePage:
           'https://commons.wikimedia.org/wiki/File:West_32nd_Street_(Korea_Way)_@_Broadway_(2559336247).jpg',
