@@ -13,8 +13,8 @@ published_at: 2026-10-04
 updated_at: 2026-10-13
 places:
   - place_id: ChIJC4bmgFVYwokRu5RK8aA7ikY
-    label: Convene, West 46th St
-    note: Meeting and event rooms on West 46th Street, about a 2-minute walk from the 47-50 Sts-Rockefeller Ctr station. Open on weekdays only.
+    label: Convene 117 West 46th Street
+    note: An event venue on West 46th Street, about a 2-minute walk from the 47-50 Sts-Rockefeller Ctr station. Open on weekdays only.
   - place_id: ChIJdco4TKpZwokRdtg39W89yog
     label: Culture Espresso
     note: A coffee shop on West 38th Street, about a 5-minute walk from the 42 St-Bryant Pk station. Google lists it as inexpensive.
@@ -53,7 +53,7 @@ images:
     width: 1280
     height: 1223
     alt: The main concourse of Grand Central Terminal under its painted ceiling, with commuters crossing the floor
-    caption: The main concourse of Grand Central Terminal, where Metro-North and LIRR trains arrive
+    caption: The main concourse of Grand Central Terminal, where Metro-North trains arrive
     author: D. Benjamin Miller
     license: CC0
     cropped: false
@@ -69,7 +69,7 @@ images:
     cropped: false
 ---
 
-Where to hold a team meeting in Midtown depends on the station most of your team rides into. Book a room or a table a few minutes' walk from Times Sq-42 St, Grand Central, Herald Square or Bryant Park, since those stations serve 18 subway lines on weekdays between them. Maybe half the team commutes from Brooklyn and two people take Metro-North in from Westchester. A spot by the right station gives most of them a ride with no transfer.
+Where to hold a team meeting in Midtown depends on the station most of your team rides into. Book a room or a table a few minutes' walk from Times Sq-42 St, Grand Central, Herald Square or Bryant Park, since those stations serve 18 subway lines plus the 42 St Shuttle on weekdays between them. Maybe half the team commutes from Brooklyn and two people take Metro-North in from Westchester. A spot by the right station gives most of them a ride with no transfer.
 
 This post lists eight places to meet and what changes after work. It is part of our guide to [Midtown](/blog/new-york/midtown).
 
@@ -77,7 +77,7 @@ This post lists eight places to meet and what changes after work. It is part of 
 
 Pick by what the meeting needs, from a room with a door to a lunch the whole team can share. Each walk is from the station named.
 
-- **Convene, for a room with a door.** It rents meeting and event rooms on West 46th Street, about a 2-minute walk from the 47-50 Sts-Rockefeller Ctr station. Google lists it as open 7 a.m. to 7 p.m. on weekdays only.
+- **Convene, for a booked venue.** Google lists it as an event venue on West 46th Street, about a 2-minute walk from the 47-50 Sts-Rockefeller Ctr station. Google lists it as open 7 a.m. to 7 p.m. on weekdays only.
 - **Culture Espresso, for a quick check-in.** A coffee shop on West 38th Street, about a 5-minute walk from the 42 St-Bryant Pk station. Google lists it as inexpensive and not good for groups, so keep it to two or three people.
 - **Bryant Park Grill, for a booked lunch.** A restaurant on West 40th Street, about a 3-minute walk from the 42 St-Bryant Pk station. Google lists it as taking reservations and good for groups.
 - **Vanderbilt Market, for a lunch where everyone picks.** A food hall at 230 Park Avenue, about a 4-minute walk from Grand Central. Google lists it as good for groups and moderately priced.

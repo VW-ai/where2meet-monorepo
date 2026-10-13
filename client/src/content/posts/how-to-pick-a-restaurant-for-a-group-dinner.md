@@ -62,8 +62,8 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Stone_Street_(25335225864).jpg
     width: 1280
     height: 853
-    alt: Outdoor tables under umbrellas and string lights on Stone Street, with lit restaurant fronts on both sides
-    caption: Stone Street, one of the oldest streets in Manhattan
+    alt: Outdoor tables under a tent and string lights on Stone Street, with lit restaurant fronts on both sides
+    caption: Stone Street at night, with tables set out under a tent and string lights
     author: spurekar
     license: CC BY 2.0
     cropped: false
@@ -75,7 +75,7 @@ This post lists eight places, then covers booking and the ride home. It is part 
 
 ## Which restaurants suit a group dinner in Lower Manhattan?
 
-Seven of the eight take reservations, per Google, across three price levels. Each walk is from the station named.
+Seven of the eight take reservations, per Google, and the eight span three price levels. Each walk is from the station named.
 
 - **The Malt House, for a late table.** A restaurant on Maiden Lane, about a 3-minute walk from the Fulton St station. Google lists it as open until 2 a.m. and moderately priced.
 - **Fraunces Tavern, for friends on the ferry.** A restaurant on Pearl Street, about a 3-minute walk from the Whitehall St station, next to the ferry terminal. Google lists it as good for groups.

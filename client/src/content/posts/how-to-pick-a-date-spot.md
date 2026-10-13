@@ -17,7 +17,7 @@ places:
     note: A coffee shop on Irving Place, about an 8-minute walk from the Union Square station. Google lists it as inexpensive and open until 5 p.m.
   - place_id: ChIJM77SlaFZwokRUdDxtDv9560
     label: Daily Provisions - Union Square
-    note: A casual restaurant on East 19th Street, about a 7-minute walk from the Union Square station, open 7 a.m. to 9 p.m. every day.
+    note: A restaurant on East 19th Street, about a 7-minute walk from the Union Square station, open 7 a.m. to 9 p.m. every day.
   - place_id: ChIJw-9BIqJZwokRJHawGH7Y_kc
     label: Old Town Bar
     note: A bar on East 18th Street, about a 6-minute walk from the Union Square station. Google lists it as not taking reservations, so walk in.
@@ -78,7 +78,7 @@ This post lists eight places, then covers the trip home and a backup plan. It is
 Choose by the kind of date, from a first coffee to a booked dinner. Walks are from the station at 14th Street and Broadway unless a pick names another.
 
 - **Irving Farm Coffee, for a first coffee.** A coffee shop on Irving Place, about an 8-minute walk. Google lists it as inexpensive and open until 5 p.m.
-- **Daily Provisions, for an easy daytime bite.** A casual restaurant on East 19th Street, about a 7-minute walk, open 7 a.m. to 9 p.m. every day. Google lists it as inexpensive and not taking reservations.
+- **Daily Provisions, for an easy daytime bite.** A restaurant on East 19th Street, about a 7-minute walk, open 7 a.m. to 9 p.m. every day. Google lists it as inexpensive and not taking reservations.
 - **Old Town Bar, for a drink with no booking.** A bar on East 18th Street, about a 6-minute walk. Google lists it as not taking reservations, so you can walk in.
 - **Dear Irving, for cocktails.** A cocktail bar on Irving Place, about a 7-minute walk. Google lists it as taking reservations and moderately priced.
 - **Raines Law Room, for a booked bar table.** A cocktail bar on West 17th Street, about a 5-minute walk from the 14 St station on the F and M. Google lists it as taking reservations and moderately priced.

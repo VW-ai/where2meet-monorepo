@@ -92,13 +92,13 @@ Start with food, add the museum if it rains, and end at a bar. Each walk is from
 
 ## Which trains run on the Upper West Side on weekends?
 
-Plan around the 1, 2, 3 and C. On weekends the B doesn't run, so only the C stops on Central Park West.
+Plan around the 1, 2, 3 and C. On weekends the B doesn't run, so during the day only the C stops on Central Park West.
 
 On Broadway, the 1 stops at every station from 66 St-Lincoln Center to Cathedral Pkwy (110 St), and the 2 and 3 stop only at 72 St and 96 St. Check the MTA's [planned service changes](https://www.mta.info/alerts) before Saturday.
 
 ![](central-park-west-north-past-museum.jpg)
 
-Settle the plan by Thursday, with a deadline for votes. For a weekday meeting, see [where to hold a team meeting in Midtown](/blog/new-york/midtown/how-to-choose-a-team-meeting-location). For a night out for two, see [where to go on a date near Union Square](/blog/new-york/union-square/how-to-pick-a-date-spot).
+Settle the plan by Thursday, and ask everyone to vote by then. For a weekday meeting, see [where to hold a team meeting in Midtown](/blog/new-york/midtown/how-to-choose-a-team-meeting-location). For a night out for two, see [where to go on a date near Union Square](/blog/new-york/union-square/how-to-pick-a-date-spot).
 
 ## How to do it in Where2Meet
 
@@ -114,7 +114,7 @@ Where2Meet lets friends plan where to meet from one shared link. Nobody needs an
 
 ### Does the B train run on weekends on the Upper West Side?
 
-No. The B runs on weekdays only, so on weekends only the C stops on Central Park West.
+No. The B runs on weekdays only, so on weekend days only the C stops on Central Park West.
 
 ### What can a group do on the Upper West Side when it rains?
 
