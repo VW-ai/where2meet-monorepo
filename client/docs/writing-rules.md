@@ -4,7 +4,7 @@ These rules apply to every post on www.where2meet.org/blog. Every post is a guid
 - A **general post** covers one occasion anywhere, at `/blog/<slug>`.
 - A **local post** covers one occasion in one place, at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`, under its city and town pages.
 
-Change these rules by pull request to this file, `client/docs/writing-rules.md` in the monorepo. Every writer, a person or an agent, reads them before drafting anything.
+These rules change only when the owner asks, by pull request to this file, `client/docs/writing-rules.md` in the monorepo. Every writer, a person or an agent, reads them before drafting anything.
 
 ## Positioning
 
@@ -34,7 +34,7 @@ Every post:
 6. **"Common questions."** Three to five questions people search, each answered in two or three sentences. Use real questions from Search Console or the Keywords list when you have them.
 7. **"A quick checklist."** Plain bullets for general posts. No checkboxes.
 
-City and town pages are the place files `client/src/content/places/<city>.md` and `client/src/content/places/<city>/<town>.md`. Each has:
+City and town pages come from the place files `client/src/content/places/<city>.md` and `client/src/content/places/<city>/<town>.md`. Each page has:
 - An intro of at least 60 words on what the area is like for meeting up and which neighborhoods people usually pick.
 - Transit notes of at least 20 words that name the lines, stations or roads that matter, and anything that changes at night or on weekends.
 - A real photo of the area.
@@ -53,7 +53,7 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 - **File names.** Use descriptive words joined by hyphens, as in `bryant-park-lawn-midtown.jpg`. Never `IMG_1234.jpg`.
 - **Placement.** Put each photo next to the text about that place, not in a gallery at the end.
 - **The cover** is the image people see when a page is shared. It's the post's best photo of a named place, credited on the image and under it.
-- **Size.** Photos are stored 1,280 pixels wide. The site serves them from our own domain with width and height set, in modern formats, lazy-loaded below the fold.
+- **Size.** Use the Commons thumbnail 1,280 pixels wide as each photo's `source_url`. The site serves photos from our own domain with width and height set, in modern formats, lazy-loaded below the fold.
 
 ## Places
 
@@ -94,8 +94,8 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 ## SEO
 
 Search intent and keywords:
-- **One main keyword per post.** Before writing, pick one main keyword and up to two related ones from `client/src/content/keywords.yaml`, which the panel's Keywords view also shows. If no listed keyword fits, add one to that file in the same pull request and say why in its description.
-- **One post per keyword.** Check that no other post already targets the same main keyword. The Copy prompt lists the posts that do, and so does the `main_keyword` in each post file. Two posts chasing one keyword compete with each other. Improve the existing post instead.
+- **One main keyword per post.** Before writing, pick one main keyword and up to two related ones from `client/src/content/keywords.yaml`, which the panel's Keywords view also shows. If no listed keyword fits, add one to that file in the same pull request and say why in the pull request description.
+- **One post per keyword.** Check that no other post already targets the same main keyword. The Copy prompt lists the posts that already target each keyword. To check by hand, search the `main_keyword` lines in `client/src/content/posts/` and the titles of the four MDX posts. Two posts chasing one keyword compete with each other. Improve the existing post instead.
 - **Match the intent.** "How to" searches get steps. "Where to" searches get places. "Ideas" searches get a list.
 - **Where the main keyword goes:**
   - in the title
@@ -147,7 +147,9 @@ What the site handles, so don't hand-write it:
   - three places
   - a licensed cover and two body photos with alt text
   - the title and description limits
-  - a main keyword listed in `keywords.yaml`
+  - a main keyword listed in `keywords.yaml`, said in the title and the first two sentences
+  - front matter that follows the format, with parameter keys from `taxonomy.yaml`
+  - photos that load as JPEGs of at most 2 MB (skipped when Wikimedia can't be reached)
   - the required sections
   - the brand wording and the style rules a machine can check (dashes, quotes)
 - **Local posts.** A local post's city and town each need a place file, already merged or in the same pull request.
