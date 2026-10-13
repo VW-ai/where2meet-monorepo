@@ -4,6 +4,7 @@ import {
   NO_PARAMETERS,
   OPTIONAL_PARAMETERS,
   imagePath,
+  inArea,
   type Area,
   type AreaRef,
   type BudgetTerm,
@@ -45,7 +46,6 @@ export interface Issue {
 }
 
 export interface RepoContent {
-  mdx: readonly Post[];
   taxonomyText: string;
   keywordsText: string;
   places: readonly ContentFile[];
@@ -103,10 +103,7 @@ export function parseCatalog(repo: RepoContent): { catalog: Catalog; issues: Iss
   const issues: Issue[] = [];
   const taxonomy = parseTaxonomy(repo.taxonomyText, dropper(issues, TAXONOMY_FILE));
   const keywords = parseKeywords(repo.keywordsText, taxonomy, dropper(issues, KEYWORDS_FILE));
-  const general: Namespace = new Map([
-    [IMAGES_SEGMENT, 'the photo route'],
-    ...repo.mdx.map(({ slug }): [string, string] => [slug, 'an MDX post']),
-  ]);
+  const general: Namespace = new Map([[IMAGES_SEGMENT, 'the photo route']]);
   const context: Context = {
     terms: termLookup(taxonomy),
     fileNames: new Set(),
@@ -115,13 +112,12 @@ export function parseCatalog(repo: RepoContent): { catalog: Catalog; issues: Iss
   };
   const cities = parsePlaces(repo.places, context, issues);
   const lookUpAreas = areaLookup(cities, context);
-  const markdown = repo.posts.flatMap(
-    (file) =>
-      parsePost(file, lookUpAreas, context, dropper(issues, filePath(POSTS_DIR, file.name))) ?? []
-  );
-  const posts = [...repo.mdx, ...markdown].sort((a, b) =>
-    b.publishedAt.localeCompare(a.publishedAt)
-  );
+  const posts = repo.posts
+    .flatMap(
+      (file) =>
+        parsePost(file, lookUpAreas, context, dropper(issues, filePath(POSTS_DIR, file.name))) ?? []
+    )
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   return { catalog: { taxonomy, keywords, posts, cities }, issues };
 }
 
@@ -484,8 +480,9 @@ function parsePost(
     parameters,
     mainKeyword: isText(value.main_keyword) ? value.main_keyword : null,
     places,
-    placesTitle: area ? `Our picks in ${area.name}` : 'Our picks',
-    source: { kind: 'markdown', markdown: body, images: [cover, ...images] },
+    placesTitle: area ? `Our picks ${inArea(area)}` : 'Our picks',
+    markdown: body,
+    images: [cover, ...images],
   };
 }
 

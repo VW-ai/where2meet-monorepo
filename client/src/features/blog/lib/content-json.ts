@@ -16,7 +16,7 @@ type PlaceJson =
 type PostJson = {
   path: string;
   title: string;
-  source: 'mdx' | 'markdown';
+  source: 'markdown';
   occasion: string;
 } & Record<OptionalParameter, string | null> & {
     main_keyword: string | null;
@@ -98,7 +98,7 @@ export function buildContentJson(
     posts: posts.map((post) => ({
       path: postPath(post),
       title: post.title,
-      source: post.source.kind,
+      source: 'markdown',
       occasion: post.occasion.key,
       time: post.parameters.time?.key ?? null,
       venue_type: post.parameters.venue_type?.key ?? null,

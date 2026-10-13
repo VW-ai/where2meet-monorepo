@@ -21,6 +21,15 @@ places:
   - place_id: ChIJX0ngNbRbwokR2sNkLsVtQMY
     label: El Zason
     note: Mexican food on Atlantic Avenue in Brooklyn. The Atlantic Av-Barclays Ctr station is about a 5-minute walk away, with the 2, 3, 4, 5, B, D, N, Q and R.
+  - place_id: ChIJn-PPbBRawokR3o5lQeBaB_w
+    label: Fraunces Tavern
+    note: A restaurant on Pearl Street, about a 3-minute walk from the Whitehall St station, next to the Staten Island Ferry terminal.
+  - place_id: ChIJYaLtJRRawokRjw4GeC7pTdk
+    label: Adrienne's Pizzabar
+    note: A pizza restaurant on Stone Street, about a 4-minute walk from the Wall St station on the 2 and 3.
+  - place_id: ChIJIQntspT8ZUARP3MLeK4a1vA
+    label: Pete's Tavern
+    note: A restaurant at Irving Place and East 18th Street, about a 5-minute walk from the Union Square station.
 images:
   - file_name: west-32nd-street-koreatown-manhattan.jpg
     source_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Koreatown%2C_Manhattan_%2851877264332%29.jpg/1280px-Koreatown%2C_Manhattan_%2851877264332%29.jpg
@@ -86,7 +95,7 @@ Choose food the table can share, or a menu with a wide range. Shared dishes also
 
 Ask about dietary needs when you share the options, and check each menu online before the vote. In Koreatown, miss KOREA BBQ serves Korean barbecue made for sharing. It's about a 3-minute walk from the Herald Square station, where eight lines stop.
 
-For booking rules, set menus and splitting the bill, see [how to pick a restaurant for a group dinner](/blog/how-to-pick-a-restaurant-for-a-group-dinner). If the dinner follows a work meeting, see [how to choose a team meeting location](/blog/how-to-choose-a-team-meeting-location).
+For booking rules, set menus and splitting the bill, see [how to pick a restaurant for a group dinner](/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner). If the dinner follows a work meeting, see [how to choose a team meeting location](/blog/new-york/midtown/how-to-choose-a-team-meeting-location).
 
 ## How will everyone get home?
 

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { MDX_POSTS } from '@/content/blog/posts';
+import { coverPath, listPages, pagePath } from '@/features/blog/lib/catalog';
 import {
   checkContent,
   formatProblem,
@@ -18,6 +18,7 @@ import {
 import { parseCatalog } from '@/features/blog/lib/parse';
 import { USER_AGENT, type CommonsImage } from '@/features/blog/lib/photos';
 import { readRepoContent } from '@/features/blog/lib/source';
+import nextConfig from '../../../next.config.js';
 
 const repo = await readRepoContent();
 const { catalog } = parseCatalog(repo);
@@ -27,10 +28,7 @@ let problems: Problem[] = [];
 
 function postPhotos(file: ContentFile): readonly CommonsImage[] {
   const [slug] = fileSegments(file.name);
-  const post = catalog.posts.find(
-    (candidate) => candidate.source.kind === 'markdown' && candidate.slug === slug
-  );
-  return post?.source.kind === 'markdown' ? post.source.images : [];
+  return catalog.posts.find((post) => post.slug === slug)?.images ?? [];
 }
 
 function placePhotos(file: ContentFile): readonly CommonsImage[] {
@@ -94,13 +92,6 @@ describe(TAXONOMY_FILE, () => {
   it('follows its schema', () => {
     expect(linesFor(TAXONOMY_FILE)).toEqual([]);
   });
-
-  it.each(MDX_POSTS.map(({ slug, occasion }) => [slug, occasion.key]))(
-    '%s names the occasion "%s" from it',
-    (_, key) => {
-      expect(catalog.taxonomy.occasions.map((occasion) => occasion.key)).toContain(key);
-    }
-  );
 });
 
 describe(KEYWORDS_FILE, () => {
@@ -140,5 +131,18 @@ describe('repo places', () => {
       expect(linesFor(path, true)).toEqual([]);
       photosMeasured(file.name, placePhotos(file), skip);
     });
+  });
+});
+
+describe('redirects into /blog', () => {
+  it('land on pages the repo publishes', async () => {
+    const published = new Set(
+      listPages(catalog).flatMap((page) => [pagePath(page), coverPath(page)])
+    );
+    const destinations = (await nextConfig.redirects())
+      .filter(({ source }) => source.startsWith('/blog/'))
+      .map(({ destination }) => destination);
+    expect(destinations).not.toEqual([]);
+    expect(destinations.filter((destination) => !published.has(destination))).toEqual([]);
   });
 });

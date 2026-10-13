@@ -10,7 +10,7 @@ import type {
   WebSite,
   WithContext,
 } from 'schema-dts';
-import { BLOG_AUTHOR } from '@/content/blog/posts';
+import { BLOG_AUTHOR } from '@/features/blog/lib/catalog';
 import { creditLine, LICENSES, type Photo } from '@/features/blog/lib/photos';
 import { SITE_CONFIG, toAbsoluteUrl } from './metadata';
 

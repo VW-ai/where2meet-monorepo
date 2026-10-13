@@ -60,8 +60,8 @@ describe('checkContent on a post', () => {
       [ATLANTIC_URL, { status: 200, bytes: 301_205, contentType: 'image/jpeg' }],
     ]);
     expect(check([example], heads)).toEqual([]);
-    expect(check([{ ...example, name: 'how-to-pick-a-date-spot.md' }], heads)).toEqual([
-      'src/content/posts/how-to-pick-a-date-spot.md: fields: slug "how-to-pick-a-date-spot" is taken by an MDX post',
+    expect(check([{ ...example, name: 'new-york.md' }], heads)).toEqual([
+      'src/content/posts/new-york.md: fields: slug "new-york" is taken by a city',
     ]);
   });
 
@@ -173,11 +173,11 @@ describe('checkContent on a post', () => {
   });
 
   describe('places', () => {
-    it('needs three places', () => {
+    it('needs six places', () => {
       const elZason =
         '  - place_id: ChIJX0ngNbRbwokR2sNkLsVtQMY\n    label: El Zason\n    note: Mexican food on Atlantic Avenue in Brooklyn. The Atlantic Av-Barclays Ctr station is about a 5-minute walk away, with the 2, 3, 4, 5, B, D, N, Q and R.\n';
       expect(check([edited([[elZason, '']])])).toEqual([
-        `${FILE}: places: the post has 2 places; it needs at least 3`,
+        `${FILE}: places: the post has 5 places; it needs at least 6`,
       ]);
     });
 

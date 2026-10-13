@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BLOG_AUTHOR } from '@/content/blog/posts';
-import { coverPath, postPath, type Post } from '@/features/blog/lib/catalog';
+import { BLOG_AUTHOR, coverPath, postPath, type Post } from '@/features/blog/lib/catalog';
 
 const dateFormat = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',

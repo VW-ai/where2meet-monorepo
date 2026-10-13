@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   SITE_CONFIG,
@@ -15,14 +13,13 @@ import {
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
-import { MDX_POSTS } from '@/content/blog/posts';
 import {
   FIXTURE_FILES,
   fixtureContent,
   markdownFile,
   type FixtureFile,
 } from '@/features/blog/__fixtures__/content-files';
-import { postPath, postPhotos } from '@/features/blog/lib/catalog';
+import { postPath } from '@/features/blog/lib/catalog';
 import { parseCatalog } from '@/features/blog/lib/parse';
 import { buildLlmsTxt } from '@/lib/seo/llms-txt';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
@@ -40,16 +37,6 @@ vi.mock('node:fs/promises', async (importOriginal) => {
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const IMAGES = `${CANONICAL_ORIGIN}/blog/images`;
-const REPO_URLS = [
-  `${CANONICAL_ORIGIN}/blog/how-to-pick-a-restaurant-for-a-group-dinner`,
-  `${CANONICAL_ORIGIN}/blog/how-to-pick-a-date-spot`,
-  `${CANONICAL_ORIGIN}/blog/how-to-plan-a-weekend-hangout-with-friends`,
-  `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
-];
-
-function readPostBody(slug: string) {
-  return readFileSync(path.join(__dirname, `../../../content/blog/${slug}.mdx`), 'utf8');
-}
 
 async function llmsTxt() {
   return (await getLlmsTxt()).text();
@@ -156,14 +143,13 @@ describe('createMetadata', () => {
 });
 
 describe('sitemap', () => {
-  it('lists every public page and repo post once, each post with its cover', async () => {
+  it('lists every public page once, and /blog undated before anything is published', async () => {
     const entries = await sitemap();
     expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
       [CANONICAL_ORIGIN, '2026-10-04', undefined],
       [`${CANONICAL_ORIGIN}/faq`, '2026-10-02', undefined],
       [`${CANONICAL_ORIGIN}/contact`, '2026-09-29', undefined],
-      [`${CANONICAL_ORIGIN}/blog`, '2026-10-08', undefined],
-      ...REPO_URLS.map((url) => [url, '2026-10-08', [`${url}/cover.png`]]),
+      [`${CANONICAL_ORIGIN}/blog`, undefined, undefined],
     ]);
   });
 
@@ -180,12 +166,6 @@ describe('sitemap', () => {
       ])
     ).toEqual([
       ['/blog', '2026-10-08', undefined],
-      [
-        '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
-        '2026-10-08',
-        ['/blog/how-to-pick-a-restaurant-for-a-group-dinner/cover.png'],
-      ],
-      ['/blog/how-to-pick-a-date-spot', '2026-10-08', ['/blog/how-to-pick-a-date-spot/cover.png']],
       [
         '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
         '2026-10-08',
@@ -214,11 +194,6 @@ describe('sitemap', () => {
         ],
       ],
       [
-        '/blog/how-to-plan-a-weekend-hangout-with-friends',
-        '2026-10-08',
-        ['/blog/how-to-plan-a-weekend-hangout-with-friends/cover.png'],
-      ],
-      [
         '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
         '2026-10-07',
         [
@@ -226,11 +201,6 @@ describe('sitemap', () => {
           '/blog/images/bryant-park-from-one-vanderbilt.jpg',
           '/blog/images/grand-central-concourse-windows.jpg',
         ],
-      ],
-      [
-        '/blog/how-to-choose-a-team-meeting-location',
-        '2026-10-08',
-        ['/blog/how-to-choose-a-team-meeting-location/cover.png'],
       ],
       ['/blog/new-york', '2026-10-07', ['/blog/images/midtown-manhattan-skyline-new-york.jpg']],
       ['/blog/new-york/midtown', '2026-10-07', ['/blog/images/bryant-park-lawn-midtown.jpg']],
@@ -318,7 +288,7 @@ describe('structured data', () => {
         path: postPath(post),
         publishedAt: post.publishedAt,
         updatedAt: post.updatedAt,
-        images: postPhotos(post).slice(0, 2),
+        images: post.images.slice(0, 2),
       })
     ).toEqual({
       '@context': 'https://schema.org',
@@ -361,29 +331,6 @@ describe('structured data', () => {
         '@id': `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
       },
     });
-  });
-
-  it('credits a repo post’s cover photo on its cover image', () => {
-    const post = MDX_POSTS.find(
-      ({ slug }) => slug === 'how-to-pick-a-restaurant-for-a-group-dinner'
-    )!;
-    expect(
-      generateBlogPostingSchema({ ...post, path: postPath(post), images: postPhotos(post) }).image
-    ).toEqual([
-      {
-        '@type': 'ImageObject',
-        contentUrl: `${CANONICAL_ORIGIN}/blog/how-to-pick-a-restaurant-for-a-group-dinner/cover.png`,
-        width: { '@type': 'QuantitativeValue', value: 1200, unitCode: 'E37' },
-        height: { '@type': 'QuantitativeValue', value: 630, unitCode: 'E37' },
-        caption: 'Koreatown',
-        creditText: 'Jazz Guy',
-        creator: { '@type': 'Person', name: 'Jazz Guy' },
-        copyrightNotice: 'Jazz Guy, CC BY 2.0',
-        license: 'https://creativecommons.org/licenses/by/2.0/',
-        acquireLicensePage:
-          'https://commons.wikimedia.org/wiki/File:West_32nd_Street_(Korea_Way)_@_Broadway_(2559336247).jpg',
-      },
-    ]);
   });
 
   it('numbers breadcrumbs from 1 with absolute www URLs', () => {
@@ -440,6 +387,54 @@ describe('next.config redirects and headers', () => {
     ]);
   });
 
+  it('moves the four original posts and their covers to their New York towns for good', async () => {
+    const redirects = await nextConfig.redirects();
+    expect(redirects.filter(({ source }) => source.startsWith('/blog/'))).toEqual([
+      {
+        source: '/blog/how-to-choose-a-team-meeting-location',
+        destination: '/blog/new-york/midtown/how-to-choose-a-team-meeting-location',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-choose-a-team-meeting-location/cover.png',
+        destination: '/blog/new-york/midtown/how-to-choose-a-team-meeting-location/cover.png',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
+        destination: '/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-pick-a-restaurant-for-a-group-dinner/cover.png',
+        destination:
+          '/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner/cover.png',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-pick-a-date-spot',
+        destination: '/blog/new-york/union-square/how-to-pick-a-date-spot',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-pick-a-date-spot/cover.png',
+        destination: '/blog/new-york/union-square/how-to-pick-a-date-spot/cover.png',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-plan-a-weekend-hangout-with-friends',
+        destination: '/blog/new-york/upper-west-side/how-to-plan-a-weekend-hangout-with-friends',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-plan-a-weekend-hangout-with-friends/cover.png',
+        destination:
+          '/blog/new-york/upper-west-side/how-to-plan-a-weekend-hangout-with-friends/cover.png',
+        permanent: true,
+      },
+    ]);
+  });
+
   it('marks the debug pages noindex', async () => {
     const headers = await nextConfig.headers();
     for (const source of ['/debug-claim-tokens.html', '/clear-invalid-tokens.html']) {
@@ -465,14 +460,10 @@ describe('llms.txt', () => {
     expect(linksIn(await llmsTxt())).toEqual([
       ...pageUrls.slice(0, 2),
       `${CANONICAL_ORIGIN}/blog`,
-      `${CANONICAL_ORIGIN}/blog/how-to-pick-a-restaurant-for-a-group-dinner`,
-      `${CANONICAL_ORIGIN}/blog/how-to-pick-a-date-spot`,
       `${CANONICAL_ORIGIN}/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
       `${CANONICAL_ORIGIN}/blog/how-to-plan-a-team-welcome-lunch`,
       `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
-      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-weekend-hangout-with-friends`,
       `${CANONICAL_ORIGIN}/blog/new-york/midtown/quiet-places-for-a-small-team-meeting`,
-      `${CANONICAL_ORIGIN}/blog/how-to-choose-a-team-meeting-location`,
       `${CANONICAL_ORIGIN}/contact`,
       `${CANONICAL_ORIGIN}/blog/new-york`,
       `${CANONICAL_ORIGIN}/blog/new-york/midtown`,
@@ -499,13 +490,12 @@ describe('llms.txt', () => {
     ]);
   });
 
-  it('links only the MDX posts and leaves out the cities section without place files', async () => {
+  it('links no post and leaves out the cities section before anything is published', async () => {
     const text = await llmsTxt();
     expect(text).not.toContain('## Cities and towns');
     expect(linksIn(text)).toEqual([
       ...pageUrls.slice(0, 2),
       `${CANONICAL_ORIGIN}/blog`,
-      ...REPO_URLS,
       `${CANONICAL_ORIGIN}/contact`,
       `${CANONICAL_ORIGIN}/sitemap.xml`,
     ]);
@@ -524,7 +514,7 @@ describe('llms.txt', () => {
       },
       'Hello\n'
     );
-    const { catalog } = parseCatalog({ ...fixtureContent([]), mdx: [], places: [testville] });
+    const { catalog } = parseCatalog({ ...fixtureContent([]), places: [testville] });
     expect(buildLlmsTxt(catalog)).toContain(
       `- [Where to meet \\[beta\\]](${CANONICAL_ORIGIN}/blog/testville): Two lines of copy.\n`
     );
@@ -540,7 +530,6 @@ describe('positioning copy', () => {
       SITE_CONFIG.tagline,
       SITE_CONFIG.pitch,
       await llmsTxt(),
-      ...MDX_POSTS.flatMap((post) => [post.title, post.description, readPostBody(post.slug)]),
       ...FIXTURE_FILES.map(({ text }) => text),
     ]) {
       expect(text).not.toMatch(/\bfair/i);

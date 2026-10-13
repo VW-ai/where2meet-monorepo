@@ -2,7 +2,6 @@ import 'server-only';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { cache } from 'react';
-import { MDX_POSTS } from '@/content/blog/posts';
 import { findPage, listPages, pageSegments, type BlogPage, type Catalog } from './catalog';
 import {
   KEYWORDS_FILE,
@@ -32,7 +31,7 @@ export async function readRepoContent(): Promise<RepoContent> {
     contentFiles(PLACES_DIR, true),
     contentFiles(POSTS_DIR, false),
   ]);
-  return { mdx: MDX_POSTS, taxonomyText, keywordsText, places, posts };
+  return { taxonomyText, keywordsText, places, posts };
 }
 
 export async function readWritingRules(): Promise<string> {

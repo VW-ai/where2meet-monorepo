@@ -16,8 +16,8 @@ import { STATIC_PAGES } from '@/lib/seo/site-pages';
  * Generate sitemap for Where2Meet
  *
  * - URLs use the canonical `www` host from SITE_CONFIG.
- * - `lastModified` values are real content dates (see `src/lib/seo/site-pages.ts`,
- *   `src/content/blog/posts.ts` and each post and place file's `updated_at`), never the build time.
+ * - `lastModified` values are real content dates (see `src/lib/seo/site-pages.ts` and each
+ *   post and place file's `updated_at`), never the build time.
  *
  * Note: Dynamic meeting pages (/meet/[id]) are intentionally excluded because:
  * - They are user-generated and mostly private/temporary

@@ -1,8 +1,29 @@
-import { Cake, Hand, Handshake, MapPin, PartyPopper, type IconNode } from 'lucide';
-import { OCCASIONS } from '@/content/blog/posts';
+import {
+  Briefcase,
+  Cake,
+  Coffee,
+  Hand,
+  Handshake,
+  Heart,
+  MapPin,
+  Mountain,
+  PartyPopper,
+  Plane,
+  Sun,
+  Users,
+  Utensils,
+  type IconNode,
+} from 'lucide';
 
 const ICONS: Readonly<Record<string, IconNode>> = {
-  ...Object.fromEntries(Object.entries(OCCASIONS).map(([key, { icon }]) => [key, icon])),
+  'date-night': Heart,
+  'team-meeting': Briefcase,
+  'group-dinner': Utensils,
+  'coffee-catch-up': Coffee,
+  'weekend-hangout': Sun,
+  'family-outing': Users,
+  'team-offsite': Mountain,
+  'long-distance-reunion': Plane,
   'team-welcome': PartyPopper,
   farewell: Hand,
   'client-meeting': Handshake,

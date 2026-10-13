@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET as oneSegmentCover } from '@/app/(landing)/blog/[slug]/cover.png/route';
 import { GET as twoSegmentCover } from '@/app/(landing)/blog/[slug]/[segment]/cover.png/route';
@@ -13,8 +11,9 @@ vi.mock('node:fs/promises', async (importOriginal) => {
 });
 
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons';
-const JPEG = readFileSync(
-  path.join(__dirname, '../../content/blog/covers/how-to-pick-a-date-spot.jpg')
+const GREY_PIXEL_JPEG = Buffer.from(
+  '/9j/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wAARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AA//Z',
+  'base64'
 );
 
 function cover([slug, segment, post]: string[]) {
@@ -31,7 +30,7 @@ async function pngSize(response: Response) {
   return [png.readUInt32BE(16), png.readUInt32BE(20)];
 }
 
-const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JPEG));
+const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(GREY_PIXEL_JPEG));
 
 beforeEach(() => {
   disk.files = [...FIXTURE_FILES];
@@ -46,10 +45,6 @@ afterEach(() => {
 
 describe('blog covers', () => {
   it.each([
-    ['how-to-choose-a-team-meeting-location', []],
-    ['how-to-pick-a-date-spot', []],
-    ['how-to-pick-a-restaurant-for-a-group-dinner', []],
-    ['how-to-plan-a-weekend-hangout-with-friends', []],
     [
       'how-to-plan-a-team-welcome-lunch',
       [

@@ -1,7 +1,3 @@
-const createMDX = require('@next/mdx');
-
-/** @type {import('next').NextConfig} */
-
 /** Canonical production origin. Keep in sync with SITE_CONFIG.url in src/lib/seo/metadata.ts. */
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 
@@ -31,6 +27,15 @@ const securityHeaders = [
  */
 const NOINDEX_STATIC_PAGES = ['/debug-claim-tokens.html', '/clear-invalid-tokens.html'];
 
+/** The original posts at /blog/<slug>, now local posts in these New York towns. */
+const MOVED_POSTS = [
+  ['how-to-choose-a-team-meeting-location', 'midtown'],
+  ['how-to-pick-a-restaurant-for-a-group-dinner', 'lower-manhattan'],
+  ['how-to-pick-a-date-spot', 'union-square'],
+  ['how-to-plan-a-weekend-hangout-with-friends', 'upper-west-side'],
+];
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -74,6 +79,14 @@ const nextConfig = {
       { source: '/scenarios/:slug', destination: '/blog', permanent: true },
       { source: '/where-to-meet', destination: '/blog', permanent: true },
       { source: '/where-to-meet/:path*', destination: '/blog/:path*', permanent: true },
+      // The cover moves too, because share previews keep the og:image URL they first fetched.
+      ...MOVED_POSTS.flatMap(([slug, town]) =>
+        ['', '/cover.png'].map((suffix) => ({
+          source: `/blog/${slug}${suffix}`,
+          destination: `/blog/new-york/${town}/${slug}${suffix}`,
+          permanent: true,
+        }))
+      ),
     ];
   },
   reactStrictMode: true,
@@ -82,5 +95,4 @@ const nextConfig = {
   },
 };
 
-// Blog post bodies in src/content/blog are MDX, styled by src/mdx-components.tsx.
-module.exports = createMDX()(nextConfig);
+module.exports = nextConfig;

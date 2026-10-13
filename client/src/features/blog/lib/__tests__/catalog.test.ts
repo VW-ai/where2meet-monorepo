@@ -20,7 +20,7 @@ function describePage(page: BlogPage | null) {
   if (!page) return null;
   if (page.kind === 'area')
     return `${page.town ? 'town' : 'city'} ${(page.town ?? page.city).name}`;
-  return `${page.post.source.kind} post ${page.post.title}`;
+  return `post ${page.post.title}`;
 }
 
 function resolve(path: string) {
@@ -36,25 +36,18 @@ function post(path: string) {
 describe('blog catalog', () => {
   it('lists every post newest first, then each city and its towns', () => {
     expect(listPages(catalog).map(pagePath)).toEqual([
-      '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
-      '/blog/how-to-pick-a-date-spot',
       '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
       '/blog/how-to-plan-a-team-welcome-lunch',
       '/blog/new-york/group-dinner-spots-near-herald-square',
-      '/blog/how-to-plan-a-weekend-hangout-with-friends',
       '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
-      '/blog/how-to-choose-a-team-meeting-location',
       '/blog/new-york',
       '/blog/new-york/midtown',
     ]);
   });
 
-  it('resolves one segment to an MDX post, a general post or a city', () => {
-    expect(resolve('how-to-pick-a-date-spot')).toBe(
-      'mdx post How to pick a date spot you can both reach'
-    );
+  it('resolves one segment to a general post or a city', () => {
     expect(resolve('how-to-plan-a-team-welcome-lunch')).toBe(
-      'markdown post How to plan a team welcome lunch'
+      'post How to plan a team welcome lunch'
     );
     expect(resolve('new-york')).toBe('city New York');
   });
@@ -62,10 +55,10 @@ describe('blog catalog', () => {
   it('resolves two segments to a town or a city post, and three to a town post', () => {
     expect(resolve('new-york/midtown')).toBe('town Midtown');
     expect(resolve('new-york/group-dinner-spots-near-herald-square')).toBe(
-      'markdown post Group dinner spots near Herald Square'
+      'post Group dinner spots near Herald Square'
     );
     expect(resolve('new-york/midtown/quiet-places-for-a-small-team-meeting')).toBe(
-      'markdown post Quiet places for a small team meeting in Midtown'
+      'post Quiet places for a small team meeting in Midtown'
     );
   });
 
@@ -77,7 +70,7 @@ describe('blog catalog', () => {
       'images',
       'new-york/soho',
       'new-york/quiet-places-for-a-small-team-meeting',
-      'new-york/how-to-pick-a-date-spot',
+      'new-york/how-to-plan-a-team-welcome-lunch',
       'new-york/midtown/group-dinner-spots-near-herald-square',
       'new-york/soho/quiet-places-for-a-small-team-meeting',
       'new-york/midtown/quiet-places-for-a-small-team-meeting/more',
@@ -112,15 +105,11 @@ describe('blog catalog', () => {
       '/blog/how-to-plan-a-team-welcome-lunch',
       '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
       '/blog/new-york/group-dinner-spots-near-herald-square',
-      '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
     ]);
-    expect(
-      relatedPosts(catalog, post('how-to-choose-a-team-meeting-location')).map(postPath)
-    ).toEqual([
-      '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
-      '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
-      '/blog/how-to-pick-a-date-spot',
+    expect(relatedPosts(catalog, post('how-to-plan-a-team-welcome-lunch')).map(postPath)).toEqual([
       '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
+      '/blog/new-york/group-dinner-spots-near-herald-square',
+      '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
     ]);
   });
 
@@ -133,12 +122,12 @@ describe('blog catalog', () => {
       areas: [{ ...city, slug: 'testville', name: 'Testville' }, town],
     } as typeof midtownLunch;
     const withElsewhere = { ...catalog, posts: [...catalog.posts, elsewhere] };
-    expect(relatedPosts(withElsewhere, midtownLunch, 6).map((other) => other.title)).toEqual(
-      relatedPosts(catalog, midtownLunch, 6)
-        .map((other) => other.title)
-        .concat('A post in another city’s Midtown')
-        .slice(0, 6)
-    );
+    expect(relatedPosts(withElsewhere, midtownLunch).map((other) => other.title)).toEqual([
+      'How to plan a team welcome lunch',
+      'Quiet places for a small team meeting in Midtown',
+      'Group dinner spots near Herald Square',
+      'A post in another city’s Midtown',
+    ]);
   });
 
   it('lists a city’s posts with its towns’ posts, and a town’s own posts', () => {

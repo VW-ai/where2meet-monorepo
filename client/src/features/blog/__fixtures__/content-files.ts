@@ -2,7 +2,6 @@ import { readFileSync, readdirSync } from 'node:fs';
 import type * as FsPromises from 'node:fs/promises';
 import path from 'node:path';
 import { stringify } from 'yaml';
-import { MDX_POSTS } from '@/content/blog/posts';
 import {
   KEYWORDS_FILE,
   PLACES_DIR,
@@ -38,7 +37,6 @@ export function fixtureContent(files: readonly FixtureFile[] = FIXTURE_FILES): R
         : []
     );
   return {
-    mdx: MDX_POSTS,
     taxonomyText: REPO_TAXONOMY,
     keywordsText: REPO_KEYWORDS,
     places: under(PLACES_DIR),
