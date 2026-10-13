@@ -8,7 +8,12 @@ function photo(author: string, license: Photo['credit']['license']): Photo {
     height: 960,
     alt: 'A street',
     caption: 'A street',
-    credit: { author, license, pageUrl: 'https://commons.wikimedia.org/wiki/File:A.jpg', cropped: false },
+    credit: {
+      author,
+      license,
+      pageUrl: 'https://commons.wikimedia.org/wiki/File:A.jpg',
+      cropped: false,
+    },
   };
 }
 
@@ -20,6 +25,8 @@ describe('coverCredit', () => {
 
   it('leaves CC0 and public-domain credits as they are', () => {
     expect(coverCredit(photo('Phi', 'CC0'))).toBe('Phi, CC0');
-    expect(coverCredit(photo('Ypsilonatshared', 'Public domain'))).toBe('Ypsilonatshared, Public domain');
+    expect(coverCredit(photo('Ypsilonatshared', 'Public domain'))).toBe(
+      'Ypsilonatshared, Public domain'
+    );
   });
 });

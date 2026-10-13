@@ -7,7 +7,7 @@ import { renderArticleCover, type CardPhoto } from '@/lib/og/share-card';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { BLOG_PATH, type BlogPage } from './catalog';
 import { occasionIcon } from './occasion-icon';
-import { creditLine, type CommonsImage } from './photos';
+import { coverCredit, type CommonsImage } from './photos';
 import { fetchPhoto, loadPage } from './source';
 
 export async function coverResponse(segments: readonly string[]): Promise<Response> {
@@ -35,12 +35,12 @@ function coverBadge(page: BlogPage): string {
 async function coverPhoto(page: BlogPage): Promise<CardPhoto | undefined> {
   if (page.kind === 'post' && page.post.source.kind === 'mdx') {
     const file = path.join(process.cwd(), coverPhotoFile(page.post.slug));
-    return { jpeg: await readFile(file), credit: creditLine(page.post.source.cover) };
+    return { jpeg: await readFile(file), credit: coverCredit(page.post.source.cover) };
   }
   const image = commonsCover(page);
   if (!image) return undefined;
   const response = await fetchPhoto(image);
-  return { jpeg: Buffer.from(await response.arrayBuffer()), credit: creditLine(image) };
+  return { jpeg: Buffer.from(await response.arrayBuffer()), credit: coverCredit(image) };
 }
 
 function commonsCover(page: BlogPage): CommonsImage | null {
