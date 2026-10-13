@@ -4,6 +4,7 @@ import {
   NO_PARAMETERS,
   OPTIONAL_PARAMETERS,
   imagePath,
+  inArea,
   type Area,
   type AreaRef,
   type BudgetTerm,
@@ -484,7 +485,7 @@ function parsePost(
     parameters,
     mainKeyword: isText(value.main_keyword) ? value.main_keyword : null,
     places,
-    placesTitle: area ? `Our picks in ${area.name}` : 'Our picks',
+    placesTitle: area ? `Our picks ${inArea(area)}` : 'Our picks',
     source: { kind: 'markdown', markdown: body, images: [cover, ...images] },
   };
 }

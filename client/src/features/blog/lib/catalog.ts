@@ -160,6 +160,34 @@ export function findPage(catalog: Catalog, segments: readonly string[]): BlogPag
   return listPages(catalog).find((page) => pagePath(page) === path) ?? null;
 }
 
+interface AreaPhrasing {
+  preposition: 'in' | 'on';
+  article: '' | 'the ';
+}
+
+const PLAIN_PHRASING: AreaPhrasing = { preposition: 'in', article: '' };
+
+/** A name ending in one of these words takes "the", as in "on the Upper West Side" and "in the Financial District". */
+const PHRASING_BY_HEAD_NOUN: Readonly<Record<string, AreaPhrasing>> = {
+  Side: { preposition: 'on', article: 'the ' },
+  District: { preposition: 'in', article: 'the ' },
+};
+
+function areaPhrasing({ name }: AreaRef): AreaPhrasing {
+  const headNoun = name.split(' ').at(-1) ?? '';
+  return Object.hasOwn(PHRASING_BY_HEAD_NOUN, headNoun)
+    ? PHRASING_BY_HEAD_NOUN[headNoun]
+    : PLAIN_PHRASING;
+}
+
+export function areaWithArticle(area: AreaRef): string {
+  return `${areaPhrasing(area).article}${area.name}`;
+}
+
+export function inArea(area: AreaRef): string {
+  return `${areaPhrasing(area).preposition} ${areaWithArticle(area)}`;
+}
+
 export function postChips(post: Post): Term[] {
   return [
     post.occasion,

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { fixtureContent } from '../../__fixtures__/content-files';
+import { fixtureContent, markdownFile } from '../../__fixtures__/content-files';
 import { findPage, type Catalog } from '../../lib/catalog';
 import { parseCatalog } from '../../lib/parse';
 import { BlogPageView } from '../blog-page';
@@ -145,6 +145,66 @@ describe('BlogPageView', () => {
     ]);
     expect(links(html, 'Neighborhoods and towns')).toEqual(['/blog/new-york/midtown']);
     expect(html).toContain('<h2>Plan where to meet in New York</h2>');
+  });
+
+  it('names a town with "the" and "on" when its last word asks for them, and plainly otherwise', () => {
+    const fixtures = fixtureContent();
+    const photo = (fileName: string) => ({
+      file_name: fileName,
+      source_url: `https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/${fileName}/1280px-${fileName}`,
+      page_url: `https://commons.wikimedia.org/wiki/File:${fileName}`,
+      width: 1280,
+      height: 960,
+      alt: 'Riverside Park by the Hudson',
+      author: 'Phi',
+      license: 'CC0',
+    });
+    const withUpperWestSide = parseCatalog({
+      ...fixtures,
+      places: [
+        ...fixtures.places,
+        markdownFile(
+          'new-york/upper-west-side.md',
+          {
+            name: 'Upper West Side',
+            center: { lat: 40.787, lng: -73.975 },
+            updated_at: '2026-10-13',
+            seo: { title: 'Where to meet on the Upper West Side', description: 'Riverside Park.' },
+            image: photo('riverside-park-upper-west-side.jpg'),
+          },
+          'Homes between two parks.\n'
+        ),
+      ],
+      posts: [
+        ...fixtures.posts,
+        markdownFile(
+          'a-picnic-in-riverside-park.md',
+          {
+            title: 'A picnic in Riverside Park',
+            description: 'Where to spread a blanket by the Hudson.',
+            occasion: 'weekend-hangout',
+            city: 'new-york',
+            town: 'upper-west-side',
+            published_at: '2026-10-13',
+            updated_at: '2026-10-13',
+            places: [{ place_id: 'ChIJriverside', label: 'Riverside Park', note: 'By the river.' }],
+            images: [photo('riverside-park-picnic-lawn.jpg')],
+          },
+          '## Where to sit\n\nOn the lawn.\n'
+        ),
+      ],
+    }).catalog;
+
+    const town = render('new-york/upper-west-side', withUpperWestSide);
+    expect(town).toContain('<h2>Guides for the Upper West Side</h2>');
+    expect(town).toContain('<h2>Plan where to meet on the Upper West Side</h2>');
+    expect(
+      outline(render('new-york/upper-west-side/a-picnic-in-riverside-park', withUpperWestSide))
+    ).toContain('places: Our picks on the Upper West Side');
+
+    const midtown = render('new-york/midtown', withUpperWestSide);
+    expect(midtown).toContain('<h2>Guides for Midtown</h2>');
+    expect(midtown).toContain('<h2>Plan where to meet in Midtown</h2>');
   });
 
   it('shows an MDX post’s cover card and credit in the same template', () => {

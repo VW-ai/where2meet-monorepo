@@ -6,6 +6,8 @@ import { MapPin, type IconNode } from 'lucide';
 import { StructuredData } from '@/components/seo/structured-data';
 import {
   areaPosts,
+  areaWithArticle,
+  inArea,
   pagePath,
   pageTrail,
   postChips,
@@ -158,7 +160,7 @@ function AreaView({ page, catalog }: { page: AreaPage; catalog: Catalog }) {
 
       {posts.length > 0 && (
         <section className="mt-10">
-          <h2 className={sectionHeading}>Guides for {area.name}</h2>
+          <h2 className={sectionHeading}>Guides for {areaWithArticle(area)}</h2>
           <LinkCards cards={posts.map(postCard)} />
         </section>
       )}
@@ -177,7 +179,7 @@ function AreaView({ page, catalog }: { page: AreaPage; catalog: Catalog }) {
         </section>
       )}
 
-      <PlanCta heading={`Plan where to meet in ${area.name}`} />
+      <PlanCta heading={`Plan where to meet ${inArea(area)}`} />
     </>
   );
 }
