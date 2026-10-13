@@ -1,5 +1,4 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { MDX_POSTS } from '@/content/blog/posts';
 import { coverPath, listPages, pagePath } from '@/features/blog/lib/catalog';
 import {
   checkContent,
@@ -29,10 +28,7 @@ let problems: Problem[] = [];
 
 function postPhotos(file: ContentFile): readonly CommonsImage[] {
   const [slug] = fileSegments(file.name);
-  const post = catalog.posts.find(
-    (candidate) => candidate.source.kind === 'markdown' && candidate.slug === slug
-  );
-  return post?.source.kind === 'markdown' ? post.source.images : [];
+  return catalog.posts.find((post) => post.slug === slug)?.images ?? [];
 }
 
 function placePhotos(file: ContentFile): readonly CommonsImage[] {
@@ -96,13 +92,6 @@ describe(TAXONOMY_FILE, () => {
   it('follows its schema', () => {
     expect(linesFor(TAXONOMY_FILE)).toEqual([]);
   });
-
-  it.each(MDX_POSTS.map(({ slug, occasion }) => [slug, occasion.key]))(
-    '%s names the occasion "%s" from it',
-    (_, key) => {
-      expect(catalog.taxonomy.occasions.map((occasion) => occasion.key)).toContain(key);
-    }
-  );
 });
 
 describe(KEYWORDS_FILE, () => {

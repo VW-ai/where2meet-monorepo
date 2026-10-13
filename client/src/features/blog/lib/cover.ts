@@ -1,13 +1,10 @@
 import 'server-only';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { MapPin } from 'lucide';
-import { coverPhotoFile } from '@/content/blog/posts';
 import { renderArticleCover, type CardPhoto } from '@/lib/og/share-card';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
-import { BLOG_PATH, type BlogPage } from './catalog';
+import { BLOG_PATH, pageCover, type BlogPage } from './catalog';
 import { occasionIcon } from './occasion-icon';
-import { coverCredit, type CommonsImage } from './photos';
+import { coverCredit } from './photos';
 import { fetchPhoto, loadPage } from './source';
 
 export async function coverResponse(segments: readonly string[]): Promise<Response> {
@@ -33,17 +30,8 @@ function coverBadge(page: BlogPage): string {
 }
 
 async function coverPhoto(page: BlogPage): Promise<CardPhoto | undefined> {
-  if (page.kind === 'post' && page.post.source.kind === 'mdx') {
-    const file = path.join(process.cwd(), coverPhotoFile(page.post.slug));
-    return { jpeg: await readFile(file), credit: coverCredit(page.post.source.cover) };
-  }
-  const image = commonsCover(page);
+  const image = pageCover(page);
   if (!image) return undefined;
   const response = await fetchPhoto(image);
   return { jpeg: Buffer.from(await response.arrayBuffer()), credit: coverCredit(image) };
-}
-
-function commonsCover(page: BlogPage): CommonsImage | null {
-  if (page.kind === 'area') return (page.town ?? page.city).image;
-  return page.post.source.kind === 'markdown' ? page.post.source.images[0] : null;
 }

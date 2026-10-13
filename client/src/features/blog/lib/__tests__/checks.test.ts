@@ -60,8 +60,8 @@ describe('checkContent on a post', () => {
       [ATLANTIC_URL, { status: 200, bytes: 301_205, contentType: 'image/jpeg' }],
     ]);
     expect(check([example], heads)).toEqual([]);
-    expect(check([{ ...example, name: 'how-to-pick-a-date-spot.md' }], heads)).toEqual([
-      'src/content/posts/how-to-pick-a-date-spot.md: fields: slug "how-to-pick-a-date-spot" is taken by an MDX post',
+    expect(check([{ ...example, name: 'new-york.md' }], heads)).toEqual([
+      'src/content/posts/new-york.md: fields: slug "new-york" is taken by a city',
     ]);
   });
 

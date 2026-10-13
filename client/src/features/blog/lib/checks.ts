@@ -62,12 +62,6 @@ export interface CheckOptions {
   heads: ReadonlyMap<string, ImageHead>;
 }
 
-interface ParsedPost {
-  post: Post;
-  body: string;
-  images: readonly CommonsImage[];
-}
-
 interface RuleContext extends CheckOptions {
   keywords: ReadonlySet<string>;
 }
@@ -185,18 +179,18 @@ const CITY_FIELDS: Schema = { name: PARSED, region: PARSED, country: PARSED, ...
 type Messages = (string | false)[];
 
 /** Rules for a post the site keeps. */
-const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
-  'word-count': ({ post, body }) => {
-    const kind = post.areas.length === 0 ? 'general' : 'local';
+const POST_RULES: { [R in PostRule]: Check<Post> } = {
+  'word-count': ({ areas, markdown }) => {
+    const kind = areas.length === 0 ? 'general' : 'local';
     const [min, max] = BODY_WORDS[kind];
-    const words = wordCount(body);
+    const words = wordCount(markdown);
     return [
       !within(words, min, max) &&
         `the body has ${count(words, 'word')}; a ${kind} post needs ${n(min)} to ${n(max)}`,
     ];
   },
 
-  places: ({ post: { places } }) => [
+  places: ({ places }) => [
     places.length < PLACES_MIN &&
       `the post has ${count(places.length, 'place')}; it needs at least ${PLACES_MIN}`,
     ...places.map(({ label, note }) => {
@@ -208,9 +202,11 @@ const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
     }),
   ],
 
-  images: ({ body, images }) => {
+  images: ({ markdown, images }) => {
     const listed = new Set(images.map(({ fileName }) => fileName));
-    const placed = new Set(lines(body).flatMap((line) => PHOTO_LINE.exec(line.trim())?.[1] ?? []));
+    const placed = new Set(
+      lines(markdown).flatMap((line) => PHOTO_LINE.exec(line.trim())?.[1] ?? [])
+    );
     return [
       images.length < IMAGES_MIN &&
         `the post has ${count(images.length, 'usable image')}; it needs at least ${IMAGES_MIN}, a cover and two for the body`,
@@ -222,34 +218,34 @@ const POST_RULES: { [R in PostRule]: Check<ParsedPost> } = {
 
   'image-size': ({ images }, { heads }) => sizeProblems(images, heads),
 
-  title: ({ post }) => titleProblems(post.title),
+  title: ({ title }) => titleProblems(title),
 
-  description: ({ post }) => descriptionProblems(post.description),
+  description: ({ description }) => descriptionProblems(description),
 
-  'main-keyword': ({ post: { title, mainKeyword }, body }, { keywords }) => {
+  'main-keyword': ({ title, mainKeyword, markdown }, { keywords }) => {
     if (mainKeyword === null) return [];
     return [
       !keywords.has(normalize(mainKeyword)) &&
         `the main keyword "${mainKeyword}" is not a phrase in ${KEYWORDS_FILE}; it must be one, so add it there or pick one of its phrases`,
       !says(title, mainKeyword) &&
         `the title does not say the main keyword "${mainKeyword}"; it must, as whole words`,
-      !says(opening(body), mainKeyword) &&
+      !says(opening(markdown), mainKeyword) &&
         `the body's first two sentences do not say the main keyword "${mainKeyword}"; they must, as whole words`,
     ];
   },
 
-  headings: ({ body }) => {
-    const present = headings(body);
+  headings: ({ markdown }) => {
+    const present = headings(markdown);
     return HEADINGS.filter((heading) => !present.has(heading)).map(
       (heading) => `the body has no "${heading}" heading; every post needs it`
     );
   },
 
-  wording: (parsed) => wordingProblems(postText(parsed)),
+  wording: (post) => wordingProblems(postText(post)),
 
-  style: (parsed) => styleProblems(postText(parsed)),
+  style: (post) => styleProblems(postText(post)),
 
-  dates: ({ post: { publishedAt, updatedAt } }) => [
+  dates: ({ publishedAt, updatedAt }) => [
     updatedAt < publishedAt &&
       `updated_at ${updatedAt} is before published_at ${publishedAt}; it must be on or after it`,
   ],
@@ -290,7 +286,7 @@ const PLACE_RULES: { [R in PlaceRule]: Check<Area> } = {
   style: (area) => styleProblems(placeText(area)),
 };
 
-const POSTS: ContentKind<ParsedPost, PostRule> = {
+const POSTS: ContentKind<Post, PostRule> = {
   dir: POSTS_DIR,
   shape: postFieldProblems,
   kept: keptPost,
@@ -344,14 +340,9 @@ function problems(file: string, rule: Rule, messages: Messages): Problem[] {
   return messages.flatMap((message) => (message ? [{ file, rule, message }] : []));
 }
 
-function keptPost(file: ContentFile, catalog: Catalog): ParsedPost | null {
+function keptPost(file: ContentFile, catalog: Catalog): Post | null {
   const [slug] = fileSegments(file.name);
-  for (const post of catalog.posts) {
-    if (post.source.kind !== 'markdown' || post.slug !== slug) continue;
-    const { markdown, images } = post.source;
-    return { post, body: markdown, images };
-  }
-  return null;
+  return catalog.posts.find((post) => post.slug === slug) ?? null;
 }
 
 function keptPlace(file: ContentFile, catalog: Catalog): Area | null {
@@ -446,13 +437,13 @@ function headProblems(fileName: string, { status, bytes, contentType }: ImageHea
 
 type PublishedText = [field: string, text: string][];
 
-function postText({ post, body, images }: ParsedPost): PublishedText {
+function postText(post: Post): PublishedText {
   return [
     ['the title', post.title],
     ['the description', post.description],
-    ['the body', body],
+    ['the body', post.markdown],
     ...post.places.map(({ label, note }): [string, string] => [`the note for "${label}"`, note]),
-    ...imageText(images),
+    ...imageText(post.images),
   ];
 }
 

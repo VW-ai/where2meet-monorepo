@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { stringify } from 'yaml';
-import { MDX_POSTS } from '@/content/blog/posts';
 import type { ContentFile } from '../content-file';
 import { parseCatalog, type RepoContent } from '../parse';
 import { markdownFile } from '../../__fixtures__/content-files';
@@ -31,11 +30,10 @@ const KEYWORDS_YAML = '- phrase: team welcome lunch\n';
 function content({
   places = [],
   posts = [],
-  mdx = [],
   taxonomyText = TAXONOMY_YAML,
   keywordsText = KEYWORDS_YAML,
 }: Partial<RepoContent>): RepoContent {
-  return { mdx, taxonomyText, keywordsText, places, posts };
+  return { taxonomyText, keywordsText, places, posts };
 }
 
 function skipped(repo: RepoContent): string[] {
@@ -222,7 +220,8 @@ describe('parseCatalog', () => {
         mainKeyword: 'team welcome lunch',
         places: [],
         placesTitle: 'Our picks',
-        source: { kind: 'markdown', markdown: 'Body\n', images: [lawn] },
+        markdown: 'Body\n',
+        images: [lawn],
       },
       {
         slug: 'chinese-restaurants-for-a-team-welcome-lunch',
@@ -244,28 +243,25 @@ describe('parseCatalog', () => {
         mainKeyword: 'team welcome lunch',
         places: [{ placeId: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
         placesTitle: 'Our picks in Old Town',
-        source: {
-          kind: 'markdown',
-          markdown: 'Body\n',
-          images: [
-            {
-              fileName: 'golden-duck.jpg',
-              sourceUrl:
-                'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/golden-duck.jpg/1280px-golden-duck.jpg',
-              src: '/blog/images/golden-duck.jpg',
-              width: 1280,
-              height: 960,
-              alt: 'A lawn with chairs',
-              caption: '',
-              credit: {
-                author: 'Ann',
-                license: 'CC BY 4.0',
-                pageUrl: 'https://commons.wikimedia.org/wiki/File:golden-duck.jpg',
-                cropped: true,
-              },
+        markdown: 'Body\n',
+        images: [
+          {
+            fileName: 'golden-duck.jpg',
+            sourceUrl:
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/golden-duck.jpg/1280px-golden-duck.jpg',
+            src: '/blog/images/golden-duck.jpg',
+            width: 1280,
+            height: 960,
+            alt: 'A lawn with chairs',
+            caption: '',
+            credit: {
+              author: 'Ann',
+              license: 'CC BY 4.0',
+              pageUrl: 'https://commons.wikimedia.org/wiki/File:golden-duck.jpg',
+              cropped: true,
             },
-          ],
-        },
+          },
+        ],
       },
     ]);
   });
@@ -335,35 +331,31 @@ describe('parseCatalog', () => {
     ).toEqual([['bay', null, []]]);
   });
 
-  it('gives /blog/<segment> to the photo route, then MDX posts, cities and general posts', () => {
+  it('gives /blog/<segment> to the photo route, then cities, then general posts', () => {
     const repo = content({
-      mdx: MDX_POSTS.filter(({ slug }) => slug === 'how-to-pick-a-date-spot'),
       places: [
-        placeFile('how-to-pick-a-date-spot.md'),
         placeFile('images.md'),
         placeFile('testville.md'),
         placeFile('testville/harbor.md', { name: 'Harbor' }),
       ],
       posts: [
         postFile('harbor', { city: 'testville' }),
-        postFile('how-to-pick-a-date-spot'),
         postFile('images'),
         postFile('lunch', { city: 'testville', town: 'harbor' }),
         postFile('testville'),
+        postFile('welcome-lunch'),
       ],
     });
 
     expect(skipped(repo)).toEqual([
-      'src/content/places/how-to-pick-a-date-spot.md: slug "how-to-pick-a-date-spot" is taken by an MDX post',
       'src/content/places/images.md: slug "images" is taken by the photo route',
       'src/content/posts/harbor.md: slug "harbor" is taken by a town',
-      'src/content/posts/how-to-pick-a-date-spot.md: slug "how-to-pick-a-date-spot" is taken by an MDX post',
       'src/content/posts/images.md: slug "images" is taken by the photo route',
       'src/content/posts/testville.md: slug "testville" is taken by a city',
     ]);
     const { catalog } = parseCatalog(repo);
     expect([...catalog.cities.keys()]).toEqual(['testville']);
-    expect(paths(catalog.posts)).toEqual(['testville/harbor/lunch', 'how-to-pick-a-date-spot']);
+    expect(paths(catalog.posts)).toEqual(['testville/harbor/lunch', 'welcome-lunch']);
   });
 
   it('gives each photo file name to places first, cities before towns, then posts in file order', () => {
@@ -396,10 +388,7 @@ describe('parseCatalog', () => {
       ['old-town', 'town-photo.jpg'],
     ]);
     expect(
-      catalog.posts.map((post) => [
-        post.slug,
-        post.source.kind === 'markdown' && post.source.images.map((kept) => kept.fileName),
-      ])
+      catalog.posts.map((post) => [post.slug, post.images.map((kept) => kept.fileName)])
     ).toEqual([['first', ['first.jpg']]]);
   });
 
@@ -454,7 +443,7 @@ describe('parseCatalog', () => {
     expect(
       parseCatalog(repo).catalog.posts.map((kept) => [
         kept.slug,
-        kept.source.kind === 'markdown' && kept.source.images.map((photo) => photo.fileName),
+        kept.images.map((photo) => photo.fileName),
       ])
     ).toEqual([['photos', ['lawn.jpg']]]);
   });
@@ -511,11 +500,8 @@ describe('parseCatalog with post files', () => {
         mainKeyword: 'team welcome lunch',
         places: [{ placeId: 'ChIJ1', label: 'Golden Duck', note: 'Round tables' }],
         placesTitle: 'Our picks in Harbor',
-        source: {
-          kind: 'markdown',
-          markdown: 'Start here.\n\n![](lawn.jpg)\n\n:::places\n',
-          images: [lawn],
-        },
+        markdown: 'Start here.\n\n![](lawn.jpg)\n\n:::places\n',
+        images: [lawn],
       },
     ]);
   });

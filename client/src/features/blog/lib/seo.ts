@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { createArticleMetadata, createMetadata } from '@/lib/seo/metadata';
-import { coverPath, pagePath, postCover, type BlogPage } from './catalog';
+import { coverPath, pageCover, pagePath, type BlogPage } from './catalog';
 
 const MAP_COVER_ALT = 'Three routes meeting at a pin on a city map, next to the title.';
 
@@ -29,7 +29,6 @@ export function blogPageMetadata(page: BlogPage): Metadata {
 }
 
 function coverAlt(page: BlogPage): string {
-  if (page.kind === 'post' && page.post.source.kind === 'mdx') return page.post.source.cover.alt;
-  const photo = page.kind === 'post' ? postCover(page.post) : (page.town ?? page.city).image;
+  const photo = pageCover(page);
   return photo ? `${photo.alt.replace(/\.$/, '')}, next to the title.` : MAP_COVER_ALT;
 }

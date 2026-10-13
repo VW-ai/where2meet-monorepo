@@ -69,10 +69,9 @@ describe('BlogPageView', () => {
     );
     expect(html).toContain('<h2>Plan your team meeting on Where2Meet</h2>');
     expect(links(html, 'More from the blog')).toEqual([
-      '/blog/how-to-choose-a-team-meeting-location',
       '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
       '/blog/new-york/group-dinner-spots-near-herald-square',
-      '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
+      '/blog/how-to-plan-a-team-welcome-lunch',
     ]);
   });
 
@@ -205,14 +204,5 @@ describe('BlogPageView', () => {
     const midtown = render('new-york/midtown', withUpperWestSide);
     expect(midtown).toContain('<h2>Guides for Midtown</h2>');
     expect(midtown).toContain('<h2>Plan where to meet in Midtown</h2>');
-  });
-
-  it('shows an MDX post’s cover card and credit in the same template', () => {
-    const html = render('how-to-choose-a-team-meeting-location');
-    expect(outline(html)).toEqual([
-      'h1 How to choose a team meeting location',
-      'figure /_next/image?url=/blog/how-to-choose-a-team-meeting-location/cover.png&w=3840&q=75 "Herald Square\'s plaza and memorial clock in Midtown Manhattan, next to the article title." | Herald Square. Photo by Ypsilonatshared (Public domain) via Wikimedia Commons',
-    ]);
-    expect(html).toContain('<h2>Plan your team meeting on Where2Meet</h2>');
   });
 });

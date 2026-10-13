@@ -1,5 +1,4 @@
 import { createElement } from 'react';
-import type { MDXContent } from 'mdx/types';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { MapPin, type IconNode } from 'lucide';
@@ -11,9 +10,7 @@ import {
   pagePath,
   pageTrail,
   postChips,
-  postCover,
   postPath,
-  postPhotos,
   relatedPosts,
   type AreaPage,
   type BlogPage,
@@ -26,7 +23,6 @@ import {
 import { occasionIcon } from '@/features/blog/lib/occasion-icon';
 import { generateBlogPostingSchema, generateBreadcrumbSchema } from '@/lib/seo/structured-data';
 import { proseComponents as prose } from '@/mdx-components';
-import { CuratedPlaces } from './curated-places';
 import { PhotoFigure } from './photo-figure';
 import { PlanCta } from './plan-cta';
 import { Byline } from './post-card';
@@ -48,22 +44,14 @@ const coverImage = 'rounded-[28px] shadow-[0_4px_24px_rgba(23,37,45,0.1)]';
 const coverSizes = '(min-width: 896px) 864px, 100vw';
 const chip = 'rounded-full px-2.5 py-0.5 text-xs font-medium leading-5';
 
-export function BlogPageView({
-  page,
-  catalog,
-  Mdx,
-}: {
-  page: BlogPage;
-  catalog: Catalog;
-  Mdx?: MDXContent;
-}) {
+export function BlogPageView({ page, catalog }: { page: BlogPage; catalog: Catalog }) {
   const trail = pageTrail(page);
   return (
     <>
       <StructuredData data={generateBreadcrumbSchema([{ name: 'Home', path: '/' }, ...trail])} />
       <Breadcrumbs trail={trail} />
       {page.kind === 'post' ? (
-        <PostView post={page.post} catalog={catalog} Mdx={Mdx} />
+        <PostView post={page.post} catalog={catalog} />
       ) : (
         <AreaView page={page} catalog={catalog} />
       )}
@@ -71,8 +59,7 @@ export function BlogPageView({
   );
 }
 
-function PostView({ post, catalog, Mdx }: { post: Post; catalog: Catalog; Mdx?: MDXContent }) {
-  const { source, places, placesTitle } = post;
+function PostView({ post, catalog }: { post: Post; catalog: Catalog }) {
   const related = relatedPosts(catalog, post);
   return (
     <>
@@ -83,7 +70,7 @@ function PostView({ post, catalog, Mdx }: { post: Post; catalog: Catalog; Mdx?: 
           path: postPath(post),
           publishedAt: post.publishedAt,
           updatedAt: post.updatedAt,
-          images: postPhotos(post),
+          images: post.images,
         })}
       />
       <article>
@@ -91,29 +78,19 @@ function PostView({ post, catalog, Mdx }: { post: Post; catalog: Catalog; Mdx?: 
         {post.areas.length > 0 && <Chips terms={postChips(post)} className="mt-3" />}
         <Byline post={post} className="mt-3" />
         <PhotoFigure
-          photo={postCover(post)}
+          photo={post.images[0]}
           sizes={coverSizes}
           preload
           className="mt-6"
           imageClassName={coverImage}
         />
         <div className={articleCard}>
-          {source.kind === 'mdx' ? (
-            Mdx && (
-              <Mdx
-                components={{
-                  Places: () => <CuratedPlaces title={placesTitle} places={places} />,
-                }}
-              />
-            )
-          ) : (
-            <MarkdownBody
-              markdown={source.markdown}
-              images={source.images}
-              places={places}
-              placesTitle={placesTitle}
-            />
-          )}
+          <MarkdownBody
+            markdown={post.markdown}
+            images={post.images}
+            places={post.places}
+            placesTitle={post.placesTitle}
+          />
         </div>
       </article>
 

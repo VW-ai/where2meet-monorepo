@@ -36,13 +36,9 @@ afterEach(() => {
 });
 
 describe('/blog routes', () => {
-  it('prerenders MDX posts, general posts and cities one level below /blog', async () => {
+  it('prerenders general posts and cities one level below /blog', async () => {
     expect(await oneSegment.generateStaticParams()).toEqual([
-      { slug: 'how-to-pick-a-restaurant-for-a-group-dinner' },
-      { slug: 'how-to-pick-a-date-spot' },
       { slug: 'how-to-plan-a-team-welcome-lunch' },
-      { slug: 'how-to-plan-a-weekend-hangout-with-friends' },
-      { slug: 'how-to-choose-a-team-meeting-location' },
       { slug: 'new-york' },
     ]);
   });
@@ -61,11 +57,7 @@ describe('/blog routes', () => {
   it('prerenders no city or local post when the repo has no place files', async () => {
     disk.files = FIXTURE_FILES.filter((file) => !file.path.startsWith('src/content/places/'));
     expect(await oneSegment.generateStaticParams()).toEqual([
-      { slug: 'how-to-pick-a-restaurant-for-a-group-dinner' },
-      { slug: 'how-to-pick-a-date-spot' },
       { slug: 'how-to-plan-a-team-welcome-lunch' },
-      { slug: 'how-to-plan-a-weekend-hangout-with-friends' },
-      { slug: 'how-to-choose-a-team-meeting-location' },
     ]);
     expect(await twoSegments.generateStaticParams()).toEqual([]);
     expect(await townPost.generateStaticParams()).toEqual([]);
@@ -82,11 +74,6 @@ describe('/blog routes', () => {
   });
 
   it.each([
-    [
-      'how-to-choose-a-team-meeting-location',
-      'article',
-      "Herald Square's plaza and memorial clock in Midtown Manhattan, next to the article title.",
-    ],
     [
       'how-to-plan-a-team-welcome-lunch',
       'article',

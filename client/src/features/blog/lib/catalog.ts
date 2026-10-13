@@ -1,7 +1,8 @@
 import type { IsoDate } from '@/lib/seo/site-pages';
-import type { CommonsImage, Photo } from './photos';
+import type { CommonsImage } from './photos';
 
 export const BLOG_PATH = '/blog';
+export const BLOG_AUTHOR = 'The Where2Meet team';
 export const IMAGES_SEGMENT = 'images';
 
 export const OPTIONAL_PARAMETERS = ['time', 'venue_type', 'group_size', 'budget'] as const;
@@ -76,10 +77,6 @@ export interface City extends Area {
   towns: ReadonlyMap<string, Area>;
 }
 
-export type PostSource =
-  | { kind: 'mdx'; cover: Photo }
-  | { kind: 'markdown'; markdown: string; images: readonly [CommonsImage, ...CommonsImage[]] };
-
 export type PostAreas = readonly [] | readonly [AreaRef] | readonly [AreaRef, AreaRef];
 
 export interface Post {
@@ -94,7 +91,8 @@ export interface Post {
   mainKeyword: string | null;
   places: readonly CuratedPlace[];
   placesTitle: string;
-  source: PostSource;
+  markdown: string;
+  images: readonly [CommonsImage, ...CommonsImage[]];
 }
 
 export interface Catalog {
@@ -195,18 +193,14 @@ export function postChips(post: Post): Term[] {
   ];
 }
 
-export function postCover(post: Post): Photo {
-  return post.source.kind === 'mdx' ? post.source.cover : post.source.images[0];
-}
-
-export function postPhotos(post: Post): readonly Photo[] {
-  return post.source.kind === 'mdx' ? [post.source.cover] : post.source.images;
-}
-
-export function pagePhotos(page: BlogPage): readonly Photo[] {
-  if (page.kind === 'post') return postPhotos(page.post);
+export function pagePhotos(page: BlogPage): readonly CommonsImage[] {
+  if (page.kind === 'post') return page.post.images;
   const { image } = page.town ?? page.city;
   return image ? [image] : [];
+}
+
+export function pageCover(page: BlogPage): CommonsImage | null {
+  return pagePhotos(page)[0] ?? null;
 }
 
 export function pageUpdatedAt(page: BlogPage): IsoDate {
@@ -218,12 +212,11 @@ export function latestUpdate(catalog: Catalog): IsoDate | undefined {
 }
 
 export function catalogImages(catalog: Catalog): ReadonlyMap<string, CommonsImage> {
-  const areas = [...catalog.cities.values()].flatMap((city) => [city, ...city.towns.values()]);
-  const images = [
-    ...catalog.posts.flatMap((post) => (post.source.kind === 'markdown' ? post.source.images : [])),
-    ...areas.flatMap((area) => area.image ?? []),
-  ];
-  return new Map(images.map((image) => [image.fileName, image]));
+  return new Map(
+    listPages(catalog)
+      .flatMap(pagePhotos)
+      .map((image) => [image.fileName, image])
+  );
 }
 
 export function pageTrail(page: BlogPage): Crumb[] {
