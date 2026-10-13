@@ -95,7 +95,7 @@ Choose food the table can share, or a menu with a wide range. Shared dishes also
 
 Ask about dietary needs when you share the options, and check each menu online before the vote. In Koreatown, miss KOREA BBQ serves Korean barbecue made for sharing. It's about a 3-minute walk from the Herald Square station, where eight lines stop.
 
-For booking rules, set menus and splitting the bill, see [how to pick a restaurant for a group dinner](/blog/how-to-pick-a-restaurant-for-a-group-dinner). If the dinner follows a work meeting, see [how to choose a team meeting location](/blog/how-to-choose-a-team-meeting-location).
+For booking rules, set menus and splitting the bill, see [how to pick a restaurant for a group dinner](/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner). If the dinner follows a work meeting, see [how to choose a team meeting location](/blog/new-york/midtown/how-to-choose-a-team-meeting-location).
 
 ## How will everyone get home?
 

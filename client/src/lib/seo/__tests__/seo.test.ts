@@ -440,6 +440,54 @@ describe('next.config redirects and headers', () => {
     ]);
   });
 
+  it('moves the four original posts and their covers to their New York towns for good', async () => {
+    const redirects = await nextConfig.redirects();
+    expect(redirects.filter(({ source }) => source.startsWith('/blog/'))).toEqual([
+      {
+        source: '/blog/how-to-choose-a-team-meeting-location',
+        destination: '/blog/new-york/midtown/how-to-choose-a-team-meeting-location',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-choose-a-team-meeting-location/cover.png',
+        destination: '/blog/new-york/midtown/how-to-choose-a-team-meeting-location/cover.png',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
+        destination: '/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-pick-a-restaurant-for-a-group-dinner/cover.png',
+        destination:
+          '/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner/cover.png',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-pick-a-date-spot',
+        destination: '/blog/new-york/union-square/how-to-pick-a-date-spot',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-pick-a-date-spot/cover.png',
+        destination: '/blog/new-york/union-square/how-to-pick-a-date-spot/cover.png',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-plan-a-weekend-hangout-with-friends',
+        destination: '/blog/new-york/upper-west-side/how-to-plan-a-weekend-hangout-with-friends',
+        permanent: true,
+      },
+      {
+        source: '/blog/how-to-plan-a-weekend-hangout-with-friends/cover.png',
+        destination:
+          '/blog/new-york/upper-west-side/how-to-plan-a-weekend-hangout-with-friends/cover.png',
+        permanent: true,
+      },
+    ]);
+  });
+
   it('marks the debug pages noindex', async () => {
     const headers = await nextConfig.headers();
     for (const source of ['/debug-claim-tokens.html', '/clear-invalid-tokens.html']) {

@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { MDX_POSTS } from '@/content/blog/posts';
+import { coverPath, listPages, pagePath } from '@/features/blog/lib/catalog';
 import {
   checkContent,
   formatProblem,
@@ -18,6 +19,7 @@ import {
 import { parseCatalog } from '@/features/blog/lib/parse';
 import { USER_AGENT, type CommonsImage } from '@/features/blog/lib/photos';
 import { readRepoContent } from '@/features/blog/lib/source';
+import nextConfig from '../../../next.config.js';
 
 const repo = await readRepoContent();
 const { catalog } = parseCatalog(repo);
@@ -140,5 +142,18 @@ describe('repo places', () => {
       expect(linesFor(path, true)).toEqual([]);
       photosMeasured(file.name, placePhotos(file), skip);
     });
+  });
+});
+
+describe('redirects into /blog', () => {
+  it('land on pages the repo publishes', async () => {
+    const published = new Set(
+      listPages(catalog).flatMap((page) => [pagePath(page), coverPath(page)])
+    );
+    const destinations = (await nextConfig.redirects())
+      .filter(({ source }) => source.startsWith('/blog/'))
+      .map(({ destination }) => destination);
+    expect(destinations).not.toEqual([]);
+    expect(destinations.filter((destination) => !published.has(destination))).toEqual([]);
   });
 });
