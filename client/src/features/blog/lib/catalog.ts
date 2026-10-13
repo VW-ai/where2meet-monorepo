@@ -2,8 +2,10 @@ import type { IsoDate } from '@/lib/seo/site-pages';
 import type { CommonsImage, Photo } from './photos';
 
 export const BLOG_PATH = '/blog';
-export const PANEL_TAG = 'where2meet-guides';
 export const IMAGES_SEGMENT = 'images';
+
+export const OPTIONAL_PARAMETERS = ['time', 'venue_type', 'group_size', 'budget'] as const;
+export type OptionalParameter = (typeof OPTIONAL_PARAMETERS)[number];
 
 export interface Seo {
   title: string;
@@ -13,6 +15,34 @@ export interface Seo {
 export interface Term {
   key: string;
   label: string;
+}
+
+export interface OccasionTerm extends Term {
+  times: readonly string[];
+  venueTypes: readonly string[];
+  groupSizes: readonly string[];
+}
+
+export interface VenueTypeTerm extends Term {
+  googleType: string;
+}
+
+export interface BudgetTerm extends Term {
+  priceLevel: string;
+}
+
+export interface Keyword {
+  phrase: string;
+  occasion: string | null;
+  note: string | null;
+}
+
+export interface Taxonomy {
+  occasions: readonly OccasionTerm[];
+  times: readonly Term[];
+  venueTypes: readonly VenueTypeTerm[];
+  groupSizes: readonly Term[];
+  budgets: readonly BudgetTerm[];
 }
 
 export interface CuratedPlace {
@@ -26,16 +56,23 @@ export interface AreaRef {
   name: string;
 }
 
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
 export interface Area extends AreaRef {
   updatedAt: IsoDate;
   seo: Seo;
+  center: LatLng;
   intro: string;
-  transitNotes: string;
+  transitNotes: string | null;
   image: CommonsImage | null;
 }
 
 export interface City extends Area {
   region: string;
+  country: string;
   towns: ReadonlyMap<string, Area>;
 }
 
@@ -53,16 +90,26 @@ export interface Post {
   publishedAt: IsoDate;
   updatedAt: IsoDate;
   occasion: Term;
-  parameters: readonly Term[];
+  parameters: Readonly<Record<OptionalParameter, Term | null>>;
+  mainKeyword: string | null;
   places: readonly CuratedPlace[];
   placesTitle: string;
   source: PostSource;
 }
 
 export interface Catalog {
+  taxonomy: Taxonomy;
+  keywords: readonly Keyword[];
   posts: readonly Post[];
   cities: ReadonlyMap<string, City>;
 }
+
+export const NO_PARAMETERS: Post['parameters'] = {
+  time: null,
+  venue_type: null,
+  group_size: null,
+  budget: null,
+};
 
 export type AreaPage = { kind: 'area'; city: City; town: Area | null };
 export type PostPage = { kind: 'post'; post: Post };
@@ -111,6 +158,13 @@ export function listPages(catalog: Catalog): BlogPage[] {
 export function findPage(catalog: Catalog, segments: readonly string[]): BlogPage | null {
   const path = segmentsPath(segments);
   return listPages(catalog).find((page) => pagePath(page) === path) ?? null;
+}
+
+export function postChips(post: Post): Term[] {
+  return [
+    post.occasion,
+    ...OPTIONAL_PARAMETERS.flatMap((parameter) => post.parameters[parameter] ?? []),
+  ];
 }
 
 export function postCover(post: Post): Photo {

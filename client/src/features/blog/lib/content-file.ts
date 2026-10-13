@@ -2,28 +2,36 @@ import { parse as parseYaml } from 'yaml';
 
 export type Fields = Record<string, unknown>;
 
-export interface PostFile {
+export interface ContentFile {
   name: string;
   text: string;
 }
 
-export type PostFileContent =
+export type FrontMatterContent =
   | { ok: true; frontMatter: Fields; body: string }
   | { ok: false; problem: string };
 
-export const POSTS_DIR = 'src/content/posts';
+export const CONTENT_DIR = 'src/content';
+export const POSTS_DIR = `${CONTENT_DIR}/posts`;
+export const PLACES_DIR = `${CONTENT_DIR}/places`;
+export const TAXONOMY_FILE = `${CONTENT_DIR}/taxonomy.yaml`;
+export const KEYWORDS_FILE = `${CONTENT_DIR}/keywords.yaml`;
+export const WRITING_RULES_FILE = 'docs/writing-rules.md';
+
+/** Python's `\s`, which also counts \x1c to \x1f and \x85 and leaves out \ufeff. */
+export const SPACE = String.raw`[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]`;
 
 const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 
-export function postFilePath({ name }: PostFile): string {
-  return `${POSTS_DIR}/${name}`;
+export function filePath(dir: string, name: string): string {
+  return `${dir}/${name}`;
 }
 
-export function postFileSlug({ name }: PostFile): string {
-  return name.replace(/\.md$/, '');
+export function fileSegments(name: string): string[] {
+  return name.replace(/\.md$/, '').split('/');
 }
 
-export function readPostFile(text: string): PostFileContent {
+export function readFrontMatter(text: string): FrontMatterContent {
   const match = FRONT_MATTER.exec(text);
   if (!match) return { ok: false, problem: 'no front matter between two --- lines at the top' };
   const yaml = readYaml(match[1]);
@@ -48,11 +56,16 @@ export function readYaml(
   }
 }
 
-/** The `file_name` of every image the front matter lists, before any image is checked. */
-export function writtenFileNames(frontMatter: Fields): string[] {
-  return listOf(frontMatter.images).flatMap((image) =>
-    isFields(image) && typeof image.file_name === 'string' ? [image.file_name] : []
-  );
+/** Python's `casefold`, closely enough for matching: upper then lower also folds ß to ss. */
+export function normalize(text: string): string {
+  return text
+    .replace(/[\u2018\u2019\u201a\u201b\u2032]/gu, "'")
+    .replace(/[\u201c-\u201f\u2033]/gu, '"')
+    .toUpperCase()
+    .toLowerCase()
+    .split(new RegExp(`${SPACE}+`, 'u'))
+    .filter(Boolean)
+    .join(' ');
 }
 
 export function isFields(value: unknown): value is Fields {

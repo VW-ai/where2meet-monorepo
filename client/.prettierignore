@@ -8,3 +8,5 @@ build
 package-lock.json
 UlTIMATE-REFERENCE
 META
+# The owner's writing rules stay byte for byte as written.
+docs/writing-rules.md

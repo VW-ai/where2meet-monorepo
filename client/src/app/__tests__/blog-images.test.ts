@@ -1,16 +1,13 @@
-import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GET } from '@/app/(landing)/blog/images/[file]/route';
-import { REPO_POST_FILES } from '@/features/blog/__fixtures__/repo-posts';
-import type { PostFile } from '@/features/blog/lib/post-file';
+import { GET, generateStaticParams } from '@/app/(landing)/blog/images/[file]/route';
+import { FIXTURE_FILES, type FixtureFile } from '@/features/blog/__fixtures__/content-files';
 
-const disk = vi.hoisted(() => ({ postFiles: [] as PostFile[] }));
+const disk = vi.hoisted(() => ({ files: [] as FixtureFile[] }));
 vi.mock('node:fs/promises', async (importOriginal) => {
-  const { withPostFiles } = await import('@/features/blog/__fixtures__/repo-posts');
-  return withPostFiles(await importOriginal(), () => disk.postFiles);
+  const { withContentFiles } = await import('@/features/blog/__fixtures__/content-files');
+  return withContentFiles(await importOriginal(), () => disk.files);
 });
 
-const FIXTURE_PATH = path.join(__dirname, '../../features/blog/__fixtures__/published.json');
 const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
 
 const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => jpegResponse());
@@ -26,21 +23,39 @@ function getImage(file: string) {
 }
 
 beforeEach(() => {
-  vi.stubEnv('CONTROL_PLANE_FIXTURE', FIXTURE_PATH);
+  disk.files = [...FIXTURE_FILES];
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockReset();
   fetchMock.mockImplementation(async () => jpegResponse());
 });
 
 afterEach(() => {
-  disk.postFiles = [];
+  disk.files = [];
   vi.useRealTimers();
-  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
 describe('GET /blog/images/[file]', () => {
-  it('serves a published photo from its Wikimedia source with a year-long immutable cache', async () => {
+  it('prerenders every post and place photo, and only those', async () => {
+    expect((await generateStaticParams()).map(({ file }) => file).sort()).toEqual([
+      'bryant-park-carousel-midtown.jpg',
+      'bryant-park-from-one-vanderbilt.jpg',
+      'bryant-park-lawn-midtown.jpg',
+      'grand-central-concourse-windows.jpg',
+      'grand-central-main-concourse-new-york.jpg',
+      'herald-square-plaza-new-york.jpg',
+      'hot-dog-stand-times-square.jpg',
+      'midtown-manhattan-skyline-new-york.jpg',
+      'midtown-view-from-empire-state-building.jpg',
+      'new-york-public-library-lion-midtown.jpg',
+      'rockefeller-center-concourse.jpg',
+      'rockefeller-center-lights-at-sunset.jpg',
+      'seventh-avenue-times-square-north.jpg',
+      'times-square-crowds-new-york.jpg',
+    ]);
+  });
+
+  it('serves a place photo from its Wikimedia source with a year-long immutable cache', async () => {
     const response = await getImage('bryant-park-lawn-midtown.jpg');
 
     expect(response.status).toBe(200);
@@ -64,14 +79,13 @@ describe('GET /blog/images/[file]', () => {
     ]);
   });
 
-  it('serves a repo Markdown post’s photo the same way', async () => {
-    disk.postFiles = [...REPO_POST_FILES];
-    const response = await getImage('union-square-farmers-market.jpg');
+  it('serves a post’s photo the same way', async () => {
+    const response = await getImage('bryant-park-carousel-midtown.jpg');
 
     expect(response.status).toBe(200);
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(JPEG_BYTES);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Union_Square_Greenmarket.jpg/1280px-Union_Square_Greenmarket.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Carrousel_de_Bryant_Park_%C3%A0_Manhattan.jpg/1280px-Carrousel_de_Bryant_Park_%C3%A0_Manhattan.jpg',
     ]);
   });
 

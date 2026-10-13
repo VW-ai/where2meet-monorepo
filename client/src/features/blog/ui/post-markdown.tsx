@@ -50,7 +50,7 @@ export function PostMarkdown({ source }: { source: string }) {
   );
 }
 
-export function PanelBody({
+export function MarkdownBody({
   markdown,
   images,
   places,

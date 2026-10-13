@@ -16,7 +16,7 @@ export function StructuredData({ data }: { data: WithContext<Thing> }) {
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        // Escaping `<` keeps text like "</script>" in control plane copy from ending the tag.
+        // Escaping `<` keeps text like "</script>" in post copy from ending the tag.
         __html: JSON.stringify(data).replace(/</g, '\\u003c'),
       }}
     />

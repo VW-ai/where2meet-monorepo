@@ -1,89 +1,96 @@
 import { isIsoDate, type IsoDate } from '@/lib/seo/site-pages';
 import {
   IMAGES_SEGMENT,
+  NO_PARAMETERS,
+  OPTIONAL_PARAMETERS,
   imagePath,
   type Area,
   type AreaRef,
+  type BudgetTerm,
   type Catalog,
   type City,
   type CuratedPlace,
+  type Keyword,
+  type LatLng,
+  type OccasionTerm,
+  type OptionalParameter,
   type Post,
   type PostAreas,
   type Seo,
+  type Taxonomy,
   type Term,
+  type VenueTypeTerm,
 } from './catalog';
-import { isLicense, type CommonsImage } from './photos';
 import {
+  KEYWORDS_FILE,
+  PLACES_DIR,
+  POSTS_DIR,
+  TAXONOMY_FILE,
+  filePath,
+  fileSegments,
   isFields,
   isText,
   listOf,
-  postFilePath,
-  postFileSlug,
-  readPostFile,
+  normalize,
+  readFrontMatter,
   readYaml,
-  writtenFileNames,
+  type ContentFile,
   type Fields,
-  type PostFile,
-  type PostFileContent,
-} from './post-file';
+} from './content-file';
+import { isLicense, type CommonsImage } from './photos';
 
-export type Issues = string[];
-
-type OptionalParameter = (typeof OPTIONAL_PARAMETERS)[number];
-type Parameter = 'occasion' | OptionalParameter;
-
-export type TermLookup = (parameter: Parameter, key: unknown) => Term | undefined;
-
-type Namespace = Map<string, string>;
-
-type Segments = readonly string[];
-
-type Reason = string;
-
-type AreaSlugs = readonly [] | readonly [string] | readonly [string, string];
-
-type AreaLookup = (city: string, town: string | undefined) => PostAreas | Reason;
-
-interface RepoClaims {
-  paths: readonly Segments[];
-  fileNames: readonly string[];
-}
-
-interface Context {
-  issues: Issues;
-  taxonomy: TermLookup;
-  files: Set<string>;
+export interface Issue {
+  file: string;
+  message: string;
 }
 
 export interface RepoContent {
   mdx: readonly Post[];
-  files: readonly PostFile[];
   taxonomyText: string;
+  keywordsText: string;
+  places: readonly ContentFile[];
+  posts: readonly ContentFile[];
 }
 
-const OPTIONAL_PARAMETERS = ['time', 'venue_type', 'group_size', 'budget'] as const;
+type Parameter = 'occasion' | OptionalParameter;
+type TermLookup = (parameter: Parameter, key: unknown) => Term | undefined;
+
+type Drop = (reason: string) => null;
+type Reason = string;
+type Namespace = Map<string, string>;
+type ParsedCity = City & { towns: Map<string, Area> };
+type AreaLookup = (frontMatter: Fields) => PostAreas | Reason;
+
+interface Context {
+  terms: TermLookup;
+  fileNames: Set<string>;
+  namespaces: Map<string, Namespace>;
+  placeFiles: ReadonlySet<string>;
+}
+
 const SLUG = /^[a-z0-9-]+$/;
 const POST_SLUG_MAX_LENGTH = 80;
 const FILE_NAME = /^[a-z0-9-]+\.jpg$/;
 const UPLOAD_HOSTS = ['upload.wikimedia.org', 'thumb.wikimedia.org'];
 const COMMONS_FILE_PAGE = 'https://commons.wikimedia.org/wiki/File:';
-const NO_PANEL: Catalog = { posts: [], cities: new Map() };
+export const GETTING_AROUND = '## Getting around';
 
-export const TAXONOMY_FILE = 'src/content/taxonomy.yaml';
-const LISTS = {
-  occasion: 'occasions',
-  time: 'times',
-  venue_type: 'venue_types',
-  group_size: 'group_sizes',
-  budget: 'budgets',
-} as const satisfies Record<Parameter, string>;
-const TAXONOMY_FIELDS: Record<Parameter, readonly string[]> = {
-  occasion: ['key', 'label', 'times', 'venue_types', 'group_sizes'],
-  time: ['key', 'label'],
-  venue_type: ['key', 'label', 'google_type'],
-  group_size: ['key', 'label'],
-  budget: ['key', 'label', 'price_level'],
+const TAXONOMY_FIELDS = {
+  occasions: ['key', 'label', 'times', 'venue_types', 'group_sizes'],
+  times: ['key', 'label'],
+  venue_types: ['key', 'label', 'google_type'],
+  group_sizes: ['key', 'label'],
+  budgets: ['key', 'label', 'price_level'],
+} as const satisfies Record<string, readonly string[]>;
+type TaxonomyList = keyof typeof TAXONOMY_FIELDS;
+const EMPTY_TAXONOMY: Taxonomy = {
+  occasions: [],
+  times: [],
+  venueTypes: [],
+  groupSizes: [],
+  budgets: [],
 };
+const KEYWORD_FIELDS = ['phrase', 'occasion', 'note'];
 const GOOGLE_TYPE = /^[a-z]+(?:_[a-z]+)*$/;
 const TEXT_SEARCH_PRICE_LEVELS = [
   'PRICE_LEVEL_INEXPENSIVE',
@@ -92,209 +99,320 @@ const TEXT_SEARCH_PRICE_LEVELS = [
   'PRICE_LEVEL_VERY_EXPENSIVE',
 ];
 
-export function parseCatalog(
-  repo: RepoContent,
-  panel?: unknown
-): { catalog: Catalog; issues: Issues } {
-  const issues: Issues = [];
-  const files = repo.files.map((file) => ({ file, content: readPostFile(file.text) }));
-  const published =
-    panel === undefined ? NO_PANEL : parsePanel(panel, claimsAsWritten(repo.mdx, files), issues);
-  const taxonomy = readTaxonomy(repo.taxonomyText);
-  issues.push(...taxonomy.issues);
-  const context: Context = { issues, taxonomy: taxonomy.taxonomy, files: new Set() };
+export function parseCatalog(repo: RepoContent): { catalog: Catalog; issues: Issue[] } {
+  const issues: Issue[] = [];
+  const taxonomy = parseTaxonomy(repo.taxonomyText, dropper(issues, TAXONOMY_FILE));
+  const keywords = parseKeywords(repo.keywordsText, taxonomy, dropper(issues, KEYWORDS_FILE));
   const general: Namespace = new Map([
     [IMAGES_SEGMENT, 'the photo route'],
     ...repo.mdx.map(({ slug }): [string, string] => [slug, 'an MDX post']),
   ]);
-  const areas = publishedAreas(published.cities);
-  const markdown = files.flatMap(
-    ({ file, content }) =>
-      parseRepoPost(file, content, postFilePath(file), context, general, areas) ?? []
+  const context: Context = {
+    terms: termLookup(taxonomy),
+    fileNames: new Set(),
+    namespaces: new Map([['', general]]),
+    placeFiles: new Set(repo.places.map(({ name }) => name)),
+  };
+  const cities = parsePlaces(repo.places, context, issues);
+  const lookUpAreas = areaLookup(cities, context);
+  const markdown = repo.posts.flatMap(
+    (file) =>
+      parsePost(file, lookUpAreas, context, dropper(issues, filePath(POSTS_DIR, file.name))) ?? []
   );
-  const posts = [...repo.mdx, ...markdown, ...published.posts].sort((a, b) =>
+  const posts = [...repo.mdx, ...markdown].sort((a, b) =>
     b.publishedAt.localeCompare(a.publishedAt)
   );
-  return { catalog: { posts, cities: published.cities }, issues };
+  return { catalog: { taxonomy, keywords, posts, cities }, issues };
 }
 
-export function parseStandalone(
-  file: PostFile,
-  content: PostFileContent,
-  taxonomy: TermLookup,
-  at: string
-): { post: Post | null; issues: Issues } {
-  const issues: Issues = [];
-  const context: Context = { issues, taxonomy, files: new Set() };
-  const slugAsName = (slug: string): AreaRef => ({ slug, name: slug });
-  const post = parseRepoPost(file, content, at, context, new Map(), (city, town) =>
-    town === undefined ? [slugAsName(city)] : [slugAsName(city), slugAsName(town)]
-  );
-  return { post, issues };
-}
-
-function parsePanel(raw: unknown, claims: RepoClaims, issues: Issues): Catalog {
-  if (
-    !isFields(raw) ||
-    raw.version !== 3 ||
-    !isFields(raw.taxonomy) ||
-    !Array.isArray(raw.posts) ||
-    !Array.isArray(raw.cities)
-  ) {
-    throw new Error('Published posts are not contract v3 JSON');
-  }
-  const context: Context = {
-    issues,
-    taxonomy: parseTaxonomy(raw.taxonomy, 'taxonomy', issues),
-    files: new Set(claims.fileNames),
-  };
-  const topLevel = claimedNamespace(claims, [], [[IMAGES_SEGMENT, 'the photo route']]);
-
-  const cities = new Map<string, City>();
-  const posts: Post[] = [];
-  raw.cities.forEach((value, index) => {
-    const parsed = parseCity(value, `cities[${index}]`, context, topLevel, claims);
-    if (!parsed) return;
-    cities.set(parsed.city.slug, parsed.city);
-    posts.push(...parsed.posts);
-  });
-  posts.push(...parsePosts(raw.posts, 'posts', context, topLevel, []));
-  return { posts, cities };
-}
-
-export function readTaxonomy(text: string): { taxonomy: TermLookup; issues: Issues } {
-  const issues: Issues = [];
-  const yaml = readYaml(text);
-  const lists = yaml.ok && isFields(yaml.value) ? yaml.value : {};
-  return { taxonomy: parseTaxonomy(lists, TAXONOMY_FILE, issues), issues };
-}
-
-/** Everything `readTaxonomy` drops, plus the schema the site doesn't read: CI fails on any. */
-export function checkTaxonomy(text: string): Issues {
-  const issues: Issues = [];
+function parseTaxonomy(text: string, drop: Drop): Taxonomy {
   const yaml = readYaml(text);
   if (!yaml.ok) {
-    drop(TAXONOMY_FILE, `not valid YAML: ${yaml.problem}`, issues);
-    return issues;
+    drop(`not valid YAML: ${yaml.problem}`);
+    return EMPTY_TAXONOMY;
   }
-  if (!isFields(yaml.value)) drop(TAXONOMY_FILE, 'not a YAML mapping of lists', issues);
-  const lists = isFields(yaml.value) ? yaml.value : {};
-  const names: readonly string[] = Object.values(LISTS);
+  if (!isFields(yaml.value)) {
+    drop('not a YAML mapping of lists');
+    return EMPTY_TAXONOMY;
+  }
+  const lists = yaml.value;
   for (const name of Object.keys(lists)) {
-    if (!names.includes(name)) drop(TAXONOMY_FILE, `unknown list "${name}"`, issues);
+    if (!Object.hasOwn(TAXONOMY_FIELDS, name)) drop(`unknown list "${name}"`);
   }
-  for (const name of names) {
-    if (!Array.isArray(lists[name])) drop(TAXONOMY_FILE, `"${name}" is not a list`, issues);
-  }
-  const taxonomy = parseTaxonomy(lists, TAXONOMY_FILE, issues);
-  for (const [parameter, list] of Object.entries(LISTS) as [Parameter, string][]) {
-    listOf(lists[list]).forEach((value, index) => {
-      if (!isFields(value) || !taxonomy(parameter, value.key)) return;
-      const reason = schemaProblem(parameter, value);
-      if (reason) drop(`${TAXONOMY_FILE}.${list}[${index}]`, reason, issues);
+
+  const read = <T extends Term>(
+    name: TaxonomyList,
+    toTerm: (term: Term, item: Fields, drop: Drop) => T | null
+  ): T[] => {
+    const list = lists[name];
+    if (!Array.isArray(list)) {
+      drop(`"${name}" is not a list`);
+      return [];
+    }
+    const terms = new Map<string, T>();
+    list.forEach((item, index) => {
+      const itemDrop = within(drop, `${name}[${index}]`);
+      if (!isFields(item)) return itemDrop('not an object');
+      const base = baseTerm(item, TAXONOMY_FIELDS[name], itemDrop);
+      const term = base && toTerm(base, item, itemDrop);
+      if (!term) return;
+      if (terms.has(term.key)) return itemDrop(`repeats "${term.key}"`);
+      terms.set(term.key, term);
     });
+    return [...terms.values()];
+  };
+
+  const times = read('times', (term) => term);
+  const venueTypes = read('venue_types', (term, item, itemDrop): VenueTypeTerm | null => {
+    const { google_type: googleType } = item;
+    if (typeof googleType !== 'string' || !GOOGLE_TYPE.test(googleType)) {
+      return itemDrop(`invalid google_type ${JSON.stringify(googleType)}`);
+    }
+    return { ...term, googleType };
+  });
+  const groupSizes = read('group_sizes', (term) => term);
+  const budgets = read('budgets', (term, item, itemDrop): BudgetTerm | null => {
+    const { price_level: priceLevel } = item;
+    if (typeof priceLevel !== 'string' || !TEXT_SEARCH_PRICE_LEVELS.includes(priceLevel)) {
+      return itemDrop(`invalid price_level ${JSON.stringify(priceLevel)}`);
+    }
+    return { ...term, priceLevel };
+  });
+  const occasions = read(
+    'occasions',
+    (term, item, itemDrop): OccasionTerm => ({
+      ...term,
+      times: knownKeys(item, 'times', 'time', times, itemDrop),
+      venueTypes: knownKeys(item, 'venue_types', 'venue_type', venueTypes, itemDrop),
+      groupSizes: knownKeys(item, 'group_sizes', 'group_size', groupSizes, itemDrop),
+    })
+  );
+  return { occasions, times, venueTypes, groupSizes, budgets };
+}
+
+function baseTerm(item: Fields, fields: readonly string[], drop: Drop): Term | null {
+  if (!isText(item.key)) return drop('missing key');
+  if (!isSlug(item.key)) return drop(`invalid key ${JSON.stringify(item.key)}`);
+  if (!isText(item.label)) return drop('missing label');
+  const unknown = Object.keys(item).find((field) => !fields.includes(field));
+  if (unknown) return drop(`unknown field "${unknown}"`);
+  return { key: item.key, label: item.label };
+}
+
+function knownKeys(
+  occasion: Fields,
+  list: 'times' | 'venue_types' | 'group_sizes',
+  parameter: OptionalParameter,
+  terms: readonly Term[],
+  drop: Drop
+): string[] {
+  const keys = occasion[list];
+  if (!Array.isArray(keys)) {
+    drop(`${list} is not a list`);
+    return [];
   }
-  listOf(lists.occasions).forEach((occasion, index) => {
-    if (!isFields(occasion)) return;
-    for (const parameter of ['time', 'venue_type', 'group_size'] as const) {
-      const at = `${TAXONOMY_FILE}.occasions[${index}].${LISTS[parameter]}`;
-      const keys = occasion[LISTS[parameter]];
-      if (!Array.isArray(keys)) {
-        drop(at, 'is not a list', issues);
+  return keys.filter((key) => {
+    if (terms.some((term) => term.key === key)) return true;
+    drop(`unknown ${parameter} ${JSON.stringify(key)}`);
+    return false;
+  });
+}
+
+function parseKeywords(text: string, { occasions }: Taxonomy, drop: Drop): Keyword[] {
+  const yaml = readYaml(text);
+  if (!yaml.ok) {
+    drop(`not valid YAML: ${yaml.problem}`);
+    return [];
+  }
+  if (!Array.isArray(yaml.value)) {
+    drop('not a YAML list of keywords');
+    return [];
+  }
+  const byPhrase = new Map<string, Keyword>();
+  yaml.value.forEach((item, index) => {
+    const itemDrop = within(drop, `[${index}]`);
+    if (!isFields(item)) return itemDrop('not an object');
+    const unknown = Object.keys(item).find((field) => !KEYWORD_FIELDS.includes(field));
+    if (unknown) return itemDrop(`unknown field "${unknown}"`);
+    const { phrase, occasion = null, note = null } = item;
+    if (!isText(phrase)) return itemDrop('missing phrase');
+    const earlier = byPhrase.get(normalize(phrase));
+    if (earlier) return itemDrop(`repeats "${earlier.phrase}"`);
+    const term = occasion === null ? null : occasions.find(({ key }) => key === occasion);
+    if (term === undefined) return itemDrop(`unknown occasion ${JSON.stringify(occasion)}`);
+    if (note !== null && typeof note !== 'string') {
+      return itemDrop(`invalid note ${JSON.stringify(note)}`);
+    }
+    byPhrase.set(normalize(phrase), {
+      phrase,
+      occasion: term ? term.key : null,
+      note: isText(note) ? note : null,
+    });
+  });
+  return [...byPhrase.values()];
+}
+
+function termLookup(taxonomy: Taxonomy): TermLookup {
+  const byKey = (terms: readonly Term[]) =>
+    new Map(terms.map(({ key, label }): [string, Term] => [key, { key, label }]));
+  const lists: Record<Parameter, ReadonlyMap<string, Term>> = {
+    occasion: byKey(taxonomy.occasions),
+    time: byKey(taxonomy.times),
+    venue_type: byKey(taxonomy.venueTypes),
+    group_size: byKey(taxonomy.groupSizes),
+    budget: byKey(taxonomy.budgets),
+  };
+  return (parameter, key) => (typeof key === 'string' ? lists[parameter].get(key) : undefined);
+}
+
+function parsePlaces(
+  files: readonly ContentFile[],
+  context: Context,
+  issues: Issue[]
+): Map<string, City> {
+  const cities = new Map<string, ParsedCity>();
+  const byDepth = files.toSorted(
+    (a, b) => fileSegments(a.name).length - fileSegments(b.name).length
+  );
+  for (const file of byDepth) {
+    const drop = dropper(issues, filePath(PLACES_DIR, file.name));
+    const segments = fileSegments(file.name);
+    if (segments.length === 1) {
+      const city = parseCity(file, segments[0], context, drop);
+      if (city) cities.set(city.slug, city);
+    } else if (segments.length === 2) {
+      const [citySlug, slug] = segments;
+      const city = cities.get(citySlug);
+      if (!city) {
+        drop(missingPlace('city', citySlug, `${citySlug}.md`, context));
         continue;
       }
-      for (const key of keys) {
-        if (!taxonomy(parameter, key)) {
-          drop(at, `unknown ${parameter} ${JSON.stringify(key)}`, issues);
-        }
-      }
-    }
-  });
-  return issues;
-}
-
-function schemaProblem(parameter: Parameter, value: Fields): string | null {
-  const unknown = Object.keys(value).find((field) => !TAXONOMY_FIELDS[parameter].includes(field));
-  if (unknown) return `unknown field "${unknown}"`;
-  if (!isSlug(value.key)) return `invalid key ${JSON.stringify(value.key)}`;
-  const { google_type: googleType, price_level: priceLevel } = value;
-  if (
-    parameter === 'venue_type' &&
-    !(typeof googleType === 'string' && GOOGLE_TYPE.test(googleType))
-  ) {
-    return `invalid google_type ${JSON.stringify(googleType)}`;
-  }
-  if (
-    parameter === 'budget' &&
-    !(typeof priceLevel === 'string' && TEXT_SEARCH_PRICE_LEVELS.includes(priceLevel))
-  ) {
-    return `invalid price_level ${JSON.stringify(priceLevel)}`;
-  }
-  return null;
-}
-
-function claimsAsWritten(
-  mdx: readonly Post[],
-  files: readonly { file: PostFile; content: PostFileContent }[]
-): RepoClaims {
-  const paths: Segments[] = mdx.map(({ slug }) => [slug]);
-  const fileNames: string[] = [];
-  for (const { file, content } of files) {
-    if (!content.ok) continue;
-    const slugs = areaSlugs(content.frontMatter);
-    paths.push([...(typeof slugs === 'string' ? [] : slugs), postFileSlug(file)]);
-    fileNames.push(...writtenFileNames(content.frontMatter));
-  }
-  return { paths, fileNames };
-}
-
-function claimedNamespace(
-  claims: RepoClaims,
-  parent: Segments,
-  entries: [string, string][] = []
-): Namespace {
-  const namespace: Namespace = new Map(entries);
-  for (const path of claims.paths) {
-    if (path.length === parent.length + 1 && parent.every((slug, i) => path[i] === slug)) {
-      namespace.set(path[parent.length], 'a repo post');
+      const town = parseTown(file, slug, citySlug, context, drop);
+      if (town) city.towns.set(town.slug, town);
+    } else {
+      drop('a place file is <city>.md or <city>/<town>.md');
     }
   }
-  return namespace;
+  return cities;
 }
 
-function publishedAreas(cities: ReadonlyMap<string, City>): AreaLookup {
-  return (citySlug, townSlug) => {
+function parseCity(
+  file: ContentFile,
+  slug: string,
+  context: Context,
+  drop: Drop
+): ParsedCity | null {
+  const content = readFrontMatter(file.text);
+  if (!content.ok) return drop(content.problem);
+  const area = readArea(content, slug, drop);
+  if (!area) return null;
+  const { region, country, image } = content.frontMatter;
+  if (!isText(region)) return drop('missing region');
+  if (!isText(country)) return drop('missing country');
+  const city = claimArea(area, image, [], 'a city', context, drop);
+  return city && { ...city, region, country, towns: new Map() };
+}
+
+function parseTown(
+  file: ContentFile,
+  slug: string,
+  citySlug: string,
+  context: Context,
+  drop: Drop
+): Area | null {
+  const content = readFrontMatter(file.text);
+  if (!content.ok) return drop(content.problem);
+  const area = readArea(content, slug, drop);
+  return area && claimArea(area, content.frontMatter.image, [citySlug], 'a town', context, drop);
+}
+
+function readArea(
+  { frontMatter, body }: { frontMatter: Fields; body: string },
+  slug: string,
+  drop: Drop
+): Omit<Area, 'image'> | null {
+  const { name, updated_at: updatedAt } = frontMatter;
+  if (!isSlug(slug)) return drop(`invalid slug ${JSON.stringify(slug)}`);
+  if (!isText(name)) return drop('missing name');
+  const center = parseCenter(frontMatter.center);
+  if (!center) return drop('invalid center');
+  if (!isDate(updatedAt)) return drop('invalid updated_at');
+  const seo = parseSeo(frontMatter.seo);
+  if (!seo) return drop('invalid seo');
+  return { slug, name, updatedAt, seo, center, ...placeBody(body) };
+}
+
+function claimArea(
+  area: Omit<Area, 'image'>,
+  image: unknown,
+  parent: readonly string[],
+  holder: string,
+  context: Context,
+  drop: Drop
+): Area | null {
+  const names = namespace(context, parent);
+  const taken = names.get(area.slug);
+  if (taken) return drop(`slug "${area.slug}" is taken by ${taken}`);
+  names.set(area.slug, holder);
+  const photo =
+    image === null || image === undefined
+      ? null
+      : parseImage(image, context, within(drop, 'image'));
+  return { ...area, image: photo };
+}
+
+function placeBody(body: string): { intro: string; transitNotes: string | null } {
+  const lines = body.split('\n');
+  const heading = lines.findIndex((line) => line.trim() === GETTING_AROUND);
+  if (heading === -1) return { intro: body.trim(), transitNotes: null };
+  return {
+    intro: lines.slice(0, heading).join('\n').trim(),
+    transitNotes: lines
+      .slice(heading + 1)
+      .join('\n')
+      .trim(),
+  };
+}
+
+function parseCenter(value: unknown): LatLng | null {
+  if (!isFields(value)) return null;
+  const { lat, lng } = value;
+  return isCoordinate(lat, 90) && isCoordinate(lng, 180) ? { lat, lng } : null;
+}
+
+function isCoordinate(value: unknown, limit: number): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= limit;
+}
+
+function areaLookup(cities: ReadonlyMap<string, City>, context: Context): AreaLookup {
+  return (frontMatter) => {
+    const slugs = areaSlugs(frontMatter);
+    if (typeof slugs === 'string') return slugs;
+    const [citySlug, townSlug] = slugs;
+    if (citySlug === undefined) return [];
     const city = cities.get(citySlug);
-    if (!city) return `city "${citySlug}" is not published`;
+    if (!city) return missingPlace('city', citySlug, `${citySlug}.md`, context);
     const cityRef: AreaRef = { slug: city.slug, name: city.name };
     if (townSlug === undefined) return [cityRef];
     const town = city.towns.get(townSlug);
-    if (!town) return `town "${townSlug}" is not published in ${city.slug}`;
+    if (!town) return missingPlace('town', townSlug, `${citySlug}/${townSlug}.md`, context);
     return [cityRef, { slug: town.slug, name: town.name }];
   };
 }
 
-function parseRepoPost(
-  file: PostFile,
-  content: PostFileContent,
-  at: string,
-  context: Context,
-  general: Namespace,
-  lookUpAreas: AreaLookup
-): Post | null {
-  const { issues } = context;
-  if (!content.ok) return drop(at, content.problem, issues);
-  const slugs = areaSlugs(content.frontMatter);
-  if (typeof slugs === 'string') return drop(at, slugs, issues);
-  const [city, town] = slugs;
-  const areas: PostAreas | Reason = city === undefined ? [] : lookUpAreas(city, town);
-  if (typeof areas === 'string') return drop(at, areas, issues);
-  const unclaimed: Namespace = new Map();
-  const namespace = areas.length === 0 ? general : unclaimed;
-  return parsePost(asPanelPost(file, content), at, context, namespace, areas);
+function missingPlace(
+  kind: 'city' | 'town',
+  slug: string,
+  name: string,
+  { placeFiles }: Context
+): Reason {
+  const file = filePath(PLACES_DIR, name);
+  return placeFiles.has(name)
+    ? `${kind} "${slug}" has a place file the site skips, ${file}`
+    : `${kind} "${slug}" has no place file, ${file}`;
 }
 
-function areaSlugs(frontMatter: Fields): AreaSlugs | Reason {
+function areaSlugs(frontMatter: Fields): readonly [] | [string] | [string, string] | Reason {
   const city = frontMatter.city ?? null;
   const town = frontMatter.town ?? null;
   if (city === null) return town === null ? [] : 'town is set without a city';
@@ -304,195 +422,106 @@ function areaSlugs(frontMatter: Fields): AreaSlugs | Reason {
   return [city, town];
 }
 
-function asPanelPost(file: PostFile, content: { frontMatter: Fields; body: string }): Fields {
-  const { title, description, ...fields } = content.frontMatter;
-  return { ...fields, slug: postFileSlug(file), seo: { title, description }, body: content.body };
-}
-
-function parseTaxonomy(value: Fields, at: string, issues: Issues): TermLookup {
-  const terms = (parameter: Parameter) => {
-    const list = LISTS[parameter];
-    const byKey = new Map<string, Term>();
-    listOf(value[list]).forEach((item, index) => {
-      const itemAt = `${at}.${list}[${index}]`;
-      if (!isFields(item)) return drop(itemAt, 'not an object', issues);
-      if (!isText(item.key)) return drop(itemAt, 'missing key', issues);
-      if (!isText(item.label)) return drop(itemAt, 'missing label', issues);
-      if (byKey.has(item.key)) return drop(itemAt, `repeats "${item.key}"`, issues);
-      byKey.set(item.key, { key: item.key, label: item.label });
-    });
-    return byKey;
-  };
-  const lists: Record<Parameter, ReadonlyMap<string, Term>> = {
-    occasion: terms('occasion'),
-    time: terms('time'),
-    venue_type: terms('venue_type'),
-    group_size: terms('group_size'),
-    budget: terms('budget'),
-  };
-  return (parameter, key) => (typeof key === 'string' ? lists[parameter].get(key) : undefined);
-}
-
-function parseCity(
-  value: unknown,
-  at: string,
-  context: Context,
-  topLevel: Namespace,
-  claims: RepoClaims
-): { city: City; posts: Post[] } | null {
-  const area = parseArea(value, at, context, topLevel, 'a city');
-  if (!area || !isFields(value)) return null;
-  const cityRef: AreaRef = { slug: area.slug, name: area.name };
-  const children = claimedNamespace(claims, [area.slug]);
-  const towns = new Map<string, Area>();
-  const posts: Post[] = [];
-
-  listOf(value.towns).forEach((townValue, index) => {
-    const townAt = `${at}.towns[${index}]`;
-    const town = parseArea(townValue, townAt, context, children, 'a town');
-    if (!town || !isFields(townValue)) return;
-    towns.set(town.slug, town);
-    const townRef: AreaRef = { slug: town.slug, name: town.name };
-    const townPosts = claimedNamespace(claims, [area.slug, town.slug]);
-    posts.push(
-      ...parsePosts(townValue.posts, `${townAt}.posts`, context, townPosts, [cityRef, townRef])
-    );
-  });
-  posts.push(...parsePosts(value.posts, `${at}.posts`, context, children, [cityRef]));
-  return { city: { ...area, region: text(value.region), towns }, posts };
-}
-
-function parseArea(
-  value: unknown,
-  at: string,
-  context: Context,
-  namespace: Namespace,
-  holder: string
-): Area | null {
-  const { issues } = context;
-  if (!isFields(value)) return drop(at, 'not an object', issues);
-  const { slug, name, updated_at: updatedAt } = value;
-  if (!isSlug(slug)) return drop(at, `invalid slug ${JSON.stringify(slug)}`, issues);
-  const taken = namespace.get(slug);
-  if (taken) return drop(at, `slug "${slug}" is taken by ${taken}`, issues);
-  if (!isText(name)) return drop(at, 'missing name', issues);
-  if (!isDate(updatedAt)) return drop(at, 'invalid updated_at', issues);
-  const seo = parseSeo(value.seo);
-  if (!seo) return drop(at, 'invalid seo', issues);
-  const image =
-    value.image === null || value.image === undefined
-      ? null
-      : parseImage(value.image, `${at}.image`, context);
-  namespace.set(slug, holder);
-  return {
-    slug,
-    name,
-    updatedAt,
-    seo,
-    intro: text(value.intro),
-    transitNotes: text(value.transit_notes),
-    image,
-  };
-}
-
-function parsePosts(
-  value: unknown,
-  at: string,
-  context: Context,
-  namespace: Namespace,
-  areas: PostAreas
-): Post[] {
-  return listOf(value).flatMap(
-    (item, index) => parsePost(item, `${at}[${index}]`, context, namespace, areas) ?? []
-  );
+function namespace({ namespaces }: Context, parent: readonly string[]): Namespace {
+  const key = parent.join('/');
+  const names = namespaces.get(key) ?? new Map();
+  namespaces.set(key, names);
+  return names;
 }
 
 function parsePost(
-  value: unknown,
-  at: string,
+  file: ContentFile,
+  lookUpAreas: AreaLookup,
   context: Context,
-  namespace: Namespace,
-  areas: PostAreas
+  drop: Drop
 ): Post | null {
-  const { issues, taxonomy } = context;
-  if (!isFields(value)) return drop(at, 'not an object', issues);
-  const { slug, published_at: publishedAt, updated_at: updatedAt } = value;
-  if (!isSlug(slug)) return drop(at, `invalid slug ${JSON.stringify(slug)}`, issues);
+  const content = readFrontMatter(file.text);
+  if (!content.ok) return drop(content.problem);
+  const { frontMatter: value, body } = content;
+  const [slug] = fileSegments(file.name);
+  if (!isSlug(slug)) return drop(`invalid slug ${JSON.stringify(slug)}`);
   if (slug.length > POST_SLUG_MAX_LENGTH) {
-    return drop(at, `slug is longer than ${POST_SLUG_MAX_LENGTH} characters`, issues);
+    return drop(`slug is longer than ${POST_SLUG_MAX_LENGTH} characters`);
   }
-  const taken = namespace.get(slug);
-  if (taken) return drop(at, `slug "${slug}" is taken by ${taken}`, issues);
-  const occasion = taxonomy('occasion', value.occasion);
-  if (!occasion) return drop(at, `unknown occasion ${JSON.stringify(value.occasion)}`, issues);
-  const parameters: Term[] = [];
+  const areas = lookUpAreas(value);
+  if (typeof areas === 'string') return drop(areas);
+  const names = namespace(
+    context,
+    areas.map((area) => area.slug)
+  );
+  const taken = names.get(slug);
+  if (taken) return drop(`slug "${slug}" is taken by ${taken}`);
+  const occasion = context.terms('occasion', value.occasion);
+  if (!occasion) return drop(`unknown occasion ${JSON.stringify(value.occasion)}`);
+  const parameters: Record<OptionalParameter, Term | null> = { ...NO_PARAMETERS };
   for (const parameter of OPTIONAL_PARAMETERS) {
     const key = value[parameter] ?? null;
     if (key === null) continue;
-    const term = taxonomy(parameter, key);
-    if (!term) return drop(at, `unknown ${parameter} ${JSON.stringify(key)}`, issues);
-    parameters.push(term);
+    const term = context.terms(parameter, key);
+    if (!term) return drop(`unknown ${parameter} ${JSON.stringify(key)}`);
+    parameters[parameter] = term;
   }
-  if (!isDate(publishedAt)) return drop(at, 'invalid published_at', issues);
-  if (!isDate(updatedAt)) return drop(at, 'invalid updated_at', issues);
-  const seo = parseSeo(value.seo);
-  if (!seo) return drop(at, 'invalid seo', issues);
-  const places = parsePlaces(value.places, `${at}.places`, issues);
+  const { title, description, published_at: publishedAt, updated_at: updatedAt } = value;
+  if (!isDate(publishedAt)) return drop('invalid published_at');
+  if (!isDate(updatedAt)) return drop('invalid updated_at');
+  if (!isText(title)) return drop('missing title');
+  if (!isText(description)) return drop('missing description');
+  const places = parseCuratedPlaces(value.places, drop);
   const [cover, ...images] = listOf(value.images).flatMap(
-    (item, index) => parseImage(item, `${at}.images[${index}]`, context) ?? []
+    (item, index) => parseImage(item, context, within(drop, `images[${index}]`)) ?? []
   );
-  if (!cover) return drop(at, 'no image to use as its cover', issues);
-  namespace.set(slug, 'a post');
+  if (!cover) return drop('no image to use as its cover');
+  names.set(slug, 'a post');
   const area = areas.at(-1);
   return {
     slug,
     areas,
-    title: seo.title,
-    description: seo.description,
+    title,
+    description,
     publishedAt,
     updatedAt,
     occasion,
     parameters,
+    mainKeyword: isText(value.main_keyword) ? value.main_keyword : null,
     places,
     placesTitle: area ? `Our picks in ${area.name}` : 'Our picks',
-    source: { kind: 'markdown', markdown: text(value.body), images: [cover, ...images] },
+    source: { kind: 'markdown', markdown: body, images: [cover, ...images] },
   };
 }
 
-function parsePlaces(value: unknown, at: string, issues: Issues): CuratedPlace[] {
+function parseCuratedPlaces(value: unknown, drop: Drop): CuratedPlace[] {
   const byId = new Map<string, CuratedPlace>();
   listOf(value).forEach((item, index) => {
-    const placeAt = `${at}[${index}]`;
-    if (!isFields(item)) return drop(placeAt, 'not an object', issues);
-    if (!isText(item.place_id)) return drop(placeAt, 'missing place_id', issues);
-    if (!isText(item.label)) return drop(placeAt, 'missing label', issues);
-    if (byId.has(item.place_id)) return drop(placeAt, `repeats "${item.place_id}"`, issues);
+    const placeDrop = within(drop, `places[${index}]`);
+    if (!isFields(item)) return placeDrop('not an object');
+    if (!isText(item.place_id)) return placeDrop('missing place_id');
+    if (!isText(item.label)) return placeDrop('missing label');
+    if (byId.has(item.place_id)) return placeDrop(`repeats "${item.place_id}"`);
     byId.set(item.place_id, { placeId: item.place_id, label: item.label, note: text(item.note) });
   });
   return [...byId.values()];
 }
 
-function parseImage(value: unknown, at: string, context: Context): CommonsImage | null {
-  const { issues, files } = context;
-  if (!isFields(value)) return drop(at, 'not an object', issues);
+function parseImage(value: unknown, { fileNames }: Context, drop: Drop): CommonsImage | null {
+  if (!isFields(value)) return drop('not an object');
   const { file_name: fileName, source_url: sourceUrl, page_url: pageUrl, width, height } = value;
   if (typeof fileName !== 'string' || !FILE_NAME.test(fileName)) {
-    return drop(at, `invalid file_name ${JSON.stringify(fileName)}`, issues);
+    return drop(`invalid file_name ${JSON.stringify(fileName)}`);
   }
-  if (files.has(fileName)) return drop(at, `file_name "${fileName}" is already used`, issues);
-  if (!isUploadUrl(sourceUrl)) return drop(at, 'source_url is not a Wikimedia JPEG upload', issues);
+  if (fileNames.has(fileName)) return drop(`file_name "${fileName}" is already used`);
+  if (!isUploadUrl(sourceUrl)) return drop('source_url is not a Wikimedia JPEG upload');
   if (typeof pageUrl !== 'string' || !pageUrl.startsWith(COMMONS_FILE_PAGE)) {
-    return drop(at, 'page_url is not a Wikimedia Commons file page', issues);
+    return drop('page_url is not a Wikimedia Commons file page');
   }
   if (!isPositiveInteger(width) || !isPositiveInteger(height)) {
-    return drop(at, 'invalid width or height', issues);
+    return drop('invalid width or height');
   }
-  if (!isText(value.alt)) return drop(at, 'missing alt', issues);
-  if (!isText(value.author)) return drop(at, 'missing author', issues);
+  if (!isText(value.alt)) return drop('missing alt');
+  if (!isText(value.author)) return drop('missing author');
   if (!isLicense(value.license)) {
-    return drop(at, `license ${JSON.stringify(value.license)} is not allowed`, issues);
+    return drop(`license ${JSON.stringify(value.license)} is not allowed`);
   }
-  files.add(fileName);
+  fileNames.add(fileName);
   return {
     fileName,
     sourceUrl,
@@ -529,9 +558,15 @@ function parseSeo(value: unknown): Seo | null {
   return { title: value.title, description: value.description };
 }
 
-function drop(at: string, reason: string, issues: Issues): null {
-  issues.push(`${at}: ${reason}`);
-  return null;
+function dropper(issues: Issue[], file: string): Drop {
+  return (message) => {
+    issues.push({ file, message });
+    return null;
+  };
+}
+
+function within(drop: Drop, at: string): Drop {
+  return (reason) => drop(`${at}: ${reason}`);
 }
 
 function isSlug(value: unknown): value is string {

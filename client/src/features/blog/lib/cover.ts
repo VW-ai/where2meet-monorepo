@@ -8,7 +8,7 @@ import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { BLOG_PATH, type BlogPage } from './catalog';
 import { occasionIcon } from './occasion-icon';
 import type { CommonsImage, Photo } from './photos';
-import { fetchPhoto, isBuilding, loadPage, warnOnce } from './source';
+import { fetchPhoto, loadPage } from './source';
 
 export async function coverResponse(segments: readonly string[]): Promise<Response> {
   const page = await loadPage(segments);
@@ -39,14 +39,8 @@ async function coverPhoto(page: BlogPage): Promise<CardPhoto | undefined> {
   }
   const image = commonsCover(page);
   if (!image) return undefined;
-  try {
-    const response = await fetchPhoto(image);
-    return { jpeg: Buffer.from(await response.arrayBuffer()), credit: creditLine(image) };
-  } catch (error) {
-    if (!isBuilding()) throw error;
-    warnOnce(`Drawing the map on a cover. ${error instanceof Error ? error.message : error}`);
-    return undefined;
-  }
+  const response = await fetchPhoto(image);
+  return { jpeg: Buffer.from(await response.arrayBuffer()), credit: creditLine(image) };
 }
 
 function commonsCover(page: BlogPage): CommonsImage | null {

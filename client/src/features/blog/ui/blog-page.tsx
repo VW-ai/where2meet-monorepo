@@ -8,6 +8,7 @@ import {
   areaPosts,
   pagePath,
   pageTrail,
+  postChips,
   postCover,
   postPath,
   postPhotos,
@@ -27,7 +28,7 @@ import { CuratedPlaces } from './curated-places';
 import { PhotoFigure } from './photo-figure';
 import { PlanCta } from './plan-cta';
 import { Byline } from './post-card';
-import { PanelBody, PostMarkdown } from './post-markdown';
+import { MarkdownBody, PostMarkdown } from './post-markdown';
 
 interface LinkCard {
   href: string;
@@ -85,9 +86,7 @@ function PostView({ post, catalog, Mdx }: { post: Post; catalog: Catalog; Mdx?: 
       />
       <article>
         <h1 className={heading}>{post.title}</h1>
-        {post.areas.length > 0 && (
-          <Chips terms={[post.occasion, ...post.parameters]} className="mt-3" />
-        )}
+        {post.areas.length > 0 && <Chips terms={postChips(post)} className="mt-3" />}
         <Byline post={post} className="mt-3" />
         <PhotoFigure
           photo={postCover(post)}
@@ -106,7 +105,7 @@ function PostView({ post, catalog, Mdx }: { post: Post; catalog: Catalog; Mdx?: 
               />
             )
           ) : (
-            <PanelBody
+            <MarkdownBody
               markdown={source.markdown}
               images={source.images}
               places={places}
@@ -188,7 +187,7 @@ export function postCard(post: Post): LinkCard {
     href: postPath(post),
     icon: occasionIcon(post.occasion.key),
     title: post.title,
-    chips: post.areas.length > 0 ? [post.occasion, ...post.parameters] : undefined,
+    chips: post.areas.length > 0 ? postChips(post) : undefined,
     description: post.description,
   };
 }

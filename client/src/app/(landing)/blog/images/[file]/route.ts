@@ -1,6 +1,13 @@
 import { catalogImages } from '@/features/blog/lib/catalog';
 import { fetchPhoto, loadCatalog } from '@/features/blog/lib/source';
 
+export const dynamic = 'force-static';
+export const dynamicParams = false;
+
+export async function generateStaticParams(): Promise<{ file: string }[]> {
+  return [...catalogImages(await loadCatalog()).keys()].map((file) => ({ file }));
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ file: string }> }) {
   const { file } = await params;
   const image = catalogImages(await loadCatalog()).get(file);

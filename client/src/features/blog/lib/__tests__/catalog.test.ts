@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MDX_POSTS } from '@/content/blog/posts';
-import fixture from '../../__fixtures__/published.json';
-import { REPO_POST_FILES, REPO_TAXONOMY } from '../../__fixtures__/repo-posts';
+import { fixtureContent } from '../../__fixtures__/content-files';
 import {
   areaPosts,
   catalogImages,
@@ -16,10 +14,7 @@ import {
 } from '../catalog';
 import { parseCatalog } from '../parse';
 
-const catalog = parseCatalog(
-  { mdx: MDX_POSTS, files: [], taxonomyText: REPO_TAXONOMY },
-  fixture
-).catalog;
+const catalog = parseCatalog(fixtureContent()).catalog;
 
 function describePage(page: BlogPage | null) {
   if (!page) return null;
@@ -54,7 +49,7 @@ describe('blog catalog', () => {
     ]);
   });
 
-  it('resolves one segment to a repo post, a general post or a city', () => {
+  it('resolves one segment to an MDX post, a general post or a city', () => {
     expect(resolve('how-to-pick-a-date-spot')).toBe(
       'mdx post How to pick a date spot you can both reach'
     );
@@ -160,7 +155,7 @@ describe('blog catalog', () => {
     ]);
   });
 
-  it('serves every panel photo, and only those, from /blog/images', () => {
+  it('serves every post and place photo, and only those, from /blog/images', () => {
     expect([...catalogImages(catalog).keys()].sort()).toEqual([
       'bryant-park-carousel-midtown.jpg',
       'bryant-park-from-one-vanderbilt.jpg',
@@ -181,90 +176,5 @@ describe('blog catalog', () => {
 
   it('dates the catalog by its newest page', () => {
     expect(latestUpdate(catalog)).toBe('2026-10-08');
-  });
-});
-
-describe('blog catalog with repo Markdown posts', () => {
-  const { catalog: withMarkdown, issues } = parseCatalog(
-    { mdx: MDX_POSTS, files: REPO_POST_FILES, taxonomyText: REPO_TAXONOMY },
-    fixture
-  );
-
-  it('keeps both posts, labeled by the repo taxonomy', () => {
-    expect(issues).toEqual([]);
-    const general = withMarkdown.posts.find(({ slug }) => slug === 'how-to-plan-a-coffee-catch-up');
-    expect([general?.occasion, general?.parameters]).toEqual([
-      { key: 'coffee-catch-up', label: 'Coffee catch-up' },
-      [
-        { key: 'coffee-shop', label: 'Coffee shop' },
-        { key: 'two', label: 'Two people' },
-      ],
-    ]);
-  });
-
-  it('puts a general post at /blog/<slug> and a local one under its town, newest first', () => {
-    expect(listPages(withMarkdown).map(pagePath)).toEqual([
-      '/blog/how-to-plan-a-coffee-catch-up',
-      '/blog/how-to-pick-a-restaurant-for-a-group-dinner',
-      '/blog/how-to-pick-a-date-spot',
-      '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
-      '/blog/how-to-plan-a-team-welcome-lunch',
-      '/blog/new-york/midtown/after-work-drinks-near-bryant-park',
-      '/blog/new-york/group-dinner-spots-near-herald-square',
-      '/blog/how-to-plan-a-weekend-hangout-with-friends',
-      '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
-      '/blog/how-to-choose-a-team-meeting-location',
-      '/blog/new-york',
-      '/blog/new-york/midtown',
-    ]);
-    const page = findPage(withMarkdown, [
-      'new-york',
-      'midtown',
-      'after-work-drinks-near-bryant-park',
-    ]);
-    expect(page && pageTrail(page)).toEqual([
-      { name: 'Blog', path: '/blog' },
-      { name: 'New York', path: '/blog/new-york' },
-      { name: 'Midtown', path: '/blog/new-york/midtown' },
-      {
-        name: 'After-work drinks near Bryant Park',
-        path: '/blog/new-york/midtown/after-work-drinks-near-bryant-park',
-      },
-    ]);
-  });
-
-  it('lists a local post on its town page and relates it to posts on its occasion', () => {
-    const city = withMarkdown.cities.get('new-york')!;
-    const midtown = city.towns.get('midtown')!;
-    expect(areaPosts(withMarkdown, { kind: 'area', city, town: midtown }).map(postPath)).toEqual([
-      '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
-      '/blog/new-york/midtown/after-work-drinks-near-bryant-park',
-      '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
-    ]);
-    const drinks = withMarkdown.posts.find(
-      ({ slug }) => slug === 'after-work-drinks-near-bryant-park'
-    )!;
-    expect(relatedPosts(withMarkdown, drinks).map(postPath)).toEqual([
-      '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
-      '/blog/how-to-plan-a-team-welcome-lunch',
-      '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
-      '/blog/new-york/group-dinner-spots-near-herald-square',
-    ]);
-  });
-
-  it('serves the repo posts’ photos from /blog/images with the panel’s', () => {
-    const images = catalogImages(withMarkdown);
-    expect(
-      [
-        'union-square-park-lawn.jpg',
-        'union-square-farmers-market.jpg',
-        'bryant-park-terrace-evening.jpg',
-      ].map((file) => images.get(file)?.src)
-    ).toEqual([
-      '/blog/images/union-square-park-lawn.jpg',
-      '/blog/images/union-square-farmers-market.jpg',
-      '/blog/images/bryant-park-terrace-evening.jpg',
-    ]);
-    expect(images.size).toBe(17);
   });
 });

@@ -10,7 +10,7 @@ describe('occasionIcon', () => {
     ]);
   });
 
-  it('draws a pin for an occasion added in the panel, even one named like an object property', () => {
+  it('draws a pin for an occasion added in taxonomy.yaml, even one named like an object property', () => {
     expect([occasionIcon('brunch'), occasionIcon('constructor')]).toEqual([MapPin, MapPin]);
   });
 });
