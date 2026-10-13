@@ -4,7 +4,7 @@ These rules apply to every post on www.where2meet.org/blog. Every post is a guid
 - A **general post** covers one occasion anywhere, at `/blog/<slug>`.
 - A **local post** covers one occasion in one place, at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`, under its city and town pages.
 
-New posts are always local posts, at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`, under a city or town that has a place file. The four existing general posts stay, and every local post links to the general post for its occasion when there is one.
+New posts are always local posts, at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`, under a city or town that has a place file. The four original posts are local posts too, under New York towns.
 
 These rules change only when the owner asks, by pull request to this file, `client/docs/writing-rules.md` in the monorepo. Every writer, a person or an agent, reads them before drafting anything.
 
@@ -21,7 +21,7 @@ These rules change only when the owner asks, by pull request to this file, `clie
 - Every post gives advice of its own. Don't reuse another post's text with the occasion or the place swapped. Near-copies look templated to Google and hurt the whole site.
 - We never guess the reader's location. A general post names its example city. A local post's URL fixes its place.
 - **General posts** give the advice that works anywhere, in 700 to 1,000 words.
-- **Local posts** give the local answer, in 400 to 800 words. That means which stations, streets and places work for that occasion there. They link to the general post for the same occasion instead of repeating it.
+- **Local posts** give the local answer, in 400 to 800 words. That means which stations, streets and places work for that occasion there. They link to the general post for the same occasion, when there is one, instead of repeating it.
 - No motion widgets or drawn diagrams. Real photos explain the place better, and search engines can index them.
 
 ## Structure
@@ -30,7 +30,7 @@ Every post:
 
 1. **The answer first.** The first two sentences answer the search directly and use the main keyword. The rest of the opening paragraph names the reader's situation in their words. A second short paragraph says what the post covers.
 2. **Question headings.** Four to five `##` sections in sentence case. Phrase each heading the way people ask it, as in "How far should everyone travel?". Open each section with a one- or two-sentence answer, then the detail.
-3. **Real places.** At least three, placed where they help the advice. A general post uses three examples in one named city.
+3. **Real places.** A local post suggests six to eight real places near the top of the post, mostly restaurants, cafes and bars that fit the occasion. Each says what the place is, why it fits the occasion and its walk from the nearest station. A general post uses at least six examples in one named city.
 4. **Real photos.** A cover photo plus at least two photos in the body. See Pictures.
 5. **"How to do it in Where2Meet."** Numbered steps, starting from the matching chip on the homepage.
 6. **"Common questions."** Three to five questions people search, each answered in two or three sentences. Use real questions from Search Console or the Keywords list when you have them.
@@ -97,7 +97,7 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 
 Search intent and keywords:
 - **One main keyword per post.** Before writing, pick one main keyword and up to two related ones from `client/src/content/keywords.yaml`, which the panel's Keywords view also shows. If no listed keyword fits, add one to that file in the same pull request and say why in the pull request description.
-- **One post per keyword.** Check that no other post already targets the same main keyword. The Copy prompt lists the posts that already target each keyword. To check by hand, search the `main_keyword` lines in `client/src/content/posts/` and the titles of the four MDX posts. Two posts chasing one keyword compete with each other. Improve the existing post instead.
+- **One post per keyword.** Check that no other post already targets the same main keyword. The Copy prompt lists the posts that already target each keyword. To check by hand, search the `main_keyword` lines in `client/src/content/posts/`. Two posts chasing one keyword compete with each other. Improve the existing post instead.
 - **Match the intent.** "How to" searches get steps. "Where to" searches get places. "Ideas" searches get a list.
 - **Where the main keyword goes:**
   - in the title
@@ -121,7 +121,7 @@ Answers that get picked up:
 Links:
 - **Internal links.**
   - Every post links to two to four related posts.
-  - A local post links to its city or town page and to the general post for its occasion.
+  - A local post links to its city or town page and to the general post for its occasion, when there is one.
   - A general post links to the local posts for its occasion.
   - Every post links to the homepage step it describes.
   - Use descriptive link text, never "click here".
@@ -146,7 +146,7 @@ What the site handles, so don't hand-write it:
 - **Photos** are listed by their Commons link and never downloaded into the repo.
 - **CI checks every post.** A pull request can't merge until these pass:
   - the word counts
-  - three places
+  - six places
   - a licensed cover and two body photos with alt text
   - the title and description limits
   - a main keyword listed in `keywords.yaml`, said in the title and the first two sentences
@@ -155,5 +155,4 @@ What the site handles, so don't hand-write it:
   - the required sections
   - the brand wording and the style rules a machine can check (dashes, quotes)
 - **Local posts.** A local post's city and town each need a place file, already merged or in the same pull request.
-- **The four original posts** are MDX files in `client/src/content/blog/` with their widgets. No new post gets a widget.
 - **After anything goes live,** request indexing for the new URL in Search Console.

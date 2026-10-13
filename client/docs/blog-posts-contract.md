@@ -5,8 +5,9 @@ Every page under `/blog` comes from files in `client/`. A file merged to `main` 
 Owner decisions:
 
 - 2026-10-08. Local guides and blog posts are one thing, "posts", in one section at `/blog`. Posts show real, licensed Wikimedia Commons photos, served from this site so search engines index them. The byline on every post is "The Where2Meet team". The site never detects a reader's location, so a page's place comes from its URL.
-- 2026-10-10. Agents write content as files and open a pull request. The owner reviews and merges. The 4 original posts in `src/content/blog/` stay MDX with their widgets.
+- 2026-10-10. Agents write content as files and open a pull request. The owner reviews and merges.
 - 2026-10-10. Every piece of blog content and SEO configuration lives in the repo: posts, places, parameters, keywords and the writing rules. The panel only views them.
+- 2026-10-13. The 4 original posts are Markdown local posts under New York towns, without their widgets. Each kept its slug and moved to `/blog/new-york/<town>/<slug>`, and its old URL redirects there permanently so search engines keep its ranking. The same day the owner asked that every local post suggest 6 to 8 real places, mostly restaurants, cafes and bars that fit the occasion.
 
 ## Make a change
 
@@ -28,7 +29,6 @@ Every change is one pull request against `main`. Before you open it, run `npm te
 | File                                  | Holds                                                                  |
 | ------------------------------------- | ---------------------------------------------------------------------- |
 | `src/content/posts/<slug>.md`         | A post written as Markdown                                             |
-| `src/content/blog/*.mdx`, `posts.ts`  | The 4 original posts with their widgets                                |
 | `src/content/places/<city>.md`        | A city page                                                            |
 | `src/content/places/<city>/<town>.md` | A town page                                                            |
 | `src/content/taxonomy.yaml`           | The parameters: occasions, times, venue types, group sizes and budgets |
@@ -42,20 +42,20 @@ Every change is one pull request against `main`. Before you open it, run `npm te
 | Path                         | Page                                      |
 | ---------------------------- | ----------------------------------------- |
 | `/blog`                      | Every post, newest first, then the cities |
-| `/blog/<segment>`            | An MDX post, a city, or a general post    |
+| `/blog/<segment>`            | A city or a general post                  |
 | `/blog/<city>/<segment>`     | A town, or a post about the whole city    |
 | `/blog/<city>/<town>/<post>` | A post in a town                          |
 | `/blog/images/<file_name>`   | A photo that a post or a place lists      |
 | `<any page above>/cover.png` | The page's 1200x630 share image           |
 | `/blog/content.json`         | The content for the Control Panel         |
 
-`/where-to-meet` and every path under it redirect permanently (308) to the same path under `/blog`.
+`/where-to-meet` and every path under it redirect permanently (308) to the same path under `/blog`. The 4 original posts' old paths, `/blog/<slug>` and `/blog/<slug>/cover.png`, redirect permanently (308) to the same slug under its town, as in `/blog/new-york/union-square/how-to-pick-a-date-spot`. `next.config.js` lists them.
 
 Every blog page, cover and photo is built when the site deploys. A path the build didn't produce answers 404.
 
 Paths stay unique. When two files claim one path, the first claim in this order keeps it:
 
-- `/blog/<segment>`: the photo route (`images`), then an MDX post, then a city, then a general post.
+- `/blog/<segment>`: the photo route (`images`), then a city, then a general post.
 - `/blog/<city>/<segment>`: a town, then a post about the city.
 - `/blog/<city>/<town>/<segment>`: a post in the town.
 
@@ -63,11 +63,11 @@ Places claim before posts because a dropped place takes its towns and posts with
 
 ## Posts
 
-A post is one file, `src/content/posts/<slug>.md`. The site builds every post, Markdown or MDX, with one template: the title, the byline with the published and updated dates, the cover with its credit, the body, the place cards, the call to action, and up to 4 related posts. Related posts share the occasion first, then the city or the town.
+A post is one file, `src/content/posts/<slug>.md`. The site builds every post with one template: the title, the byline with the published and updated dates, the cover with its credit, the body, the place cards, the call to action, and up to 4 related posts. Related posts share the occasion first, then the city or the town.
 
 ### Name the file
 
-The file name is the slug and the last segment of the URL. Use lowercase `[a-z0-9-]+`, keyword first, at most 80 characters. Don't use `images`, a slug in `src/content/blog/posts.ts`, a city's slug, or the name of another post file.
+The file name is the slug and the last segment of the URL. Use lowercase `[a-z0-9-]+`, keyword first, at most 80 characters. Don't use `images`, a city's slug, or the name of another post file.
 
 ### Write the front matter
 
@@ -116,7 +116,7 @@ A coffee meeting spot works when both of you can reach it in about the same time
 | `time`, `venue_type`, `group_size`, `budget` | A key from that file's `times`, `venue_types`, `group_sizes` or `budgets`, or `null`.                                                                                                                                 |
 | `city`, `town`                               | Both `null` for a general post at `/blog/<slug>`. For a local post, the slug of a city with a place file, and optionally one of its towns. The post is then at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`. |
 | `published_at`, `updated_at`                 | `YYYY-MM-DD`. `updated_at` is on or after `published_at`.                                                                                                                                                             |
-| `places`                                     | At least 3, each a `place_id`, the Google `label`, and a `note` of at least 12 words in your own words.                                                                                                               |
+| `places`                                     | At least 6, and 6 to 8 for a local post, mostly restaurants, cafes and bars. Each has a `place_id`, the Google `label`, and a `note` of at least 12 words in your own words.                                          |
 | `images`                                     | At least 3 Wikimedia Commons photos, as in [Photos](#photos). `images[0]` is the cover.                                                                                                                               |
 
 Quote a YAML value that contains `: ` or starts with a character YAML treats specially, such as `"Lunch: the plan"`. Dates stay strings.
@@ -196,7 +196,7 @@ Phrases are unique, ignoring case and spacing. Every Markdown post's `main_keywo
 
 ## Parameters
 
-`src/content/taxonomy.yaml` has five lists: `occasions`, `times`, `venue_types`, `group_sizes` and `budgets`. Every value has a slug `key` and a `label`. An occasion also lists the `times`, `venue_types` and `group_sizes` that fit it, where an empty list means any. A venue type has a `google_type` from Google's place types. A budget has a `price_level` from Google's Text Search price levels. Posts take their keys and chip labels from this file. Each MDX post's occasion must be in it.
+`src/content/taxonomy.yaml` has five lists: `occasions`, `times`, `venue_types`, `group_sizes` and `budgets`. Every value has a slug `key` and a `label`. An occasion also lists the `times`, `venue_types` and `group_sizes` that fit it, where an empty list means any. A venue type has a `google_type` from Google's place types. A budget has a `price_level` from Google's Text Search price levels. Posts take their keys and chip labels from this file.
 
 ## Writing rules
 
@@ -218,7 +218,7 @@ A caption reads "<caption>. Photo by <author> (<license>) via Wikimedia Commons"
 
 The build fetches each listed `source_url` once, with the User-Agent `Where2Meet/1.0 (https://www.where2meet.org/contact; contact@wayvi-ai.com)` as Wikimedia asks, and writes it to `/blog/images/<file_name>`. Next's data cache keeps each answer, so a later build reuses it. A 429 from Wikimedia is retried twice, 2 and 4 seconds apart. If a photo still fails, the build fails, and the site keeps serving the previous deploy. The photo is served as `image/jpeg` with `Cache-Control: public, max-age=31536000, immutable`, and `next/image` builds the responsive sizes from it. Any other file name answers 404, and the route never fetches a URL it was given.
 
-`cover.png` for a Markdown post or a place draws `images[0]`, or the place's `image`, with its credit. A place without a photo gets the map. An MDX post's cover draws its photo from `src/content/blog/covers/<slug>.jpg`.
+`cover.png` for a post or a place draws `images[0]`, or the place's `image`, with its credit. A place without a photo gets the map.
 
 ## Checks
 
@@ -231,7 +231,7 @@ A post gets these rules:
 | Rule           | What it wants                                                                                                                                                             |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `word-count`   | 700 to 1,000 words for a general post, or 400 to 800 for a local post. A link counts its text, not its URL.                                                               |
-| `places`       | At least 3 places, and each note has at least 12 words.                                                                                                                   |
+| `places`       | At least 6 places, and each note has at least 12 words.                                                                                                                   |
 | `images`       | At least 3 usable images, and every `![](<file_name>)` line names a listed image.                                                                                         |
 | `image-size`   | Each `source_url` answers a HEAD request with 200, `image/jpeg` and a size of at most 2,000,000 bytes.                                                                    |
 | `title`        | The title with " \| Where2Meet" is at most 60 characters.                                                                                                                 |
@@ -331,19 +331,19 @@ The canonical URL, the BlogPosting and BreadcrumbList JSON-LD, `sitemap.xml` and
   ],
   "posts": [
     {
-      "path": "/blog/how-to-pick-a-date-spot",
-      "title": "How to pick a date spot you can both reach",
-      "source": "mdx",
+      "path": "/blog/new-york/union-square/how-to-pick-a-date-spot",
+      "title": "Where to go on a date near Union Square",
+      "source": "markdown",
       "occasion": "date-night",
       "time": null,
       "venue_type": null,
-      "group_size": null,
+      "group_size": "two",
       "budget": null,
-      "main_keyword": null,
-      "city": null,
-      "town": null,
+      "main_keyword": "where to go on a date",
+      "city": "new-york",
+      "town": "union-square",
       "published_at": "2026-10-08",
-      "updated_at": "2026-10-08"
+      "updated_at": "2026-10-13"
     }
   ],
   "writing_rules": "the full text of docs/writing-rules.md"
@@ -353,7 +353,7 @@ The canonical URL, the BlogPosting and BreadcrumbList JSON-LD, `sitemap.xml` and
 - `generated_at` is the build time, in UTC to the second.
 - `taxonomy` and `keywords` hold every value the site kept, in file order. A missing `occasion` or `note` is `null`.
 - `places` lists each city by file name, then its towns.
-- `posts` lists every post, newest first, as `/blog` does. `source` is `mdx` for the 4 original posts, whose parameters, `main_keyword`, `city` and `town` are `null`, and `markdown` for the files in `src/content/posts/`.
+- `posts` lists every post, newest first, as `/blog` does. `source` is always `markdown`, because every post is a file in `src/content/posts/`. It stays because the panel reads it.
 - `writing_rules` is the text of `docs/writing-rules.md`, byte for byte.
 
 `buildContentJson` in `src/features/blog/lib/content-json.ts` builds it.
