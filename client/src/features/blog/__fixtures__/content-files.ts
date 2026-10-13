@@ -54,20 +54,18 @@ export function markdownFile(
   return { name, text: `---\n${stringify(frontMatter)}---\n${body}` };
 }
 
+/** Lists only the fixture files, so a test sees the same content whatever the repo publishes. */
 export function withContentFiles(
   fs: typeof FsPromises,
   files: () => readonly FixtureFile[]
 ): typeof FsPromises {
   const absolute = (file: FixtureFile) => path.join(process.cwd(), file.path);
-  const readdir = (async (target: string, options?: { recursive?: boolean }) => {
-    const names = (await fs.readdir(target, options)) as string[];
-    const added = files().flatMap((file) => {
+  const readdir = (async (target: string, options?: { recursive?: boolean }) =>
+    files().flatMap((file) => {
       const name = path.relative(target, absolute(file));
       const inside = !name.startsWith('..') && !path.isAbsolute(name);
       return inside && (options?.recursive || !name.includes(path.sep)) ? [name] : [];
-    });
-    return [...new Set([...names, ...added])];
-  }) as typeof fs.readdir;
+    })) as typeof fs.readdir;
   const readFile = (async (target: string, ...rest: [BufferEncoding]) => {
     const file = files().find((candidate) => absolute(candidate) === target);
     return file ? file.text : fs.readFile(target, ...rest);
