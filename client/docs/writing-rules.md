@@ -4,17 +4,17 @@ These rules apply to every post on www.where2meet.org/blog. Every post is a guid
 - A **general post** covers one occasion anywhere, at `/blog/<slug>`.
 - A **local post** covers one occasion in one place, at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`, under its city and town pages.
 
-Edit the rules here. The writer reads this page before drafting anything.
+Change these rules by pull request to this file, `client/docs/writing-rules.md` in the monorepo. Every writer, a person or an agent, reads them before drafting anything.
 
 ## Positioning
 
 - Where2Meet is a place where a group plans where to meet together. Write about planning together, not about finding a midpoint.
-- Say "convenient". Never say "fair", "fairly" or "fairness", and never say "meet in the middle". Tests and the publish check block these words.
+- Say "convenient". Never say "fair", "fairly" or "fairness", and never say "meet in the middle". CI blocks these words.
 - Byline: The Where2Meet team.
 
 ## What we publish
 
-- Every post covers one occasion from the panel's Parameters list. A post may also have a time, a venue type, a group size and a budget.
+- Every post covers one occasion listed in `client/src/content/taxonomy.yaml`. A post may also have a time, a venue type, a group size and a budget from the same file.
 - Most of every post is practical advice that helps a reader even if they never open Where2Meet.
 - Every post gives advice of its own. Don't reuse another post's text with the occasion or the place swapped. Near-copies look templated to Google and hurt the whole site.
 - We never guess the reader's location. A general post names its example city. A local post's URL fixes its place.
@@ -34,7 +34,7 @@ Every post:
 6. **"Common questions."** Three to five questions people search, each answered in two or three sentences. Use real questions from Search Console or the Keywords list when you have them.
 7. **"A quick checklist."** Plain bullets for general posts. No checkboxes.
 
-City and town pages:
+City and town pages are the place files `client/src/content/places/<city>.md` and `client/src/content/places/<city>/<town>.md`. Each has:
 - An intro of at least 60 words on what the area is like for meeting up and which neighborhoods people usually pick.
 - Transit notes of at least 20 words that name the lines, stations or roads that matter, and anything that changes at night or on weekends.
 - A real photo of the area.
@@ -46,8 +46,8 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 
 - **Real photos only.** Every post shows real photos of real places it names or of the area it covers. No stock photos, drawings, screenshots of maps or AI images.
 - **Google's photos stay live.** Place cards load Google's photo, rating and address live, with credits. Google's terms forbid saving them or putting them in a saved image. So Google photos never count as the post's photos and are never the cover.
-- **The post's own photos come from Wikimedia Commons.** Only CC0, public domain or CC BY qualify. Share-alike (CC BY-SA) doesn't, because the cover might then have to carry that license too. The panel's photo search filters by license and shows the author.
-- **Picking a photo approves it.** The owner picks every photo in the panel, and that pick is the approval to use it.
+- **The post's own photos come from Wikimedia Commons.** Only CC0, public domain or CC BY qualify. Share-alike (CC BY-SA) doesn't, because the cover might then have to carry that license too. Check the license and the author on each photo's Commons page.
+- **Merging approves a photo.** The writer lists each photo in the post file by its Commons link. The owner reviews the photos in the pull request, and the merge is the approval to use them.
 - **Alt text.** Describe what the photo shows and where, in plain words, as in "Bryant Park's lawn and chairs with the Empire State Building behind them". Include a keyword only when it truly describes the photo. Never stuff keywords.
 - **Caption.** Under each photo, say what it shows and credit the photographer and the license, with links. CC BY photos also say "cropped" when cropped.
 - **File names.** Use descriptive words joined by hyphens, as in `bryant-park-lawn-midtown.jpg`. Never `IMG_1234.jpg`.
@@ -94,8 +94,8 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 ## SEO
 
 Search intent and keywords:
-- **One main keyword per post.** Before writing, pick one main keyword and up to two related ones from the Keywords tab. If no listed keyword fits, ask the owner to add one first.
-- **One post per keyword.** Check the Keywords tab that no other post already targets the same main keyword. Two posts chasing one keyword compete with each other. Improve the existing post instead.
+- **One main keyword per post.** Before writing, pick one main keyword and up to two related ones from `client/src/content/keywords.yaml`, which the panel's Keywords view also shows. If no listed keyword fits, add one to that file in the same pull request and say why in its description.
+- **One post per keyword.** Check that no other post already targets the same main keyword. The Copy prompt lists the posts that do, and so does the `main_keyword` in each post file. Two posts chasing one keyword compete with each other. Improve the existing post instead.
 - **Match the intent.** "How to" searches get steps. "Where to" searches get places. "Ideas" searches get a list.
 - **Where the main keyword goes:**
   - in the title
@@ -139,17 +139,17 @@ What the site handles, so don't hand-write it:
 
 ## Publishing
 
-- **Two ways to write a post.** Both render the same way on the site.
-  - **In the panel.** The owner writes and publishes the post in the Control Panel, with no pull request.
-  - **By an agent, from an idea's Copy prompt.** The agent writes `client/src/content/posts/<slug>.md` in the monorepo, in the format in `client/docs/blog-posts-contract.md`, runs `npm test` in `client/` and opens a pull request. The agent never merges, and the owner reviews and merges. Photos are listed by their Commons link and never downloaded into the repo.
-- **The checks are the same either way.** The panel's publish checklist checks panel posts, and CI checks repo posts. Each enforces:
+- **One way to publish.** A person or an agent writes the post as `client/src/content/posts/<slug>.md` in the monorepo, in the format in `client/docs/blog-posts-contract.md`. They run `npm test` in `client/` and open a pull request. The writer never merges. The owner reviews and merges, and the merge deploys the post.
+- **Starting from an idea.** The panel's Ideas view has a Copy prompt button. It copies a prompt for an agent with the idea, its keywords, places and links, and these rules.
+- **Photos** are listed by their Commons link and never downloaded into the repo.
+- **CI checks every post.** A pull request can't merge until these pass:
   - the word counts
   - three places
   - a licensed cover and two body photos with alt text
   - the title and description limits
-  - a main keyword from the Keywords tab
+  - a main keyword listed in `keywords.yaml`
   - the required sections
   - the brand wording and the style rules a machine can check (dashes, quotes)
-- **Local posts.** A local post's city and town must already be published in the panel.
-- **The four original posts** live in the repo with their widgets. No new post gets a widget.
+- **Local posts.** A local post's city and town each need a place file, already merged or in the same pull request.
+- **The four original posts** are MDX files in `client/src/content/blog/` with their widgets. No new post gets a widget.
 - **After anything goes live,** request indexing for the new URL in Search Console.
