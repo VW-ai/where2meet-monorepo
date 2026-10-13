@@ -43,6 +43,12 @@ export function creditLine({ credit }: Photo): string {
   return `${credit.author}, ${credit.license}`;
 }
 
+/** The cover crops every photo to fill its card, so a CC BY credit there always says so. */
+export function coverCredit(photo: Photo): string {
+  const line = creditLine(photo);
+  return LICENSES[photo.credit.license].attribution ? `${line}, cropped` : line;
+}
+
 export function showsCrop({ license, cropped }: PhotoCredit): boolean {
   return cropped && LICENSES[license].attribution;
 }
