@@ -4,6 +4,8 @@ These rules apply to every post on www.where2meet.org/blog. Every post is a guid
 - A **general post** covers one occasion anywhere, at `/blog/<slug>`.
 - A **local post** covers one occasion in one place, at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`, under its city and town pages.
 
+New posts are always local posts, at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`, under a city or town that has a place file. The four existing general posts stay, and every local post links to the general post for its occasion when there is one.
+
 These rules change only when the owner asks, by pull request to this file, `client/docs/writing-rules.md` in the monorepo. Every writer, a person or an agent, reads them before drafting anything.
 
 ## Positioning
