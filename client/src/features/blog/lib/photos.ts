@@ -38,6 +38,11 @@ export interface CommonsImage extends Photo {
   sourceUrl: string;
 }
 
+/** The author and license, as printed on a cover and given as the photo's copyright notice. */
+export function creditLine({ credit }: Photo): string {
+  return `${credit.author}, ${credit.license}`;
+}
+
 export function showsCrop({ license, cropped }: PhotoCredit): boolean {
   return cropped && LICENSES[license].attribution;
 }
