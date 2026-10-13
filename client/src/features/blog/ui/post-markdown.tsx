@@ -2,9 +2,9 @@ import Markdown, { type Components } from 'react-markdown';
 import { layoutBody } from '@/features/blog/lib/body';
 import type { CuratedPlace } from '@/features/blog/lib/catalog';
 import type { CommonsImage } from '@/features/blog/lib/photos';
-import { proseComponents as prose } from '@/mdx-components';
 import { CuratedPlaces } from './curated-places';
 import { PhotoFigure } from './photo-figure';
+import { prose } from './prose';
 
 /** The contract's Markdown subset. Anything else keeps its text and loses its markup. */
 const ALLOWED_ELEMENTS = ['p', 'ul', 'ol', 'li', 'strong', 'em', 'a', 'h2', 'h3'];

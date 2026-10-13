@@ -1,7 +1,3 @@
-const createMDX = require('@next/mdx');
-
-/** @type {import('next').NextConfig} */
-
 /** Canonical production origin. Keep in sync with SITE_CONFIG.url in src/lib/seo/metadata.ts. */
 const CANONICAL_ORIGIN = 'https://www.where2meet.org';
 
@@ -39,6 +35,7 @@ const MOVED_POSTS = [
   ['how-to-plan-a-weekend-hangout-with-friends', 'upper-west-side'],
 ];
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -98,5 +95,4 @@ const nextConfig = {
   },
 };
 
-// Blog post bodies in src/content/blog are MDX, styled by src/mdx-components.tsx.
-module.exports = createMDX()(nextConfig);
+module.exports = nextConfig;

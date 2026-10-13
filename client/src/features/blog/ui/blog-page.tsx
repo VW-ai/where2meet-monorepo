@@ -22,11 +22,11 @@ import {
 } from '@/features/blog/lib/catalog';
 import { occasionIcon } from '@/features/blog/lib/occasion-icon';
 import { generateBlogPostingSchema, generateBreadcrumbSchema } from '@/lib/seo/structured-data';
-import { proseComponents as prose } from '@/mdx-components';
 import { PhotoFigure } from './photo-figure';
 import { PlanCta } from './plan-cta';
 import { Byline } from './post-card';
 import { MarkdownBody, PostMarkdown } from './post-markdown';
+import { prose } from './prose';
 
 interface LinkCard {
   href: string;
