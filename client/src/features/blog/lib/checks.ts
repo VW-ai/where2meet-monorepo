@@ -84,7 +84,7 @@ interface ContentKind<P, R extends Rule> {
 const SEO_TITLE_MAX = 60;
 const DESCRIPTION_RANGE = [120, 155] as const;
 const BODY_WORDS = { general: [700, 1000], local: [400, 800] } as const;
-const PLACES_MIN = 3;
+const PLACES_MIN = 6;
 const PLACE_NOTE_MIN_WORDS = 12;
 const IMAGES_MIN = 3;
 /** The site caches a photo only up to this many bytes. */

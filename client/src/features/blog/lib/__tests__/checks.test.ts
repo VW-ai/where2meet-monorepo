@@ -173,11 +173,11 @@ describe('checkContent on a post', () => {
   });
 
   describe('places', () => {
-    it('needs three places', () => {
+    it('needs six places', () => {
       const elZason =
         '  - place_id: ChIJX0ngNbRbwokR2sNkLsVtQMY\n    label: El Zason\n    note: Mexican food on Atlantic Avenue in Brooklyn. The Atlantic Av-Barclays Ctr station is about a 5-minute walk away, with the 2, 3, 4, 5, B, D, N, Q and R.\n';
       expect(check([edited([[elZason, '']])])).toEqual([
-        `${FILE}: places: the post has 2 places; it needs at least 3`,
+        `${FILE}: places: the post has 5 places; it needs at least 6`,
       ]);
     });
 
