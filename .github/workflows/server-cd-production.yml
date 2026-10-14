@@ -92,3 +92,26 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_PRODUCTION || secrets.railway_production }}
           RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+
+      # `railway up` also exits 0 when Railway SKIPS the build because nothing
+      # under the service's watch paths (/server/**) differs from its latest
+      # deployment, even if that deployment failed. Only pass when the newest
+      # deployment that actually ran is healthy.
+      - name: Verify the deployment is running
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN || secrets.RAILWAY_PRODUCTION || secrets.railway_production }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          deployments=$(railway deployment list --service "$RAILWAY_SERVICE_NAME" --environment production --limit 20 --json)
+          newest=$(jq -r '.[0].status' <<<"$deployments")
+          active=$(jq -r '[.[] | select(.status != "SKIPPED")][0].status // "NONE"' <<<"$deployments")
+          if [[ "$newest" == "SKIPPED" ]]; then
+            echo "::notice::Railway skipped the build: server/ is unchanged since the latest deployment."
+          fi
+          if [[ "$active" != "SUCCESS" ]]; then
+            echo "::error::The latest production deployment is $active, so the server is not running this code. Fix the cause (see the Railway deploy logs), then run: railway redeploy --service $RAILWAY_SERVICE_NAME --environment production --yes"
+            exit 1
+          fi
+          echo "Latest production deployment is healthy (SUCCESS)."
