@@ -17,7 +17,7 @@ places:
     note: A cocktail bar on West 47th Street, about a 2-minute walk from the 49 St station on the N, R and W. Google lists it as moderately priced and not taking reservations, so you can walk in. It's open until 1 a.m., or 2 a.m. on Fridays and Saturdays.
   - place_id: ChIJT_kaUvpYwokRvHWcgFVsKZk
     label: King Cole Bar
-    note: A bar in the St. Regis hotel on East 55th Street, about a 3-minute walk from the 5 Av/53 St station on the E and F. It's open from 4 to 11 p.m. every day, which suits a first drink before dinner.
+    note: A bar in the St. Regis hotel on East 55th Street, about a 3-minute walk from the 5 Av/53 St station on the E, and the F on weekdays before 9 p.m. It's open from 4 to 11 p.m. every day, which suits a first drink before dinner.
   - place_id: ChIJ_8dmJ0lbwokRIJHQFfXiMNo
     label: Overstory
     note: A cocktail bar on the 64th floor of 70 Pine Street, about a 3-minute walk from the Wall St station on the 2 and 3. Google lists it as taking reservations, so you can book ahead. It's open until midnight, or 11 p.m. on Sundays.
@@ -29,7 +29,7 @@ places:
     note: A bar on Hudson Street in the West Village, about a 5-minute walk from the Christopher St-Stonewall station on the 1. It's open from 6 p.m. to 4 a.m. every night, so it works as a late second stop. Google lists it as taking reservations.
   - place_id: ChIJp3PsL_ZYwokRUH1k95teGuM
     label: Dizzy's Club
-    note: Jazz at Lincoln Center's jazz club at Columbus Circle, about a 1-minute walk from the 59 St-Columbus Circle station on the 1, A, B, C and D. Google lists it as moderately priced, taking reservations and open from 6 to 11 p.m., so plan the evening around a set.
+    note: Jazz at Lincoln Center's jazz club at Columbus Circle, about a 1-minute walk from the 59 St-Columbus Circle station on the 1, A, B, C and D. Google lists it as moderately priced and taking reservations, so plan the evening around a set.
   - place_id: ChIJX_oqBotYwokRFtZXHIdv5Ek
     label: Bin 71
     note: A bar on Columbus Avenue, about a 6-minute walk from the 72 St station on the 1, 2 and 3. Google lists it as moderately priced and taking reservations. It closes at 10 p.m. Monday to Thursday, so it suits an early date.
@@ -64,7 +64,7 @@ images:
     height: 1707
     alt: The lit crown and spire of 70 Pine Street against a dusk sky in the Financial District
     caption: The top of 70 Pine Street at dusk. Overstory is on its 64th floor
-    author: epicharmus
+    author: Michael Daddino
     license: CC BY 2.0
     cropped: false
 ---
@@ -87,9 +87,9 @@ For cafes and dinner as well as bars near [Union Square](/blog/new-york/union-sq
 
 Book the bar you're crossing town for, and walk in where a short wait won't spoil the plan.
 
-Google lists every bar here except the Rum House as taking reservations. A listing can lag behind a bar's own rules, so book on its site or by phone.
+Google lists every bar here except the Rum House as taking reservations, but the St. Regis dining page offers no booking for the King Cole Bar. Book the others on their sites or by phone.
 
-Dizzy's Club needs a ticket and lists its [set times on its own page](https://jazz.org/dizzys-club/). Arrive before the set starts. A set also gives a first date a fixed length. When it ends, either of you can call it a night or suggest a second stop.
+Dizzy's Club needs a ticket and lists its [set times on its own page](https://jazz.org/dizzys/). Arrive before the set starts. A set also gives a first date a fixed length. When it ends, either of you can call it a night or suggest a second stop.
 
 ![](jazz-at-lincoln-center-entrance-west-60th-street.jpg)
 
