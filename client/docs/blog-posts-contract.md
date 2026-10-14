@@ -7,8 +7,8 @@ Owner decisions:
 - 2026-10-08. Local guides and blog posts are one thing, "posts", in one section at `/blog`. Posts show real, licensed Wikimedia Commons photos, served from this site so search engines index them. The byline on every post is "The Where2Meet team". The site never detects a reader's location, so a page's place comes from its URL.
 - 2026-10-10. Agents write content as files and open a pull request. The owner reviews and merges.
 - 2026-10-10. Every piece of blog content and SEO configuration lives in the repo: posts, places, parameters, keywords and the writing rules. The panel only views them.
-- 2026-10-13. The 4 original posts are Markdown local posts under New York towns, without their widgets. Each kept its slug and moved to `/blog/new-york/<town>/<slug>`, and its old URL redirects there permanently so search engines keep its ranking. The same day the owner asked that every local post suggest 6 to 8 real places.
-- 2026-10-14. A local post's place cards are its list of picks, and the body doesn't repeat them. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks.
+- 2026-10-13. The 4 original posts are Markdown local posts under New York towns, without their widgets. Each kept its slug and moved to `/blog/new-york/<town>/<slug>`, and its old URL redirects there permanently so search engines keep its ranking. The same day the owner asked that every local post suggest 6 to 8 real places, mostly restaurants, cafes and bars that fit the occasion.
+- 2026-10-14. This replaces the 2026-10-13 rule of mostly restaurants, cafes and bars. A local post's place cards are its list of picks, and the body doesn't repeat them. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks.
 
 ## Make a change
 

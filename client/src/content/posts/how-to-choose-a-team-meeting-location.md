@@ -17,7 +17,7 @@ places:
     note: An event venue on West 46th Street for a meeting that needs its own space, open 7 a.m. to 7 p.m. on weekdays only. About a 2-minute walk from the 47-50 Sts-Rockefeller Ctr station.
   - place_id: ChIJdco4TKpZwokRdtg39W89yog
     label: Culture Espresso
-    note: A coffee shop on West 38th Street for a quick check-in of two or three, since Google lists it as inexpensive and not good for groups. About a 5-minute walk from the 42 St-Bryant Pk station.
+    note: A coffee shop on West 38th Street for a quick check-in of two or three, since Google lists it as not good for groups. Google also lists it as inexpensive. About a 5-minute walk from the 42 St-Bryant Pk station.
   - place_id: ChIJqTF1eABZwokR3ZMQ2obIW4w
     label: Bryant Park Grill
     note: A restaurant on West 40th Street for a booked team lunch, taking reservations and good for groups per Google. About a 3-minute walk from the 42 St-Bryant Pk station.

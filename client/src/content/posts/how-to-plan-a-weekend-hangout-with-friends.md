@@ -109,7 +109,7 @@ No. The B runs on weekdays only, so on weekend days only the C stops on Central 
 
 ### What can a group do on the Upper West Side when it rains?
 
-Go to the American Museum of Natural History, near the 81 St station on Central Park West. It closes at 5:30 p.m., so start there early.
+Go to the American Museum of Natural History. It closes at 5:30 p.m., so start there early.
 
 ### How do friends from the Upper East Side get across?
 
