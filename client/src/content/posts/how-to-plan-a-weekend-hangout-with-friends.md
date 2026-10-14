@@ -10,32 +10,32 @@ budget: null
 city: new-york
 town: upper-west-side
 published_at: 2026-10-05
-updated_at: 2026-10-13
+updated_at: 2026-10-14
 places:
   - place_id: ChIJ6SmehIlYwokRaO14xlmbWZU
     label: Levain Bakery
-    note: A bakery on West 74th Street, about a 3-minute walk from the 72 St station on the 1, 2 and 3. Google lists it as inexpensive.
+    note: A bakery on West 74th Street for a quick first stop, inexpensive per Google and open from 7 a.m. About a 3-minute walk from the 72 St station on the 1, 2 and 3.
   - place_id: ChIJJWjnqYhYwokRXKDyQj71TzA
     label: Sarabeth's Upper West Side
-    note: A restaurant on Amsterdam Avenue, about a 4-minute walk from the 79 St station on the 1. Google lists it as taking reservations and good for groups.
+    note: A restaurant on Amsterdam Avenue for an early breakfast, open from 8 a.m., taking reservations, good for groups and moderately priced per Google. About a 4-minute walk from the 79 St station on the 1.
   - place_id: ChIJr6LJHIlYwokR1nUYpYgH7Uc
     label: TESSA
-    note: A restaurant on Amsterdam Avenue, about a 5-minute walk from the 79 St station on the 1. Google lists it as taking reservations and good for groups.
+    note: A restaurant on Amsterdam Avenue for a booked lunch, open from 11 a.m., taking reservations, good for groups and moderately priced per Google. About a 5-minute walk from the 79 St station on the 1.
   - place_id: ChIJZ996e4RYwokR2kEubU7CVhA
     label: Barney Greengrass
-    note: A breakfast restaurant on Amsterdam Avenue, about a 3-minute walk from the 86 St station on the 1. Google lists it as not taking reservations.
+    note: A breakfast restaurant on Amsterdam Avenue for a weekend breakfast, open 8:30 a.m. to 5 p.m., expensive and not taking reservations per Google. About a 3-minute walk from the 86 St station on the 1.
   - place_id: ChIJCehOSIRYwokRs4ijKsy1oiI
     label: Jacob's Pickles
-    note: A restaurant on Columbus Avenue, about a 7-minute walk from the 96 St station on the C. Google lists it as taking reservations and good for groups.
+    note: A restaurant on Columbus Avenue for a big table, open from 9 a.m., taking reservations and good for groups per Google. About a 7-minute walk from the 96 St station on the C.
   - place_id: ChIJCXoPsPRYwokRsV1MYnKBfaI
     label: American Museum of Natural History
-    note: A museum on Central Park West, about a 6-minute walk from the 81 St station on the C. Google lists it as open 10 a.m. to 5:30 p.m. every day.
+    note: A museum on Central Park West for a rainy afternoon, open 10 a.m. to 5:30 p.m. per Google. About a 6-minute walk from the 81 St station on the C.
   - place_id: ChIJ02dcCoZYwokReJRvMFYrq-8
     label: The Dead Poet
-    note: An Irish pub on Amsterdam Avenue, about a 5-minute walk from the 79 St station on the 1. Google lists it as good for groups.
+    note: An Irish pub on Amsterdam Avenue for an afternoon pint, open from noon, good for groups and not taking reservations per Google. About a 5-minute walk from the 79 St station on the 1.
   - place_id: ChIJKcIAUYlYwokR_ur7CccUjXk
     label: Dive 75
-    note: A bar on West 75th Street, about a 7-minute walk from the 72 St station on the 1, 2 and 3. Google lists it as good for groups.
+    note: A bar on West 75th Street for a group with no booking, open from 2 p.m., good for groups and not taking reservations per Google. About a 7-minute walk from the 72 St station on the 1, 2 and 3.
 images:
   - file_name: american-museum-of-natural-history-77th-street.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/AMNH_S_side_jeh.jpg/1280px-AMNH_S_side_jeh.jpg
@@ -75,20 +75,11 @@ This post lists eight places for a Saturday or Sunday, then covers which trains 
 
 ## Where can friends spend a weekend hangout on the Upper West Side?
 
-Start with food, add the museum if it rains, and end at a bar. Each walk is from the station named, and the hours are Google's weekend hours.
-
-- **Levain Bakery, for a quick first stop.** A bakery on West 74th Street, about a 3-minute walk from the 72 St station on the 1, 2 and 3. Google lists it as inexpensive and open from 7 a.m.
-- **Sarabeth's, for an early breakfast.** A restaurant on Amsterdam Avenue, about a 4-minute walk from the 79 St station on the 1, open from 8 a.m. Google lists it as taking reservations, good for groups and moderately priced.
-- **TESSA, for a booked lunch.** A restaurant on Amsterdam Avenue, about a 5-minute walk from the 79 St station, open from 11 a.m. Google lists it as taking reservations, good for groups and moderately priced.
-- **Barney Greengrass, for a weekend breakfast.** A breakfast restaurant on Amsterdam Avenue, about a 3-minute walk from the 86 St station on the 1, open 8:30 a.m. to 5 p.m. Google lists it as not taking reservations and expensive.
-- **Jacob's Pickles, for a big table.** A restaurant on Columbus Avenue, about a 7-minute walk from the 96 St station on the C. It opens at 9 a.m., and Google lists it as taking reservations and good for groups.
-- **The American Museum of Natural History, for a rainy afternoon.** A museum on Central Park West, about a 6-minute walk from the 81 St station on the C. Google lists it as open 10 a.m. to 5:30 p.m.
-- **The Dead Poet, for an afternoon pint.** An Irish pub on Amsterdam Avenue, about a 5-minute walk from the 79 St station, open from noon. Google lists it as good for groups and not taking reservations.
-- **Dive 75, for a bar with no booking.** A bar on West 75th Street, about a 7-minute walk from the 72 St station, open from 2 p.m. Google lists it as good for groups and not taking reservations.
-
-![](barney-greengrass-deli-counter.jpg)
+Start with food, add the museum if it rains, and end at a bar. Each card gives Google's weekend hours and the walk from the station it names.
 
 :::places
+
+![](barney-greengrass-deli-counter.jpg)
 
 ## Which trains run on the Upper West Side on weekends?
 

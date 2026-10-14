@@ -10,32 +10,32 @@ budget: null
 city: new-york
 town: union-square
 published_at: 2026-10-08
-updated_at: 2026-10-13
+updated_at: 2026-10-14
 places:
   - place_id: ChIJ3wsoxKFZwokRRg8OvEjE0bc
     label: Irving Farm Coffee
-    note: A coffee shop on Irving Place, about an 8-minute walk from the Union Square station. Google lists it as inexpensive and open until 5 p.m.
+    note: A coffee shop on Irving Place for a first coffee, inexpensive per Google and open until 5 p.m. About an 8-minute walk from the Union Square station.
   - place_id: ChIJM77SlaFZwokRUdDxtDv9560
     label: Daily Provisions - Union Square
-    note: A restaurant on East 19th Street, about a 7-minute walk from the Union Square station, open 7 a.m. to 9 p.m. every day.
+    note: A restaurant on East 19th Street for an easy daytime bite, inexpensive and not taking reservations per Google, open 7 a.m. to 9 p.m. About a 7-minute walk from the Union Square station.
   - place_id: ChIJw-9BIqJZwokRJHawGH7Y_kc
     label: Old Town Bar
-    note: A bar on East 18th Street, about a 6-minute walk from the Union Square station. Google lists it as not taking reservations, so walk in.
+    note: A bar on East 18th Street for a drink with no booking, since Google lists it as not taking reservations. About a 6-minute walk from the Union Square station.
   - place_id: ChIJN40c3qFZwokRXMy2Eb1vKj8
     label: Dear Irving Gramercy
-    note: A cocktail bar on Irving Place, about a 7-minute walk from the Union Square station. Google lists it as taking reservations and moderately priced.
+    note: A cocktail bar on Irving Place for an evening date, taking reservations and moderately priced per Google. About a 7-minute walk from the Union Square station.
   - place_id: ChIJp-sFzaJZwokRdyaZMsu_DkU
     label: Raines Law Room Chelsea
-    note: A cocktail bar on West 17th Street, about a 5-minute walk from the 14 St station on the F and M. Google lists it as taking reservations.
+    note: A cocktail bar on West 17th Street for a booked bar table, taking reservations and moderately priced per Google. About a 5-minute walk from the 14 St station on the F and M.
   - place_id: ChIJIQntspT8ZUARP3MLeK4a1vA
     label: Pete's Tavern
-    note: A restaurant at Irving Place and East 18th Street, about an 8-minute walk from the Union Square station and open until 2 a.m.
+    note: A restaurant at Irving Place and East 18th Street for a late table, open until 2 a.m. every night and taking reservations per Google. About an 8-minute walk from the Union Square station.
   - place_id: ChIJxTHke6JZwokRCLWVd99eDBw
     label: Union Square Cafe
-    note: A restaurant on East 19th Street, about a 7-minute walk from the Union Square station. Google lists it as taking reservations and expensive.
+    note: A restaurant on East 19th Street for a planned dinner, taking reservations and expensive per Google. About a 7-minute walk from the Union Square station.
   - place_id: ChIJvSQIgqFZwokRFYQbJdzceSs
     label: Gramercy Tavern
-    note: A restaurant on East 20th Street, about an 8-minute walk from the Union Square station. Google lists it as taking reservations and very expensive.
+    note: A restaurant on East 20th Street for an anniversary, taking reservations and very expensive per Google. About an 8-minute walk from the Union Square station.
 images:
   - file_name: petes-tavern-irving-place-union-square.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Pete%27s_Tavern_%2851708610272%29.jpg/1280px-Pete%27s_Tavern_%2851708610272%29.jpg
@@ -75,20 +75,11 @@ This post lists eight places, then covers the trip home and a backup plan. It is
 
 ## Where to go on a date near Union Square?
 
-Choose by the kind of date, from a first coffee to a booked dinner. Walks are from the station at 14th Street and Broadway unless a pick names another.
-
-- **Irving Farm Coffee, for a first coffee.** A coffee shop on Irving Place, about an 8-minute walk. Google lists it as inexpensive and open until 5 p.m.
-- **Daily Provisions, for an easy daytime bite.** A restaurant on East 19th Street, about a 7-minute walk, open 7 a.m. to 9 p.m. every day. Google lists it as inexpensive and not taking reservations.
-- **Old Town Bar, for a drink with no booking.** A bar on East 18th Street, about a 6-minute walk. Google lists it as not taking reservations, so you can walk in.
-- **Dear Irving, for cocktails.** A cocktail bar on Irving Place, about a 7-minute walk. Google lists it as taking reservations and moderately priced.
-- **Raines Law Room, for a booked bar table.** A cocktail bar on West 17th Street, about a 5-minute walk from the 14 St station on the F and M. Google lists it as taking reservations and moderately priced.
-- **Pete's Tavern, for a late table.** A restaurant at Irving Place and East 18th Street, about an 8-minute walk. Google lists it as open until 2 a.m. every night and taking reservations.
-- **Union Square Cafe, for a planned dinner.** A restaurant on East 19th Street, about a 7-minute walk. Google lists it as taking reservations and expensive.
-- **Gramercy Tavern, for an anniversary.** A restaurant on East 20th Street, about an 8-minute walk. Google lists it as taking reservations and very expensive.
-
-![](union-square-cafe-neon-sign.jpg)
+Choose by the kind of date, from a first coffee to a booked dinner. Walks are from the Union Square station, at 14th Street and Broadway, unless a card names another.
 
 :::places
+
+![](union-square-cafe-neon-sign.jpg)
 
 ## How do you get home after a late date?
 

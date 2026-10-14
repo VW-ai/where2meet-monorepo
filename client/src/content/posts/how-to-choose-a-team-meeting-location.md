@@ -10,32 +10,32 @@ budget: null
 city: new-york
 town: midtown
 published_at: 2026-10-04
-updated_at: 2026-10-13
+updated_at: 2026-10-14
 places:
   - place_id: ChIJC4bmgFVYwokRu5RK8aA7ikY
     label: Convene 117 West 46th Street
-    note: An event venue on West 46th Street, about a 2-minute walk from the 47-50 Sts-Rockefeller Ctr station. Open on weekdays only.
+    note: An event venue on West 46th Street for a meeting that needs its own space, open 7 a.m. to 7 p.m. on weekdays only. About a 2-minute walk from the 47-50 Sts-Rockefeller Ctr station.
   - place_id: ChIJdco4TKpZwokRdtg39W89yog
     label: Culture Espresso
-    note: A coffee shop on West 38th Street, about a 5-minute walk from the 42 St-Bryant Pk station. Google lists it as inexpensive.
+    note: A coffee shop on West 38th Street for a quick check-in of two or three, since Google lists it as inexpensive and not good for groups. About a 5-minute walk from the 42 St-Bryant Pk station.
   - place_id: ChIJqTF1eABZwokR3ZMQ2obIW4w
     label: Bryant Park Grill
-    note: A restaurant on West 40th Street, about a 3-minute walk from the 42 St-Bryant Pk station. Google lists it as taking reservations and good for groups.
+    note: A restaurant on West 40th Street for a booked team lunch, taking reservations and good for groups per Google. About a 3-minute walk from the 42 St-Bryant Pk station.
   - place_id: ChIJXSh7-f1YwokR5MTjegK5cGQ
     label: Vanderbilt Market - Bars & Eateries
-    note: A food hall at 230 Park Avenue, about a 4-minute walk from Grand Central. Google lists it as good for groups and closed on weekends.
+    note: A food hall at 230 Park Avenue for a lunch where everyone picks, good for groups and moderately priced per Google, and closed on weekends. About a 4-minute walk from Grand Central.
   - place_id: ChIJR9legAFZwokRa1s5gcFXPZw
     label: Grand Central Oyster Bar
-    note: An oyster bar and restaurant on East 42nd Street, about a 2-minute walk from Grand Central. Google lists it as taking reservations and expensive.
+    note: An oyster bar and restaurant on East 42nd Street for a client lunch, taking reservations and expensive per Google, and closed on weekends. About a 2-minute walk from Grand Central.
   - place_id: ChIJvQwwiQFZwokRQDZSQpZrTrk
     label: The Campbell
-    note: A bar about a 1-minute walk from Grand Central, open from noon to 2 a.m. every day. Google lists it as taking reservations.
+    note: A bar for drinks after work, open from noon to 2 a.m. every day and taking reservations per Google. About a 1-minute walk from Grand Central.
   - place_id: ChIJ99_m8KhZwokRz33z_j0NaQ8
     label: miss KOREA BBQ
-    note: Korean barbecue on West 32nd Street, about a 5-minute walk from the Herald Square station. Google lists it as open 24 hours and good for groups.
+    note: Korean barbecue on West 32nd Street for a lunch the team shares, open 24 hours and good for groups per Google. About a 5-minute walk from the Herald Square station.
   - place_id: ChIJv8YTWFRYwokRkTUSNDg04Y4
     label: Junior's Restaurant & Bakery
-    note: A restaurant on Broadway at West 45th Street, about a 5-minute walk from the Times Sq-42 St station. Google lists it as taking reservations and good for groups.
+    note: A restaurant on Broadway at West 45th Street for a big table near Times Square, taking reservations and good for groups per Google. About a 5-minute walk from the Times Sq-42 St station.
 images:
   - file_name: herald-square-plaza-clock-midtown.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Herald_Square_wts.jpg/1280px-Herald_Square_wts.jpg
@@ -77,18 +77,9 @@ This post lists eight places to meet and what changes after work. It is part of 
 
 Pick by what the meeting needs, from a room with a door to a lunch the whole team can share. Each walk is from the station named.
 
-- **Convene, for a booked venue.** Google lists it as an event venue on West 46th Street, about a 2-minute walk from the 47-50 Sts-Rockefeller Ctr station. Google lists it as open 7 a.m. to 7 p.m. on weekdays only.
-- **Culture Espresso, for a quick check-in.** A coffee shop on West 38th Street, about a 5-minute walk from the 42 St-Bryant Pk station. Google lists it as inexpensive and not good for groups, so keep it to two or three people.
-- **Bryant Park Grill, for a booked lunch.** A restaurant on West 40th Street, about a 3-minute walk from the 42 St-Bryant Pk station. Google lists it as taking reservations and good for groups.
-- **Vanderbilt Market, for a lunch where everyone picks.** A food hall at 230 Park Avenue, about a 4-minute walk from Grand Central. Google lists it as good for groups and moderately priced.
-- **Grand Central Oyster Bar, for a client lunch.** An oyster bar and restaurant on East 42nd Street, about a 2-minute walk from Grand Central. Google lists it as taking reservations and expensive.
-- **The Campbell, for drinks after work.** A bar about a 1-minute walk from Grand Central, open from noon to 2 a.m. every day. Google lists it as taking reservations.
-- **miss KOREA BBQ, for a lunch to share.** Korean barbecue on West 32nd Street, about a 5-minute walk from the Herald Square station. Google lists it as open 24 hours and good for groups.
-- **Junior's, for a big table near Times Square.** A restaurant on Broadway at West 45th Street, about a 5-minute walk from the Times Sq-42 St station. Google lists it as taking reservations and good for groups.
+:::places
 
 ![](koreatown-west-32nd-street-midtown.jpg)
-
-:::places
 
 ## What changes after work and on weekends?
 

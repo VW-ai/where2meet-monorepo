@@ -10,32 +10,32 @@ budget: null
 city: new-york
 town: lower-manhattan
 published_at: 2026-10-08
-updated_at: 2026-10-13
+updated_at: 2026-10-14
 places:
   - place_id: ChIJT4JpKxhawokRJsGwYfLpp60
     label: The Malt House
-    note: A restaurant on Maiden Lane, about a 3-minute walk from the Fulton St station and open until 2 a.m. Google lists it as taking reservations and good for groups.
+    note: A restaurant on Maiden Lane for a late table, open until 2 a.m., moderately priced and taking reservations per Google. About a 3-minute walk from the Fulton St station.
   - place_id: ChIJn-PPbBRawokR3o5lQeBaB_w
     label: Fraunces Tavern
-    note: A restaurant on Pearl Street, about a 3-minute walk from the Whitehall St station. Google lists it as taking reservations and good for groups.
+    note: A restaurant on Pearl Street for friends on the ferry, taking reservations and good for groups per Google. About a 3-minute walk from the Whitehall St station, next to the ferry terminal.
   - place_id: ChIJYaLtJRRawokRjw4GeC7pTdk
     label: Adrienne's Pizzabar
-    note: A pizza restaurant on Stone Street, about a 4-minute walk from the Wall St station on the 2 and 3. Google lists it as taking reservations.
+    note: A pizza restaurant on Stone Street, taking reservations, good for groups and moderately priced per Google. About a 4-minute walk from the Wall St station on the 2 and 3.
   - place_id: ChIJwy8lmxZawokRtWUTg5wuv6I
     label: Delmonico's
-    note: A steak house on Beaver Street, about a 3-minute walk from the Wall St station on the 2 and 3. Google lists it as very expensive.
+    note: A steak house on Beaver Street for a special night, taking reservations, good for groups and very expensive per Google. About a 3-minute walk from the Wall St station on the 2 and 3.
   - place_id: ChIJ__9LNBZawokREnkOiVx7ydc
     label: Crown Shy
-    note: A restaurant on Pine Street, about a 3-minute walk from the Wall St station on the 2 and 3. Google lists it as taking reservations and very expensive.
+    note: A restaurant on Pine Street for a splurge, open for dinner every day, taking reservations and very expensive per Google. About a 3-minute walk from the Wall St station on the 2 and 3.
   - place_id: ChIJIRiJaRRawokR2KyQ984qa-o
     label: The Dead Rabbit
-    note: A bar on Water Street, about a 4-minute walk from the Whitehall St station and open until 2 a.m. or later.
+    note: A bar on Water Street for drinks after dinner, open until 2 a.m. or later and good for groups per Google. About a 4-minute walk from the Whitehall St station.
   - place_id: ChIJvx7i_BlawokRidb5WfdvqRM
     label: Eataly
-    note: A restaurant on Liberty Street, about a 2-minute walk from the Cortlandt St station, open 7 a.m. to 11 p.m. every day.
+    note: A restaurant on Liberty Street for a table by the World Trade Center, open 7 a.m. to 11 p.m. every day. About a 2-minute walk from the Cortlandt St station on the R and W.
   - place_id: ChIJGQE3qBtawokRLgG1iiMYNso
     label: Hudson Eats
-    note: A food court on Vesey Street, about a 9-minute walk from the World Trade Center station. Google lists it as inexpensive and good for groups.
+    note: A food court on Vesey Street for a group on a budget, inexpensive per Google and open until 9 p.m., or 7 p.m. on Sundays. About a 9-minute walk from the World Trade Center station on the E.
 images:
   - file_name: stone-street-outdoor-tables-financial-district.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Stone_Street_table_settings_jeh.jpg/1280px-Stone_Street_table_settings_jeh.jpg
@@ -77,18 +77,9 @@ This post lists eight places, then covers booking and the ride home. It is part 
 
 Seven of the eight take reservations, per Google, and the eight span three price levels. Each walk is from the station named.
 
-- **The Malt House, for a late table.** A restaurant on Maiden Lane, about a 3-minute walk from the Fulton St station. Google lists it as open until 2 a.m. and moderately priced.
-- **Fraunces Tavern, for friends on the ferry.** A restaurant on Pearl Street, about a 3-minute walk from the Whitehall St station, next to the ferry terminal. Google lists it as good for groups.
-- **Adrienne's Pizzabar, for pizza on Stone Street.** A pizza restaurant about a 4-minute walk from the Wall St station on the 2 and 3. Google lists it as good for groups and moderately priced.
-- **Delmonico's, for a special night.** A steak house on Beaver Street, about a 3-minute walk from the Wall St station. Google lists it as good for groups and very expensive.
-- **Crown Shy, for a splurge.** A restaurant on Pine Street, about a 3-minute walk from the Wall St station, open for dinner every day. Google lists it as very expensive.
-- **The Dead Rabbit, for drinks after dinner.** A bar on Water Street, about a 4-minute walk from the Whitehall St station, open until 2 a.m. or later. Google lists it as good for groups.
-- **Eataly, for a table by the World Trade Center.** A restaurant on Liberty Street, about a 2-minute walk from the Cortlandt St station on the R and W. Google lists it as open until 11 p.m.
-- **Hudson Eats, for an easy budget.** A food court on Vesey Street, about a 9-minute walk from the World Trade Center station on the E. Google lists it as inexpensive, and it closes at 9 p.m., or 7 p.m. on Sundays.
+:::places
 
 ![](fulton-center-station-building-broadway.jpg)
-
-:::places
 
 ## How do you book a table for a big group?
 
