@@ -60,20 +60,34 @@ export async function segmentsAtDepth(depth: 1 | 2 | 3): Promise<string[][]> {
     .filter((segments) => segments.length === depth);
 }
 
-/** Next's data cache keeps each successful answer, so every photo is fetched once. */
+/**
+ * Next's data cache keeps each successful answer, so every photo is fetched once. A build
+ * fetches them all, so a timeout, a dropped connection, a 429 or a 5xx is retried before it
+ * fails the build. Any other answer fails at once.
+ */
 export async function fetchPhoto(image: CommonsImage): Promise<Response> {
   for (let attempt = 1; ; attempt++) {
-    const response = await fetch(image.sourceUrl, {
+    const answer = await fetch(image.sourceUrl, {
       headers: { 'User-Agent': USER_AGENT },
       next: { revalidate: false },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
-    if (response.ok) return response;
-    if (response.status !== 429 || attempt === PHOTO_ATTEMPTS) {
-      throw new Error(`Wikimedia answered ${response.status} for ${image.fileName}`);
+    }).catch((error: unknown) => networkFailure(error));
+    if (answer instanceof Response && answer.ok) return answer;
+    const failure =
+      answer instanceof Response ? `answered ${answer.status}` : `could not be reached (${answer})`;
+    const transient =
+      !(answer instanceof Response) || answer.status === 429 || answer.status >= 500;
+    if (!transient || attempt === PHOTO_ATTEMPTS) {
+      throw new Error(`Wikimedia ${failure} for ${image.fileName}`);
     }
     await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
   }
+}
+
+function networkFailure(error: unknown): string {
+  const cause = error instanceof Error ? error.cause : undefined;
+  if (cause && typeof cause === 'object' && 'code' in cause) return String(cause.code);
+  return error instanceof Error ? error.name : String(error);
 }
 
 const warned = new Set<string>();
