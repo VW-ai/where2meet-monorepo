@@ -7,7 +7,8 @@ Owner decisions:
 - 2026-10-08. Local guides and blog posts are one thing, "posts", in one section at `/blog`. Posts show real, licensed Wikimedia Commons photos, served from this site so search engines index them. The byline on every post is "The Where2Meet team". The site never detects a reader's location, so a page's place comes from its URL.
 - 2026-10-10. Agents write content as files and open a pull request. The owner reviews and merges.
 - 2026-10-10. Every piece of blog content and SEO configuration lives in the repo: posts, places, parameters, keywords and the writing rules. The panel only views them.
-- 2026-10-13. The 4 original posts are Markdown local posts under New York towns, without their widgets. Each kept its slug and moved to `/blog/new-york/<town>/<slug>`, and its old URL redirects there permanently so search engines keep its ranking. The same day the owner asked that every local post suggest 6 to 8 real places, mostly restaurants, cafes and bars that fit the occasion.
+- 2026-10-13. The 4 original posts are Markdown local posts under New York towns, without their widgets. Each kept its slug and moved to `/blog/new-york/<town>/<slug>`, and its old URL redirects there permanently so search engines keep its ranking. The same day the owner asked that every local post suggest 6 to 8 real places.
+- 2026-10-14. A local post's place cards are its list of picks, and the body doesn't repeat them. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks.
 
 ## Make a change
 
@@ -116,7 +117,7 @@ A coffee meeting spot works when both of you can reach it in about the same time
 | `time`, `venue_type`, `group_size`, `budget` | A key from that file's `times`, `venue_types`, `group_sizes` or `budgets`, or `null`.                                                                                                                                 |
 | `city`, `town`                               | Both `null` for a general post at `/blog/<slug>`. For a local post, the slug of a city with a place file, and optionally one of its towns. The post is then at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`. |
 | `published_at`, `updated_at`                 | `YYYY-MM-DD`. `updated_at` is on or after `published_at`.                                                                                                                                                             |
-| `places`                                     | At least 6, and 6 to 8 for a local post, mostly restaurants, cafes and bars. Each has a `place_id`, the Google `label`, and a `note` of at least 12 words in your own words.                                          |
+| `places`                                     | At least 6, and 6 to 8 for a local post, that fit the title and the `venue_type` if set. Each has a `place_id`, the Google `label`, and a `note` of at least 12 words in your own words.                              |
 | `images`                                     | At least 3 Wikimedia Commons photos, as in [Photos](#photos). `images[0]` is the cover.                                                                                                                               |
 
 Quote a YAML value that contains `: ` or starts with a character YAML treats specially, such as `"Lunch: the plan"`. Dates stay strings.
@@ -126,7 +127,7 @@ Quote a YAML value that contains `: ` or starts with a character YAML treats spe
 The body is Markdown in the site's subset: paragraphs, `-` and `1.` lists, `**bold**`, `*italic*`, `[text](https://…)` links, and `##` or `###` headings. The site drops raw HTML and shows a link that is not `https://` or a site path as plain text. Two whole lines add more:
 
 - `![](<file_name>)` places that image, with its alt text, caption and credit.
-- `:::places` places the place cards.
+- `:::places` places the place cards. The cards are the list of picks, so a local post puts this line right after the first section's answer. Each note says what the place is, why it fits and its walk from the nearest station, and the body doesn't repeat a card.
 
 Photos the body doesn't place, other than the cover, and the place cards without a `:::places` line, render after the second `##` section. A local post shows its occasion and each parameter it sets as chips under the title, in the order occasion, time, venue type, group size, budget. A general post shows no chips.
 
