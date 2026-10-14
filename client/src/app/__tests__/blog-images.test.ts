@@ -137,6 +137,21 @@ describe('GET /blog/images/[file]', () => {
     expect([response.status, fetchMock.mock.calls.length]).toEqual([200, 2]);
   });
 
+  it('serves the photo after Wikimedia answers 503 and then 500', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    fetchMock
+      .mockResolvedValueOnce(new Response('busy', { status: 503 }))
+      .mockResolvedValueOnce(new Response('broken', { status: 500 }))
+      .mockResolvedValueOnce(jpegResponse());
+    const served = getImage('bryant-park-lawn-midtown.jpg');
+    for (const waited of [1, 2]) {
+      await vi.waitFor(() => expect(fetchMock.mock.calls).toHaveLength(waited));
+      await vi.advanceTimersByTimeAsync(waited * 2000);
+    }
+    const response = await served;
+    expect([response.status, fetchMock.mock.calls.length]).toEqual([200, 3]);
+  });
+
   it('says why Wikimedia could not be reached after the last try', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout'] });
     fetchMock.mockRejectedValue(
