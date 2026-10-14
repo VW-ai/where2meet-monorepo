@@ -110,6 +110,59 @@ describe('GET /blog/images/[file]', () => {
     expect([response.status, await response.text()]).toEqual([502, 'Bad gateway']);
   });
 
+  it('retries a fetch that times out, drops its connection or gets a 503, then serves the photo', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    const timedOut = new TypeError('fetch failed', {
+      cause: Object.assign(new Error('connect ETIMEDOUT'), { code: 'ETIMEDOUT' }),
+    });
+    fetchMock
+      .mockRejectedValueOnce(timedOut)
+      .mockRejectedValueOnce(new DOMException('The operation timed out.', 'TimeoutError'))
+      .mockResolvedValueOnce(new Response('busy', { status: 503 }));
+    const failure = expect(getImage('bryant-park-lawn-midtown.jpg')).rejects.toThrow(
+      'Wikimedia answered 503 for bryant-park-lawn-midtown.jpg'
+    );
+    for (const waited of [1, 2]) {
+      await vi.waitFor(() => expect(fetchMock.mock.calls).toHaveLength(waited));
+      await vi.advanceTimersByTimeAsync(waited * 2000);
+    }
+    await failure;
+
+    fetchMock.mockReset();
+    fetchMock.mockRejectedValueOnce(timedOut).mockResolvedValueOnce(jpegResponse());
+    const served = getImage('bryant-park-lawn-midtown.jpg');
+    await vi.waitFor(() => expect(fetchMock.mock.calls).toHaveLength(1));
+    await vi.advanceTimersByTimeAsync(2000);
+    const response = await served;
+    expect([response.status, fetchMock.mock.calls.length]).toEqual([200, 2]);
+  });
+
+  it('says why Wikimedia could not be reached after the last try', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    fetchMock.mockRejectedValue(
+      new TypeError('fetch failed', {
+        cause: Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' }),
+      })
+    );
+    const failure = expect(getImage('bryant-park-lawn-midtown.jpg')).rejects.toThrow(
+      'Wikimedia could not be reached (ECONNRESET) for bryant-park-lawn-midtown.jpg'
+    );
+    for (const waited of [1, 2]) {
+      await vi.waitFor(() => expect(fetchMock.mock.calls).toHaveLength(waited));
+      await vi.advanceTimersByTimeAsync(waited * 2000);
+    }
+    await failure;
+    expect(fetchMock.mock.calls).toHaveLength(3);
+  });
+
+  it('does not retry an answer that will not change, such as a 404', async () => {
+    fetchMock.mockImplementation(async () => new Response('gone', { status: 404 }));
+    await expect(getImage('bryant-park-lawn-midtown.jpg')).rejects.toThrow(
+      'Wikimedia answered 404 for bryant-park-lawn-midtown.jpg'
+    );
+    expect(fetchMock.mock.calls).toHaveLength(1);
+  });
+
   it('retries a rate-limited fetch twice, then fails', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout'] });
     fetchMock.mockImplementation(async () => new Response('slow down', { status: 429 }));
