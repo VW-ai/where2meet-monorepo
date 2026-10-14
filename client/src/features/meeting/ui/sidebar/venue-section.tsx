@@ -229,7 +229,7 @@ export function VenueSection() {
       <div
         className={cn(
           'sticky top-0 z-10 pb-4 space-y-4',
-          '-mx-4 md:-mx-6 px-4 md:px-6 -mt-4 md:-mt-6 pt-4 md:pt-6',
+          '-mx-4 md:-mx-5 lg:-mx-6 px-4 md:px-5 lg:px-6 -mt-4 md:-mt-5 lg:-mt-6 pt-4 md:pt-5 lg:pt-6',
           'transition-colors duration-300',
           showLikedOnly
             ? 'bg-coral-50/60 backdrop-blur-md border-b border-coral-200/50'
