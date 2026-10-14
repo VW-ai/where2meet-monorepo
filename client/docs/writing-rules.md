@@ -30,7 +30,7 @@ Every post:
 
 1. **The answer first.** The first two sentences answer the search directly and use the main keyword. The rest of the opening paragraph names the reader's situation in their words. A second short paragraph says what the post covers.
 2. **Question headings.** Four to five `##` sections in sentence case. Phrase each heading the way people ask it, as in "How far should everyone travel?". Open each section with a one- or two-sentence answer, then the detail.
-3. **Real places.** A local post suggests six to eight real places near the top of the post, mostly restaurants, cafes and bars that fit the occasion. Each says what the place is, why it fits the occasion and its walk from the nearest station. A general post uses at least six examples in one named city.
+3. **Real places.** A local post suggests six to eight real places near the top of the post. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks. The place cards are the list of picks, placed with a `:::places` line right after the first section's answer. Each card's note says what the place is, why it fits the occasion and its walk from the nearest station. The body doesn't repeat a card. A general post uses at least six examples in one named city.
 4. **Real photos.** A cover photo plus at least two photos in the body. See Pictures.
 5. **"How to do it in Where2Meet."** Numbered steps, starting from the matching chip on the homepage.
 6. **"Common questions."** Three to five questions people search, each answered in two or three sentences. Use real questions from Search Console or the Keywords list when you have them.
@@ -60,7 +60,8 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 ## Places
 
 - Pick each place on Google Maps and store only its place ID.
-- The label is the place's name. The note is in our own words, at least 12 words. It says why the place fits the occasion, such as its walk to a station, its seating or whether it takes bookings.
+- The label is the place's name. The note is in our own words, at least 12 words. It says what the place is, why it fits the occasion, such as its seating or whether it takes bookings, and its walk from the nearest station.
+- The place cards are the list of picks. The body may name a place where the advice needs it, but it doesn't repeat a card's note.
 - Check every fact in a note on Google Maps, and check that each place is open, before publishing. Check again whenever you update the post.
 - Times and distances come from Google Maps for a stated mode, as in "about a 5-minute walk".
 

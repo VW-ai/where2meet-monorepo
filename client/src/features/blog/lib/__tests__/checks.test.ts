@@ -161,13 +161,13 @@ describe('checkContent on a post', () => {
       const end = example.text.indexOf('## How will everyone get home?');
       const file = edited([[example.text.slice(start, end), '']]);
       expect(check([file])).toEqual([
-        `${FILE}: word-count: the body has 689 words; a general post needs 700 to 1,000`,
+        `${FILE}: word-count: the body has 681 words; a general post needs 700 to 1,000`,
       ]);
     });
 
     it('holds a local post to 400 to 800 words', () => {
       expect(check([edited([['city: null', 'city: new-york']])])).toEqual([
-        `${FILE}: word-count: the body has 925 words; a local post needs 400 to 800`,
+        `${FILE}: word-count: the body has 902 words; a local post needs 400 to 800`,
       ]);
     });
   });

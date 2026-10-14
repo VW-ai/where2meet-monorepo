@@ -73,7 +73,7 @@ Hold it near the place most people leave from, or near a station on most people'
 
 List where each person will be when they finish. If most of the group works in one neighborhood, pick a restaurant there so people can walk over. If the group is spread out, look for one next to a station where many lines stop, so more people get a direct ride.
 
-In Lower Manhattan, for example, The Malt House is about a 2-minute walk from the Fulton St station, where eight lines stop. People in the Financial District can walk over, and everyone else can ride the 2, 3, 4, 5, A, C, J or Z.
+In Lower Manhattan, for example, a restaurant by the Fulton St station, where eight lines stop, lets people in the Financial District walk over. Everyone else can ride the 2, 3, 4, 5, A, C, J or Z.
 
 ![](fulton-center-lower-manhattan.jpg)
 
@@ -93,7 +93,7 @@ Trips at the end of the workday can take longer than the same trips later in the
 
 Choose food the table can share, or a menu with a wide range. Shared dishes also mean nobody's plate holds up the meal.
 
-Ask about dietary needs when you share the options, and check each menu online before the vote. In Koreatown, miss KOREA BBQ serves Korean barbecue made for sharing. It's about a 3-minute walk from the Herald Square station, where eight lines stop.
+Ask about dietary needs when you share the options, and check each menu online before the vote. In Koreatown, miss KOREA BBQ serves Korean barbecue made for sharing.
 
 For booking rules, set menus and splitting the bill, see [how to pick a restaurant for a group dinner](/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner). If the dinner follows a work meeting, see [how to choose a team meeting location](/blog/new-york/midtown/how-to-choose-a-team-meeting-location).
 
