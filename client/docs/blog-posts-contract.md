@@ -334,7 +334,6 @@ The canonical URL, the BlogPosting and BreadcrumbList JSON-LD, `sitemap.xml` and
     {
       "path": "/blog/new-york/union-square/how-to-pick-a-date-spot",
       "title": "Where to go on a date near Union Square",
-      "source": "markdown",
       "occasion": "date-night",
       "time": null,
       "venue_type": null,
@@ -354,7 +353,7 @@ The canonical URL, the BlogPosting and BreadcrumbList JSON-LD, `sitemap.xml` and
 - `generated_at` is the build time, in UTC to the second.
 - `taxonomy` and `keywords` hold every value the site kept, in file order. A missing `occasion` or `note` is `null`.
 - `places` lists each city by file name, then its towns.
-- `posts` lists every post, newest first, as `/blog` does. `source` is always `markdown`, because every post is a file in `src/content/posts/`. It stays because the panel reads it.
+- `posts` lists every post, newest first, as `/blog` does.
 - `writing_rules` is the text of `docs/writing-rules.md`, byte for byte.
 
 `buildContentJson` in `src/features/blog/lib/content-json.ts` builds it.
