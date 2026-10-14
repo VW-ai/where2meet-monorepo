@@ -8,6 +8,9 @@
   occasion: date-night
 - phrase: first date spot
   occasion: date-night
+- phrase: date night bars
+  occasion: date-night
+  note: Bars for a date night, as searched with a city or neighborhood
 - phrase: team meeting location
   occasion: team-meeting
 - phrase: where to hold a team meeting
