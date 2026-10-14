@@ -127,7 +127,6 @@ const CONTENT = {
     {
       path: '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
       title: 'A team welcome lunch in Bryant Park',
-      source: 'markdown',
       occasion: 'team-welcome',
       time: 'weekday-lunch',
       venue_type: 'park',
@@ -142,7 +141,6 @@ const CONTENT = {
     {
       path: '/blog/how-to-plan-a-team-welcome-lunch',
       title: 'How to plan a team welcome lunch',
-      source: 'markdown',
       occasion: 'team-welcome',
       time: null,
       venue_type: null,
@@ -157,7 +155,6 @@ const CONTENT = {
     {
       path: '/blog/new-york/group-dinner-spots-near-herald-square',
       title: 'Group dinner spots near Herald Square',
-      source: 'markdown',
       occasion: 'group-dinner',
       time: 'after-work',
       venue_type: 'korean-restaurant',
@@ -172,7 +169,6 @@ const CONTENT = {
     {
       path: '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
       title: 'Quiet places for a small team meeting in Midtown',
-      source: 'markdown',
       occasion: 'team-meeting',
       time: 'weekday-lunch',
       venue_type: null,
