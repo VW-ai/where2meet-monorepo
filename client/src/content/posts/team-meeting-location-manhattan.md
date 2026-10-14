@@ -32,7 +32,7 @@ places:
     note: An event venue on the eighth floor of 135 Madison Avenue, for a booked meeting room or a presentation to the whole team. About a 3-minute walk from the 33 St station on the 6.
   - place_id: ChIJqa5vnFhZwokRNlGvlK2raRk
     label: OASIS by Workville
-    note: A conference center and event venue on West 35th Street, two blocks from Penn Station, for a meeting with teammates who come in by train. About a 1-minute walk from the 34 St-Penn Station stop on the A, C and E.
+    note: A conference center and event venue on West 35th Street near Penn Station, for a meeting with teammates who come in by train. About a 1-minute walk from the 34 St-Penn Station stop on the A, C and E.
 images:
   - file_name: balthazar-red-awnings-spring-street-soho.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Balthazar_on_Spring_Street.jpg/1280px-Balthazar_on_Spring_Street.jpg
@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Flatiron_clock_sunny_jeh.jpg
     width: 1280
     height: 1640
-    alt: The Flatiron Building and the gold sidewalk clock at 200 Fifth Avenue on a sunny day, with a subway entrance below the clock
+    alt: The Flatiron Building and the gold sidewalk clock at 200 Fifth Avenue on a sunny day, with a subway entrance beside the clock
     caption: The Flatiron Building and the Fifth Avenue sidewalk clock at 23rd Street
     author: Jim Henderson
     license: CC0
@@ -96,9 +96,9 @@ Start from where each person rides in, then pick the area most of them can reach
 
 Book a room when the agenda needs a screen, a whiteboard or a closed door. Book a table when the meeting is mostly talk.
 
-The Farm Soho rents conference rooms and day offices by the hour, as [its site](https://www.thefarmsoho.com/) says, and Union Square Loft takes bookings on [its own page](https://unionsquareloft.com/book/).
+The Farm Soho rents its rooms by the hour, as [its site](https://www.thefarmsoho.com/) says, and Union Square Loft takes bookings on [its own page](https://unionsquareloft.com/book/).
 
-Balthazar and The Smith open at 8 a.m. on weekdays, early enough for a breakfast meeting. The Capital Grille opens at 11:30 a.m., so save it for lunch. To keep the team off the train between the meeting and the meal, book both in one area. The Farm Soho and Balthazar are a few blocks apart, and so are Blender Space and The Smith.
+Balthazar and The Smith open at 8 a.m. on weekdays, early enough for a breakfast meeting. The Capital Grille opens at 11:30 a.m., so save it for lunch. To keep the team off the train between the meeting and the meal, book both in one area. The Farm Soho is about a 6-minute walk from Balthazar, and Blender Space is about an 8-minute walk from The Smith.
 
 A Saturday meeting narrows the list. Google lists Blender Space as closed on weekends, and The Capital Grille opens at 4 p.m. on Saturdays. The W doesn't run on weekends either, so look up the MTA's [planned service changes](https://www.mta.info/alerts) for that weekend.
 
