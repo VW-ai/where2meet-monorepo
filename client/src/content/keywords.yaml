@@ -2,6 +2,22 @@
 - phrase: find a place to meet
 - phrase: plan where to meet
 - phrase: group meetup planner
+- phrase: group planning app
+  note: The product itself, a planner a whole group uses together. Fits the homepage.
+- phrase: plan together
+  note: Our positioning. Everyone in the group plans the spot together.
+- phrase: plan with friends
+  note: Planning a get-together with friends in one shared link
+- phrase: plan a meetup with friends
+  note: The same intent as "plan with friends", phrased as a task
+- phrase: group event planner
+  note: A planner for a group event, where everyone adds where they're coming from
+- phrase: collaborative planner
+  note: Planning that everyone in the group takes part in, without accounts
+- phrase: vote on where to meet
+  note: The voting feature, where the group votes on places and the organizer picks
+- phrase: plan a group outing
+  note: Planning an outing for a group, with travel times for each person
 - phrase: date spot
   occasion: date-night
 - phrase: where to go on a date
