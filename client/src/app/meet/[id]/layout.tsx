@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
-import type { Event } from '@/entities';
-import { createMeetingPageMetadata } from '@/lib/seo/metadata';
-import { eventClient } from '@/features/meeting/api';
+import type { Event, Venue } from '@/entities';
+import { createMeetingPageMetadata, SITE_CONFIG } from '@/lib/seo/metadata';
+import { invitationFor, shareText } from '@/features/invitation/model/invitation';
+import { eventClient, venueClient } from '@/features/meeting/api';
 import { isMissingEvent } from '@/features/meeting/lib/is-missing-event';
 
 type EventLookup =
@@ -29,6 +30,11 @@ const lookupEvent = cache(async (id: string): Promise<EventLookup> => {
     return { status: 'error', error };
   }
 });
+
+/** The published venue, or null when it cannot be loaded, so the page keeps its draft text. */
+const lookupVenue = cache(
+  (id: string): Promise<Venue | null> => venueClient.get(id).catch(() => null)
+);
 
 /**
  * Generate dynamic metadata for meeting pages
@@ -60,6 +66,11 @@ export async function generateMetadata({
 
   const { event } = lookup;
 
+  const invitation =
+    event.publishedAt && event.publishedVenueId
+      ? invitationFor(event, await lookupVenue(event.publishedVenueId), SITE_CONFIG.url)
+      : null;
+
   // Format meeting date/time for description (if available)
   let dateTimeText = '';
   if (event.meetingTime) {
@@ -79,8 +90,13 @@ export async function generateMetadata({
 
   return createMeetingPageMetadata({
     title: `${event.title} - Meeting Planner`,
-    description: `Join the meeting "${event.title}"${dateTimeText}. Add your location and vote on the best venue.`,
+    description: invitation?.venue
+      ? shareText(invitation)
+      : `Join the meeting "${event.title}"${dateTimeText}. Add your location and vote on the best venue.`,
     canonical: `/meet/${id}`,
+    image: invitation
+      ? { url: `/meet/${id}/invite.png`, alt: `Invitation for ${event.title}` }
+      : undefined,
   });
 }
 
