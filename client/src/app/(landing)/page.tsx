@@ -303,6 +303,9 @@ export default function LandingPage() {
           <Link href="/faq" className="font-medium text-[#666b73] hover:text-[#bd3843]">
             FAQ
           </Link>
+          <Link href="/about" className="font-medium text-[#666b73] hover:text-[#bd3843]">
+            About
+          </Link>
           <Link href="/contact" className="font-medium text-[#666b73] hover:text-[#bd3843]">
             Contact
           </Link>

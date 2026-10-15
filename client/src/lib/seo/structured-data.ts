@@ -1,4 +1,5 @@
 import type {
+  AboutPage,
   BlogPosting,
   BreadcrumbList,
   Event,
@@ -33,6 +34,18 @@ export function generateOrganizationSchema(): WithContext<Organization> {
     //   'https://twitter.com/where2meet',
     //   'https://github.com/where2meet',
     // ],
+  };
+}
+
+export function generateAboutPageSchema(): WithContext<AboutPage> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    '@id': `${SITE_CONFIG.url}/about`,
+    url: `${SITE_CONFIG.url}/about`,
+    name: `About ${SITE_CONFIG.name}`,
+    isPartOf: { '@id': `${SITE_CONFIG.url}/#website` },
+    mainEntity: { '@id': `${SITE_CONFIG.url}/#organization` },
   };
 }
 
@@ -229,7 +242,7 @@ export function generateBlogPostingSchema(article: Article): WithContext<BlogPos
     image: article.images.map(imageObject),
     datePublished: article.publishedAt,
     dateModified: article.updatedAt,
-    author: { '@type': 'Organization', name: BLOG_AUTHOR, url: SITE_CONFIG.url },
+    author: { '@type': 'Organization', name: BLOG_AUTHOR, url: `${SITE_CONFIG.url}/about` },
     publisher: { '@id': `${SITE_CONFIG.url}/#organization` },
     mainEntityOfPage: { '@type': 'WebPage', '@id': toAbsoluteUrl(article.path) },
   };

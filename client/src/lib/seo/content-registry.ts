@@ -17,6 +17,7 @@ export const CONTENT_REGISTRY: Record<string, ContentMetadata> = {
 
   // Feature pages
   '/faq': createContentMetadata('faq', 'monthly'),
+  '/about': createContentMetadata('landing', 'yearly'),
   '/contact': createContentMetadata('landing', 'yearly'),
 
   // Scenario pages will be added here as they're created
