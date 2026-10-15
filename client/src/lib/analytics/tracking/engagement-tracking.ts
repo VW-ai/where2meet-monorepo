@@ -86,7 +86,7 @@ export function setupEngagementTracking(pagePath: string): () => void {
     const finalSeconds = Math.floor(totalActiveTime / 1000);
 
     // Only send if user spent meaningful time (>5 seconds)
-    if (finalSeconds > 5 && typeof window.gtag !== 'undefined') {
+    if (finalSeconds > 5) {
       trackEngagementTime(finalSeconds, pagePath);
     }
   };
