@@ -37,7 +37,7 @@ occasions:
   - key: long-distance-reunion
     label: Long-distance reunion
     times: []
-    venue_types: []
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, brunch-restaurant, coffee-shop, cafe, bar, wine-bar, park, museum, bowling-alley]
     group_sizes: [two, small]
   - key: team-welcome
     label: Team welcome
@@ -109,6 +109,21 @@ occasions:
     times: [after-work, late-night]
     venue_types: [bar]
     group_sizes: [small, large]
+  - key: bathhouse-visit
+    label: Bathhouse visit
+    times: [after-work, weekend-afternoon]
+    venue_types: [bathhouse]
+    group_sizes: [two, small]
+  - key: pickup-basketball
+    label: Pickup basketball game
+    times: [after-work, weekend-afternoon]
+    venue_types: [basketball-court]
+    group_sizes: [small, large]
+  - key: badminton
+    label: Badminton game
+    times: [after-work, weekend-afternoon]
+    venue_types: [badminton-court]
+    group_sizes: [two, small]
 times:
   - key: weekday-lunch
     label: Weekday lunch
@@ -160,6 +175,15 @@ venue_types:
   - key: bowling-alley
     label: Bowling alley
     google_type: bowling_alley
+  - key: bathhouse
+    label: Bathhouse
+    google_type: spa
+  - key: basketball-court
+    label: Basketball court
+    google_type: athletic_field
+  - key: badminton-court
+    label: Badminton court
+    google_type: sports_activity_location
 group_sizes:
   - key: two
     label: Two people
