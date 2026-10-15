@@ -55,6 +55,8 @@
   occasion: class-reunion
 - phrase: where to hold a class reunion
   occasion: class-reunion
+- phrase: where to celebrate a birthday
+  occasion: birthday
 - phrase: where to celebrate graduation
   occasion: graduation-celebration
 - phrase: graduation party venue
