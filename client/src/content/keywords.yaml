@@ -47,3 +47,43 @@
   occasion: team-offsite
 - phrase: where to meet a friend from another city
   occasion: long-distance-reunion
+- phrase: family reunion venue
+  occasion: family-reunion
+- phrase: where to have a family reunion
+  occasion: family-reunion
+- phrase: class reunion venue
+  occasion: class-reunion
+- phrase: where to hold a class reunion
+  occasion: class-reunion
+- phrase: where to celebrate graduation
+  occasion: graduation-celebration
+- phrase: graduation party venue
+  occasion: graduation-celebration
+- phrase: baby shower venue
+  occasion: baby-shower
+- phrase: where to have a baby shower
+  occasion: baby-shower
+- phrase: holiday party venue
+  occasion: holiday-party
+- phrase: office holiday party venue
+  occasion: holiday-party
+- phrase: book club meeting place
+  occasion: book-club
+- phrase: where to host a book club
+  occasion: book-club
+- phrase: where to study with friends
+  occasion: study-session
+- phrase: study group meeting place
+  occasion: study-session
+- phrase: board game bar
+  occasion: game-night
+- phrase: where to play board games
+  occasion: game-night
+- phrase: networking event venue
+  occasion: networking-meetup
+- phrase: where to host a networking event
+  occasion: networking-meetup
+- phrase: where to watch the game
+  occasion: watch-party
+- phrase: watch party bar
+  occasion: watch-party
