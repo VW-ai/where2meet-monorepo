@@ -24,7 +24,8 @@ How it works:
 - [Blog](https://www.where2meet.org/blog): Guides to planning where to meet with friends, family and coworkers.
 `;
 
-const CONTACT = `- [Contact](https://www.where2meet.org/contact): How to reach the Where2Meet team.
+const CONTACT = `- [About](https://www.where2meet.org/about): What Where2Meet is, why it exists and who makes it.
+- [Contact](https://www.where2meet.org/contact): How to reach the Where2Meet team.
 `;
 
 const OPTIONAL = `

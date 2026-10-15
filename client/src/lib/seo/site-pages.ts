@@ -40,6 +40,7 @@ export function assertIsoDate<T extends string>(value: T, label: string): T {
 const pages: StaticPageEntry[] = [
   { path: '/', lastModified: '2026-10-04', changeFrequency: 'weekly', priority: 1.0 },
   { path: '/faq', lastModified: '2026-10-02', changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/about', lastModified: '2026-10-15', changeFrequency: 'yearly', priority: 0.5 },
   { path: '/contact', lastModified: '2026-09-29', changeFrequency: 'yearly', priority: 0.5 },
 ];
 

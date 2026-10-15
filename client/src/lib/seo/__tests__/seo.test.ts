@@ -148,6 +148,7 @@ describe('sitemap', () => {
     expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
       [CANONICAL_ORIGIN, '2026-10-04', undefined],
       [`${CANONICAL_ORIGIN}/faq`, '2026-10-02', undefined],
+      [`${CANONICAL_ORIGIN}/about`, '2026-10-15', undefined],
       [`${CANONICAL_ORIGIN}/contact`, '2026-09-29', undefined],
       [`${CANONICAL_ORIGIN}/blog`, undefined, undefined],
     ]);
@@ -324,7 +325,11 @@ describe('structured data', () => {
       ],
       datePublished: '2026-10-06',
       dateModified: '2026-10-07',
-      author: { '@type': 'Organization', name: 'The Where2Meet team', url: CANONICAL_ORIGIN },
+      author: {
+        '@type': 'Organization',
+        name: 'The Where2Meet team',
+        url: `${CANONICAL_ORIGIN}/about`,
+      },
       publisher: { '@id': `${CANONICAL_ORIGIN}/#organization` },
       mainEntityOfPage: {
         '@type': 'WebPage',
@@ -464,6 +469,7 @@ describe('llms.txt', () => {
       `${CANONICAL_ORIGIN}/blog/how-to-plan-a-team-welcome-lunch`,
       `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
       `${CANONICAL_ORIGIN}/blog/new-york/midtown/quiet-places-for-a-small-team-meeting`,
+      `${CANONICAL_ORIGIN}/about`,
       `${CANONICAL_ORIGIN}/contact`,
       `${CANONICAL_ORIGIN}/blog/new-york`,
       `${CANONICAL_ORIGIN}/blog/new-york/midtown`,
@@ -496,6 +502,7 @@ describe('llms.txt', () => {
     expect(linksIn(text)).toEqual([
       ...pageUrls.slice(0, 2),
       `${CANONICAL_ORIGIN}/blog`,
+      `${CANONICAL_ORIGIN}/about`,
       `${CANONICAL_ORIGIN}/contact`,
       `${CANONICAL_ORIGIN}/sitemap.xml`,
     ]);

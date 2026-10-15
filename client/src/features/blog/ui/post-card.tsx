@@ -17,8 +17,10 @@ function DateTime({ date }: { date: string }) {
 export function Byline({ post, className = '' }: { post: Post; className?: string }) {
   return (
     <p className={`text-[13px] text-[#666b73] ${className}`}>
-      {BLOG_AUTHOR} · Published <DateTime date={post.publishedAt} /> · Updated{' '}
-      <DateTime date={post.updatedAt} />
+      <Link href="/about" className="hover:text-[#bd3843]">
+        {BLOG_AUTHOR}
+      </Link>{' '}
+      · Published <DateTime date={post.publishedAt} /> · Updated <DateTime date={post.updatedAt} />
     </p>
   );
 }

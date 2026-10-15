@@ -50,7 +50,7 @@ describe('BlogPageView', () => {
       '<h1>Quiet places for a small team meeting in Midtown</h1><ul><li>Team meeting</li><li>Weekday lunch</li><li>Small group, 3 to 6</li><li>Inexpensive</li></ul>'
     );
     expect(html).toContain(
-      '<p>The Where2Meet team · Published <time dateTime="2026-10-05">October 5, 2026</time> · Updated <time dateTime="2026-10-07">October 7, 2026</time></p>'
+      '<p><a href="/about">The Where2Meet team</a> · Published <time dateTime="2026-10-05">October 5, 2026</time> · Updated <time dateTime="2026-10-07">October 7, 2026</time></p>'
     );
     expect(outline(html)).toEqual([
       'h1 Quiet places for a small team meeting in Midtown',
