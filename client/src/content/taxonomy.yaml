@@ -59,6 +59,56 @@ occasions:
     times: [after-work, late-night, weekend-brunch, weekend-afternoon]
     venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, brunch-restaurant, bar, wine-bar, bowling-alley]
     group_sizes: [small, large]
+  - key: family-reunion
+    label: Family reunion
+    times: [weekend-brunch, weekend-afternoon]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, brunch-restaurant, park, museum]
+    group_sizes: [large]
+  - key: class-reunion
+    label: Class reunion
+    times: [after-work, weekend-afternoon]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, bar, wine-bar]
+    group_sizes: [large]
+  - key: graduation-celebration
+    label: Graduation celebration
+    times: [weekday-lunch, weekend-brunch, weekend-afternoon]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, brunch-restaurant, bar]
+    group_sizes: [small, large]
+  - key: baby-shower
+    label: Baby shower
+    times: [weekend-brunch, weekend-afternoon]
+    venue_types: [chinese-restaurant, italian-restaurant, mexican-restaurant, brunch-restaurant, cafe]
+    group_sizes: [small, large]
+  - key: holiday-party
+    label: Holiday party
+    times: [after-work, late-night]
+    venue_types: [chinese-restaurant, korean-restaurant, italian-restaurant, mexican-restaurant, japanese-restaurant, bar, wine-bar, bowling-alley]
+    group_sizes: [large]
+  - key: book-club
+    label: Book club
+    times: [after-work, weekend-afternoon]
+    venue_types: [coffee-shop, cafe, wine-bar]
+    group_sizes: [small]
+  - key: study-session
+    label: Study session
+    times: [after-work, weekend-afternoon]
+    venue_types: [coffee-shop, cafe]
+    group_sizes: [small]
+  - key: game-night
+    label: Game night
+    times: [after-work]
+    venue_types: [bar, bowling-alley]
+    group_sizes: [small, large]
+  - key: networking-meetup
+    label: Networking meetup
+    times: [after-work]
+    venue_types: [coffee-shop, bar, wine-bar]
+    group_sizes: [large]
+  - key: watch-party
+    label: Watch party
+    times: [after-work, late-night]
+    venue_types: [bar]
+    group_sizes: [small, large]
 times:
   - key: weekday-lunch
     label: Weekday lunch

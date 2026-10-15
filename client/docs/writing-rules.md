@@ -32,7 +32,7 @@ Every post:
 2. **Question headings.** Four to five `##` sections in sentence case. Phrase each heading the way people ask it, as in "How far should everyone travel?". Open each section with a one- or two-sentence answer, then the detail.
 3. **Real places.** A local post suggests six to eight real places near the top of the post. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks. The place cards are the list of picks, placed with a `:::places` line right after the first section's answer. Each card's note says what the place is, why it fits the occasion and its walk from the nearest station. The body doesn't repeat a card. A general post uses at least six examples in one named city.
 4. **Real photos.** A cover photo plus at least two photos in the body. See Pictures.
-5. **"How to do it in Where2Meet."** Numbered steps, starting from the matching chip on the homepage.
+5. **"How to do it in Where2Meet."** Numbered steps, starting from the matching chip on the homepage. When the homepage has no chip for the occasion, start by typing its name in the first box.
 6. **"Common questions."** Three to five questions people search, each answered in two or three sentences. Use real questions from Search Console or the Keywords list when you have them.
 7. **"A quick checklist."** Plain bullets for general posts. No checkboxes.
 
