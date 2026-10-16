@@ -107,56 +107,47 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
       });
     });
 
-    it("should broadcast participant:added with correct payload structure", async () => {
-      // Arrange
-      const participantData = {
-        name: "Bob",
-        address: "456 Oak Ave",
-        fuzzyLocation: true,
-      };
-
-      // Act
-      await server.inject({
+    it("should broadcast an approximate participant without their typed address", async () => {
+      const response = await server.inject({
         method: "POST",
         url: `/api/events/${testEventId}/participants`,
         headers: {
           authorization: `Bearer ${testParticipantToken}`,
         },
-        payload: participantData,
+        payload: {
+          name: "Bob",
+          address: "456 Oak Ave",
+          fuzzyLocation: true,
+        },
       });
 
-      // Assert
-      expect(broadcastMock).toHaveBeenCalledOnce();
-      const broadcastCall = broadcastMock.mock.calls[0][0];
-
-      expect(broadcastCall).toHaveProperty("eventId", testEventId);
-      expect(broadcastCall).toHaveProperty("type", "participant:added");
-      expect(broadcastCall).toHaveProperty("payload");
-      expect(broadcastCall.payload).toHaveProperty("participant");
-
-      const { participant } = broadcastCall.payload as ParticipantAddedPayload;
-      expect(participant).toHaveProperty("id");
-      expect(participant).toHaveProperty("name", "Bob");
-      expect(participant).toHaveProperty("address", "456 Oak Ave");
-      expect(participant).toHaveProperty("lat");
-      expect(participant).toHaveProperty("lng");
-      expect(participant).toHaveProperty("color");
-      expect(participant).toHaveProperty("isOrganizer", false);
-
-      // Verify types
-      expect(typeof participant.id).toBe("string");
-      expect(typeof participant.name).toBe("string");
-      expect(typeof participant.address).toBe("string");
-      expect(typeof participant.lat).toBe("number");
-      expect(typeof participant.lng).toBe("number");
-      expect(typeof participant.color).toBe("string");
-      expect(typeof participant.isOrganizer).toBe("boolean");
+      expect(broadcastMock.mock.calls).toEqual([
+        [
+          {
+            eventId: testEventId,
+            type: "participant:added",
+            payload: {
+              participant: {
+                id: response.json().id,
+                name: "Bob",
+                address: null,
+                lat: 40.7160306,
+                lng: -74.0056271,
+                color: "teal",
+                fuzzyLocation: true,
+                isOrganizer: false,
+              },
+            },
+          },
+        ],
+      ]);
     });
 
     it("should broadcast for self-registration (no auth)", async () => {
@@ -189,6 +180,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
@@ -268,6 +260,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
@@ -304,6 +297,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
@@ -548,6 +542,97 @@ describe("Participant SSE Broadcasting", () => {
 
       // Verify no broadcast was sent for failed deletion
       expect(broadcastMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Approximate participant updates", () => {
+    let participantUrl: string;
+    let participantId: string;
+    const auth = () => ({ authorization: `Bearer ${testParticipantToken}` });
+    const broadcastParticipants = () =>
+      broadcastMock.mock.calls.map(
+        ([call]) => [call.type, (call.payload as ParticipantUpdatedPayload).participant] as const
+      );
+
+    beforeEach(async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        headers: auth(),
+        payload: { name: "Bob", address: "456 Oak Ave", fuzzyLocation: true },
+      });
+      participantId = response.json().id;
+      participantUrl = `/api/events/${testEventId}/participants/${participantId}`;
+      broadcastMock.mockClear();
+    });
+
+    it("should keep the typed address out of participant:updated", async () => {
+      await server.inject({
+        method: "PATCH",
+        url: participantUrl,
+        headers: auth(),
+        payload: { name: "Bobby" },
+      });
+
+      expect(broadcastParticipants()).toEqual([
+        [
+          "participant:updated",
+          {
+            id: participantId,
+            name: "Bobby",
+            address: null,
+            lat: 40.7160306,
+            lng: -74.0056271,
+            color: "teal",
+            fuzzyLocation: true,
+            isOrganizer: false,
+          },
+        ],
+      ]);
+    });
+
+    it("should broadcast the exact address once approximate is off, and hide it again when back on", async () => {
+      await server.inject({
+        method: "PATCH",
+        url: participantUrl,
+        headers: auth(),
+        payload: { fuzzyLocation: false },
+      });
+      await server.inject({
+        method: "PATCH",
+        url: participantUrl,
+        headers: auth(),
+        payload: { fuzzyLocation: true },
+      });
+
+      expect(broadcastParticipants()).toEqual([
+        [
+          "participant:updated",
+          {
+            id: participantId,
+            name: "Bob",
+            address: "456 Oak Ave",
+            lat: 40.7128,
+            lng: -74.006,
+            color: "teal",
+            fuzzyLocation: false,
+            isOrganizer: false,
+          },
+        ],
+        [
+          "participant:updated",
+          {
+            id: participantId,
+            name: "Bob",
+            address: null,
+            lat: 40.7160306,
+            lng: -74.0056271,
+            color: "teal",
+            fuzzyLocation: true,
+            isOrganizer: false,
+          },
+        ],
+      ]);
     });
   });
 

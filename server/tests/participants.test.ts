@@ -553,4 +553,151 @@ describe("Participant Endpoints", () => {
       expect(body.participantToken).toBeUndefined();
     });
   });
+
+  describe("Approximate locations", () => {
+    type ParticipantView = {
+      name: string;
+      address: string | null;
+      location: { lat: number; lng: number } | null;
+      fuzzyLocation: boolean;
+    };
+
+    const view = ({ name, address, location, fuzzyLocation }: ParticipantView) => ({
+      name,
+      address,
+      location,
+      fuzzyLocation,
+    });
+
+    const addParticipant = (payload: Record<string, unknown>, token?: string) =>
+      server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+        payload,
+      });
+
+    it("hides an approximate participant's typed address on the meeting and keeps an exact one", async () => {
+      await addParticipant(
+        { name: "Alice", address: "123 Main St, New York, NY" },
+        testParticipantToken
+      );
+      await addParticipant(
+        { name: "Bob", address: "456 Oak Ave", fuzzyLocation: true },
+        testParticipantToken
+      );
+
+      const response = await server.inject({ method: "GET", url: `/api/events/${testEventId}` });
+
+      const people = response
+        .json()
+        .participants.filter((p: { isOrganizer: boolean }) => !p.isOrganizer)
+        .map(view);
+      expect(people).toEqual([
+        {
+          name: "Alice",
+          address: "123 Main St, New York, NY",
+          location: { lat: 40.7128, lng: -74.006 },
+          fuzzyLocation: false,
+        },
+        {
+          name: "Bob",
+          address: null,
+          location: { lat: 40.7160306, lng: -74.0056271 },
+          fuzzyLocation: true,
+        },
+      ]);
+    });
+
+    it("hides the typed address in the response to whoever added it", async () => {
+      const organizerAdded = await addParticipant(
+        { name: "Bob", address: "456 Oak Ave", fuzzyLocation: true },
+        testParticipantToken
+      );
+      const selfJoined = await addParticipant({
+        name: "Priya",
+        address: "789 Pine Rd",
+        fuzzyLocation: true,
+      });
+
+      expect([organizerAdded.statusCode, selfJoined.statusCode]).toEqual([201, 201]);
+      expect([view(organizerAdded.json()), view(selfJoined.json())]).toEqual([
+        {
+          name: "Bob",
+          address: null,
+          location: { lat: 40.7160306, lng: -74.0056271 },
+          fuzzyLocation: true,
+        },
+        {
+          name: "Priya",
+          address: null,
+          location: { lat: 40.7100798, lng: -74.0144546 },
+          fuzzyLocation: true,
+        },
+      ]);
+    });
+
+    it("hides the typed address from the participant's own /me lookup", async () => {
+      const joined = await addParticipant({
+        name: "Priya",
+        address: "789 Pine Rd",
+        fuzzyLocation: true,
+      });
+
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/${testEventId}/me`,
+        headers: { authorization: `Bearer ${joined.json().participantToken}` },
+      });
+
+      expect(response.json()).toEqual({
+        participantId: joined.json().id,
+        name: "Priya",
+        isOrganizer: false,
+        color: "teal",
+        address: null,
+        lat: 40.7100798,
+        lng: -74.0144546,
+      });
+    });
+
+    it("re-geocodes the saved address when approximate is turned off and back on", async () => {
+      const added = await addParticipant(
+        { name: "Bob", address: "456 Oak Ave", fuzzyLocation: true },
+        testParticipantToken
+      );
+      const url = `/api/events/${testEventId}/participants/${added.json().id}`;
+      const headers = { authorization: `Bearer ${testParticipantToken}` };
+      mockGeocode.mockClear();
+
+      const exact = await server.inject({
+        method: "PATCH",
+        url,
+        headers,
+        payload: { fuzzyLocation: false },
+      });
+      const approximate = await server.inject({
+        method: "PATCH",
+        url,
+        headers,
+        payload: { fuzzyLocation: true },
+      });
+
+      expect(mockGeocode.mock.calls).toEqual([["456 Oak Ave"], ["456 Oak Ave"]]);
+      expect([view(exact.json()), view(approximate.json())]).toEqual([
+        {
+          name: "Bob",
+          address: "456 Oak Ave",
+          location: { lat: 40.7128, lng: -74.006 },
+          fuzzyLocation: false,
+        },
+        {
+          name: "Bob",
+          address: null,
+          location: { lat: 40.7160306, lng: -74.0056271 },
+          fuzzyLocation: true,
+        },
+      ]);
+    });
+  });
 });
