@@ -69,6 +69,7 @@ export class EventRepository {
             id: eventId,
             title: data.title,
             meetingTime: data.meetingTime ? new Date(data.meetingTime) : null,
+            meetingTimeZone: data.meetingTimeZone ?? null,
           },
           include: {
             participants: true,
@@ -127,6 +128,11 @@ export class EventRepository {
 
     if (data.meetingTime !== undefined) {
       updateData.meetingTime = data.meetingTime ? new Date(data.meetingTime) : null;
+      if (data.meetingTime === null) {
+        updateData.meetingTimeZone = null;
+      } else if (data.meetingTimeZone !== undefined) {
+        updateData.meetingTimeZone = data.meetingTimeZone;
+      }
     }
 
     return this.db.event.update({
@@ -248,6 +254,7 @@ export class EventRepository {
               id: eventId,
               title: eventData.title,
               meetingTime: eventData.meetingTime ? new Date(eventData.meetingTime) : null,
+              meetingTimeZone: eventData.meetingTimeZone ?? null,
             },
           });
 

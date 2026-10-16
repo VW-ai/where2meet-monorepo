@@ -172,6 +172,7 @@ interface EventUpdatedEvent {
     id: string;
     title: string;
     meetingTime: string | null;
+    meetingTimeZone: string | null;
     publishedAt: string | null;
     publishedVenueId: string | null;
   };
@@ -188,6 +189,7 @@ interface EventPublishedEvent {
     id: string;
     title: string;
     meetingTime: string | null;
+    meetingTimeZone: string | null;
     publishedAt: string;
     publishedVenueId: string;
   };

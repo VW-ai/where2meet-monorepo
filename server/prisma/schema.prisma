@@ -17,6 +17,7 @@ model Event {
   id               String    @id @db.VarChar(64)
   title            String    @db.VarChar(100)
   meetingTime      DateTime? @map("meeting_time")
+  meetingTimeZone  String?   @map("meeting_time_zone") @db.VarChar(64)
   publishedVenueId String?   @map("published_venue_id") @db.VarChar(255)
   publishedAt      DateTime? @map("published_at")
   createdAt        DateTime  @default(now()) @map("created_at")

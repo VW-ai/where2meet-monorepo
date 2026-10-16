@@ -45,6 +45,7 @@ export const UserEventSummarySchema = z.object({
   id: z.string(),
   title: z.string(),
   meetingTime: z.string().nullable(),
+  meetingTimeZone: z.string().nullable(),
   publishedAt: z.string().nullable(),
   createdAt: z.string(),
   participantCount: z.number(),

@@ -97,6 +97,7 @@ export interface EventUpdatedPayload {
     id: string;
     title: string;
     meetingTime: string | null;
+    meetingTimeZone: string | null;
     publishedAt: string | null;
     publishedVenueId: string | null;
   };
@@ -110,6 +111,7 @@ export interface EventPublishedPayload {
     id: string;
     title: string;
     meetingTime: string | null;
+    meetingTimeZone: string | null;
     publishedAt: string;
     publishedVenueId: string;
   };

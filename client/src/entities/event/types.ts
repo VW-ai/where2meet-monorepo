@@ -9,6 +9,7 @@ export interface Event {
   id: string;
   title: string;
   meetingTime: string | null; // ISO 8601 format, null if not set
+  meetingTimeZone: string | null;
   participantToken?: string; // Only returned on creation (POST), save it!
   organizerParticipantId?: string; // Organizer's participant ID (only on creation), save it!
   createdAt: string;
@@ -36,9 +37,11 @@ export interface EventSettings {
 export interface CreateEventDTO {
   title: string;
   meetingTime?: string; // Optional ISO 8601 datetime
+  meetingTimeZone?: string;
 }
 
 export interface UpdateEventDTO {
   title?: string;
   meetingTime?: string;
+  meetingTimeZone?: string;
 }

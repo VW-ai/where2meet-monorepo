@@ -5,6 +5,7 @@ import type { Event } from '@/entities';
 import { createMeetingPageMetadata } from '@/lib/seo/metadata';
 import { eventClient } from '@/features/meeting/api';
 import { isMissingEvent } from '@/features/meeting/lib/is-missing-event';
+import { meetingWhen } from '@/shared/lib/meeting-times';
 
 type EventLookup =
   | { status: 'found'; event: Event }
@@ -59,27 +60,11 @@ export async function generateMetadata({
   }
 
   const { event } = lookup;
-
-  // Format meeting date/time for description (if available)
-  let dateTimeText = '';
-  if (event.meetingTime) {
-    const meetingDate = new Date(event.meetingTime);
-    const formattedDate = meetingDate.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-    const formattedTime = meetingDate.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-    dateTimeText = ` on ${formattedDate} at ${formattedTime}`;
-  }
+  const when = event.meetingTime ? meetingWhen(event.meetingTime, event.meetingTimeZone) : null;
 
   return createMeetingPageMetadata({
     title: `${event.title} - Meeting Planner`,
-    description: `Join the meeting "${event.title}"${dateTimeText}. Add your location and vote on the best venue.`,
+    description: `Join the meeting "${event.title}"${when ? ` on ${when}` : ''}. Add your location and vote on the best venue.`,
     canonical: `/meet/${id}`,
   });
 }

@@ -47,11 +47,11 @@ describe("User Endpoints", () => {
   /**
    * Helper to create an event and get participant token.
    */
-  async function createEvent(title?: string) {
+  async function createEvent(title?: string, fields: Record<string, string> = {}) {
     const response = await server.inject({
       method: "POST",
       url: "/api/events",
-      payload: { title: title ?? `Event-${Date.now()}` },
+      payload: { title: title ?? `Event-${Date.now()}`, ...fields },
     });
     const body = response.json();
     return {
@@ -220,6 +220,30 @@ describe("User Endpoints", () => {
       expect(body.events[0].event.id).toBe(eventId);
       expect(body.events[0].event.title).toBe("Claimed Event");
       expect(body.events[0].role).toBe("organizer");
+    });
+
+    it("should list a claimed event's meeting time zone", async () => {
+      const { sessionToken } = await registerUser();
+      const { eventId, participantToken } = await createEvent("Paris Brunch", {
+        meetingTime: "2026-10-18T09:00:00.000Z",
+        meetingTimeZone: "Europe/Paris",
+      });
+
+      await server.inject({
+        method: "POST",
+        url: "/api/users/me/events/claim",
+        cookies: { session_token: sessionToken },
+        payload: { eventId, participantToken },
+      });
+
+      const response = await server.inject({
+        method: "GET",
+        url: "/api/users/me/events",
+        cookies: { session_token: sessionToken },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().events[0].event.meetingTimeZone).toBe("Europe/Paris");
     });
 
     it("should return 401 without session", async () => {
