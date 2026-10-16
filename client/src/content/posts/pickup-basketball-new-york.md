@@ -34,16 +34,6 @@ places:
     label: Basketball half courts
     note: Half courts in West Thames Park in Battery Park City, about a 7-minute walk from the Rector St station on the 1. A half court suits a smaller group playing three on three.
 images:
-  - file_name: lower-east-side-playground-basketball-courts-east-village.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Empty_Courts_%2851185060136%29.jpg/1280px-Empty_Courts_%2851185060136%29.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:Empty_Courts_(51185060136).jpg
-    width: 1280
-    height: 960
-    alt: Empty outdoor pickup basketball courts with graffiti murals on the wall at the Lower East Side Playground in the East Village
-    caption: Basketball courts at the Lower East Side Playground on East 12th Street
-    author: Eden, Janine and Jim
-    license: CC BY 2.0
-    cropped: false
   - file_name: pier-25-hudson-river-park-tribeca-skyline.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Manhattan_western_skyline_from_Pier_25.jpg/1280px-Manhattan_western_skyline_from_Pier_25.jpg
     page_url: https://commons.wikimedia.org/wiki/File:Manhattan_western_skyline_from_Pier_25.jpg
@@ -53,6 +43,16 @@ images:
     caption: Pier 25 in Hudson River Park, home of the Harrison Street court
     author: Qtaa
     license: CC BY 4.0
+    cropped: false
+  - file_name: lower-east-side-playground-basketball-courts-east-village.jpg
+    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Empty_Courts_%2851185060136%29.jpg/1280px-Empty_Courts_%2851185060136%29.jpg
+    page_url: https://commons.wikimedia.org/wiki/File:Empty_Courts_(51185060136).jpg
+    width: 1280
+    height: 960
+    alt: Empty outdoor pickup basketball courts with graffiti murals on the wall at the Lower East Side Playground in the East Village
+    caption: Basketball courts at the Lower East Side Playground on East 12th Street
+    author: Eden, Janine and Jim
+    license: CC BY 2.0
     cropped: false
   - file_name: tompkins-square-park-snow-east-village.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/Tompkins_Square_Winter_Wonderland_%2855009105870%29.jpg/1280px-Tompkins_Square_Winter_Wonderland_%2855009105870%29.jpg
@@ -78,9 +78,9 @@ Pick the side of Lower Manhattan your group reaches without a transfer. The Lowe
 
 The east side courts suit players from Brooklyn and Queens on the F and the L.
 
-The river courts suit players from the West Side and New Jersey. PATH trains stop at [World Trade Center](https://www.panynj.gov/path/en/stations/world-trade-center-station.html), and the 1 runs from WTC Cortlandt one stop south to Rector St and two stops north to Franklin St.
+![](lower-east-side-playground-basketball-courts-east-village.jpg)
 
-![](pier-25-hudson-river-park-tribeca-skyline.jpg)
+The river courts suit players from the West Side and New Jersey. PATH trains stop at [World Trade Center](https://www.panynj.gov/path/en/stations/world-trade-center-station.html), and the 1 runs from WTC Cortlandt one stop south to Rector St and two stops north to Franklin St.
 
 ## How many players do you need for a pickup game?
 
