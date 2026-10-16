@@ -217,9 +217,9 @@ Posts and places use Wikimedia Commons photos. Photos are never downloaded into 
 
 A caption reads "<caption>. Photo by <author> (<license>) via Wikimedia Commons". The license links to its deed, Wikimedia Commons links to `page_url`, and a cropped CC BY photo adds ", cropped". A post's cover shows at its own size and loads at once. Every other photo loads lazily.
 
-The build fetches each listed `source_url` once, with the User-Agent `Where2Meet/1.0 (https://www.where2meet.org/contact; contact@wayvi-ai.com)` as Wikimedia asks, and writes it to `/blog/images/<file_name>`. Next's data cache keeps each answer, so a later build reuses it. A 429 from Wikimedia is retried twice, 2 and 4 seconds apart. If a photo still fails, the build fails, and the site keeps serving the previous deploy. The photo is served as `image/jpeg` with `Cache-Control: public, max-age=31536000, immutable`, and `next/image` builds the responsive sizes from it. Any other file name answers 404, and the route never fetches a URL it was given.
+Before `next build`, `npm run blog-photos` writes each listed photo to `public/blog/images/<file_name>`, so the site serves it as a static file at `/blog/images/<file_name>` and `next/image` builds the responsive sizes from it. `npm run build` and `npm run dev` run it first. Git ignores the folder. The step fetches a photo it hasn't downloaded before from its `source_url`, with the User-Agent `Where2Meet/1.0 (https://www.where2meet.org/contact; contact@wayvi-ai.com)` as Wikimedia asks. `.next/cache/blog-photos` keeps each download by its `source_url`, so a later build reuses it. A timeout, a dropped connection, a 429 or a 5xx from Wikimedia is retried twice, 2 and 4 seconds apart. If a photo still fails, or Wikimedia sends something other than a JPEG, the build fails, and the site keeps serving the previous deploy. The photo is served as `image/jpeg` with `Cache-Control: public, max-age=31536000, immutable`, so a changed photo needs a new `file_name`. Any other file name answers 404.
 
-`cover.png` for a post or a place draws `images[0]`, or the place's `image`, with its credit. A place without a photo gets the map.
+`cover.png` for a post or a place draws `images[0]`, or the place's `image`, from its file in `public/blog/images`, with its credit. A place without a photo gets the map.
 
 ## Checks
 
