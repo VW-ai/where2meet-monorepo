@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 /** Start times the meeting picker offers, as "HH:mm": every half hour from 6:00 to 23:30, so evening plans fit. */
 export const MEETING_TIMES: readonly string[] = everyStep(6 * 60, 23 * 60 + 30, 30);
 
@@ -14,10 +16,11 @@ function everyStep(firstMinute: number, lastMinute: number, stepMinutes: number)
 /** The edit form's date ("yyyy-MM-dd") and time ("HH:mm") fields for a stored meeting time. */
 export function toLocalFields(meetingTime: string): { date: string; time: string } {
   const at = new Date(meetingTime);
-  return { date: at.toISOString().split('T')[0], time: at.toTimeString().slice(0, 5) };
+  return { date: format(at, 'yyyy-MM-dd'), time: format(at, 'HH:mm') };
 }
 
 /** The stored meeting time for the edit form's date and optional time fields. */
 export function fromLocalFields(date: string, time: string): string {
-  return time ? new Date(`${date}T${time}`).toISOString() : new Date(date).toISOString();
+  // A date-time string without an offset parses as local time; a bare date would parse as UTC.
+  return new Date(`${date}T${time || '00:00'}`).toISOString();
 }

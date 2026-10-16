@@ -6,7 +6,7 @@ import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { MEETING_TIMES } from '@/shared/lib/meeting-times';
 
@@ -40,8 +40,10 @@ export function AppointmentPicker({
   }, [date]);
 
   // The list runs 6:00 to 23:30, so an evening time sits below the fold when the picker reopens.
-  const revealSelected = (slot: HTMLButtonElement | null) =>
-    slot?.scrollIntoView({ block: 'nearest' });
+  const revealSelected = useCallback(
+    (slot: HTMLButtonElement | null) => slot?.scrollIntoView({ block: 'nearest' }),
+    []
+  );
 
   const handleDateSelect = (newDate: Date | undefined) => {
     if (newDate) {
