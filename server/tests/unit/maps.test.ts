@@ -129,7 +129,10 @@ describe("Maps Module", () => {
         json: () => Promise.resolve({ status: "ZERO_RESULTS", results: [] }),
       } as Response);
 
-      await expect(geocode("nonexistent address xyz123")).rejects.toThrow(AddressNotFoundError);
+      await expect(geocode("nonexistent address xyz123")).rejects.toMatchObject({
+        name: "AddressNotFoundError",
+        message: "Address not found",
+      });
     });
 
     it("throws AddressNotFoundError when results array is empty", async () => {
@@ -322,9 +325,9 @@ describe("Maps Module", () => {
 
   describe("AddressNotFoundError", () => {
     it("has correct name and message", () => {
-      const error = new AddressNotFoundError("123 Fake St");
+      const error = new AddressNotFoundError();
       expect(error.name).toBe("AddressNotFoundError");
-      expect(error.message).toBe("Address not found: 123 Fake St");
+      expect(error.message).toBe("Address not found");
     });
   });
 

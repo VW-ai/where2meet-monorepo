@@ -524,7 +524,7 @@ await fetch('/health/ready');
 ## Notes
 
 1. **Event IDs** use semantic format: `evt_<timestamp>_<random16>`
-2. **Fuzzy Location** offsets coordinates by 100-800m for privacy
+2. **Fuzzy Location** replaces the coordinates with a random point 800 to 1,600 m (0.5 to 1 mile) away
 3. **Geocoding** is done server-side via Google Maps API
 4. **Colors** are auto-assigned from a 16-color palette
 5. **Published Events** cannot have participants added/modified/removed

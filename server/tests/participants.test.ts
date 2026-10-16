@@ -31,6 +31,7 @@ vi.mock("../src/lib/maps.js", () => ({
 }));
 
 import { geocode, AddressNotFoundError } from "../src/lib/maps.js";
+import { drawWith } from "./helpers/random-draws.js";
 
 const mockGeocode = vi.mocked(geocode);
 
@@ -56,6 +57,7 @@ describe("Participant Endpoints", () => {
       lng: -74.006,
       formattedAddress: "123 Main Street, New York, NY 10001",
     });
+    drawWith(() => 0);
 
     // Create a fresh event for each test
     const response = await server.inject({
@@ -225,8 +227,9 @@ describe("Participant Endpoints", () => {
       });
 
       expect(response.statusCode).toBe(400);
-      const body = response.json();
-      expect(body.error.code).toBe("ADDRESS_NOT_FOUND");
+      expect(response.json()).toEqual({
+        error: { code: "ADDRESS_NOT_FOUND", message: "Address not found" },
+      });
     });
 
     it("should return 404 for non-existent event", async () => {
@@ -603,7 +606,7 @@ describe("Participant Endpoints", () => {
         {
           name: "Bob",
           address: null,
-          location: { lat: 40.7160306, lng: -74.0056271 },
+          location: { lat: 40.7199865, lng: -74.006 },
           fuzzyLocation: true,
         },
       ]);
@@ -625,13 +628,13 @@ describe("Participant Endpoints", () => {
         {
           name: "Bob",
           address: null,
-          location: { lat: 40.7160306, lng: -74.0056271 },
+          location: { lat: 40.7199865, lng: -74.006 },
           fuzzyLocation: true,
         },
         {
           name: "Priya",
           address: null,
-          location: { lat: 40.7100798, lng: -74.0144546 },
+          location: { lat: 40.7199865, lng: -74.006 },
           fuzzyLocation: true,
         },
       ]);
@@ -656,8 +659,8 @@ describe("Participant Endpoints", () => {
         isOrganizer: false,
         color: "teal",
         address: null,
-        lat: 40.7100798,
-        lng: -74.0144546,
+        lat: 40.7199865,
+        lng: -74.006,
       });
     });
 
@@ -694,10 +697,73 @@ describe("Participant Endpoints", () => {
         {
           name: "Bob",
           address: null,
-          location: { lat: 40.7160306, lng: -74.0056271 },
+          location: { lat: 40.7199865, lng: -74.006 },
           fuzzyLocation: true,
         },
       ]);
+    });
+
+    it("draws each approximate area at random, whatever the participant's name", async () => {
+      const add = (name: string) =>
+        addParticipant({ name, address: "456 Oak Ave", fuzzyLocation: true }, testParticipantToken);
+
+      const firstBob = await add("Bob");
+      drawWith((max) => max / 2);
+      const secondBob = await add("Bob");
+      drawWith(() => 0);
+      const priya = await add("Priya");
+
+      expect([firstBob, secondBob, priya].map((response) => response.json().location)).toEqual([
+        { lat: 40.7199865, lng: -74.006 },
+        { lat: 40.7014372, lng: -74.006 },
+        { lat: 40.7199865, lng: -74.006 },
+      ]);
+    });
+
+    describe("editing an approximate participant", () => {
+      let url: string;
+      const headers = () => ({ authorization: `Bearer ${testParticipantToken}` });
+
+      beforeEach(async () => {
+        const added = await addParticipant(
+          { name: "Bob", address: "456 Oak Ave", fuzzyLocation: true },
+          testParticipantToken
+        );
+        url = `/api/events/${testEventId}/participants/${added.json().id}`;
+        drawWith((max) => max / 2);
+      });
+
+      it("keeps the area when only the name changes", async () => {
+        const renamed = await server.inject({
+          method: "PATCH",
+          url,
+          headers: headers(),
+          payload: { name: "Bobby", fuzzyLocation: true },
+        });
+
+        expect(view(renamed.json())).toEqual({
+          name: "Bobby",
+          address: null,
+          location: { lat: 40.7199865, lng: -74.006 },
+          fuzzyLocation: true,
+        });
+      });
+
+      it("draws a new area when the address changes", async () => {
+        const moved = await server.inject({
+          method: "PATCH",
+          url,
+          headers: headers(),
+          payload: { address: "789 Pine Rd" },
+        });
+
+        expect(view(moved.json())).toEqual({
+          name: "Bob",
+          address: null,
+          location: { lat: 40.7014372, lng: -74.006 },
+          fuzzyLocation: true,
+        });
+      });
     });
   });
 });

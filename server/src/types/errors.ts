@@ -138,12 +138,8 @@ export class ParticipantNotFoundError extends AppError {
  * Error when geocoding fails for an address.
  */
 export class AddressNotFoundError extends AppError {
-  constructor(address?: string) {
-    super(
-      address ? `Could not geocode address: ${address}` : "Address not found",
-      400,
-      "ADDRESS_NOT_FOUND"
-    );
+  constructor() {
+    super("Address not found", 400, "ADDRESS_NOT_FOUND");
   }
 }
 

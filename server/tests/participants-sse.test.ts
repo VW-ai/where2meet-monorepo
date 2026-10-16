@@ -38,6 +38,8 @@ vi.mock("../src/lib/maps.js", () => ({
   },
 }));
 
+import { drawWith } from "./helpers/random-draws.js";
+
 describe("Participant SSE Broadcasting", () => {
   let server: FastifyInstance;
   let testEventId: string;
@@ -54,6 +56,7 @@ describe("Participant SSE Broadcasting", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    drawWith(() => 0);
 
     // Mock the SSE broadcast function
     broadcastMock = vi.fn().mockResolvedValue(undefined);
@@ -138,8 +141,8 @@ describe("Participant SSE Broadcasting", () => {
                 id: response.json().id,
                 name: "Bob",
                 address: null,
-                lat: 40.7160306,
-                lng: -74.0056271,
+                lat: 40.7199865,
+                lng: -74.006,
                 color: "teal",
                 fuzzyLocation: true,
                 isOrganizer: false,
@@ -581,8 +584,8 @@ describe("Participant SSE Broadcasting", () => {
             id: participantId,
             name: "Bobby",
             address: null,
-            lat: 40.7160306,
-            lng: -74.0056271,
+            lat: 40.7199865,
+            lng: -74.006,
             color: "teal",
             fuzzyLocation: true,
             isOrganizer: false,
@@ -625,8 +628,8 @@ describe("Participant SSE Broadcasting", () => {
             id: participantId,
             name: "Bob",
             address: null,
-            lat: 40.7160306,
-            lng: -74.0056271,
+            lat: 40.7199865,
+            lng: -74.006,
             color: "teal",
             fuzzyLocation: true,
             isOrganizer: false,
