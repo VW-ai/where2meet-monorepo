@@ -17,6 +17,7 @@ import { UserMenu } from '@/features/auth/ui/user-menu';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { usePortalStore } from '@/features/portal/model/portal-store';
+import { browserTimeZone } from '@/shared/lib/meeting-times';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -103,6 +104,7 @@ export default function LandingPage() {
       const event = await eventClient.create({
         title,
         meetingTime: new Date(meetingTime).toISOString(),
+        meetingTimeZone: browserTimeZone(),
       });
 
       console.warn('[LandingPage] Event created:', {

@@ -76,8 +76,15 @@ function handleEventUpdated(data: EventUpdatedPayload): void {
     return;
   }
 
-  const { title, meetingTime, publishedAt, publishedVenueId } = data.event;
-  setCurrentEvent({ ...currentEvent, title, meetingTime, publishedAt, publishedVenueId });
+  const { title, meetingTime, meetingTimeZone, publishedAt, publishedVenueId } = data.event;
+  setCurrentEvent({
+    ...currentEvent,
+    title,
+    meetingTime,
+    meetingTimeZone,
+    publishedAt,
+    publishedVenueId,
+  });
 }
 
 /**

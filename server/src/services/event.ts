@@ -72,6 +72,7 @@ export class EventService {
       {
         title: input.title,
         meetingTime: input.meetingTime,
+        meetingTimeZone: input.meetingTimeZone,
       },
       {
         name: "Organizer",

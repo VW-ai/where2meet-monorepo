@@ -53,6 +53,7 @@ export function toUserEventResponse(entity: UserEventWithEvent): UserEventRespon
       id: entity.event.id,
       title: entity.event.title,
       meetingTime: entity.event.meetingTime?.toISOString() ?? null,
+      meetingTimeZone: entity.event.meetingTimeZone,
       publishedAt: entity.event.publishedAt?.toISOString() ?? null,
       createdAt: entity.event.createdAt.toISOString(),
       participantCount: entity.event._count.participants,

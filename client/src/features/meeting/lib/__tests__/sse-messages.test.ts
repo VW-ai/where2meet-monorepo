@@ -24,6 +24,7 @@ const EVENT: Event = {
   id: EVENT_ID,
   title: 'Café SSE test, before fix',
   meetingTime: '2026-10-20T00:00:00.000Z',
+  meetingTimeZone: null,
   createdAt: '2026-10-16T12:00:00.000Z',
   updatedAt: '2026-10-16T12:00:00.000Z',
   participants: [TESTER],
@@ -47,9 +48,9 @@ const BRICKYARD: Venue = {
 };
 
 const RENAME =
-  '{"event":{"id":"evt_1792167269143_bqAdVLMBseGmhgHK","title":"Café SSE test, split reads before fix","meetingTime":"2026-10-21T00:00:00.000Z","publishedAt":null,"publishedVenueId":null}}';
+  '{"event":{"id":"evt_1792167269143_bqAdVLMBseGmhgHK","title":"Café SSE test, split reads before fix","meetingTime":"2026-10-21T00:00:00.000Z","meetingTimeZone":"America/New_York","publishedAt":null,"publishedVenueId":null}}';
 const PUBLISH =
-  '{"event":{"id":"evt_1792167269143_bqAdVLMBseGmhgHK","title":"Café SSE test, split reads before fix","meetingTime":"2026-10-21T00:00:00.000Z","publishedAt":"2026-10-16T18:06:32.751Z","publishedVenueId":"ChIJme4A6d5bwokR7QwUdTNRp5E"},"venue":{"id":"ChIJme4A6d5bwokR7QwUdTNRp5E","name":"Brickyard Craft Kitchen & Bar","address":"23 Park Pl, New York","lat":40.7133249,"lng":-74.008664}}';
+  '{"event":{"id":"evt_1792167269143_bqAdVLMBseGmhgHK","title":"Café SSE test, split reads before fix","meetingTime":"2026-10-21T00:00:00.000Z","meetingTimeZone":"America/New_York","publishedAt":"2026-10-16T18:06:32.751Z","publishedVenueId":"ChIJme4A6d5bwokR7QwUdTNRp5E"},"venue":{"id":"ChIJme4A6d5bwokR7QwUdTNRp5E","name":"Brickyard Craft Kitchen & Bar","address":"23 Park Pl, New York","lat":40.7133249,"lng":-74.008664}}';
 const PARTICIPANT_ADDED =
   '{"participant":{"id":"53d4c04a-e630-4c5c-8b1c-b36e142918f8","name":"SSE Probe","address":"Bryant Park Winter Village, 6th Avenue, New York, NY, USA","lat":40.7535021,"lng":-73.983585,"color":"teal","isOrganizer":false}}';
 const PARTICIPANT_UPDATED =
@@ -98,15 +99,20 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('SSE messages the server sends', () => {
-  it('applies a rename', () => {
+  it('applies a rename with its new time and zone', () => {
     receive('event:updated', RENAME);
-    expect([currentEvent()?.title, currentEvent()?.meetingTime]).toEqual([
+    expect([
+      currentEvent()?.title,
+      currentEvent()?.meetingTime,
+      currentEvent()?.meetingTimeZone,
+    ]).toEqual([
       'Café SSE test, split reads before fix',
       '2026-10-21T00:00:00.000Z',
+      'America/New_York',
     ]);
   });
 
-  it('applies a publish', () => {
+  it('applies a publish that carries the meeting zone', () => {
     receive('event:published', PUBLISH);
     expect([currentEvent()?.publishedVenueId, currentEvent()?.publishedAt]).toEqual([
       BRICKYARD_ID,
@@ -215,11 +221,13 @@ describe('SSE messages the server sends', () => {
 describe('SSE payloads that drift from the schema', () => {
   it('drops each one with its event type and what is wrong', () => {
     receive('event:published', PUBLISH.replace('"address":"23 Park Pl, New York"', '"address":42'));
+    receive('event:published', PUBLISH.replace('"meetingTimeZone":"America/New_York",', ''));
     receive('event:updated', RENAME.replace('"title":', '"name":'));
     receive('participant:removed', '{"participant":{"id":"53d4c04a-e630-4c5c-8b1c-b36e142918f8"}}');
     expect([errors, currentEvent()?.publishedVenueId, currentEvent()?.title]).toEqual([
       [
         ['[SSE] Dropped event:published: venue.address: expected string, got number'],
+        ['[SSE] Dropped event:published: event.meetingTimeZone: expected string, got undefined'],
         ['[SSE] Dropped event:updated: event.title: expected string, got undefined'],
         ['[SSE] Dropped participant:removed: participantId: expected string, got undefined'],
       ],
