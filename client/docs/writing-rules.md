@@ -30,7 +30,7 @@ Every post:
 
 1. **The answer first.** The first two sentences answer the search directly and use the main keyword. The rest of the opening paragraph names the reader's situation in their words. A second short paragraph says what the post covers.
 2. **Question headings.** Four to five `##` sections in sentence case. Phrase each heading the way people ask it, as in "How far should everyone travel?". Open each section with a one- or two-sentence answer, then the detail.
-3. **Real places.** A local post suggests six to eight real places near the top of the post. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks. The place cards are the list of picks, placed with a `:::places` line right after the first section's answer. Each card's note says what the place is, why it fits the occasion and its walk from the nearest station. The body doesn't repeat a card. A general post uses at least six examples in one named city.
+3. **Real places.** A local post suggests six to eight real places near the top of the post. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks. The place cards are the list of picks, placed with a `:::places` line right after the first section's answer. Each card's note says why the place fits the occasion, as in Place notes. The line right after `:::places` names where the cards' facts come from. The body doesn't repeat a card. A general post uses at least six examples in one named city.
 4. **Real photos.** A cover photo plus at least two photos in the body. See Pictures.
 5. **"How to do it in Where2Meet."** Numbered steps, starting from the matching chip on the homepage. When the homepage has no chip for the occasion, start by typing its name in the first box.
 6. **"Common questions."** Three to five questions people search, each answered in two or three sentences. Use real questions from Search Console or the Keywords list when you have them.
@@ -60,10 +60,27 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 ## Places
 
 - Pick each place on Google Maps and store only its place ID.
-- The label is the place's name. The note is in our own words, at least 12 words. It says what the place is, why it fits the occasion, such as its seating or whether it takes bookings, and its walk from the nearest station.
+- The label is the place's name. The note is in our own words, at least 12 words, as in Place notes.
 - The place cards are the list of picks. The body may name a place where the advice needs it, but it doesn't repeat a card's note.
 - Check every fact in a note on Google Maps, and check that each place is open, before publishing. Check again whenever you update the post.
 - Times and distances come from Google Maps for a stated mode, as in "about a 5-minute walk".
+
+## Place notes
+
+The card already shows the place's name, photo, rating and address. The note tells the reader why this place suits this plan.
+
+- **Why it fits.** Open with why the place fits the post's occasion and group, in specific terms. "Keep this coffee shop for a check-in of two or three, because it isn't good for groups" says why. "A coffee shop on West 38th Street" only restates the card.
+- **One planning detail.** Give the reader something to act on: book ahead or walk in, which station or exit, the group size it suits, or when it closes.
+- **Plain facts.** State what you checked as plain facts: takes reservations, good for groups, price level, hours, and the walk from the station.
+- **One source line.** Name the source once per post, in one plain sentence on the line right after `:::places`, as in "The hours, reservations, price levels and walk times on these cards come from Google Maps as of October 2026."
+- **No source tags in notes.** Never write "per Google", "Google lists", "according to Google" or anything else that names Google in a note. CI blocks it. When a Google office is a landmark, name it another way, as in "near the Chelsea Market building".
+- **No shared template.** Vary how notes open and how their sentences run. At most two notes in a post start with the same word, and "A" and "An" count as one word. CI blocks more.
+- **Never invent first-hand experience.** Don't claim a visit, a taste, the staff's manner or a room's atmosphere that you can't source. No "we loved".
+- **Visits only when real and specific.** Mention a visit only when someone on the team really made it, and say when and what they saw.
+
+Before, in the old template: "A coffee shop on West 38th Street for a quick check-in of two or three, since Google lists it as not good for groups. Google also lists it as inexpensive. About a 5-minute walk from the 42 St-Bryant Pk station."
+
+After: "Keep this coffee shop on West 38th Street for a check-in of two or three, because it isn't good for groups. It's inexpensive and about a 5-minute walk from the 42 St-Bryant Pk station."
 
 ## Facts and honesty
 
@@ -148,6 +165,7 @@ What the site handles, so don't hand-write it:
 - **CI checks every post.** A pull request can't merge until these pass:
   - the word counts
   - six places
+  - place notes that never name Google, and no more than two that start with the same word
   - a licensed cover and two body photos with alt text
   - the title and description limits
   - a main keyword listed in `keywords.yaml`, said in the title and the first two sentences

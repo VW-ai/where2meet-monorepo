@@ -9,6 +9,7 @@ Owner decisions:
 - 2026-10-10. Every piece of blog content and SEO configuration lives in the repo: posts, places, parameters, keywords and the writing rules. The panel only views them.
 - 2026-10-13. The 4 original posts are Markdown local posts under New York towns, without their widgets. Each kept its slug and moved to `/blog/new-york/<town>/<slug>`, and its old URL redirects there permanently so search engines keep its ranking. The same day the owner asked that every local post suggest 6 to 8 real places, mostly restaurants, cafes and bars that fit the occasion.
 - 2026-10-14. This replaces the 2026-10-13 rule of mostly restaurants, cafes and bars. A local post's place cards are its list of picks, and the body doesn't repeat them. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks.
+- 2026-10-16. A place note says why the place fits the occasion and gives a planning detail, in plain facts. It never names Google. The post names its source once, in one sentence on the line after `:::places`. At most 2 notes in a post start with the same word.
 
 ## Make a change
 
@@ -91,7 +92,7 @@ updated_at: 2026-10-10
 places:
   - place_id: ChIJ...
     label: Think Coffee
-    note: A coffee shop about a 2-minute walk from the Union Square station, where eight subway lines stop.
+    note: Meet here when one of you rides the L and the other the 4, 5 or 6. The coffee shop is about a 2-minute walk from the Union Square station, where eight subway lines stop.
 images:
   - file_name: union-square-park-new-york.jpg
     source_url: https://upload.wikimedia.org/wikipedia/commons/thumb/.../1280px-....jpg
@@ -117,7 +118,7 @@ A coffee meeting spot works when both of you can reach it in about the same time
 | `time`, `venue_type`, `group_size`, `budget` | A key from that file's `times`, `venue_types`, `group_sizes` or `budgets`, or `null`.                                                                                                                                 |
 | `city`, `town`                               | Both `null` for a general post at `/blog/<slug>`. For a local post, the slug of a city with a place file, and optionally one of its towns. The post is then at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`. |
 | `published_at`, `updated_at`                 | `YYYY-MM-DD`. `updated_at` is on or after `published_at`.                                                                                                                                                             |
-| `places`                                     | At least 6, and 6 to 8 for a local post, that fit the title and the `venue_type` if set. Each has a `place_id`, the Google `label`, and a `note` of at least 12 words in your own words.                              |
+| `places`                                     | At least 6, and 6 to 8 for a local post, that fit the title and the `venue_type` if set. Each has a `place_id`, the Google `label`, and a `note` of at least 12 words in your own words that never names Google.      |
 | `images`                                     | At least 3 Wikimedia Commons photos, as in [Photos](#photos). `images[0]` is the cover.                                                                                                                               |
 
 Quote a YAML value that contains `: ` or starts with a character YAML treats specially, such as `"Lunch: the plan"`. Dates stay strings.
@@ -127,7 +128,7 @@ Quote a YAML value that contains `: ` or starts with a character YAML treats spe
 The body is Markdown in the site's subset: paragraphs, `-` and `1.` lists, `**bold**`, `*italic*`, `[text](https://…)` links, and `##` or `###` headings. The site drops raw HTML and shows a link that is not `https://` or a site path as plain text. Two whole lines add more:
 
 - `![](<file_name>)` places that image, with its alt text, caption and credit.
-- `:::places` places the place cards. The cards are the list of picks, so a local post puts this line right after the first section's answer. Each note says what the place is, why it fits and its walk from the nearest station, and the body doesn't repeat a card.
+- `:::places` places the place cards. The cards are the list of picks, so a local post puts this line right after the first section's answer. Each note says why the place fits and gives a planning detail, as the writing rules' Place notes section says. The line after it names where the cards' facts come from, and the body doesn't repeat a card.
 
 Photos the body doesn't place, other than the cover, and the place cards without a `:::places` line, render after the second `##` section. A local post shows its occasion and each parameter it sets as chips under the title, in the order occasion, time, venue type, group size, budget. A general post shows no chips.
 
@@ -229,19 +230,21 @@ Every file gets the `fields` rule. It fails when the file doesn't parse, when a 
 
 A post gets these rules:
 
-| Rule           | What it wants                                                                                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `word-count`   | 700 to 1,000 words for a general post, or 400 to 800 for a local post. A link counts its text, not its URL.                                                               |
-| `places`       | At least 6 places, and each note has at least 12 words.                                                                                                                   |
-| `images`       | At least 3 usable images, and every `![](<file_name>)` line names a listed image.                                                                                         |
-| `image-size`   | Each `source_url` answers a HEAD request with 200, `image/jpeg` and a size of at most 2,000,000 bytes.                                                                    |
-| `title`        | The title with " \| Where2Meet" is at most 60 characters.                                                                                                                 |
-| `description`  | The description is 120 to 155 characters.                                                                                                                                 |
-| `main-keyword` | `main_keyword` is a phrase in `keywords.yaml`, and the title and the body's first two sentences say it as whole words. Headings, photo lines and `:::places` are skipped. |
-| `headings`     | The body has `## How to do it in Where2Meet` and `## Common questions`.                                                                                                   |
-| `wording`      | No word starting with "fair" and no "meet in the middle", in the title, description, body, place notes, alt text or captions.                                             |
-| `style`        | No em dash, en dash or curly quote in the same fields.                                                                                                                    |
-| `dates`        | `updated_at` is on or after `published_at`.                                                                                                                               |
+| Rule            | What it wants                                                                                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `word-count`    | 700 to 1,000 words for a general post, or 400 to 800 for a local post. A link counts its text, not its URL.                                                               |
+| `places`        | At least 6 places, and each note has at least 12 words.                                                                                                                   |
+| `note-source`   | No place note names Google, as in "per Google" or "Google lists". The body may name the source once.                                                                      |
+| `note-openings` | At most 2 place notes start with the same word, with "A" and "An" counted as one.                                                                                         |
+| `images`        | At least 3 usable images, and every `![](<file_name>)` line names a listed image.                                                                                         |
+| `image-size`    | Each `source_url` answers a HEAD request with 200, `image/jpeg` and a size of at most 2,000,000 bytes.                                                                    |
+| `title`         | The title with " \| Where2Meet" is at most 60 characters.                                                                                                                 |
+| `description`   | The description is 120 to 155 characters.                                                                                                                                 |
+| `main-keyword`  | `main_keyword` is a phrase in `keywords.yaml`, and the title and the body's first two sentences say it as whole words. Headings, photo lines and `:::places` are skipped. |
+| `headings`      | The body has `## How to do it in Where2Meet` and `## Common questions`.                                                                                                   |
+| `wording`       | No word starting with "fair" and no "meet in the middle", in the title, description, body, place notes, alt text or captions.                                             |
+| `style`         | No em dash, en dash or curly quote in the same fields.                                                                                                                    |
+| `dates`         | `updated_at` is on or after `published_at`.                                                                                                                               |
 
 A city or a town gets these rules:
 
