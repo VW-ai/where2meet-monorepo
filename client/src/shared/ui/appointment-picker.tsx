@@ -8,6 +8,7 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
 import { cn } from '@/shared/lib/cn';
+import { MEETING_TIMES } from '@/shared/lib/meeting-times';
 
 interface AppointmentPickerProps {
   date: Date | undefined;
@@ -37,27 +38,6 @@ export function AppointmentPicker({
       setSelectedTime(format(date, 'HH:mm'));
     }
   }, [date]);
-
-  const timeSlots = [
-    { time: '09:00', available: true },
-    { time: '09:30', available: true },
-    { time: '10:00', available: true },
-    { time: '10:30', available: true },
-    { time: '11:00', available: true },
-    { time: '11:30', available: true },
-    { time: '12:00', available: true },
-    { time: '12:30', available: true },
-    { time: '13:00', available: true },
-    { time: '13:30', available: true },
-    { time: '14:00', available: true },
-    { time: '14:30', available: true },
-    { time: '15:00', available: true },
-    { time: '15:30', available: true },
-    { time: '16:00', available: true },
-    { time: '16:30', available: true },
-    { time: '17:00', available: true },
-    { time: '17:30', available: true },
-  ];
 
   const handleDateSelect = (newDate: Date | undefined) => {
     if (newDate) {
@@ -118,14 +98,13 @@ export function AppointmentPicker({
                         </p>
                       </div>
                       <div className="grid gap-2 px-5 max-sm:grid-cols-2">
-                        {timeSlots.map(({ time: timeSlot, available }) => (
+                        {MEETING_TIMES.map((timeSlot) => (
                           <Button
                             key={timeSlot}
                             variant={selectedTime === timeSlot ? 'default' : 'outline'}
                             size="sm"
                             className="w-full"
                             onClick={() => handleTimeSelect(timeSlot)}
-                            disabled={!available}
                           >
                             {timeSlot}
                           </Button>
