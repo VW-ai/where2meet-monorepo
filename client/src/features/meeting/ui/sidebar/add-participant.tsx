@@ -6,6 +6,7 @@ import { cn } from '@/shared/lib/cn';
 import { generateRandomName } from '@/features/meeting/lib/name-generator';
 import { LocationField } from '@/shared/ui/location-field';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { startingLocationError } from '@/features/meeting/lib/starting-location';
 
 interface AddParticipantProps {
   onSubmit: (data: ParticipantFormData) => void;
@@ -17,6 +18,7 @@ interface AddParticipantProps {
   cancelLabel?: string;
   /** Confirmation for the previous submission, shown above the fields */
   notice?: string | null;
+  hasHiddenAddress?: boolean;
 }
 
 export interface ParticipantFormData {
@@ -34,6 +36,7 @@ export function AddParticipant({
   initialData,
   cancelLabel = 'Cancel',
   notice,
+  hasHiddenAddress = false,
 }: AddParticipantProps) {
   const { user } = useAuthStore();
   const hasDefaultAddress = !!(user?.defaultAddress && user?.defaultPlaceId);
@@ -44,10 +47,7 @@ export function AddParticipant({
   const [fuzzyLocation, setFuzzyLocation] = useState(initialData?.fuzzyLocation ?? false);
   const [errors, setErrors] = useState<{ name?: string; address?: string }>({});
 
-  // An address that was already saved has been geocoded, so editing only the name
-  // (or the privacy toggle) must not force the user to re-pick it from the dropdown.
   const savedAddress = mode === 'edit' ? initialData?.address?.trim() : undefined;
-  const addressIsSaved = !!savedAddress && address.trim() === savedAddress;
 
   const clearError = (field: 'name' | 'address') => {
     if (errors[field]) {
@@ -85,10 +85,14 @@ export function AddParticipant({
       newErrors.name = 'Name is required';
     }
 
-    if (!address.trim()) {
-      newErrors.address = 'Address is required';
-    } else if (!placeId && !addressIsSaved) {
-      newErrors.address = 'Pick an address from the suggestions';
+    const addressError = startingLocationError({
+      address,
+      placeId,
+      savedAddress,
+      hasHiddenAddress,
+    });
+    if (addressError) {
+      newErrors.address = addressError;
     }
 
     setErrors(newErrors);
@@ -235,8 +239,12 @@ export function AddParticipant({
         {errors.address ? (
           <p className="text-xs text-red-500">{errors.address}</p>
         ) : (
-          <p className="text-xs text-muted-foreground">
-            Pick a suggestion, or tap the target icon to use where you are now.
+          <p id="participant-address-help" className="text-xs text-muted-foreground">
+            {!hasHiddenAddress || address.trim()
+              ? 'Pick a suggestion, or tap the target icon to use where you are now.'
+              : fuzzyLocation
+                ? 'The exact address stays private. Leave this empty to keep it, or pick a new address.'
+                : 'Leave this empty to show the saved address to everyone, or pick a new address.'}
           </p>
         )}
       </div>
