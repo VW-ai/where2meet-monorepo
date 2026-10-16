@@ -39,6 +39,10 @@ export function AppointmentPicker({
     }
   }, [date]);
 
+  // The list runs 6:00 to 23:30, so an evening time sits below the fold when the picker reopens.
+  const revealSelected = (slot: HTMLButtonElement | null) =>
+    slot?.scrollIntoView({ block: 'nearest' });
+
   const handleDateSelect = (newDate: Date | undefined) => {
     if (newDate) {
       setSelectedDate(newDate);
@@ -78,7 +82,7 @@ export function AppointmentPicker({
             {date ? format(date, "PPP 'at' p") : <span>{placeholder}</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align="start" aria-label="Choose a date and time">
           <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
             <div className="flex max-sm:flex-col">
               <Calendar
@@ -104,6 +108,8 @@ export function AppointmentPicker({
                             variant={selectedTime === timeSlot ? 'default' : 'outline'}
                             size="sm"
                             className="w-full"
+                            aria-pressed={selectedTime === timeSlot}
+                            ref={selectedTime === timeSlot ? revealSelected : undefined}
                             onClick={() => handleTimeSelect(timeSlot)}
                           >
                             {timeSlot}
