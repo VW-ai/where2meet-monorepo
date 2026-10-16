@@ -13,6 +13,7 @@ export interface EventUpdatedPayload {
   eventId: string;
   title?: string;
   meetingTime?: string | null;
+  meetingTimeZone?: string | null;
   updatedAt: string;
 }
 

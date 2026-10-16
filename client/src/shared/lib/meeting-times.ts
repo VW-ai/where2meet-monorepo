@@ -24,3 +24,31 @@ export function fromLocalFields(date: string, time: string): string {
   // A date-time string without an offset parses as local time; a bare date would parse as UTC.
   return new Date(`${date}T${time || '00:00'}`).toISOString();
 }
+
+export function meetingWhen(meetingTime: string, timeZone: string | null): string | null {
+  if (!timeZone) return null;
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+      timeZone,
+    }).format(new Date(meetingTime));
+  } catch {
+    return null;
+  }
+}
+
+export function browserTimeZone(): string | undefined {
+  const { timeZone } = Intl.DateTimeFormat().resolvedOptions();
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone });
+    return timeZone;
+  } catch {
+    return undefined;
+  }
+}

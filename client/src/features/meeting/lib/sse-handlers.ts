@@ -78,6 +78,8 @@ function handleEventUpdated(data: EventUpdatedPayload): void {
     ...currentEvent,
     title: data.title ?? currentEvent.title,
     meetingTime: data.meetingTime !== undefined ? data.meetingTime : currentEvent.meetingTime,
+    meetingTimeZone:
+      data.meetingTimeZone !== undefined ? data.meetingTimeZone : currentEvent.meetingTimeZone,
     updatedAt: data.updatedAt,
   });
 }
