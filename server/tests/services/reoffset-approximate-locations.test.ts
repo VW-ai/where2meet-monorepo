@@ -1,15 +1,6 @@
-/**
- * Integration tests for the one-off that gives approximate participants a new area.
- */
-
 import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 
 vi.mock("../../src/lib/maps.js", () => ({ geocode: vi.fn() }));
-
-vi.mock("crypto", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("crypto")>()),
-  randomInt: vi.fn(),
-}));
 
 import { geocode } from "../../src/lib/maps.js";
 import { prisma } from "../../src/lib/prisma.js";

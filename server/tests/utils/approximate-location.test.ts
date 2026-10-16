@@ -1,22 +1,11 @@
-/**
- * Unit tests for approximate locations.
- */
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
-vi.mock("crypto", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("crypto")>()),
-  randomInt: vi.fn(),
-}));
-
-import { randomInt } from "crypto";
+import { describe, it, expect } from "vitest";
 import { approximateLocation } from "../../src/utils/approximate-location.js";
 import { drawWith } from "../helpers/random-draws.js";
 
 const EXACT = { lat: 40.7128, lng: -74.006 };
+const RADIUS_SPLITTING_RING_AREA_IN_HALF = Math.sqrt((800 ** 2 + 1600 ** 2) / 2);
 
-/** Mulberry32, so the sample below is the same on every run. */
-function seededRandom(seed: number): () => number {
+function mulberry32(seed: number): () => number {
   let state = seed;
   return () => {
     state = (state + 0x6d2b79f5) | 0;
@@ -26,8 +15,7 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-/** Great-circle distance in meters and initial bearing in degrees clockwise from north. */
-function measure(from: typeof EXACT, to: typeof EXACT) {
+function distanceAndBearing(from: typeof EXACT, to: typeof EXACT) {
   const radians = (degrees: number) => (degrees * Math.PI) / 180;
   const [lat1, lat2] = [radians(from.lat), radians(to.lat)];
   const dLat = lat2 - lat1;
@@ -46,10 +34,6 @@ const rounded = ({ meters, bearing }: { meters: number; bearing: number }) => ({
 });
 
 describe("approximateLocation", () => {
-  beforeEach(() => {
-    vi.mocked(randomInt).mockReset();
-  });
-
   it("maps fixed draws to 800 m north, 1058 m east, 1265 m south, and 1600 m north", () => {
     const picks = [
       () => 0,
@@ -60,7 +44,7 @@ describe("approximateLocation", () => {
 
     const areas = picks.map((pick) => {
       drawWith(pick);
-      return rounded(measure(EXACT, approximateLocation(EXACT)));
+      return rounded(distanceAndBearing(EXACT, approximateLocation(EXACT)));
     });
 
     expect(areas).toEqual([
@@ -72,11 +56,11 @@ describe("approximateLocation", () => {
   });
 
   it("spreads areas evenly over every direction and the whole 800 to 1600 m ring", () => {
-    const next = seededRandom(20_261_016);
+    const next = mulberry32(20_261_016);
     drawWith((max) => Math.floor(next() * max));
 
     const samples = Array.from({ length: 10_000 }, () =>
-      measure(EXACT, approximateLocation(EXACT))
+      distanceAndBearing(EXACT, approximateLocation(EXACT))
     );
     const meters = samples.map((sample) => sample.meters);
     const shareByOctant = Array.from(
@@ -85,8 +69,8 @@ describe("approximateLocation", () => {
         samples.filter((sample) => Math.floor(sample.bearing / 45) === octant).length /
         samples.length
     );
-    // Half the ring's area lies within sqrt((800² + 1600²) / 2) ≈ 1265 m
-    const shareInInnerHalf = meters.filter((m) => m < 1264.9).length / samples.length;
+    const shareInInnerHalf =
+      meters.filter((m) => m < RADIUS_SPLITTING_RING_AREA_IN_HALF).length / samples.length;
 
     expect(Math.min(...meters)).toBeGreaterThan(799.5);
     expect(Math.min(...meters)).toBeLessThan(802);

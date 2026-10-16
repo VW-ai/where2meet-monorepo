@@ -30,11 +30,6 @@ vi.mock("../src/lib/maps.js", () => ({
   },
 }));
 
-vi.mock("crypto", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("crypto")>()),
-  randomInt: vi.fn(),
-}));
-
 import { geocode, AddressNotFoundError } from "../src/lib/maps.js";
 import { drawWith } from "./helpers/random-draws.js";
 

@@ -27,11 +27,6 @@ vi.mock("../../src/lib/maps.js", () => ({
   },
 }));
 
-vi.mock("crypto", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("crypto")>()),
-  randomInt: vi.fn(),
-}));
-
 const { logError } = vi.hoisted(() => ({ logError: vi.fn() }));
 vi.mock("../../src/lib/logger.js", () => ({
   createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: logError }),
@@ -234,8 +229,7 @@ describe("ParticipantService", () => {
 
     it("should throw ExternalServiceError when geocoding API fails", async () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
-      const apiError = new GeocodingApiError("API quota exceeded", "OVER_QUERY_LIMIT");
-      mockGeocode.mockRejectedValue(apiError);
+      mockGeocode.mockRejectedValue(new GeocodingApiError("API quota exceeded", "OVER_QUERY_LIMIT"));
 
       await expect(
         service.addParticipant(TEST_EVENT_ID, {
@@ -247,7 +241,17 @@ describe("ParticipantService", () => {
         code: "EXTERNAL_SERVICE_ERROR",
         statusCode: 502,
       });
-      // The typed address stays out of the logs
+    });
+
+    it("should log a geocoding API error without the typed address", async () => {
+      vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
+      const apiError = new GeocodingApiError("API quota exceeded", "OVER_QUERY_LIMIT");
+      mockGeocode.mockRejectedValue(apiError);
+
+      await service
+        .addParticipant(TEST_EVENT_ID, { name: "Alice", address: "123 Main St", fuzzyLocation: false })
+        .catch(() => undefined);
+
       expect(logError.mock.calls).toEqual([[{ err: apiError }, "Geocoding API error"]]);
     });
 
