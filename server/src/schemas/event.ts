@@ -10,19 +10,12 @@ import { z } from "zod";
 
 import { EVENT_ID_PATTERN } from "../utils/id.js";
 
+const IANA_ZONE_NAME = /^[A-Za-z0-9_+-]+(?:\/[A-Za-z0-9_+-]+)*$/;
+
 const MeetingTimeZoneSchema = z
   .string()
   .max(64, "Meeting time zone must be 64 characters or less")
-  .refine(isTimeZone, "Meeting time zone must be a valid IANA time zone");
-
-function isTimeZone(timeZone: string): boolean {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone });
-    return true;
-  } catch {
-    return false;
-  }
-}
+  .regex(IANA_ZONE_NAME, "Meeting time zone must be an IANA time zone name");
 
 function zoneHasTime(data: { meetingTime?: string | null; meetingTimeZone?: string | null }) {
   return data.meetingTimeZone === undefined || data.meetingTime !== undefined;
