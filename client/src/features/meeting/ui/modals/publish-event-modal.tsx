@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, CheckCircle, MapPin, AlertCircle } from 'lucide-react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
@@ -10,7 +10,7 @@ import { eventClient } from '@/features/meeting/api';
 import { APIError } from '@/lib/api/client';
 
 export function PublishEventModal() {
-  const { isPublishModalOpen, closePublishModal, setActiveView } = useUIStore();
+  const { isPublishModalOpen, closePublishModal, openShareModal, setActiveView } = useUIStore();
   const { organizerToken } = useAuthStore();
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
   const { voteForVenue, hasVotedFor } = useVotingStore();
@@ -18,6 +18,7 @@ export function PublishEventModal() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoClose = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -107,10 +108,7 @@ export function PublishEventModal() {
 
       setIsPublished(true);
 
-      // Auto close after 2 seconds
-      setTimeout(() => {
-        closePublishModal();
-      }, 2000);
+      autoClose.current = setTimeout(closePublishModal, 2000);
     } catch (err) {
       if (err instanceof APIError) {
         if (err.code === 'EVENT_ALREADY_PUBLISHED') {
@@ -150,6 +148,16 @@ export function PublishEventModal() {
             <p className="text-sm text-muted-foreground">
               Participants have been notified of the final venue.
             </p>
+            <button
+              onClick={() => {
+                if (autoClose.current) clearTimeout(autoClose.current);
+                closePublishModal();
+                openShareModal();
+              }}
+              className="mt-6 w-full px-4 py-3 text-sm font-medium bg-coral-500 text-white rounded-full hover:bg-coral-600 transition-all duration-200"
+            >
+              Share the invitation
+            </button>
           </div>
         ) : (
           <>

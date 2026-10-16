@@ -232,6 +232,7 @@ export function createMeetingPageMetadata(options: {
   title: string;
   description: string;
   canonical?: string;
+  image?: MetadataOptions['image'];
 }): Metadata {
   return createMetadata({
     ...options,

@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { ImageResponse } from 'next/og';
-import { Check, UserRound, type IconNode } from 'lucide';
+import { Calendar, Check, MapPin, PartyPopper, UserRound, type IconNode } from 'lucide';
 import { SHARE_IMAGE } from '@/lib/seo/metadata';
 
 export const INK = '#21252b';
@@ -249,6 +249,111 @@ function PhotoCard({ jpeg, credit }: { jpeg: Buffer; credit: string }) {
   );
 }
 
+/** The pill badge between the logo and a card's title. */
+function Pill({ icon, label }: { icon: IconNode; label: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        marginTop: 28,
+        padding: '8px 20px 8px 10px',
+        borderRadius: 30,
+        backgroundColor: '#fff',
+        boxShadow: '0 3px 16px rgba(23, 37, 45, 0.12)',
+        fontSize: 24,
+        fontWeight: 600,
+        color: ACCENT,
+      }}
+    >
+      <img src={iconDataUri(icon, ACCENT, 2.4)} width={28} height={28} alt="" />
+      <div style={{ marginLeft: 10 }}>{label}</div>
+    </div>
+  );
+}
+
+/** One fact about the event, under its icon. */
+function Detail({ icon, children }: { icon: IconNode; children: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', marginTop: 16, fontSize: 26 }}>
+      <img
+        src={iconDataUri(icon, MUTED, 2.2)}
+        width={30}
+        height={30}
+        style={{ marginTop: 2, flexShrink: 0 }}
+        alt=""
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 12, lineHeight: 1.3 }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * An invitation to a published event: who is invited where and when, and who hosts it.
+ * On the right, the venue's `photo` when given, else the map with `icon` on the venue pin.
+ */
+export async function renderInvitationCard({
+  title,
+  when,
+  venue,
+  host,
+  icon,
+  photo,
+}: {
+  title: string;
+  when: string | null;
+  venue: { name: string; address: string } | null;
+  host: string | null;
+  icon: IconNode;
+  photo?: CardPhoto;
+}) {
+  return renderShareCard({
+    card: photo ? (
+      <PhotoCard jpeg={photo.jpeg} credit={photo.credit} />
+    ) : (
+      <MapCard pin={{ icon }} />
+    ),
+    text: (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <Pill icon={PartyPopper} label="You're invited" />
+        <div
+          style={{
+            marginTop: 24,
+            fontSize: 50,
+            fontWeight: 700,
+            lineHeight: 1.08,
+            letterSpacing: -1.5,
+            display: 'block',
+            lineClamp: 2,
+          }}
+        >
+          {title}
+        </div>
+        {when && (
+          <Detail icon={Calendar}>
+            <div>{when}</div>
+          </Detail>
+        )}
+        {venue && (
+          <Detail icon={MapPin}>
+            <div style={{ fontWeight: 600 }}>{venue.name}</div>
+            <div style={{ display: 'block', color: MUTED, fontSize: 22, lineClamp: 2 }}>
+              {venue.address}
+            </div>
+          </Detail>
+        )}
+        {host && (
+          <div style={{ marginTop: 24, fontSize: 26, fontWeight: 600, color: ACCENT }}>
+            {`Hosted by ${host}`}
+          </div>
+        )}
+      </div>
+    ),
+  });
+}
+
 /**
  * An article's cover: a pill badge, the title and a site address under the logo, with
  * `icon` on the badge. On the right, `photo` when given, else the map with `icon` at its
@@ -276,23 +381,7 @@ export async function renderArticleCover({
     ),
     text: (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginTop: 28,
-            padding: '8px 20px 8px 10px',
-            borderRadius: 30,
-            backgroundColor: '#fff',
-            boxShadow: '0 3px 16px rgba(23, 37, 45, 0.12)',
-            fontSize: 24,
-            fontWeight: 600,
-            color: ACCENT,
-          }}
-        >
-          <img src={iconDataUri(icon, ACCENT, 2.4)} width={28} height={28} alt="" />
-          <div style={{ marginLeft: 10 }}>{badge}</div>
-        </div>
+        <Pill icon={icon} label={badge} />
         <div
           style={{
             marginTop: 24,
