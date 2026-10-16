@@ -61,6 +61,10 @@ const VOTE_CHANGED =
 const VOTE_STATISTICS =
   '{"eventId":"evt_1792167269143_bqAdVLMBseGmhgHK","seq":2,"venues":[{"venueId":"ChIJme4A6d5bwokR7QwUdTNRp5E","voteCount":1,"voterIds":["686b6702-ab7e-4130-9ced-4b9a41dcf54f"],"voterNames":["686b6702-ab7e-4130-9ced-4b9a41dcf54f"]}],"totalVotes":1,"updatedAt":"2026-10-16T17:58:31.104Z"}';
 
+// After the only vote was removed.
+const VOTE_STATISTICS_EMPTY =
+  '{"eventId":"evt_1792167269143_bqAdVLMBseGmhgHK","seq":4,"venues":[],"totalVotes":0,"updatedAt":"2026-10-16T17:58:41.043Z"}';
+
 function receive(event: string, data: string) {
   handleSSEMessage({ event, data, id: '' }, EVENT_ID);
 }
@@ -133,6 +137,16 @@ describe('SSE messages the server sends', () => {
     expect([afterChanged, useVotingStore.getState().voteStatsByVenueId]).toEqual([
       {},
       { [BRICKYARD_ID]: { voteCount: 1, voterIds: [TESTER_ID] } },
+    ]);
+  });
+
+  it('clears the count when another tab removes the last vote', () => {
+    receive('vote:statistics', VOTE_STATISTICS);
+    const afterVote = useVotingStore.getState().voteStatsByVenueId;
+    receive('vote:statistics', VOTE_STATISTICS_EMPTY);
+    expect([afterVote, useVotingStore.getState().voteStatsByVenueId]).toEqual([
+      { [BRICKYARD_ID]: { voteCount: 1, voterIds: [TESTER_ID] } },
+      {},
     ]);
   });
 
