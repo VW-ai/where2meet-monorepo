@@ -10,32 +10,32 @@ budget: null
 city: new-york
 town: null
 published_at: 2026-10-15
-updated_at: 2026-10-15
+updated_at: 2026-10-16
 places:
   - place_id: ChIJmxlF1FNewokRpCNcaaavPWQ
     label: SPIN New York Flatiron
-    note: A bar with ping pong tables on East 23rd Street, about a 1-minute walk from the 23 St station on the 6. A game gives guests who don't know each other something to do. Google lists it as taking reservations. It opens at 4 p.m. on weekdays and at noon on weekends.
+    note: Guests who don't know each other get something to do at the ping pong tables in this bar on East 23rd Street. It takes reservations and opens at 4 p.m. on weekdays and noon on weekends. The 23 St station on the 6 is about a 1-minute walk away.
   - place_id: ChIJSZr2ZqNZwokRN89ggdSWGiQ
     label: Slate
-    note: A bar with pool tables on West 21st Street, about a 2-minute walk from the 23 St station on the F and M. Google lists it as taking reservations, so you can hold tables for the group before guests arrive.
+    note: Hold tables for the group before guests arrive, since this bar with pool tables on West 21st Street takes reservations. It's about a 2-minute walk from the 23 St station on the F and M.
   - place_id: ChIJgbdZ6aVZwokRxtWri-IDLJw
     label: Oscar Wilde
-    note: A restaurant with a full bar on West 27th Street, about a 5-minute walk from the 28 St station on the R and W. It serves dinner and cocktails, so a birthday dinner can turn into drinks without moving. Google lists it as taking reservations.
+    note: Dinner can turn into drinks without moving, because this restaurant with a full bar on West 27th Street serves both. Reserve a table. From the 28 St station on the R and W, it is about a 5-minute walk.
   - place_id: ChIJ_1oyZaZZwokR1c-HIVJ3xzo
     label: 230 Fifth Rooftop Bar
-    note: A rooftop bar entered at 1150 Broadway, about a 2-minute walk from the 28 St station on the R and W. It suits a birthday toast with a skyline view after dinner nearby. Ask on its own site about space for a group.
+    note: After dinner nearby, raise a birthday toast with a skyline view at this rooftop bar, entered at 1150 Broadway. Ask on its own site about space for a group. The 28 St station on the R and W is about a 2-minute walk away.
   - place_id: ChIJtcPJYqtZwokRiiFBAJz8krQ
     label: The Skylark - Rooftop Bar
-    note: A cocktail lounge on the 30th floor at 200 West 39th Street, about a 1-minute walk from the Times Sq-42 St station. Google lists it as taking reservations. It's open from 5 p.m. to midnight on weekdays and shows as closed on weekends, so plan a weeknight party here.
+    note: Plan a weeknight party at this cocktail lounge on the 30th floor at 200 West 39th Street, open from 5 p.m. to midnight on weekdays and closed on weekends. It takes reservations and is about a 1-minute walk from the Times Sq-42 St station.
   - place_id: ChIJlSsnN_NZwokRD4CVvN0DPYE
     label: RH Rooftop Restaurant at RH New York
-    note: A rooftop restaurant at RH New York on Ninth Avenue, about a 4-minute walk from the 14 St station on the A, C, E and L. It takes reservations and opens at 10 a.m. on weekends, so it suits a birthday brunch. It closes at 10 p.m.
+    note: Book a birthday brunch at this rooftop restaurant at RH New York on Ninth Avenue. On weekends it opens at 10 a.m. It closes at 10 p.m. and takes reservations. The 14 St station on the A, C, E and L is about a 4-minute walk away.
   - place_id: ChIJmamBZtVZwokR6phs86DKbP0
     label: Color Factory NYC
-    note: A museum of hands-on color installations at 251 Spring Street, about a 4-minute walk from the Houston St station on the 1. Entry is by ticket, and it works for a daytime birthday with kids or adults. It's open until 7 p.m. on Fridays and Saturdays.
+    note: Kids or adults can spend a daytime birthday among the hands-on color installations at this museum at 251 Spring Street. Entry is by ticket, and it's open until 7 p.m. on Fridays and Saturdays. It is about a 4-minute walk from the Houston St station on the 1.
   - place_id: ChIJG2u13VZYwokRpDUVLE-tg-g
     label: The Gazillion Bubble Show
-    note: A family bubble show at New World Stages on West 50th Street, about a 6-minute walk from the 50 St station on the C and E. Tickets sell through Telecharge, and Google lists shows on Wednesdays, Fridays and weekends, so it suits a kid's birthday.
+    note: For a kid's birthday, buy tickets through Telecharge for this family bubble show at New World Stages on West 50th Street. Shows run on Wednesdays, Fridays and weekends. The 50 St station on the C and E is about a 6-minute walk away.
 images:
   - file_name: rh-new-york-rooftop-meatpacking-district.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/RH_New_York_%2855380999019%29.jpg/1280px-RH_New_York_%2855380999019%29.jpg
@@ -78,6 +78,8 @@ This post suggests eight places in Manhattan for an evening out, a brunch or a k
 Pick an area on top of stations that most guests reach without a transfer. Four of these picks are a few blocks from Madison Square Park, where the 6, F, R and W stop along 23rd Street.
 
 :::places
+
+The hours, reservations, show days and walk times on these cards come from Google Maps as of October 2026.
 
 The Flatiron picks also give you a backup. If the first place is full, the next one is a short walk away, and nobody has to take another train.
 
@@ -125,7 +127,7 @@ Where2Meet lets the group choose the birthday spot together from one shared link
 
 ### Where can I celebrate a birthday with kids in Manhattan?
 
-Pick a daytime place with tickets and a set end time. A museum or a family show on a weekend afternoon works, and both of the family picks here are within a 6-minute walk of a subway station.
+Pick a daytime place with tickets and a set end time. A museum or a family show on a weekend afternoon works.
 
 ### Can I bring my own birthday cake to a restaurant?
 

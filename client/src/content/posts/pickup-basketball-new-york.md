@@ -14,25 +14,25 @@ updated_at: 2026-10-16
 places:
   - place_id: ChIJvYB48YdZwokRaj_P5aPWYqY
     label: Grand Street Basketball Courts
-    note: Outdoor courts at the south end of Sara D. Roosevelt Park, about a 2-minute walk from the Grand St station on the B and D. Google lists them as open until 1 a.m., the latest of these picks, so they suit a game after work.
+    note: Play after work here, since these outdoor courts at the south end of Sara D. Roosevelt Park are open until 1 a.m., the latest of these picks. The Grand St station on the B and D is about a 2-minute walk away.
   - place_id: ChIJgxdpHQBZwokRgVnw8KLqDes
     label: Basketball Courts
-    note: Courts at the Houston Street end of Sara D. Roosevelt Park, about a 2-minute walk from the 2 Av station on the F. They are in the same park as the Grand Street courts, so each is the other's backup.
+    note: Keep these courts as the backup for the Grand Street courts, or the other way around, since both are in Sara D. Roosevelt Park. They are at the Houston Street end, about a 2-minute walk from the 2 Av station on the F.
   - place_id: ChIJW1JvAgBbwokRcYgYm6b-7eo
     label: Basketball Courts
-    note: Courts in Seward Park on the Lower East Side, about a 3-minute walk from the East Broadway station on the F. The F runs all night, so players from Brooklyn and Queens have a direct train home.
+    note: Players from Brooklyn and Queens get a direct train home from these courts in Seward Park on the Lower East Side, because the F runs all night. The East Broadway station on the F is about a 3-minute walk away.
   - place_id: ChIJqZXApHdZwokRgC_HFQxOxsQ
     label: Tompkins Square Park Basketball Courts
-    note: Outdoor courts inside Tompkins Square Park in the East Village, about an 8-minute walk from the 1 Av station on the L. The L reaches Williamsburg and Bushwick without a transfer.
+    note: Friends on the L can ride from Williamsburg or Bushwick without a transfer to these outdoor courts inside Tompkins Square Park in the East Village. They are about an 8-minute walk from the 1 Av station on the L.
   - place_id: ChIJZXru6PNZwokRicTUZ-z-dWs
     label: Canal Street Basketball Court
-    note: A court in Hudson River Park at the west end of Canal Street, about a 10-minute walk from the Canal St station on the 1. Google lists it as open until midnight.
+    note: For a game that runs late on the west side, this court in Hudson River Park at the west end of Canal Street is open until midnight. It is about a 10-minute walk from the Canal St station on the 1.
   - place_id: ChIJo0Ga5h1awokRPEzUjBfVPSE
     label: Basketball Court at Harrison St
-    note: A court on Pier 25 in Hudson River Park in Tribeca, about a 9-minute walk from the Franklin St station on the 1. It sits on the Hudson River Greenway, so players can also bike there. Google lists it as open until midnight.
+    note: Bike to this court on Pier 25 in Hudson River Park in Tribeca, since it is on the Hudson River Greenway. It is open until midnight and about a 9-minute walk from the Franklin St station on the 1.
   - place_id: ChIJuyzabABbwokRInXVurDJ6pY
     label: Basketball half courts
-    note: Half courts in West Thames Park in Battery Park City, about a 7-minute walk from the Rector St station on the 1. A half court suits a smaller group playing three on three.
+    note: Bring a smaller group for three on three to these half courts in West Thames Park in Battery Park City. The Rector St station on the 1 is about a 7-minute walk away.
 images:
   - file_name: pier-25-hudson-river-park-tribeca-skyline.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/Manhattan_western_skyline_from_Pier_25.jpg/1280px-Manhattan_western_skyline_from_Pier_25.jpg
@@ -76,6 +76,8 @@ Pick the side of Lower Manhattan your group reaches without a transfer. The Lowe
 
 :::places
 
+The hours and walk times on these cards come from Google Maps as of October 2026.
+
 The east side courts suit players from Brooklyn and Queens on the F and the L.
 
 ![](lower-east-side-playground-basketball-courts-east-village.jpg)
@@ -100,7 +102,7 @@ For rain, set a cutoff time, such as two hours before the game, to call it off o
 
 ## How does everyone get home after a late game?
 
-Check the court's closing time and the train home together. Google lists the Grand Street courts as open until 1 a.m. and both Hudson River Park courts until midnight.
+Check the court's closing time and the train home together. The Grand Street courts are open until 1 a.m. and both Hudson River Park courts until midnight.
 
 The B runs on weekdays only and not late at night, so after a late game at Grand Street, take the D. The F, L and 1 run all night. The MTA's [late-night subway map](https://www.mta.info/map/5336) shows every line that runs overnight. Track work changes service on some weekends, so check the [planned service changes](https://www.mta.info/alerts) before game day.
 

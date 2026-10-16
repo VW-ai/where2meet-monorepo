@@ -10,29 +10,29 @@ budget: null
 city: new-york
 town: null
 published_at: 2026-10-14
-updated_at: 2026-10-14
+updated_at: 2026-10-16
 places:
   - place_id: ChIJTXb6QRdawokRPZZKPYmvWcU
     label: The Capital Grille
-    note: A fine dining restaurant in the Equitable Building at 120 Broadway, for a client lunch or a seated team lunch. Google lists it as taking reservations and good for groups. About a 2-minute walk from the Wall St station on the 4 and 5.
+    note: For a client lunch or a seated team lunch downtown, this fine dining restaurant in the Equitable Building at 120 Broadway takes reservations and is good for groups. The Wall St station on the 4 and 5 is about a 2-minute walk away.
   - place_id: ChIJZ1XBMopZwokRjH-NSbcyMRA
     label: The Farm Soho
-    note: An event venue with meeting rooms and day offices on the second floor of 447 Broadway, for a workshop or a working day away from the office. About a 2-minute walk from the Canal St station, where the 6, J, N, Q, R and W stop.
+    note: Take the team out of the office for a workshop or a working day. This event venue has meeting rooms and day offices on the second floor of 447 Broadway, about a 2-minute walk from the Canal St station, where the 6, J, N, Q, R and W stop.
   - place_id: ChIJt7fMLIlZwokRCRtM9bNDg78
     label: Balthazar
-    note: A French restaurant on Spring Street for a team breakfast, or for lunch after a meeting in SoHo. Google lists it as taking reservations and good for groups. About a 2-minute walk from the Spring St station on the 6.
+    note: Start the day with a team breakfast at this French restaurant on Spring Street, or book lunch here after a meeting in SoHo. It takes reservations and is good for groups. From the Spring St station on the 6, it is about a 2-minute walk.
   - place_id: ChIJ52xVOKJZwokREYLw2BJCSNk
     label: Union Square Loft
-    note: An event venue in a loft at 873 Broadway, for a workshop or a planning day that needs the whole team in one open room. About a 2-minute walk from the 14 St-Union Sq station, where eight lines stop.
+    note: When a workshop or a planning day needs the whole team in one open room, this event venue in a loft at 873 Broadway fits. It's about a 2-minute walk from the 14 St-Union Sq station, where eight lines stop.
   - place_id: ChIJK0Nld6ZZwokRyOd9fsyinLY
     label: The Smith
-    note: An American restaurant on Broadway in NoMad for a team lunch. Google lists it as taking reservations, good for groups and moderately priced. About a 1-minute walk from the 28 St station on the R and W.
+    note: Book a moderately priced team lunch at this American restaurant on Broadway in NoMad. It takes reservations and is good for groups, about a 1-minute walk from the 28 St station on the R and W.
   - place_id: ChIJlTvaEahZwokRumzy3wm_T_E
     label: Blender Space
-    note: An event venue on the eighth floor of 135 Madison Avenue, for a booked meeting room or a presentation to the whole team. About a 3-minute walk from the 33 St station on the 6.
+    note: Book a meeting room, or hold a presentation for the whole team, at this event venue on the eighth floor of 135 Madison Avenue. The 33 St station on the 6 is about a 3-minute walk away.
   - place_id: ChIJqa5vnFhZwokRNlGvlK2raRk
     label: OASIS by Workville
-    note: A conference center and event venue on West 35th Street near Penn Station, for a meeting with teammates who come in by train. About a 1-minute walk from the 34 St-Penn Station stop on the A, C and E.
+    note: Teammates coming in by train can meet near Penn Station at this conference center and event venue on West 35th Street. It's about a 1-minute walk from the 34 St-Penn Station stop on the A, C and E.
 images:
   - file_name: balthazar-red-awnings-spring-street-soho.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Balthazar_on_Spring_Street.jpg/1280px-Balthazar_on_Spring_Street.jpg
@@ -76,6 +76,8 @@ Lower Manhattan, SoHo, Broadway from Union Square to NoMad, and Midtown each hav
 
 :::places
 
+In this post, the hours, reservations, price levels, walk times and which places are good for groups come from Google Maps as of October 2026.
+
 ## How do you choose the area when the team is spread out?
 
 Start from where each person rides in, then pick the area most of them can reach without changing trains.
@@ -100,7 +102,7 @@ The Farm Soho rents its rooms by the hour, as [its site](https://www.thefarmsoho
 
 Balthazar and The Smith open at 8 a.m. on weekdays, early enough for a breakfast meeting. The Capital Grille opens at 11:30 a.m., so save it for lunch. To keep the team off the train between the meeting and the meal, book both in one area. The Farm Soho is about a 6-minute walk from Balthazar, and Blender Space is about an 8-minute walk from The Smith.
 
-A Saturday meeting narrows the list. Google lists Blender Space as closed on weekends, and The Capital Grille opens at 4 p.m. on Saturdays. The W doesn't run on weekends either, so look up the MTA's [planned service changes](https://www.mta.info/alerts) for that weekend.
+A Saturday meeting narrows the list. Blender Space is closed on weekends, and The Capital Grille opens at 4 p.m. on Saturdays. The W doesn't run on weekends either, so look up the MTA's [planned service changes](https://www.mta.info/alerts) for that weekend.
 
 ## How to do it in Where2Meet
 
@@ -116,7 +118,7 @@ Where2Meet lets the whole team choose the location from one link, with no accoun
 
 ### How close to a station should a team meeting be?
 
-Within a few minutes' walk. Every pick in this post is within a 3-minute walk of a subway entrance, by Google Maps walking times.
+Within a few minutes' walk. Every pick in this post is within a 3-minute walk of a subway entrance.
 
 ### Which area works if most of the team rides the L?
 

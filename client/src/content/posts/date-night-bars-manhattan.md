@@ -10,32 +10,32 @@ budget: null
 city: new-york
 town: null
 published_at: 2026-10-14
-updated_at: 2026-10-14
+updated_at: 2026-10-16
 places:
   - place_id: ChIJq38lzVVYwokRSQFHWasfeqc
     label: The Rum House
-    note: A cocktail bar on West 47th Street, about a 2-minute walk from the 49 St station on the N, R and W. Google lists it as moderately priced and not taking reservations, so you can walk in. It's open until 1 a.m., or 2 a.m. on Fridays and Saturdays.
+    note: Walk in without a booking, since this cocktail bar on West 47th Street doesn't take reservations. It's moderately priced and open until 1 a.m., or 2 a.m. on Fridays and Saturdays. The 49 St station on the N, R and W is about a 2-minute walk away.
   - place_id: ChIJT_kaUvpYwokRvHWcgFVsKZk
     label: King Cole Bar
-    note: A bar in the St. Regis hotel on East 55th Street, about a 3-minute walk from the 5 Av/53 St station on the E, and the F on weekdays before 9 p.m. It's open from 4 to 11 p.m. every day, which suits a first drink before dinner.
+    note: For a first drink before dinner, this bar in the St. Regis hotel on East 55th Street is open from 4 to 11 p.m. every day. It is about a 3-minute walk from the 5 Av/53 St station on the E, and the F on weekdays before 9 p.m.
   - place_id: ChIJ_8dmJ0lbwokRIJHQFfXiMNo
     label: Overstory
-    note: A cocktail bar on the 64th floor of 70 Pine Street, about a 3-minute walk from the Wall St station on the 2 and 3. Google lists it as taking reservations, so you can book ahead. It's open until midnight, or 11 p.m. on Sundays.
+    note: Book ahead for a table on the 64th floor of 70 Pine Street. The cocktail bar takes reservations and is open until midnight, or 11 p.m. on Sundays. From the Wall St station on the 2 and 3, it is about a 3-minute walk.
   - place_id: ChIJw0ol8QFbwokR6-65pS8JSDk
     label: Bar Room at the Beekman
-    note: A cocktail bar at the Beekman on Nassau Street, about a 2-minute walk from the Fulton St station on the 2, 3, 4, 5, A, C and J. Google lists it as taking reservations but shows no hours, so check them before you book.
+    note: The 2, 3, 4, 5, A, C and J stop at Fulton St, about a 2-minute walk from this cocktail bar at the Beekman on Nassau Street, so it suits two people coming from different directions. It takes reservations, but no hours were listed when we checked, so confirm them before you book.
   - place_id: ChIJLztrVJNZwokRTmcQJheGNR4
     label: Employees Only
-    note: A bar on Hudson Street in the West Village, about a 5-minute walk from the Christopher St-Stonewall station on the 1. It's open from 6 p.m. to 4 a.m. every night, so it works as a late second stop. Google lists it as taking reservations.
+    note: Make this the late second stop. The bar on Hudson Street in the West Village takes reservations and is open from 6 p.m. to 4 a.m. every night, about a 5-minute walk from the Christopher St-Stonewall station on the 1.
   - place_id: ChIJp3PsL_ZYwokRUH1k95teGuM
     label: Dizzy's Club
-    note: Jazz at Lincoln Center's jazz club at Columbus Circle, about a 1-minute walk from the 59 St-Columbus Circle station on the 1, A, B, C and D. Google lists it as moderately priced and taking reservations, so plan the evening around a set.
+    note: Plan the evening around a set at Jazz at Lincoln Center's jazz club at Columbus Circle. It takes reservations and is moderately priced, about a 1-minute walk from the 59 St-Columbus Circle station on the 1, A, B, C and D.
   - place_id: ChIJX_oqBotYwokRFtZXHIdv5Ek
     label: Bin 71
-    note: A bar on Columbus Avenue, about a 6-minute walk from the 72 St station on the 1, 2 and 3. Google lists it as moderately priced and taking reservations. It closes at 10 p.m. Monday to Thursday, so it suits an early date.
+    note: Choose this bar on Columbus Avenue for an early date, because it closes at 10 p.m. Monday to Thursday. It's moderately priced and takes reservations. The 72 St station on the 1, 2 and 3 is about a 6-minute walk away.
   - place_id: ChIJS_7f3yT2wokR4dsAb0bTwDo
     label: Smoke Jazz & Supper Club
-    note: A jazz supper club on Broadway, about a 3-minute walk from the 103 St station on the 1. Google lists it as very expensive and taking reservations, and it's closed on Mondays and Tuesdays. Save it for a planned night with dinner and music.
+    note: Save this jazz supper club on Broadway for a planned night with dinner and music. It takes reservations, it's very expensive, and it's closed on Mondays and Tuesdays. The 103 St station on the 1 is about a 3-minute walk away.
 images:
   - file_name: st-regis-new-york-entrance-east-55th-street.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/St._Regis_New_York_%2851395760708%29.jpg/1280px-St._Regis_New_York_%2851395760708%29.jpg
@@ -75,9 +75,11 @@ This post suggests eight bars in Midtown, Lower Manhattan, the West Village and 
 
 ## Which date night bars in Manhattan are easy for both of you to reach?
 
-Each of these eight bars is within a 6-minute walk of a subway entrance, and each card names its station and lines. Pick one on a line you can both ride without changing trains.
+Each of these eight bars is within a 6-minute walk of a subway entrance. Pick one on a line you can both ride without changing trains.
 
 :::places
+
+The hours, reservations, price levels and walk times on these cards come from Google Maps as of October 2026.
 
 [Lower Manhattan](/blog/new-york/lower-manhattan) works when one of you comes from Brooklyn or New Jersey. Trains from Brooklyn stop at Fulton St, and PATH trains from New Jersey stop at [World Trade Center](https://www.panynj.gov/path/en/stations/world-trade-center-station.html). [Midtown](/blog/new-york/midtown) suits a date straight from the office. The [Upper West Side](/blog/new-york/upper-west-side) suits a date near home, with the 1 under Broadway from Columbus Circle to 110th Street.
 
@@ -126,7 +128,7 @@ Where2Meet lets you choose the bar together from one shared link.
 
 ### Is a bar a good first date spot?
 
-It is when the trip is easy for both of you. One drink can end the night or turn into dinner, and a bar near a shared line makes leaving simple.
+It is when the trip is easy for both of you. One drink can end the night or turn into dinner.
 
 ### Where should we meet if one of us lives in Brooklyn and the other in New Jersey?
 
