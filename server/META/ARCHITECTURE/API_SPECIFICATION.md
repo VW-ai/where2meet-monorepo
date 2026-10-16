@@ -84,6 +84,7 @@ POST /api/events
 |------|------|------|------|
 | title | string | ✓ | 活动标题，max 100 |
 | meetingTime | string | - | 预计见面时间（ISO 8601），可选 |
+| meetingTimeZone | string | - | 组织者填写时间时所在的 IANA 时区（如 `America/New_York`），max 64，只能与 meetingTime 一起发送 |
 
 **后端输出（成功 201）：**
 | 字段 | 类型 | 说明 |
@@ -91,6 +92,7 @@ POST /api/events
 | id | string | 活动 ID (格式: `evt_<timestamp>_<random16>`) |
 | title | string | 活动标题 |
 | meetingTime | string \| null | 预计见面时间 |
+| meetingTimeZone | string \| null | 见面时间所在的 IANA 时区，旧活动为 null |
 | participantToken | string | 参与者令牌（仅创建时返回，用于组织者身份验证） |
 | organizerParticipantId | string | 组织者参与者 ID（用于投票） |
 | participants | array | 参与者列表（包含组织者，isOrganizer=true） |
@@ -128,6 +130,7 @@ GET /api/events/:id
 | id | string | 活动 ID |
 | title | string | 活动标题 |
 | meetingTime | string \| null | 预计见面时间 |
+| meetingTimeZone | string \| null | 见面时间所在的 IANA 时区，旧活动为 null |
 | participants | Participant[] | 参与者列表 |
 | mec | object \| null | 最小外接圆（MEC） |
 | publishedVenueId | string \| null | 已发布场所 ID |
@@ -157,7 +160,8 @@ PATCH /api/events/:id
 | id | URL Path | string | ✓ | 活动 ID |
 | Authorization | Header | string | ✓ | Bearer {participantToken}（需 isOrganizer=true） |
 | title | Body | string | - | 新标题 |
-| meetingTime | Body | string | - | 新时间（可置为 null） |
+| meetingTime | Body | string | - | 新时间（可置为 null，同时清空 meetingTimeZone） |
+| meetingTimeZone | Body | string | - | 新时间所在的 IANA 时区（可置为 null），max 64，只能与 meetingTime 一起发送；只发 meetingTime 时保留原时区 |
 
 **后端输出（成功 200）：**
 

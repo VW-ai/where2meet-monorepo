@@ -46,6 +46,7 @@ export const EventResponseSchema = z.object({
   id: z.string().regex(EVENT_ID_PATTERN),
   title: z.string(),
   meetingTime: z.string().nullable(),
+  meetingTimeZone: z.string().nullable(),
   participants: z.array(ParticipantResponseSchema),
   mec: MECResponseSchema.nullable(),
   publishedVenueId: z.string().nullable(),
