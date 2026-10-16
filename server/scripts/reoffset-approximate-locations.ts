@@ -1,20 +1,8 @@
-/**
- * One-off: gives every approximate participant a new random area.
- *
- *   npx tsx scripts/reoffset-approximate-locations.ts                 # dry run, counts only
- *   npx tsx scripts/reoffset-approximate-locations.ts --write         # saves the new areas
- *   npx tsx scripts/reoffset-approximate-locations.ts --event=<id>    # one event only
- *
- * Reads DATABASE_URL, REDIS_URL, and GOOGLE_MAPS_API_KEY from the environment.
- * Prints counts only, never addresses or coordinates.
- */
-
 import { parseArgs } from "node:util";
 import { disconnectPrisma, prisma } from "../src/lib/prisma.js";
 import { disconnectRedis } from "../src/lib/redis.js";
 import { reoffsetApproximateLocations } from "../src/services/reoffset-approximate-locations.js";
 
-// strict: a mistyped flag stops the run instead of widening it to every event
 const { values } = parseArgs({
   options: { write: { type: "boolean", default: false }, event: { type: "string" } },
   strict: true,

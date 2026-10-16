@@ -188,9 +188,7 @@ export class ParticipantService {
       throw new ParticipantNotFoundError(participantId);
     }
 
-    // Re-geocode when the address or the approximate setting changes, so turning
-    // approximate off restores the exact point and turning it on draws a new area.
-    // Organizers without an address have no location to update.
+    // The exact point is not stored, so changing the address or the setting re-geocodes
     const address = input.address ?? current.address;
     const fuzzyLocation = input.fuzzyLocation ?? current.fuzzyLocation;
     const relocate =
