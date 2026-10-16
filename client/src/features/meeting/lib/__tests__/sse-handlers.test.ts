@@ -1,7 +1,7 @@
 import { handleSSEEvent } from '@/features/meeting/lib/sse-handlers';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import type { Event } from '@/entities/event/types';
-import type { SSEEventData } from '@/shared/types/sse';
+import type { EventUpdatedPayload, SSEEventData } from '@/shared/types/sse';
 
 const EVENT: Event = {
   id: 'evt_1',
@@ -17,7 +17,7 @@ const EVENT: Event = {
 };
 
 // What useEventStream passes on: the server's event:updated payload plus the connection's eventId.
-function eventUpdated(event: Partial<Event> & { id: string }): SSEEventData {
+function eventUpdated(event: Partial<EventUpdatedPayload['event']> & { id: string }): SSEEventData {
   return {
     type: 'event:updated',
     data: {
@@ -30,7 +30,7 @@ function eventUpdated(event: Partial<Event> & { id: string }): SSEEventData {
         ...event,
       },
     },
-  } as SSEEventData;
+  };
 }
 
 describe('event:updated', () => {
@@ -55,6 +55,17 @@ describe('event:updated', () => {
   it('shows a cleared time', () => {
     handleSSEEvent(eventUpdated({ id: 'evt_1', meetingTime: null }));
     expect(useMeetingStore.getState().currentEvent?.meetingTime).toBeNull();
+  });
+
+  it('shows an unpublish from another tab', () => {
+    useMeetingStore.getState().setCurrentEvent({
+      ...EVENT,
+      publishedVenueId: 'venue_1',
+      publishedAt: '2026-10-16T13:00:00.000Z',
+    });
+    handleSSEEvent(eventUpdated({ id: 'evt_1', publishedAt: null, publishedVenueId: null }));
+    const current = useMeetingStore.getState().currentEvent;
+    expect([current?.publishedAt, current?.publishedVenueId]).toEqual([null, null]);
   });
 
   it('ignores an update for another meeting', () => {
