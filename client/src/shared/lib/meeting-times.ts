@@ -13,8 +13,13 @@ function everyStep(firstMinute: number, lastMinute: number, stepMinutes: number)
   return times;
 }
 
+export interface LocalFields {
+  date: string;
+  time: string;
+}
+
 /** The edit form's date ("yyyy-MM-dd") and time ("HH:mm") fields for a stored meeting time. */
-export function toLocalFields(meetingTime: string): { date: string; time: string } {
+export function toLocalFields(meetingTime: string): LocalFields {
   const at = new Date(meetingTime);
   return { date: format(at, 'yyyy-MM-dd'), time: format(at, 'HH:mm') };
 }

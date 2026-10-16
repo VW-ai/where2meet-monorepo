@@ -7,7 +7,8 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { eventClient } from '@/features/meeting/api';
 import { APIError } from '@/lib/api/client';
-import { browserTimeZone, fromLocalFields, toLocalFields } from '@/shared/lib/meeting-times';
+import { eventEdits } from '@/features/meeting/lib/event-edits';
+import { browserTimeZone, toLocalFields, type LocalFields } from '@/shared/lib/meeting-times';
 
 export function EditEventModal() {
   const { isEditEventModalOpen, closeEditEventModal } = useUIStore();
@@ -17,6 +18,7 @@ export function EditEventModal() {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [opened, setOpened] = useState<LocalFields>({ date: '', time: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +30,9 @@ export function EditEventModal() {
         const fields = toLocalFields(currentEvent.meetingTime);
         setDate(fields.date);
         setTime(fields.time);
+        setOpened(fields);
+      } else {
+        setOpened({ date: '', time: '' });
       }
     }
   }, [currentEvent, isEditEventModalOpen]);
@@ -57,16 +62,10 @@ export function EditEventModal() {
     setError(null);
 
     try {
-      const meetingTime = date ? fromLocalFields(date, time) : undefined;
-      const rescheduled = meetingTime !== undefined && meetingTime !== currentEvent.meetingTime;
-
       // Call backend API with token
       const updatedEvent = await eventClient.update(
         currentEvent.id,
-        {
-          title: title.trim(),
-          ...(rescheduled && { meetingTime, meetingTimeZone: browserTimeZone() }),
-        },
+        eventEdits(title.trim(), opened, { date, time }, browserTimeZone()),
         organizerToken
       );
 
