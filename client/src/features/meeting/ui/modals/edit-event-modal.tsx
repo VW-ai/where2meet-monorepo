@@ -7,6 +7,7 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { eventClient } from '@/features/meeting/api';
 import { APIError } from '@/lib/api/client';
+import { fromLocalFields, toLocalFields } from '@/shared/lib/meeting-times';
 
 export function EditEventModal() {
   const { isEditEventModalOpen, closeEditEventModal } = useUIStore();
@@ -24,9 +25,9 @@ export function EditEventModal() {
     if (currentEvent && isEditEventModalOpen) {
       setTitle(currentEvent.title || '');
       if (currentEvent.meetingTime) {
-        const eventDate = new Date(currentEvent.meetingTime);
-        setDate(eventDate.toISOString().split('T')[0]);
-        setTime(eventDate.toTimeString().slice(0, 5));
+        const fields = toLocalFields(currentEvent.meetingTime);
+        setDate(fields.date);
+        setTime(fields.time);
       }
     }
   }, [currentEvent, isEditEventModalOpen]);
@@ -56,13 +57,7 @@ export function EditEventModal() {
     setError(null);
 
     try {
-      // Combine date and time
-      let meetingTime: string | undefined;
-      if (date && time) {
-        meetingTime = new Date(`${date}T${time}`).toISOString();
-      } else if (date) {
-        meetingTime = new Date(date).toISOString();
-      }
+      const meetingTime = date ? fromLocalFields(date, time) : undefined;
 
       // Call backend API with token
       const updatedEvent = await eventClient.update(
