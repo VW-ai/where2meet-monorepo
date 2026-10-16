@@ -236,16 +236,6 @@ function handleVoteStatistics(data: VoteStatisticsPayload): void {
     return;
   }
 
-  // Skip empty vote statistics (backend sometimes sends this incorrectly)
-  // Only clear votes if totalVotes is explicitly 0 with empty venues
-  const { voteStatsByVenueId } = useVotingStore.getState();
-  const hasExistingVotes = Object.keys(voteStatsByVenueId).length > 0;
-
-  if (data.venues.length === 0 && data.totalVotes === 0 && hasExistingVotes) {
-    console.warn('[SSE Handler] Ignoring empty vote:statistics - retaining existing votes');
-    return;
-  }
-
   // Transform backend format to VoteStatisticsResponse format
   // Backend sends: { venueId, voteCount, voterIds }
   // Frontend expects: VenueWithVotes[] (full venue data + votes)
