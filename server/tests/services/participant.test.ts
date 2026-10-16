@@ -32,6 +32,11 @@ vi.mock("crypto", async (importOriginal) => ({
   randomInt: vi.fn(),
 }));
 
+const { logError } = vi.hoisted(() => ({ logError: vi.fn() }));
+vi.mock("../../src/lib/logger.js", () => ({
+  createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: logError }),
+}));
+
 import { geocode, AddressNotFoundError, GeocodingApiError } from "../../src/lib/maps.js";
 import { randomInt } from "crypto";
 
@@ -229,7 +234,8 @@ describe("ParticipantService", () => {
 
     it("should throw ExternalServiceError when geocoding API fails", async () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
-      mockGeocode.mockRejectedValue(new GeocodingApiError("API quota exceeded", "OVER_QUERY_LIMIT"));
+      const apiError = new GeocodingApiError("API quota exceeded", "OVER_QUERY_LIMIT");
+      mockGeocode.mockRejectedValue(apiError);
 
       await expect(
         service.addParticipant(TEST_EVENT_ID, {
@@ -241,6 +247,8 @@ describe("ParticipantService", () => {
         code: "EXTERNAL_SERVICE_ERROR",
         statusCode: 502,
       });
+      // The typed address stays out of the logs
+      expect(logError.mock.calls).toEqual([[{ err: apiError }, "Geocoding API error"]]);
     });
 
     it("should store an approximate area instead of the geocoded point when fuzzyLocation is true", async () => {
