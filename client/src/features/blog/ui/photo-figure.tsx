@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { LICENSES, showsCrop, type Photo } from '@/features/blog/lib/photos';
+import { LICENSES, showsCrop, type Photo, type PhotoCredit } from '@/features/blog/lib/photos';
 
 const creditLink = 'underline decoration-current/40 underline-offset-2 hover:decoration-current';
 
@@ -24,8 +24,6 @@ export function PhotoFigure({
   className?: string;
   imageClassName?: string;
 }) {
-  const { author, license, pageUrl } = photo.credit;
-  const licenseUrl = LICENSES[license].url;
   return (
     <figure className={className}>
       <Image
@@ -39,19 +37,29 @@ export function PhotoFigure({
       />
       <figcaption className="mt-2 px-1 text-xs leading-relaxed text-[#666b73]">
         {photo.caption && `${photo.caption.replace(/\.$/, '')}. `}
-        {`Photo by ${author} (`}
-        {licenseUrl ? (
-          <a href={licenseUrl} className={creditLink}>
-            {license}
-          </a>
-        ) : (
-          license
-        )}
-        {showsCrop(photo.credit) ? ', cropped) via ' : ') via '}
-        <a href={pageUrl} className={`whitespace-nowrap ${creditLink}`}>
-          Wikimedia Commons
-        </a>
+        <CreditLine credit={photo.credit} />
       </figcaption>
     </figure>
+  );
+}
+
+export function CreditLine({ credit }: { credit: PhotoCredit }) {
+  const { author, license, pageUrl } = credit;
+  const licenseUrl = LICENSES[license].url;
+  return (
+    <>
+      {`Photo by ${author} (`}
+      {licenseUrl ? (
+        <a href={licenseUrl} className={creditLink}>
+          {license}
+        </a>
+      ) : (
+        license
+      )}
+      {showsCrop(credit) ? ', cropped) via ' : ') via '}
+      <a href={pageUrl} className={`whitespace-nowrap ${creditLink}`}>
+        Wikimedia Commons
+      </a>
+    </>
   );
 }
