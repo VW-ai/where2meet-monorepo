@@ -16,15 +16,12 @@ import {
 import type { SSEMessage } from '@/shared/lib/sse-parser';
 import type { Participant } from '@/entities';
 
-/**
- * Transform participant data from backend format to frontend format
- * Backend sends lat/lng at top level, frontend expects nested location object
- */
-function transformParticipant({ lat, lng, ...rest }: SSEParticipant): Participant {
+function participantFields({ lat, lng, fuzzyLocation, ...rest }: SSEParticipant) {
   return {
     ...rest,
     location: lat != null && lng != null ? { lat, lng } : null,
-  } as Participant;
+    ...(fuzzyLocation === undefined ? {} : { fuzzyLocation }),
+  };
 }
 
 export function handleSSEMessage(message: SSEMessage, eventId: string): void {
@@ -134,21 +131,21 @@ function handleParticipantAdded(data: ParticipantAddedPayload): void {
     return;
   }
 
-  const transformedParticipant = transformParticipant(data.participant);
+  const participant: Participant = { fuzzyLocation: false, ...participantFields(data.participant) };
 
   // Add to participant store
-  addParticipant(transformedParticipant);
+  addParticipant(participant);
 
   // Also update currentEvent.participants to keep them in sync
   if (currentEvent.participants) {
     setCurrentEvent({
       ...currentEvent,
-      participants: [...currentEvent.participants, transformedParticipant],
+      participants: [...currentEvent.participants, participant],
     });
   } else {
     setCurrentEvent({
       ...currentEvent,
-      participants: [transformedParticipant],
+      participants: [participant],
     });
   }
 }
@@ -173,17 +170,17 @@ function handleParticipantUpdated(data: ParticipantUpdatedPayload): void {
     return;
   }
 
-  const transformedParticipant = transformParticipant(data.participant);
+  const updates = participantFields(data.participant);
 
   // Update in participant store
-  updateParticipant(participantId, transformedParticipant);
+  updateParticipant(participantId, updates);
 
   // Also update currentEvent.participants to keep them in sync
   if (currentEvent.participants) {
     setCurrentEvent({
       ...currentEvent,
       participants: currentEvent.participants.map((p) =>
-        p.id === participantId ? { ...p, ...transformedParticipant } : p
+        p.id === participantId ? { ...p, ...updates } : p
       ),
     });
   }

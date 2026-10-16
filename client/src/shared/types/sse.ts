@@ -9,6 +9,7 @@ const participant = v.object({
   lng: v.nullable(v.number),
   color: v.string,
   isOrganizer: v.boolean,
+  fuzzyLocation: v.optional(v.boolean),
 });
 
 const sseEventSchemas = {

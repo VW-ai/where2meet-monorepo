@@ -24,6 +24,10 @@ export function nullable<T>(schema: Schema<T>): Schema<T | null> {
   return (value, path) => (value === null ? null : schema(value, path));
 }
 
+export function optional<T>(schema: Schema<T>): Schema<T | undefined> {
+  return (value, path) => (value === undefined ? undefined : schema(value, path));
+}
+
 export function array<T>(item: Schema<T>): Schema<T[]> {
   return (value, path) =>
     Array.isArray(value)
