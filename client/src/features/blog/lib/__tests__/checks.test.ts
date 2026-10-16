@@ -190,6 +190,89 @@ describe('checkContent on a post', () => {
     });
   });
 
+  describe('note-source', () => {
+    it('blocks "per Google" in a note, and not a word that only contains Google', () => {
+      const file = edited([
+        ["Financial District's offices.", "Financial District's offices, per Google."],
+        [
+          'Mexican food on Atlantic Avenue in Brooklyn.',
+          'Mexican food on Atlantic Avenue in Brooklyn that people have Googled, and superGoogle lists.',
+        ],
+      ]);
+      expect(check([file])).toEqual([
+        `${FILE}: note-source: the note for "The Malt House" says "per Google"; state the fact plainly and name the source once in the body, or if Google is a landmark here, name it another way, as in "near the Chelsea Market building"`,
+      ]);
+    });
+
+    it('blocks "Google Maps lists" in a note, and allows it in the body', () => {
+      const note = edited([
+        [
+          'this restaurant on Pearl Street is',
+          'this restaurant on Pearl Street, which Google Maps lists as open late, is',
+        ],
+      ]);
+      expect(check([note])).toEqual([
+        `${FILE}: note-source: the note for "Fraunces Tavern" says "Google Maps lists"; state the fact plainly and name the source once in the body, or if Google is a landmark here, name it another way, as in "near the Chelsea Market building"`,
+      ]);
+      const body = edited([
+        [
+          'The examples are in New York.',
+          'The examples are in New York. Hours are as Google Maps lists them in October 2026.',
+        ],
+      ]);
+      expect(check([body])).toEqual([]);
+    });
+
+    it('blocks each way of naming Google as the source, as written', () => {
+      const file = edited([
+        [
+          'A pizza restaurant on Stone Street,',
+          'A pizza restaurant on Stone Street that GOOGLE rated highly, according to Google  Maps and the reviews on Google Maps,',
+        ],
+      ]);
+      expect(check([file])).toEqual([
+        `${FILE}: note-source: the note for "Adrienne's Pizzabar" says "GOOGLE rated"; state the fact plainly and name the source once in the body, or if Google is a landmark here, name it another way, as in "near the Chelsea Market building"`,
+        `${FILE}: note-source: the note for "Adrienne's Pizzabar" says "according to Google  Maps"; state the fact plainly and name the source once in the body, or if Google is a landmark here, name it another way, as in "near the Chelsea Market building"`,
+        `${FILE}: note-source: the note for "Adrienne's Pizzabar" says "on Google Maps"; state the fact plainly and name the source once in the body, or if Google is a landmark here, name it another way, as in "near the Chelsea Market building"`,
+      ]);
+    });
+
+    it('blocks Google named any other way, as in "Google also lists"', () => {
+      const file = edited([
+        [
+          'Handy when the office is near Union Square,',
+          'Handy when the office is near Union Square, and Google also lists it as open late,',
+        ],
+      ]);
+      expect(check([file])).toEqual([
+        `${FILE}: note-source: the note for "Pete's Tavern" says "Google"; state the fact plainly and name the source once in the body, or if Google is a landmark here, name it another way, as in "near the Chelsea Market building"`,
+      ]);
+    });
+  });
+
+  describe('note-openings', () => {
+    it('reports three notes that start with "A" or "An"', () => {
+      const file = edited([['note: Korean barbecue', 'note: An easy Korean barbecue']]);
+      expect(check([file])).toEqual([
+        `${FILE}: note-openings: the notes for "The Malt House", "miss KOREA BBQ" and "Adrienne's Pizzabar" all start with "A" or "An"; at most 2 notes may share a first word, so open each one with why the place fits`,
+      ]);
+    });
+
+    it('reports each group in the order of its first note', () => {
+      const file = edited([
+        ['note: A pub and restaurant', 'note: The pub and restaurant'],
+        ['note: Korean barbecue', 'note: The Korean barbecue'],
+        ['note: Mexican food', 'note: The Mexican food'],
+        ['note: For coworkers', 'note: A pick for coworkers'],
+        ['note: Handy when', 'note: A handy pick when'],
+      ]);
+      expect(check([file])).toEqual([
+        `${FILE}: note-openings: the notes for "The Malt House", "miss KOREA BBQ" and "El Zason" all start with "The"; at most 2 notes may share a first word, so open each one with why the place fits`,
+        `${FILE}: note-openings: the notes for "Fraunces Tavern", "Adrienne's Pizzabar" and "Pete's Tavern" all start with "A"; at most 2 notes may share a first word, so open each one with why the place fits`,
+      ]);
+    });
+  });
+
   describe('images', () => {
     it('needs three usable images, and every photo line names one', () => {
       expect(check([edited([[ATLANTIC_IMAGE, '']])])).toEqual([

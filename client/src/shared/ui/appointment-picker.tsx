@@ -6,8 +6,9 @@ import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/shared/lib/cn';
+import { MEETING_TIMES } from '@/shared/lib/meeting-times';
 
 interface AppointmentPickerProps {
   date: Date | undefined;
@@ -38,26 +39,11 @@ export function AppointmentPicker({
     }
   }, [date]);
 
-  const timeSlots = [
-    { time: '09:00', available: true },
-    { time: '09:30', available: true },
-    { time: '10:00', available: true },
-    { time: '10:30', available: true },
-    { time: '11:00', available: true },
-    { time: '11:30', available: true },
-    { time: '12:00', available: true },
-    { time: '12:30', available: true },
-    { time: '13:00', available: true },
-    { time: '13:30', available: true },
-    { time: '14:00', available: true },
-    { time: '14:30', available: true },
-    { time: '15:00', available: true },
-    { time: '15:30', available: true },
-    { time: '16:00', available: true },
-    { time: '16:30', available: true },
-    { time: '17:00', available: true },
-    { time: '17:30', available: true },
-  ];
+  // The list runs 6:00 to 23:30, so an evening time sits below the fold when the picker reopens.
+  const revealSelected = useCallback(
+    (slot: HTMLButtonElement | null) => slot?.scrollIntoView({ block: 'nearest' }),
+    []
+  );
 
   const handleDateSelect = (newDate: Date | undefined) => {
     if (newDate) {
@@ -98,7 +84,7 @@ export function AppointmentPicker({
             {date ? format(date, "PPP 'at' p") : <span>{placeholder}</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align="start" aria-label="Choose a date and time">
           <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
             <div className="flex max-sm:flex-col">
               <Calendar
@@ -118,14 +104,15 @@ export function AppointmentPicker({
                         </p>
                       </div>
                       <div className="grid gap-2 px-5 max-sm:grid-cols-2">
-                        {timeSlots.map(({ time: timeSlot, available }) => (
+                        {MEETING_TIMES.map((timeSlot) => (
                           <Button
                             key={timeSlot}
                             variant={selectedTime === timeSlot ? 'default' : 'outline'}
                             size="sm"
                             className="w-full"
+                            aria-pressed={selectedTime === timeSlot}
+                            ref={selectedTime === timeSlot ? revealSelected : undefined}
                             onClick={() => handleTimeSelect(timeSlot)}
-                            disabled={!available}
                           >
                             {timeSlot}
                           </Button>

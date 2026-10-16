@@ -10,32 +10,32 @@ budget: null
 city: new-york
 town: union-square
 published_at: 2026-10-08
-updated_at: 2026-10-14
+updated_at: 2026-10-16
 places:
   - place_id: ChIJ3wsoxKFZwokRRg8OvEjE0bc
     label: Irving Farm Coffee
-    note: A coffee shop on Irving Place for a first coffee, inexpensive per Google and open until 5 p.m. About an 8-minute walk from the Union Square station.
+    note: For a first coffee date, meet here before it closes at 5 p.m. The coffee shop on Irving Place is inexpensive and about an 8-minute walk from the Union Square station.
   - place_id: ChIJM77SlaFZwokRUdDxtDv9560
     label: Daily Provisions - Union Square
-    note: A restaurant on East 19th Street for an easy daytime bite, inexpensive and not taking reservations per Google, open 7 a.m. to 9 p.m. About a 7-minute walk from the Union Square station.
+    note: Walk in for an easy daytime bite, since this restaurant on East 19th Street doesn't take reservations. It's inexpensive and open 7 a.m. to 9 p.m. The Union Square station is about a 7-minute walk away.
   - place_id: ChIJw-9BIqJZwokRJHawGH7Y_kc
     label: Old Town Bar
-    note: A bar on East 18th Street for a drink with no booking, since Google lists it as not taking reservations. About a 6-minute walk from the Union Square station.
+    note: Decide on the night and walk in, since this bar on East 18th Street doesn't take reservations. It's about a 6-minute walk from the Union Square station.
   - place_id: ChIJN40c3qFZwokRXMy2Eb1vKj8
     label: Dear Irving Gramercy
-    note: A cocktail bar on Irving Place for an evening date, taking reservations and moderately priced per Google. About a 7-minute walk from the Union Square station.
+    note: Book this cocktail bar on Irving Place for an evening date. It takes reservations and is moderately priced, and the Union Square station is about a 7-minute walk away.
   - place_id: ChIJp-sFzaJZwokRdyaZMsu_DkU
     label: Raines Law Room Chelsea
-    note: A cocktail bar on West 17th Street for a booked bar table, taking reservations and moderately priced per Google. About a 5-minute walk from the 14 St station on the F and M.
+    note: Pick this cocktail bar on West 17th Street if one of you rides the F or M. The 14 St station on those lines is about a 5-minute walk away. Reserve a table ahead. It's moderately priced.
   - place_id: ChIJIQntspT8ZUARP3MLeK4a1vA
     label: Pete's Tavern
-    note: A restaurant at Irving Place and East 18th Street for a late table, open until 2 a.m. every night and taking reservations per Google. About an 8-minute walk from the Union Square station.
+    note: A late table works here, because this restaurant at Irving Place and East 18th Street is open until 2 a.m. every night. It takes reservations and is about an 8-minute walk from the Union Square station.
   - place_id: ChIJxTHke6JZwokRCLWVd99eDBw
     label: Union Square Cafe
-    note: A restaurant on East 19th Street for a planned dinner, taking reservations and expensive per Google. About a 7-minute walk from the Union Square station.
+    note: Save this expensive restaurant on East 19th Street for a dinner date you plan ahead, and reserve a table. From the Union Square station, it is about a 7-minute walk.
   - place_id: ChIJvSQIgqFZwokRFYQbJdzceSs
     label: Gramercy Tavern
-    note: A restaurant on East 20th Street for an anniversary, taking reservations and very expensive per Google. About an 8-minute walk from the Union Square station.
+    note: Mark an anniversary here with a reservation. The restaurant on East 20th Street is very expensive and about an 8-minute walk from the Union Square station.
 images:
   - file_name: petes-tavern-irving-place-union-square.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/2/26/Pete%27s_Tavern_%2851708610272%29.jpg/1280px-Pete%27s_Tavern_%2851708610272%29.jpg
@@ -78,6 +78,8 @@ This post lists eight places, then covers the trip home and a backup plan. It is
 Choose by the kind of date, from a first coffee to a booked dinner. Walks are from the Union Square station, at 14th Street and Broadway, unless a card names another.
 
 :::places
+
+The hours, reservations, price levels and walk times on these cards come from Google Maps as of October 2026.
 
 ![](union-square-cafe-neon-sign.jpg)
 
