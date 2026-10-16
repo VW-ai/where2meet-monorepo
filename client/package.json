@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run blog-photos && next dev -p 3001",
-    "build": "npm run blog-photos && next build",
+    "build": "npm run blog-photos && next build && node scripts/check-photo-traces.mjs",
     "blog-photos": "tsx --conditions=react-server scripts/write-blog-photos.ts",
     "start": "next start",
     "lint": "eslint 'src/**/*.{ts,tsx}'",

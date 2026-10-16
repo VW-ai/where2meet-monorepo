@@ -95,6 +95,9 @@ const nextConfig = {
       ),
     ];
   },
+  // Only the build reads the blog photos, to prerender the force-static cover.png routes, so no
+  // server function needs the JPEGs that tracing public/ would bundle into each one.
+  outputFileTracingExcludes: { '/**': ['public/blog/images/**'] },
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: false,
