@@ -43,7 +43,7 @@ vi.mock("crypto", async (importOriginal) => ({
   randomInt: vi.fn(),
 }));
 
-import { randomInt } from "crypto";
+import { drawWith } from "./helpers/random-draws.js";
 
 describe("Participant SSE Broadcasting", () => {
   let server: FastifyInstance;
@@ -61,8 +61,7 @@ describe("Participant SSE Broadcasting", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    // The lowest draw puts an approximate area 800 m due north
-    vi.mocked(randomInt).mockImplementation((() => 0) as unknown as typeof randomInt);
+    drawWith(() => 0);
 
     // Mock the SSE broadcast function
     broadcastMock = vi.fn().mockResolvedValue(undefined);

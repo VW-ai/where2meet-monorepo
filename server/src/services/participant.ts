@@ -38,17 +38,21 @@ export interface AddParticipantResult {
 const logger = createLogger("ParticipantService");
 
 /**
- * Geocodes an address and converts errors to business errors.
+ * Geocodes an address and, for an approximate participant, swaps the point for
+ * a random one nearby.
  * @param address - Address to geocode
- * @returns Geocode result
+ * @param approximate - Whether the participant hides their exact location
+ * @returns Formatted address and the coordinates to store
  * @throws BusinessAddressNotFoundError if address not found
  * @throws ExternalServiceError on API failures
  */
-async function geocodeWithBusinessErrors(
-  address: string
-): Promise<{ lat: number; lng: number; formattedAddress: string }> {
+async function locate(
+  address: string,
+  approximate: boolean
+): Promise<{ formattedAddress: string; lat: number; lng: number }> {
   try {
-    return await geocode(address);
+    const result = await geocode(address);
+    return approximate ? { ...result, ...approximateLocation(result) } : result;
   } catch (error) {
     if (error instanceof AddressNotFoundError) {
       throw new BusinessAddressNotFoundError();
@@ -59,21 +63,6 @@ async function geocodeWithBusinessErrors(
     }
     throw error;
   }
-}
-
-/**
- * Geocodes an address and, for an approximate participant, swaps the point for
- * a random one nearby.
- * @param address - Address to geocode
- * @param approximate - Whether the participant hides their exact location
- * @returns Formatted address and the coordinates to store
- */
-async function locate(
-  address: string,
-  approximate: boolean
-): Promise<{ formattedAddress: string; lat: number; lng: number }> {
-  const { formattedAddress, ...exact } = await geocodeWithBusinessErrors(address);
-  return { formattedAddress, ...(approximate ? approximateLocation(exact) : exact) };
 }
 
 /**
@@ -199,42 +188,19 @@ export class ParticipantService {
       throw new ParticipantNotFoundError(participantId);
     }
 
-    // Build update data
-    const updateData: {
-      name?: string;
-      address?: string;
-      formattedAddress?: string;
-      lat?: number;
-      lng?: number;
-      fuzzyLocation?: boolean;
-    } = {};
+    // Re-geocode when the address or the approximate setting changes, so turning
+    // approximate off restores the exact point and turning it on draws a new area.
+    // Organizers without an address have no location to update.
+    const address = input.address ?? current.address;
+    const fuzzyLocation = input.fuzzyLocation ?? current.fuzzyLocation;
+    const relocate =
+      address !== null && (address !== current.address || fuzzyLocation !== current.fuzzyLocation);
 
-    if (input.name !== undefined) {
-      updateData.name = input.name;
-    }
-
-    if (input.fuzzyLocation !== undefined) {
-      updateData.fuzzyLocation = input.fuzzyLocation;
-    }
-
-    if (input.address !== undefined && input.address !== current.address) {
-      updateData.address = input.address;
-      Object.assign(
-        updateData,
-        await locate(input.address, input.fuzzyLocation ?? current.fuzzyLocation)
-      );
-    } else if (
-      input.fuzzyLocation !== undefined &&
-      input.fuzzyLocation !== current.fuzzyLocation &&
-      current.address !== null
-    ) {
-      // Only the approximate setting changed. Re-geocode the saved address (organizers
-      // without one have no location) so turning it off restores the exact point and
-      // turning it on draws a new area.
-      Object.assign(updateData, await locate(current.address, input.fuzzyLocation));
-    }
-
-    const updated = await this.participantRepo.update(participantId, updateData);
+    const updated = await this.participantRepo.update(participantId, {
+      name: input.name,
+      fuzzyLocation: input.fuzzyLocation,
+      ...(relocate ? { address, ...(await locate(address, fuzzyLocation)) } : {}),
+    });
 
     logger.info({ eventId, participantId }, "Participant updated");
 

@@ -11,10 +11,10 @@ vi.mock("crypto", async (importOriginal) => ({
   randomInt: vi.fn(),
 }));
 
-import { randomInt } from "crypto";
 import { geocode } from "../../src/lib/maps.js";
 import { prisma } from "../../src/lib/prisma.js";
 import { generateEventId } from "../../src/utils/id.js";
+import { drawWith } from "../helpers/random-draws.js";
 import { reoffsetApproximateLocations } from "../../src/services/reoffset-approximate-locations.js";
 
 const mockGeocode = vi.mocked(geocode);
@@ -44,8 +44,7 @@ describe("reoffsetApproximateLocations", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    // The lowest draw puts the new area 800 m due north
-    vi.mocked(randomInt).mockImplementation((() => 0) as unknown as typeof randomInt);
+    drawWith(() => 0);
     geocodeSavedAddresses();
 
     eventId = generateEventId();

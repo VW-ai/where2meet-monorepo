@@ -11,8 +11,7 @@ vi.mock("crypto", async (importOriginal) => ({
 
 import { randomInt } from "crypto";
 import { approximateLocation } from "../../src/utils/approximate-location.js";
-
-const mockRandomInt = vi.mocked(randomInt);
+import { drawWith } from "../helpers/random-draws.js";
 
 const EXACT = { lat: 40.7128, lng: -74.006 };
 
@@ -25,10 +24,6 @@ function seededRandom(seed: number): () => number {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
   };
-}
-
-function drawWith(pick: (max: number) => number) {
-  mockRandomInt.mockImplementation(pick as unknown as typeof randomInt);
 }
 
 /** Great-circle distance in meters and initial bearing in degrees clockwise from north. */
@@ -52,19 +47,25 @@ const rounded = ({ meters, bearing }: { meters: number; bearing: number }) => ({
 
 describe("approximateLocation", () => {
   beforeEach(() => {
-    mockRandomInt.mockReset();
+    vi.mocked(randomInt).mockReset();
   });
 
-  it("maps the lowest, middle, and highest draws to 800 m north, 1265 m south, and 1600 m north", () => {
-    drawWith(() => 0);
-    const lowest = measure(EXACT, approximateLocation(EXACT));
-    drawWith((max) => max / 2);
-    const middle = measure(EXACT, approximateLocation(EXACT));
-    drawWith((max) => max - 1);
-    const highest = measure(EXACT, approximateLocation(EXACT));
+  it("maps fixed draws to 800 m north, 1058 m east, 1265 m south, and 1600 m north", () => {
+    const picks = [
+      () => 0,
+      (max: number) => max / 4,
+      (max: number) => max / 2,
+      (max: number) => max - 1,
+    ];
 
-    expect([lowest, middle, highest].map(rounded)).toEqual([
+    const areas = picks.map((pick) => {
+      drawWith(pick);
+      return rounded(measure(EXACT, approximateLocation(EXACT)));
+    });
+
+    expect(areas).toEqual([
       { meters: 800, bearing: 0 },
+      { meters: 1058, bearing: 90 },
       { meters: 1265, bearing: 180 },
       { meters: 1600, bearing: 0 },
     ]);

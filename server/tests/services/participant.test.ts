@@ -38,7 +38,7 @@ vi.mock("../../src/lib/logger.js", () => ({
 }));
 
 import { geocode, AddressNotFoundError, GeocodingApiError } from "../../src/lib/maps.js";
-import { randomInt } from "crypto";
+import { drawWith } from "../helpers/random-draws.js";
 
 const mockGeocode = vi.mocked(geocode);
 
@@ -255,8 +255,7 @@ describe("ParticipantService", () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
       vi.mocked(mockPrisma.participant.findMany).mockResolvedValue([]);
       vi.mocked(mockPrisma.participant.create).mockResolvedValue(createMockParticipant());
-      // The lowest draw puts the area 800 m due north
-      vi.mocked(randomInt).mockImplementation((() => 0) as unknown as typeof randomInt);
+      drawWith(() => 0);
 
       await service.addParticipant(TEST_EVENT_ID, {
         name: "Alice",
@@ -266,7 +265,8 @@ describe("ParticipantService", () => {
 
       const createCall = vi.mocked(mockPrisma.participant.create).mock.calls[0];
       const { lat, lng } = (createCall?.[0] as { data: { lat: number; lng: number } }).data;
-      expect({ lat: Number(lat.toFixed(7)), lng }).toEqual({ lat: 40.7199865, lng: -74.006 });
+      expect(lat).toBeCloseTo(40.7199865, 7);
+      expect(lng).toBe(-74.006);
     });
   });
 

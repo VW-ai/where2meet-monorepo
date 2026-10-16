@@ -8,11 +8,7 @@
  */
 
 import { randomInt } from "crypto";
-
-export interface Coordinates {
-  lat: number;
-  lng: number;
-}
+import type { GeoPoint } from "./mec.js";
 
 const MIN_DISTANCE_METERS = 800;
 const MAX_DISTANCE_METERS = 1_600;
@@ -33,7 +29,7 @@ function randomFraction(): number {
  * @param exact - Geocoded location
  * @returns A point 800 to 1,600 m away in a random direction
  */
-export function approximateLocation(exact: Coordinates): Coordinates {
+export function approximateLocation(exact: GeoPoint): GeoPoint {
   const bearing = randomFraction() * 2 * Math.PI;
   const distance = Math.sqrt(
     MIN_DISTANCE_METERS ** 2 +

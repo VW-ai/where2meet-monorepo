@@ -9,7 +9,7 @@
  */
 
 import type { PrismaClient } from "@prisma/client";
-import { geocode, type GeocodeResult } from "../lib/maps.js";
+import { geocode } from "../lib/maps.js";
 import { approximateLocation } from "../utils/approximate-location.js";
 
 export interface ReoffsetCounts {
@@ -50,10 +50,8 @@ export async function reoffsetApproximateLocations(
   };
 
   for (const { id, address } of participants) {
-    let exact: GeocodeResult;
-    try {
-      exact = await geocode(address);
-    } catch {
+    const exact = await geocode(address).catch(() => null);
+    if (!exact) {
       counts.geocodeFailed++;
       continue;
     }

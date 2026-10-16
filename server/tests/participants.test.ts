@@ -36,13 +36,9 @@ vi.mock("crypto", async (importOriginal) => ({
 }));
 
 import { geocode, AddressNotFoundError } from "../src/lib/maps.js";
-import { randomInt } from "crypto";
+import { drawWith } from "./helpers/random-draws.js";
 
 const mockGeocode = vi.mocked(geocode);
-
-/** Stubs the random draws: 0 puts an approximate area 800 m north, max / 2 puts it 1265 m south. */
-const drawWith = (pick: (max: number) => number) =>
-  vi.mocked(randomInt).mockImplementation(pick as unknown as typeof randomInt);
 
 describe("Participant Endpoints", () => {
   let server: FastifyInstance;
