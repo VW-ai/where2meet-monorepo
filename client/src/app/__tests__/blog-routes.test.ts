@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as oneSegment from '@/app/(landing)/blog/[slug]/page';
 import * as twoSegments from '@/app/(landing)/blog/[slug]/[segment]/page';
 import * as townPost from '@/app/(landing)/blog/[slug]/[segment]/[post]/page';
-import { FIXTURE_FILES, type FixtureFile } from '@/features/blog/__fixtures__/content-files';
+import {
+  FIXTURE_FILES,
+  FIXTURE_PHOTO_FILES,
+  type FixtureFile,
+} from '@/features/blog/__fixtures__/content-files';
 
 const disk = vi.hoisted(() => ({ files: [] as FixtureFile[] }));
 vi.mock('node:fs/promises', async (importOriginal) => {
@@ -28,7 +32,7 @@ async function metadata(segments: string) {
 }
 
 beforeEach(() => {
-  disk.files = [...FIXTURE_FILES];
+  disk.files = [...FIXTURE_FILES, ...FIXTURE_PHOTO_FILES];
 });
 
 afterEach(() => {
@@ -55,12 +59,22 @@ describe('/blog routes', () => {
   });
 
   it('prerenders no city or local post when the repo has no place files', async () => {
-    disk.files = FIXTURE_FILES.filter((file) => !file.path.startsWith('src/content/places/'));
+    disk.files = disk.files.filter((file) => !file.path.startsWith('src/content/places/'));
     expect(await oneSegment.generateStaticParams()).toEqual([
       { slug: 'how-to-plan-a-team-welcome-lunch' },
     ]);
     expect(await twoSegments.generateStaticParams()).toEqual([]);
     expect(await townPost.generateStaticParams()).toEqual([]);
+  });
+
+  it('fails the build when a photo a page shows is missing from public/blog/images', async () => {
+    disk.files = disk.files.filter(
+      (file) => !file.path.endsWith('/grand-central-concourse-windows.jpg')
+    );
+    await expect(oneSegment.generateStaticParams()).resolves.toHaveLength(2);
+    await expect(townPost.generateStaticParams()).rejects.toThrow(
+      'public/blog/images is missing grand-central-concourse-windows.jpg. Run npm run blog-photos.'
+    );
   });
 
   it.each([

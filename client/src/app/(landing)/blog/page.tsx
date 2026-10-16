@@ -30,9 +30,9 @@ export default async function BlogIndexPage() {
         Guides to planning where to meet with friends, family and coworkers.
       </p>
       <ul className="mt-6 space-y-5">
-        {posts.map((post) => (
+        {posts.map((post, index) => (
           <li key={postPath(post)}>
-            <PostCard post={post} />
+            <PostCard post={post} aboveFold={index === 0} />
           </li>
         ))}
       </ul>

@@ -10,6 +10,9 @@
 /.next/
 /out/
 
+# Written by npm run blog-photos
+/public/blog/images/
+
 # Production
 /build
 

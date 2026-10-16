@@ -9,7 +9,8 @@ import {
   TAXONOMY_FILE,
   type ContentFile,
 } from '../lib/content-file';
-import type { RepoContent } from '../lib/parse';
+import { catalogImages } from '../lib/catalog';
+import { parseCatalog, type RepoContent } from '../lib/parse';
 
 export interface FixtureFile {
   path: string;
@@ -51,6 +52,11 @@ export function markdownFile(
 ): ContentFile {
   return { name, text: `---\n${stringify(frontMatter)}---\n${body}` };
 }
+
+/** The files `npm run blog-photos` writes for the fixtures, so route tests find their photos. */
+export const FIXTURE_PHOTO_FILES: readonly FixtureFile[] = [
+  ...catalogImages(parseCatalog(fixtureContent()).catalog).keys(),
+].map((name) => ({ path: `public/blog/images/${name}`, text: '' }));
 
 /** Lists only the fixture files, so a test sees the same content whatever the repo publishes. */
 export function withContentFiles(

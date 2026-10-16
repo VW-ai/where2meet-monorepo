@@ -1,20 +1,30 @@
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET as oneSegmentCover } from '@/app/(landing)/blog/[slug]/cover.png/route';
 import { GET as twoSegmentCover } from '@/app/(landing)/blog/[slug]/[segment]/cover.png/route';
 import { GET as townPostCover } from '@/app/(landing)/blog/[slug]/[segment]/[post]/cover.png/route';
 import { FIXTURE_FILES, type FixtureFile } from '@/features/blog/__fixtures__/content-files';
 
-const disk = vi.hoisted(() => ({ files: [] as FixtureFile[] }));
+const disk = vi.hoisted(() => ({
+  files: [] as FixtureFile[],
+  photosRead: [] as string[],
+  greyPixelJpeg: Buffer.from(
+    '/9j/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wAARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AA//Z',
+    'base64'
+  ),
+}));
 vi.mock('node:fs/promises', async (importOriginal) => {
   const { withContentFiles } = await import('@/features/blog/__fixtures__/content-files');
-  return withContentFiles(await importOriginal(), () => disk.files);
+  const fs = withContentFiles(await importOriginal(), () => disk.files);
+  const publicDir = path.join(process.cwd(), 'public');
+  const readFile = (async (target: string, ...rest: [BufferEncoding]) => {
+    if (!target.startsWith(path.join(publicDir, 'blog/images/')))
+      return fs.readFile(target, ...rest);
+    disk.photosRead.push(path.relative(publicDir, target));
+    return disk.greyPixelJpeg;
+  }) as typeof fs.readFile;
+  return { ...fs, readFile };
 });
-
-const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons';
-const GREY_PIXEL_JPEG = Buffer.from(
-  '/9j/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wAARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AA//Z',
-  'base64'
-);
 
 function cover([slug, segment, post]: string[]) {
   const request = new Request('http://localhost');
@@ -30,10 +40,11 @@ async function pngSize(response: Response) {
   return [png.readUInt32BE(16), png.readUInt32BE(20)];
 }
 
-const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(GREY_PIXEL_JPEG));
+const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response('unexpected'));
 
 beforeEach(() => {
   disk.files = [...FIXTURE_FILES];
+  disk.photosRead = [];
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockClear();
 });
@@ -45,37 +56,22 @@ afterEach(() => {
 
 describe('blog covers', () => {
   it.each([
-    [
-      'how-to-plan-a-team-welcome-lunch',
-      [
-        `${COMMONS}/thumb/9/94/Main_Concourse%2C_Grand_Central_Terminal%2C_New_York_City%2C_NY_-_48046500922.jpg/1280px-Main_Concourse%2C_Grand_Central_Terminal%2C_New_York_City%2C_NY_-_48046500922.jpg`,
-      ],
-    ],
-    [
-      'new-york',
-      [`${COMMONS}/thumb/5/5e/Midtown_Manhattan_2019.jpg/1280px-Midtown_Manhattan_2019.jpg`],
-    ],
-    ['new-york/midtown', [`${COMMONS}/thumb/5/58/Bryant_Park_jeh.JPG/1280px-Bryant_Park_jeh.JPG`]],
-    [
-      'new-york/group-dinner-spots-near-herald-square',
-      [`${COMMONS}/thumb/7/78/Herald_Square_wts.jpg/1280px-Herald_Square_wts.jpg`],
-    ],
+    ['how-to-plan-a-team-welcome-lunch', 'grand-central-main-concourse-new-york.jpg'],
+    ['new-york', 'midtown-manhattan-skyline-new-york.jpg'],
+    ['new-york/midtown', 'bryant-park-lawn-midtown.jpg'],
+    ['new-york/group-dinner-spots-near-herald-square', 'herald-square-plaza-new-york.jpg'],
     [
       'new-york/midtown/quiet-places-for-a-small-team-meeting',
-      [
-        `${COMMONS}/thumb/1/13/New_York_Public_Library_Main_Branch_Lion.jpg/1280px-New_York_Public_Library_Main_Branch_Lion.jpg`,
-      ],
+      'new-york-public-library-lion-midtown.jpg',
     ],
-    [
-      'new-york/midtown/a-team-welcome-lunch-in-bryant-park',
-      [
-        `${COMMONS}/thumb/3/34/Carrousel_de_Bryant_Park_%C3%A0_Manhattan.jpg/1280px-Carrousel_de_Bryant_Park_%C3%A0_Manhattan.jpg`,
-      ],
-    ],
-  ])('draws a 1200x630 PNG for /blog/%s from its cover photo', async (segments, fetched) => {
-    expect(await pngSize(await cover(segments.split('/')))).toEqual([1200, 630]);
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(fetched);
-  });
+    ['new-york/midtown/a-team-welcome-lunch-in-bryant-park', 'bryant-park-carousel-midtown.jpg'],
+  ])(
+    'draws a 1200x630 PNG for /blog/%s from its cover photo file, without fetching',
+    async (segments, photo) => {
+      expect(await pngSize(await cover(segments.split('/')))).toEqual([1200, 630]);
+      expect([disk.photosRead, fetchMock.mock.calls]).toEqual([[`blog/images/${photo}`], []]);
+    }
+  );
 
   it.each([
     'boston',

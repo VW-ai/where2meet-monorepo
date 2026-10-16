@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BLOG_AUTHOR, coverPath, postPath, type Post } from '@/features/blog/lib/catalog';
+import { BLOG_AUTHOR, postPath, type Post } from '@/features/blog/lib/catalog';
+import { CONTENT_WIDTH_SIZES, CreditLine, photoLoading } from './photo-figure';
 
 const dateFormat = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -17,7 +17,7 @@ function DateTime({ date }: { date: string }) {
 export function Byline({ post, className = '' }: { post: Post; className?: string }) {
   return (
     <p className={`text-[13px] text-[#666b73] ${className}`}>
-      <Link href="/about" className="hover:text-[#bd3843]">
+      <Link href="/about" className="relative hover:text-[#bd3843]">
         {BLOG_AUTHOR}
       </Link>{' '}
       · Published <DateTime date={post.publishedAt} /> · Updated <DateTime date={post.updatedAt} />
@@ -25,53 +25,31 @@ export function Byline({ post, className = '' }: { post: Post; className?: strin
   );
 }
 
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({ post, aboveFold = false }: { post: Post; aboveFold?: boolean }) {
+  const [photo] = post.images;
   return (
-    <CoverCard
-      href={postPath(post)}
-      cover={coverPath({ kind: 'post', post })}
-      title={post.title}
-      description={post.description}
-    >
-      <Byline post={post} className="mt-3" />
-    </CoverCard>
-  );
-}
-
-/** A linked card with a 1200x630 cover on top, as on the blog index. */
-export function CoverCard({
-  href,
-  cover,
-  title,
-  description,
-  children,
-}: {
-  href: string;
-  cover: string;
-  title: string;
-  description: string;
-  children?: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group block overflow-hidden rounded-[28px] bg-white shadow-[0_4px_24px_rgba(23,37,45,0.1)] transition-[box-shadow,translate] duration-150 hover:-translate-y-px hover:shadow-[0_8px_32px_rgba(23,37,45,0.14)] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b73540] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-    >
+    <article className="group relative overflow-hidden rounded-[28px] bg-white shadow-[0_4px_24px_rgba(23,37,45,0.1)] transition-[box-shadow,translate] duration-150 hover:-translate-y-px hover:shadow-[0_8px_32px_rgba(23,37,45,0.14)] has-[h2_a:focus-visible]:outline has-[h2_a:focus-visible]:outline-2 has-[h2_a:focus-visible]:outline-offset-2 has-[h2_a:focus-visible]:outline-[#b73540] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
       <Image
-        src={cover}
-        alt=""
-        width={1200}
-        height={630}
-        sizes="(min-width: 896px) 864px, 100vw"
-        className="aspect-[1200/630] w-full bg-[#eef1f4]"
+        src={photo.src}
+        alt={photo.alt}
+        width={photo.width}
+        height={photo.height}
+        sizes={CONTENT_WIDTH_SIZES}
+        {...photoLoading(aboveFold)}
+        className="aspect-[1200/630] w-full bg-[#eef1f4] object-cover"
       />
       <div className="p-5 sm:p-6">
         <h2 className="text-lg font-bold leading-snug tracking-[-0.3px] group-hover:text-[#bc3942] sm:text-xl">
-          {title}
+          <Link href={postPath(post)} className="after:absolute after:inset-0 focus:outline-none">
+            {post.title}
+          </Link>
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-[#666b73]">{description}</p>
-        {children}
+        <p className="mt-2 text-sm leading-relaxed text-[#666b73]">{post.description}</p>
+        <Byline post={post} className="mt-3" />
+        <p className="relative mt-2 text-xs leading-relaxed text-[#666b73]">
+          <CreditLine credit={{ ...photo.credit, cropped: true }} />
+        </p>
       </div>
-    </Link>
+    </article>
   );
 }
