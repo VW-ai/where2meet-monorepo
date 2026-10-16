@@ -9,7 +9,6 @@ function parse(chunks: Array<string | Uint8Array>): SSEMessage[] {
   return messages;
 }
 
-// Bytes the staging server sent for a rename, as two writes: `event:` and then `data:`.
 const RENAME_DATA =
   '{"event":{"id":"evt_1792167269143_bqAdVLMBseGmhgHK","title":"Café SSE test, split reads before fix","meetingTime":"2026-10-21T00:00:00.000Z","publishedAt":null,"publishedVenueId":null}}';
 const RENAME = `event: event:updated\ndata: ${RENAME_DATA}\n\n`;
@@ -33,7 +32,6 @@ describe('createSSEParser', () => {
   });
 
   it('reads two messages from one read, in order', () => {
-    // A vote on staging: vote:changed and vote:statistics arrived in the same read.
     const changed =
       '{"eventId":"evt_1792167269143_bqAdVLMBseGmhgHK","seq":1,"venueId":"ChIJme4A6d5bwokR7QwUdTNRp5E","voterId":"686b6702-ab7e-4130-9ced-4b9a41dcf54f","delta":1,"voteCount":1,"totalVotes":1,"updatedAt":"2026-10-16T17:58:31.100Z"}';
     const statistics =

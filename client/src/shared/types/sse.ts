@@ -1,9 +1,6 @@
 import * as v from '@/shared/lib/schema';
 import type { SSEMessage } from '@/shared/lib/sse-parser';
 
-// Mirrors server/src/types/sse.ts and the broadcasts in server/src/routes. The server sends
-// heartbeat, close and vote:changed too; the client has no use for them, so it ignores them.
-// vote:statistics follows every vote:changed with the full snapshot.
 const participant = v.object({
   id: v.string,
   name: v.string,
@@ -57,7 +54,6 @@ const sseEventSchemas = {
 type SSEEventSchemas = typeof sseEventSchemas;
 export type SSEEventType = keyof SSEEventSchemas;
 
-// useEventStream adds the connection's eventId to every payload.
 export type SSEEventData = {
   [K in SSEEventType]: { type: K; data: v.Infer<SSEEventSchemas[K]> & { eventId: string } };
 }[SSEEventType];
@@ -75,8 +71,6 @@ function isSSEEventType(type: string): type is SSEEventType {
   return Object.hasOwn(sseEventSchemas, type);
 }
 
-// Returns null for an event the client ignores. Throws when the data is not JSON or
-// does not match the event's schema.
 export function parseSSEEvent(message: SSEMessage, eventId: string): SSEEventData | null {
   if (!isSSEEventType(message.event)) return null;
   const payload = sseEventSchemas[message.event](JSON.parse(message.data), '');

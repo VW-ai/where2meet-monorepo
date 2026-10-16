@@ -4,14 +4,12 @@ export interface SSEMessage {
   id: string;
 }
 
-// Follows the HTML spec's event stream rules. A message can span any number of reads,
-// so the line buffer and the message being built live across calls.
-// `retry` is ignored: useEventStream owns reconnect timing, and the server never sends it.
+// https://html.spec.whatwg.org/multipage/server-sent-events.html#event-stream-interpretation
 export function createSSEParser(
   onMessage: (message: SSEMessage) => void
 ): (chunk: Uint8Array) => void {
   const decoder = new TextDecoder();
-  let buffer = '';
+  let partialLine = '';
   let endedWithCR = false;
   let event = '';
   let data: string[] = [];
@@ -42,8 +40,8 @@ export function createSSEParser(
     if (endedWithCR && text.startsWith('\n')) text = text.slice(1);
     endedWithCR = text.endsWith('\r');
 
-    const lines = (buffer + text).split(/\r\n|\r|\n/);
-    buffer = lines.pop() ?? '';
+    const lines = (partialLine + text).split(/\r\n|\r|\n/);
+    partialLine = lines.pop() ?? '';
     lines.forEach(readLine);
   };
 }

@@ -6,7 +6,6 @@ import type { Event } from '@/entities/event/types';
 import type { Participant } from '@/entities/participant/types';
 import type { Venue } from '@/entities/venue/types';
 
-// Payloads below are copied from the staging stream for this meeting, 2026-10-16.
 const EVENT_ID = 'evt_1792167269143_bqAdVLMBseGmhgHK';
 const TESTER_ID = '686b6702-ab7e-4130-9ced-4b9a41dcf54f';
 const BRICKYARD_ID = 'ChIJme4A6d5bwokR7QwUdTNRp5E';
@@ -61,7 +60,6 @@ const VOTE_CHANGED =
 const VOTE_STATISTICS =
   '{"eventId":"evt_1792167269143_bqAdVLMBseGmhgHK","seq":2,"venues":[{"venueId":"ChIJme4A6d5bwokR7QwUdTNRp5E","voteCount":1,"voterIds":["686b6702-ab7e-4130-9ced-4b9a41dcf54f"],"voterNames":["686b6702-ab7e-4130-9ced-4b9a41dcf54f"]}],"totalVotes":1,"updatedAt":"2026-10-16T17:58:31.104Z"}';
 
-// After the only vote was removed.
 const VOTE_STATISTICS_EMPTY =
   '{"eventId":"evt_1792167269143_bqAdVLMBseGmhgHK","seq":4,"venues":[],"totalVotes":0,"updatedAt":"2026-10-16T17:58:41.043Z"}';
 

@@ -33,7 +33,6 @@ export function array<T>(item: Schema<T>): Schema<T[]> {
       : fail(path, 'array', value);
 }
 
-// Keeps only the declared keys, so the server can add fields without breaking older clients.
 export function object<Shape extends Record<string, Schema<unknown>>>(
   shape: Shape
 ): Schema<{ [K in keyof Shape]: Infer<Shape[K]> }> {

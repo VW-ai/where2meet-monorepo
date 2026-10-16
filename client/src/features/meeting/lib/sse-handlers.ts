@@ -237,7 +237,6 @@ function handleVoteStatistics(data: VoteStatisticsPayload): void {
   }
 
   // Transform backend format to VoteStatisticsResponse format
-  // Backend sends: { venueId, voteCount, voterIds }
   // Frontend expects: VenueWithVotes[] (full venue data + votes)
   const transformedVenues = data.venues.map((backendVenue) => {
     // CRITICAL: Prioritize venueById (full details), fallback to searchedVenues
