@@ -10,32 +10,32 @@ budget: null
 city: new-york
 town: lower-manhattan
 published_at: 2026-10-08
-updated_at: 2026-10-14
+updated_at: 2026-10-16
 places:
   - place_id: ChIJT4JpKxhawokRJsGwYfLpp60
     label: The Malt House
-    note: A restaurant on Maiden Lane for a late table, open until 2 a.m., moderately priced, good for groups and taking reservations per Google. About a 3-minute walk from the Fulton St station.
+    note: If the dinner runs late, this restaurant on Maiden Lane is open until 2 a.m. It takes reservations, is good for groups and is moderately priced. The Fulton St station is about a 3-minute walk away.
   - place_id: ChIJn-PPbBRawokR3o5lQeBaB_w
     label: Fraunces Tavern
-    note: A restaurant on Pearl Street for friends on the ferry, taking reservations and good for groups per Google. About a 3-minute walk from the Whitehall St station, next to the ferry terminal.
+    note: Friends who ride the Staten Island Ferry home can walk to the terminal after dinner here. The restaurant on Pearl Street takes reservations and is good for groups, about a 3-minute walk from the Whitehall St station, next to the ferry terminal.
   - place_id: ChIJYaLtJRRawokRjw4GeC7pTdk
     label: Adrienne's Pizzabar
-    note: A pizza restaurant for a group dinner on Stone Street, taking reservations, good for groups and moderately priced per Google. About a 4-minute walk from the Wall St station on the 2 and 3.
+    note: Split pizzas at this restaurant on Stone Street when the group wants a moderately priced dinner. It takes reservations and is good for groups, about a 4-minute walk from the Wall St station on the 2 and 3.
   - place_id: ChIJwy8lmxZawokRtWUTg5wuv6I
     label: Delmonico's
-    note: A steak house on Beaver Street for a special night, taking reservations, good for groups and very expensive per Google. About a 3-minute walk from the Wall St station on the 2 and 3.
+    note: Choose this steak house on Beaver Street for a special night, and expect a very expensive check. It takes reservations and is good for groups. The Wall St station on the 2 and 3 is about a 3-minute walk away.
   - place_id: ChIJ__9LNBZawokREnkOiVx7ydc
     label: Crown Shy
-    note: A restaurant on Pine Street for a splurge, open for dinner every day, taking reservations and very expensive per Google. About a 3-minute walk from the Wall St station on the 2 and 3.
+    note: Splurge here when the group agrees on a big night out. The restaurant on Pine Street is open for dinner every day, takes reservations and is very expensive. From the Wall St station on the 2 and 3, it is about a 3-minute walk.
   - place_id: ChIJIRiJaRRawokR2KyQ984qa-o
     label: The Dead Rabbit
-    note: A bar on Water Street for drinks after dinner, open until 2 a.m. or later, good for groups and taking reservations per Google. About a 4-minute walk from the Whitehall St station.
+    note: After dinner, move the group to this bar on Water Street, open until 2 a.m. or later. It takes reservations and is good for groups, about a 4-minute walk from the Whitehall St station.
   - place_id: ChIJvx7i_BlawokRidb5WfdvqRM
     label: Eataly
-    note: A restaurant on Liberty Street for a table by the World Trade Center, taking reservations per Google and open 7 a.m. to 11 p.m. every day. About a 2-minute walk from the Cortlandt St station on the R and W.
+    note: Book a table by the World Trade Center when part of the group takes PATH home. The restaurant on Liberty Street takes reservations and is open 7 a.m. to 11 p.m. every day, about a 2-minute walk from the Cortlandt St station on the R and W.
   - place_id: ChIJGQE3qBtawokRLgG1iiMYNso
     label: Hudson Eats
-    note: A food court on Vesey Street for a group on a budget, good for groups and inexpensive per Google, open until 9 p.m., or 7 p.m. on Sundays. About a 9-minute walk from the World Trade Center station on the E.
+    note: Feed a group on a budget at this inexpensive food court on Vesey Street. It's good for groups and open until 9 p.m., or 7 p.m. on Sundays, so plan an early dinner. The World Trade Center station on the E is about a 9-minute walk away.
 images:
   - file_name: stone-street-outdoor-tables-financial-district.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c4/Stone_Street_table_settings_jeh.jpg/1280px-Stone_Street_table_settings_jeh.jpg
@@ -75,9 +75,11 @@ This post lists eight places, then covers booking and the ride home. It is part 
 
 ## Which restaurants suit a group dinner in Lower Manhattan?
 
-Seven of the eight take reservations, per Google, and the eight span three price levels. Each walk is from the station named.
+Seven of the eight take reservations, and the eight span three price levels. Each walk is from the station named.
 
 :::places
+
+On these cards, the hours, reservations, price levels, walk times and which places are good for groups come from Google Maps as of October 2026.
 
 ![](fulton-center-station-building-broadway.jpg)
 
