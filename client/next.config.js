@@ -57,6 +57,12 @@ const nextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      {
+        // A changed photo gets a new file_name (docs/blog-posts-contract.md), so browsers and the
+        // image optimizer can keep each one for a year.
+        source: '/blog/images/:file',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
       ...NOINDEX_STATIC_PAGES.map((source) => ({
         source,
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
@@ -89,6 +95,9 @@ const nextConfig = {
       ),
     ];
   },
+  // Only the build reads the blog photos, to prerender the force-static cover.png routes, so no
+  // server function needs the JPEGs that tracing public/ would bundle into each one.
+  outputFileTracingExcludes: { '/**': ['public/blog/images/**'] },
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: false,

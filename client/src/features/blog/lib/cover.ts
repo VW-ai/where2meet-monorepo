@@ -4,8 +4,9 @@ import { renderArticleCover, type CardPhoto } from '@/lib/og/share-card';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { BLOG_PATH, pageCover, type BlogPage } from './catalog';
 import { occasionIcon } from './occasion-icon';
+import { readPhotoFile } from './photo-files';
 import { coverCredit } from './photos';
-import { fetchPhoto, loadPage } from './source';
+import { loadPage } from './source';
 
 export async function coverResponse(segments: readonly string[]): Promise<Response> {
   const page = await loadPage(segments);
@@ -32,6 +33,5 @@ function coverBadge(page: BlogPage): string {
 async function coverPhoto(page: BlogPage): Promise<CardPhoto | undefined> {
   const image = pageCover(page);
   if (!image) return undefined;
-  const response = await fetchPhoto(image);
-  return { jpeg: Buffer.from(await response.arrayBuffer()), credit: coverCredit(image) };
+  return { jpeg: await readPhotoFile(image), credit: coverCredit(image) };
 }
