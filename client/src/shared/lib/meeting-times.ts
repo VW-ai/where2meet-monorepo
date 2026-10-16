@@ -10,3 +10,14 @@ function everyStep(firstMinute: number, lastMinute: number, stepMinutes: number)
   }
   return times;
 }
+
+/** The edit form's date ("yyyy-MM-dd") and time ("HH:mm") fields for a stored meeting time. */
+export function toLocalFields(meetingTime: string): { date: string; time: string } {
+  const at = new Date(meetingTime);
+  return { date: at.toISOString().split('T')[0], time: at.toTimeString().slice(0, 5) };
+}
+
+/** The stored meeting time for the edit form's date and optional time fields. */
+export function fromLocalFields(date: string, time: string): string {
+  return time ? new Date(`${date}T${time}`).toISOString() : new Date(date).toISOString();
+}
