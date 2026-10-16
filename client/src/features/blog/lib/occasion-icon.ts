@@ -1,10 +1,12 @@
 import {
   Baby,
+  Bath,
   BookOpen,
   Briefcase,
   Cake,
   Coffee,
   Dices,
+  Feather,
   Gift,
   GraduationCap,
   Hand,
@@ -19,6 +21,7 @@ import {
   School,
   Sun,
   TreeDeciduous,
+  Trophy,
   Tv,
   Users,
   Utensils,
@@ -48,6 +51,9 @@ const ICONS: Readonly<Record<string, IconNode>> = {
   'game-night': Dices,
   'networking-meetup': Network,
   'watch-party': Tv,
+  'bathhouse-visit': Bath,
+  'pickup-basketball': Trophy,
+  badminton: Feather,
 };
 
 export function occasionIcon(key: string): IconNode {
