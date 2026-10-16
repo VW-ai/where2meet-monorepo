@@ -75,14 +75,27 @@ describe('BlogPageView', () => {
     ]);
   });
 
-  it('loads a post’s cover eagerly and every body photo lazily', () => {
-    const html = render('new-york/midtown/quiet-places-for-a-small-team-meeting');
-    expect(
-      [...html.matchAll(/<img alt="[^"]*" loading="(\w+)" width="(\d+)" height="(\d+)"/g)].map(
-        ([, loading, width, height]) => `${loading} ${width}x${height}`
-      )
-    ).toEqual(['eager 1280x960', 'lazy 1280x853', 'lazy 1280x960']);
-  });
+  it.each([
+    [
+      'new-york/midtown/quiet-places-for-a-small-team-meeting',
+      [
+        'fetchPriority="high" loading="eager" 1280x960',
+        'loading="lazy" 1280x853',
+        'loading="lazy" 1280x960',
+      ],
+    ],
+    ['new-york', ['fetchPriority="high" loading="eager" 1280x853']],
+    ['new-york/midtown', ['fetchPriority="high" loading="eager" 1280x960']],
+  ])(
+    'loads the photo on top of /blog/%s at once and first, and every other photo lazily',
+    (path, images) => {
+      expect(
+        [...render(path).matchAll(/<img alt="[^"]*" (.*?) width="(\d+)" height="(\d+)"/g)].map(
+          ([, attributes, width, height]) => `${attributes} ${width}x${height}`
+        )
+      ).toEqual(images);
+    }
+  );
 
   it('puts a general post’s unplaced photos and place cards after its second section, without chips', () => {
     const html = render('how-to-plan-a-team-welcome-lunch');

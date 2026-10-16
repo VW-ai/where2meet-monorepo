@@ -22,7 +22,7 @@ import {
 } from '@/features/blog/lib/catalog';
 import { occasionIcon } from '@/features/blog/lib/occasion-icon';
 import { generateBlogPostingSchema, generateBreadcrumbSchema } from '@/lib/seo/structured-data';
-import { PhotoFigure } from './photo-figure';
+import { CONTENT_WIDTH_SIZES, PhotoFigure } from './photo-figure';
 import { PlanCta } from './plan-cta';
 import { Byline } from './post-card';
 import { MarkdownBody, PostMarkdown } from './post-markdown';
@@ -41,7 +41,6 @@ const articleCard =
 const heading = 'mt-4 text-[28px] font-bold leading-[1.15] tracking-[-0.8px] sm:text-[36px]';
 const sectionHeading = 'text-lg font-bold tracking-[-0.3px]';
 const coverImage = 'rounded-[28px] shadow-[0_4px_24px_rgba(23,37,45,0.1)]';
-const coverSizes = '(min-width: 896px) 864px, 100vw';
 const chip = 'rounded-full px-2.5 py-0.5 text-xs font-medium leading-5';
 
 export function BlogPageView({ page, catalog }: { page: BlogPage; catalog: Catalog }) {
@@ -79,8 +78,8 @@ function PostView({ post, catalog }: { post: Post; catalog: Catalog }) {
         <Byline post={post} className="mt-3" />
         <PhotoFigure
           photo={post.images[0]}
-          sizes={coverSizes}
-          preload
+          sizes={CONTENT_WIDTH_SIZES}
+          aboveFold
           className="mt-6"
           imageClassName={coverImage}
         />
@@ -117,8 +116,8 @@ function AreaView({ page, catalog }: { page: AreaPage; catalog: Catalog }) {
       {area.image && (
         <PhotoFigure
           photo={area.image}
-          sizes={coverSizes}
-          preload
+          sizes={CONTENT_WIDTH_SIZES}
+          aboveFold
           className="mt-6"
           imageClassName={coverImage}
         />
