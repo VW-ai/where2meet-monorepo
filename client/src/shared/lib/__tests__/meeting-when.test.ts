@@ -27,7 +27,7 @@ describe('meetingWhen on a UTC server', () => {
     expect(meetingWhen(FRIDAY_EVENING_IN_NEW_YORK, null)).toBeNull();
   });
 
-  it('has no answer for a zone that does not exist', () => {
+  it('has no answer for a zone the API accepts but this runtime does not know', () => {
     expect(meetingWhen(FRIDAY_EVENING_IN_NEW_YORK, 'Mars/Olympus_Mons')).toBeNull();
   });
 });
