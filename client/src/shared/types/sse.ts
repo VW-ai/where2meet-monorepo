@@ -9,11 +9,16 @@ export interface SSEEvent<T = unknown> {
 }
 
 // Event-specific payloads based on backend API specification
+// The server sends the saved event under `event`; useEventStream adds the connection's eventId.
 export interface EventUpdatedPayload {
   eventId: string;
-  title?: string;
-  meetingTime?: string | null;
-  updatedAt: string;
+  event: {
+    id: string;
+    title: string;
+    meetingTime: string | null;
+    publishedAt: string | null;
+    publishedVenueId: string | null;
+  };
 }
 
 export interface EventPublishedPayload {
