@@ -47,6 +47,18 @@ export async function writePhotoFiles(
   return { written: images.size, fetched };
 }
 
+/** Fails the build when the photo step didn't run, before a page links to a photo that 404s. */
+export async function requirePhotoFiles(images: readonly CommonsImage[]): Promise<void> {
+  const present = new Set(
+    await readdir(path.join(process.cwd(), PHOTOS_DIR)).catch((): string[] => [])
+  );
+  const missing = images.filter(({ fileName }) => !present.has(fileName));
+  if (missing.length > 0) {
+    const names = missing.map(({ fileName }) => fileName).join(', ');
+    throw new Error(`${PHOTOS_DIR} is missing ${names}. Run npm run blog-photos.`);
+  }
+}
+
 export async function readPhotoFile(image: CommonsImage): Promise<Buffer> {
   const file = path.join(PHOTOS_DIR, image.fileName);
   return readFile(path.join(process.cwd(), file)).catch((error: unknown) => {

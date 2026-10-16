@@ -2,7 +2,14 @@ import 'server-only';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { cache } from 'react';
-import { findPage, listPages, pageSegments, type BlogPage, type Catalog } from './catalog';
+import {
+  findPage,
+  listPages,
+  pagePhotos,
+  pageSegments,
+  type BlogPage,
+  type Catalog,
+} from './catalog';
 import {
   KEYWORDS_FILE,
   PLACES_DIR,
@@ -12,6 +19,7 @@ import {
   type ContentFile,
 } from './content-file';
 import { parseCatalog, type RepoContent } from './parse';
+import { requirePhotoFiles } from './photo-files';
 
 /** React's `cache` builds the catalog once per request, for the page and its metadata. */
 export const loadCatalog = cache(async (): Promise<Catalog> => {
@@ -51,9 +59,11 @@ export async function loadPage(segments: readonly string[]): Promise<BlogPage | 
 }
 
 export async function segmentsAtDepth(depth: 1 | 2 | 3): Promise<string[][]> {
-  return listPages(await loadCatalog())
-    .map(pageSegments)
-    .filter((segments) => segments.length === depth);
+  const pages = listPages(await loadCatalog()).filter(
+    (page) => pageSegments(page).length === depth
+  );
+  await requirePhotoFiles(pages.flatMap(pagePhotos));
+  return pages.map(pageSegments);
 }
 
 const warned = new Set<string>();
