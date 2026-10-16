@@ -7,7 +7,7 @@ const INTRO = `# Where2Meet
 
 Where2Meet (www.where2meet.org) is not affiliated with When2Meet, the availability-poll scheduling tool. Where2Meet answers "where should we meet?", not "when are we all free?".
 
-Common uses: dinner with friends from different neighborhoods, a date with balanced travel for both people, team meetings or lunch with coworkers from different offices, weekend hangouts, family get-togethers, and team offsites.
+Common uses: dinner with friends from different neighborhoods, a date somewhere convenient for both people, team meetings or lunch with coworkers from different offices, weekend hangouts, family get-togethers, and team offsites.
 
 How it works:
 

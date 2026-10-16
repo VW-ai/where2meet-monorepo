@@ -103,7 +103,7 @@ export function generateWebApplicationSchema(): WithContext<WebApplication> {
     },
     featureList: [
       'Compare real travel times for every participant',
-      'Find meeting spots with balanced commutes instead of a geographic midpoint',
+      'Find a meeting spot that is convenient for everyone in the group',
       'Visualize participant locations and routes on a map',
       'Vote on candidate venues as a group',
       'No account required to create a meeting',
