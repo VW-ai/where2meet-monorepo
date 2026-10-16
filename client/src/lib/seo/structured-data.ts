@@ -29,11 +29,7 @@ export function generateOrganizationSchema(): WithContext<Organization> {
     logo: `${SITE_CONFIG.url}/logo.png`,
     description: SITE_CONFIG.description,
     foundingDate: '2025',
-    // Add social media profiles when available
-    // sameAs: [
-    //   'https://twitter.com/where2meet',
-    //   'https://github.com/where2meet',
-    // ],
+    sameAs: [...SITE_CONFIG.profiles],
   };
 }
 

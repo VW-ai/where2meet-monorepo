@@ -277,6 +277,12 @@ describe('structured data', () => {
     expect(organization.logo).toBe(`${CANONICAL_ORIGIN}/logo.png`);
   });
 
+  it('links the Organization to its official profiles', () => {
+    expect(generateOrganizationSchema().sameAs).toEqual([
+      'https://www.producthunt.com/products/where2meet-2',
+    ]);
+  });
+
   it('describes a post as a BlogPosting with each photo as a credited, licensed ImageObject', () => {
     const catalog = parseCatalog(fixtureContent()).catalog;
     const post = catalog.posts.find(

@@ -69,18 +69,18 @@ export function handleSSEEvent(event: SSEEventData): void {
 function handleEventUpdated(data: EventUpdatedPayload): void {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
 
-  // Only update if we're viewing the same event
-  if (!currentEvent || currentEvent.id !== data.eventId) {
+  if (!currentEvent || currentEvent.id !== data.event.id) {
     return;
   }
 
+  const { title, meetingTime, meetingTimeZone, publishedAt, publishedVenueId } = data.event;
   setCurrentEvent({
     ...currentEvent,
-    title: data.title ?? currentEvent.title,
-    meetingTime: data.meetingTime !== undefined ? data.meetingTime : currentEvent.meetingTime,
-    meetingTimeZone:
-      data.meetingTimeZone !== undefined ? data.meetingTimeZone : currentEvent.meetingTimeZone,
-    updatedAt: data.updatedAt,
+    title,
+    meetingTime,
+    meetingTimeZone,
+    publishedAt,
+    publishedVenueId,
   });
 }
 
