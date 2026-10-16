@@ -53,7 +53,7 @@ export function ParticipantSection() {
   // The viewer's own participant record, if they have one in this event
   const myParticipantId = organizerParticipantId || currentParticipantId;
   const me = currentEvent?.participants?.find((p) => p.id === myParticipantId);
-  const iNeedLocation = !!me && !me.address && !isPublished;
+  const iNeedLocation = !!me && !me.location && !isPublished;
 
   // Save the viewer's own starting point from the inline prompt
   const handleSaveMyLocation = async (data: { name?: string; address: string }) => {
@@ -128,7 +128,7 @@ export function ParticipantSection() {
           editingParticipant.id,
           {
             name: data.name,
-            address: data.address,
+            address: data.address || undefined,
             fuzzyLocation: data.fuzzyLocation,
           },
           token
@@ -373,6 +373,7 @@ export function ParticipantSection() {
               }
               cancelLabel={lastAddedName ? 'Done' : 'Cancel'}
               mode={editingParticipant ? 'edit' : 'add'}
+              hasHiddenAddress={!!editingParticipant?.location && !editingParticipant.address}
               initialData={
                 editingParticipant
                   ? {
