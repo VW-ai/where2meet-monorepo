@@ -2,15 +2,16 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
-import type {
-  SSEEventData,
-  EventUpdatedPayload,
-  EventPublishedPayload,
-  ParticipantAddedPayload,
-  ParticipantUpdatedPayload,
-  ParticipantRemovedPayload,
-  VoteChangedPayload,
-  VoteStatisticsPayload,
+import {
+  parseSSEEvent,
+  type SSEEventData,
+  type SSEParticipant,
+  type EventUpdatedPayload,
+  type EventPublishedPayload,
+  type ParticipantAddedPayload,
+  type ParticipantUpdatedPayload,
+  type ParticipantRemovedPayload,
+  type VoteStatisticsPayload,
 } from '@/shared/types/sse';
 import type { SSEMessage } from '@/shared/lib/sse-parser';
 import type { Participant } from '@/entities';
@@ -19,11 +20,7 @@ import type { Participant } from '@/entities';
  * Transform participant data from backend format to frontend format
  * Backend sends lat/lng at top level, frontend expects nested location object
  */
-function transformParticipant(
-  backendParticipant: Participant & { lat?: number; lng?: number }
-): Participant {
-  const { lat, lng, ...rest } = backendParticipant;
-
+function transformParticipant({ lat, lng, ...rest }: SSEParticipant): Participant {
   return {
     ...rest,
     location: lat != null && lng != null ? { lat, lng } : null,
@@ -31,16 +28,15 @@ function transformParticipant(
 }
 
 export function handleSSEMessage(message: SSEMessage, eventId: string): void {
+  let event: SSEEventData | null;
   try {
-    const parsedData = JSON.parse(message.data);
-    if (message.event === 'heartbeat') return;
-    handleSSEEvent({
-      type: message.event,
-      data: { ...parsedData, eventId: parsedData.eventId || eventId },
-    } as SSEEventData);
+    event = parseSSEEvent(message, eventId);
   } catch (error) {
-    console.error('[SSE] Failed to parse event:', error);
+    const reason = error instanceof Error ? error.message : String(error);
+    console.error(`[SSE] Dropped ${message.event}: ${reason}`);
+    return;
   }
+  if (event) handleSSEEvent(event);
 }
 
 /**
@@ -66,14 +62,11 @@ export function handleSSEEvent(event: SSEEventData): void {
     case 'participant:removed':
       handleParticipantRemoved(event.data);
       break;
-    case 'vote:changed':
-      handleVoteChanged(event.data);
-      break;
     case 'vote:statistics':
       handleVoteStatistics(event.data);
       break;
     default:
-      console.warn('Unknown SSE event type:', (event as { type: string }).type);
+      event satisfies never;
   }
 }
 
@@ -98,27 +91,15 @@ function handleEventPublished(data: EventPublishedPayload): void {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
   const { setActiveView } = useUIStore.getState();
 
-  // Backend sends nested structure: { event: {...}, venue: {...} }
-  // Handle both formats for compatibility
-  const payload = data as unknown as {
-    event?: { id: string; publishedVenueId: string; publishedAt: string };
-    eventId?: string;
-    publishedVenueId?: string;
-    publishedAt?: string;
-  };
-
-  const eventData = payload.event || (data as EventPublishedPayload);
-  const eventId = payload.event?.id || payload.eventId;
-
   // Only update if we're viewing the same event
-  if (!currentEvent || !eventId || currentEvent.id !== eventId) {
+  if (!currentEvent || currentEvent.id !== data.event.id) {
     return;
   }
 
   setCurrentEvent({
     ...currentEvent,
-    publishedVenueId: eventData.publishedVenueId,
-    publishedAt: eventData.publishedAt,
+    publishedVenueId: data.event.publishedVenueId,
+    publishedAt: data.event.publishedAt,
     updatedAt: new Date().toISOString(),
   });
 
@@ -180,8 +161,7 @@ function handleParticipantUpdated(data: ParticipantUpdatedPayload): void {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
   const { updateParticipant } = useParticipantStore.getState();
 
-  // Backend sends participant.id, not a separate participantId field
-  const participantId = data.participantId || data.participant.id;
+  const participantId = data.participant.id;
 
   // Only update if we're viewing the same event
   if (!currentEvent) {
@@ -217,9 +197,7 @@ function handleParticipantRemoved(data: ParticipantRemovedPayload): void {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
   const { removeParticipant } = useParticipantStore.getState();
 
-  // Extract participantId - backend may send it directly or in nested structure
-  const participantId =
-    data.participantId || (data as { participant?: { id: string } }).participant?.id;
+  const { participantId } = data;
 
   // Only update if we're viewing the same event
   if (!currentEvent) {
@@ -229,11 +207,6 @@ function handleParticipantRemoved(data: ParticipantRemovedPayload): void {
 
   if (currentEvent.id !== data.eventId) {
     console.warn('[SSE Handler] Event ID mismatch, skipping');
-    return;
-  }
-
-  if (!participantId) {
-    console.warn('[SSE Handler] No participantId in payload, skipping');
     return;
   }
 
@@ -250,52 +223,15 @@ function handleParticipantRemoved(data: ParticipantRemovedPayload): void {
 }
 
 /**
- * Handle single vote change (optimistic update)
- * Updates vote count for a single venue
- */
-function handleVoteChanged(data: VoteChangedPayload): void {
-  const { currentEvent } = useMeetingStore.getState();
-
-  // Only update if we're viewing the same event
-  if (!currentEvent || (data.eventId && currentEvent.id !== data.eventId)) {
-    console.warn('[SSE Handler] vote:changed skipped - event mismatch');
-    return;
-  }
-
-  console.log('[SSE Handler] Processing vote:changed for venue:', data.venueId, {
-    voteCount: data.voteCount,
-    voters: data.voterNames,
-  });
-
-  // Skip if no voter data (backend doesn't always send it in vote:changed)
-  // vote:statistics will have the complete data
-  if (!data.voterNames || data.voterNames.length === 0) {
-    console.log('[SSE Handler] Skipping vote:changed - no voter data, waiting for vote:statistics');
-    return;
-  }
-
-  // Update vote statistics for this single venue
-  useVotingStore.setState((state) => ({
-    voteStatsByVenueId: {
-      ...state.voteStatsByVenueId,
-      [data.venueId]: {
-        voteCount: data.voteCount,
-        voterIds: data.voterNames,
-      },
-    },
-  }));
-}
-
-/**
  * Handle vote statistics update
  * Dispatches to voting-store (which internally extracts vote stats only)
  */
-function handleVoteStatistics(data: VoteStatisticsPayload & { eventId?: string }): void {
+function handleVoteStatistics(data: VoteStatisticsPayload): void {
   const { currentEvent, searchedVenues, venueById, hydrateVenue } = useMeetingStore.getState();
   const { setVoteStatistics } = useVotingStore.getState();
 
   // Only update if we're viewing the same event
-  if (!currentEvent || (data.eventId && currentEvent.id !== data.eventId)) {
+  if (!currentEvent || currentEvent.id !== data.eventId) {
     console.warn('[SSE Handler] vote:statistics skipped - event mismatch');
     return;
   }
@@ -311,17 +247,14 @@ function handleVoteStatistics(data: VoteStatisticsPayload & { eventId?: string }
   }
 
   // Transform backend format to VoteStatisticsResponse format
-  // Backend sends: { venueId, voteCount, voterNames }
+  // Backend sends: { venueId, voteCount, voterIds }
   // Frontend expects: VenueWithVotes[] (full venue data + votes)
   const transformedVenues = data.venues.map((backendVenue) => {
     // CRITICAL: Prioritize venueById (full details), fallback to searchedVenues
     const fullVenue =
       venueById[backendVenue.venueId] || searchedVenues.find((v) => v.id === backendVenue.venueId);
 
-    // Defensive guard: Handle missing voterNames field
-    // Note: Backend field is "voterNames" (legacy naming) but contains participant UUIDs (voterIds)
-    // Standardized naming: Always use "voters" in frontend code
-    const voters = backendVenue.voterNames ?? [];
+    const voters = backendVenue.voterIds;
 
     if (!fullVenue) {
       console.warn('[SSE Handler] Missing venue details for:', backendVenue.venueId);
