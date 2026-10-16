@@ -91,6 +91,68 @@ describe("Event Endpoints", () => {
       expect(body.meetingTime).toBeNull();
     });
 
+    it("should store the organizer's time zone with the meeting time", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/api/events",
+        payload: {
+          title: "Friday Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+          meetingTimeZone: "America/New_York",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const created = response.json();
+      expect(created.meetingTimeZone).toBe("America/New_York");
+
+      const fetched = await server.inject({ method: "GET", url: `/api/events/${created.id}` });
+      expect(fetched.json().meetingTimeZone).toBe("America/New_York");
+    });
+
+    it("should return a null time zone when the client sends none", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/api/events",
+        payload: {
+          title: "Friday Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().meetingTimeZone).toBeNull();
+    });
+
+    it("should store an IANA-shaped zone the server's own tzdata doesn't know", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/api/events",
+        payload: {
+          title: "Friday Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+          meetingTimeZone: "Mars/Olympus_Mons",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().meetingTimeZone).toBe("Mars/Olympus_Mons");
+    });
+
+    it("should return 400 for a time zone that is not an IANA name", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/api/events",
+        payload: {
+          title: "Friday Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+          meetingTimeZone: '"; DROP TABLE event; --',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
     it("should return 400 for missing title", async () => {
       const response = await server.inject({
         method: "POST",
@@ -217,11 +279,83 @@ describe("Event Endpoints", () => {
         payload: {
           title: "Original Title",
           meetingTime: "2024-12-15T12:00:00Z",
+          meetingTimeZone: "America/New_York",
         },
       });
       const created = createResponse.json();
       createdEventId = created.id;
       participantToken = created.participantToken;
+    });
+
+    it("should update meetingTime together with its time zone", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/api/events/${createdEventId}`,
+        headers: {
+          authorization: `Bearer ${participantToken}`,
+        },
+        payload: {
+          meetingTime: "2024-12-20T09:00:00Z",
+          meetingTimeZone: "Asia/Tokyo",
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.meetingTime).toBe("2024-12-20T09:00:00.000Z");
+      expect(body.meetingTimeZone).toBe("Asia/Tokyo");
+    });
+
+    it("should clear the time zone when meetingTime is cleared", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/api/events/${createdEventId}`,
+        headers: {
+          authorization: `Bearer ${participantToken}`,
+        },
+        payload: {
+          meetingTime: null,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.meetingTime).toBeNull();
+      expect(body.meetingTimeZone).toBeNull();
+    });
+
+    it("should keep the time zone when a client sends only a new meetingTime", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/api/events/${createdEventId}`,
+        headers: {
+          authorization: `Bearer ${participantToken}`,
+        },
+        payload: {
+          meetingTime: "2024-12-20T23:00:00Z",
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.meetingTime).toBe("2024-12-20T23:00:00.000Z");
+      expect(body.meetingTimeZone).toBe("America/New_York");
+    });
+
+    it("should return 400 for a time zone sent without a meetingTime", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/api/events/${createdEventId}`,
+        headers: {
+          authorization: `Bearer ${participantToken}`,
+        },
+        payload: {
+          title: "Renamed",
+          meetingTimeZone: "Asia/Tokyo",
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
     });
 
     it("should update event with valid token", async () => {

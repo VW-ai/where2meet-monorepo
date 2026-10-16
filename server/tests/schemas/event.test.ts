@@ -110,6 +110,93 @@ describe("Event Schemas", () => {
         expect(result.success).toBe(true);
       }
     });
+
+    it("accepts the organizer's IANA time zone", () => {
+      const result = CreateEventSchema.safeParse({
+        title: "Dinner",
+        meetingTime: "2026-10-17T01:30:00.000Z",
+        meetingTimeZone: "America/New_York",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.meetingTimeZone).toBe("America/New_York");
+      }
+    });
+
+    it("accepts a legacy alias zone that browsers still report", () => {
+      const result = CreateEventSchema.safeParse({
+        title: "Dinner",
+        meetingTime: "2026-10-17T01:30:00.000Z",
+        meetingTimeZone: "Asia/Calcutta",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.meetingTimeZone).toBe("Asia/Calcutta");
+      }
+    });
+
+    it("accepts IANA-shaped zones the server's tzdata may not know", () => {
+      for (const meetingTimeZone of ["America/Coyhaique", "Mars/Olympus_Mons"]) {
+        const result = CreateEventSchema.safeParse({
+          title: "Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+          meetingTimeZone,
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.meetingTimeZone).toBe(meetingTimeZone);
+        }
+      }
+    });
+
+    it("rejects a zone that is not shaped like an IANA name", () => {
+      for (const meetingTimeZone of ['"; DROP', "America/New York", ""]) {
+        const result = CreateEventSchema.safeParse({
+          title: "Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+          meetingTimeZone,
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues[0]?.message).toBe(
+            "Meeting time zone must be an IANA time zone name"
+          );
+        }
+      }
+    });
+
+    it("rejects a time zone over 64 characters", () => {
+      const result = CreateEventSchema.safeParse({
+        title: "Dinner",
+        meetingTime: "2026-10-17T01:30:00.000Z",
+        meetingTimeZone: `America/${"X".repeat(57)}`,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          "Meeting time zone must be 64 characters or less"
+        );
+      }
+    });
+
+    it("rejects a time zone without a meeting time", () => {
+      const result = CreateEventSchema.safeParse({
+        title: "Dinner",
+        meetingTimeZone: "America/New_York",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          "Meeting time zone can only be sent with a meeting time"
+        );
+      }
+    });
   });
 
   describe("UpdateEventSchema", () => {
@@ -207,6 +294,67 @@ describe("Event Schemas", () => {
       const result = UpdateEventSchema.safeParse(input);
 
       expect(result.success).toBe(false);
+    });
+
+    it("accepts a new meeting time with its time zone", () => {
+      const result = UpdateEventSchema.safeParse({
+        meetingTime: "2026-10-17T23:00:00.000Z",
+        meetingTimeZone: "Asia/Tokyo",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.meetingTimeZone).toBe("Asia/Tokyo");
+      }
+    });
+
+    it("accepts a null time zone to clear it", () => {
+      const result = UpdateEventSchema.safeParse({
+        meetingTime: "2026-10-17T23:00:00.000Z",
+        meetingTimeZone: null,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.meetingTimeZone).toBeNull();
+      }
+    });
+
+    it("rejects a zone that is not shaped like an IANA name", () => {
+      const result = UpdateEventSchema.safeParse({
+        meetingTime: "2026-10-17T23:00:00.000Z",
+        meetingTimeZone: '"; DROP',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          "Meeting time zone must be an IANA time zone name"
+        );
+      }
+    });
+
+    it("rejects a body with only a time zone", () => {
+      const result = UpdateEventSchema.safeParse({ meetingTimeZone: "America/New_York" });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe("At least one field must be provided");
+      }
+    });
+
+    it("rejects a time zone sent with a title but no meeting time", () => {
+      const result = UpdateEventSchema.safeParse({
+        title: "Dinner",
+        meetingTimeZone: "America/New_York",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          "Meeting time zone can only be sent with a meeting time"
+        );
+      }
     });
   });
 

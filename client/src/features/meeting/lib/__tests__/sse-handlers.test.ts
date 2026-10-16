@@ -7,6 +7,7 @@ const EVENT: Event = {
   id: 'evt_1',
   title: 'Friday dinner',
   meetingTime: '2026-10-17T00:00:00.000Z',
+  meetingTimeZone: 'America/New_York',
   createdAt: '2026-10-16T12:00:00.000Z',
   updatedAt: '2026-10-16T12:00:00.000Z',
   participants: [],
@@ -25,6 +26,7 @@ function eventUpdated(event: Partial<EventUpdatedPayload['event']> & { id: strin
       event: {
         title: EVENT.title,
         meetingTime: EVENT.meetingTime,
+        meetingTimeZone: EVENT.meetingTimeZone,
         publishedAt: null,
         publishedVenueId: null,
         ...event,
@@ -49,6 +51,21 @@ describe('event:updated', () => {
       'Friday dinner, moved',
       '2026-10-17T01:30:00.000Z',
       '2026-10-16T12:00:00.000Z',
+    ]);
+  });
+
+  it('shows the zone saved with a new time', () => {
+    handleSSEEvent(
+      eventUpdated({
+        id: 'evt_1',
+        meetingTime: '2026-10-17T01:00:00.000Z',
+        meetingTimeZone: 'America/Los_Angeles',
+      })
+    );
+    const current = useMeetingStore.getState().currentEvent;
+    expect([current?.meetingTime, current?.meetingTimeZone]).toEqual([
+      '2026-10-17T01:00:00.000Z',
+      'America/Los_Angeles',
     ]);
   });
 

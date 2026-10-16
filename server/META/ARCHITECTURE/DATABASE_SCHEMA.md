@@ -41,6 +41,7 @@
 | `id` | VARCHAR(64) | 主键，语义化 ID (格式: `evt_<timestamp>_<random16>`) |
 | `title` | VARCHAR(100) | 活动标题 |
 | `meeting_time` | TIMESTAMP | 预计见面时间（可为空） |
+| `meeting_time_zone` | VARCHAR(64) | 组织者设定见面时间时所在的 IANA 时区（可为空，旧活动为空） |
 | `organizer_participant_id` | UUID | 组织者参与者 ID（用于投票和权限验证） |
 | `published_venue_id` | VARCHAR(255) | 已发布的场所 ID（Google Place ID） |
 | `published_at` | TIMESTAMP | 发布时间 |

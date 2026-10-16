@@ -10,15 +10,34 @@ import { z } from "zod";
 
 import { EVENT_ID_PATTERN } from "../utils/id.js";
 
+const IANA_ZONE_NAME = /^[A-Za-z0-9_+-]+(?:\/[A-Za-z0-9_+-]+)*$/;
+
+const MeetingTimeZoneSchema = z
+  .string()
+  .max(64, "Meeting time zone must be 64 characters or less")
+  .regex(IANA_ZONE_NAME, "Meeting time zone must be an IANA time zone name");
+
+function zoneHasTime(data: { meetingTime?: string | null; meetingTimeZone?: string | null }) {
+  return data.meetingTimeZone === undefined || data.meetingTime !== undefined;
+}
+
+const ZONE_WITHOUT_TIME = {
+  message: "Meeting time zone can only be sent with a meeting time",
+  path: ["meetingTimeZone"],
+};
+
 /**
  * Schema for creating a new event.
  */
-export const CreateEventSchema = z.object({
-  title: z.string().min(1, "Title is required").max(100, "Title must be 100 characters or less"),
-  meetingTime: z.iso
-    .datetime({ message: "Meeting time must be a valid ISO 8601 datetime" })
-    .optional(),
-});
+export const CreateEventSchema = z
+  .object({
+    title: z.string().min(1, "Title is required").max(100, "Title must be 100 characters or less"),
+    meetingTime: z.iso
+      .datetime({ message: "Meeting time must be a valid ISO 8601 datetime" })
+      .optional(),
+    meetingTimeZone: MeetingTimeZoneSchema.optional(),
+  })
+  .refine(zoneHasTime, ZONE_WITHOUT_TIME);
 
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
 
@@ -36,10 +55,12 @@ export const UpdateEventSchema = z
       .datetime({ message: "Meeting time must be a valid ISO 8601 datetime" })
       .nullable()
       .optional(),
+    meetingTimeZone: MeetingTimeZoneSchema.nullable().optional(),
   })
   .refine((data) => data.title !== undefined || data.meetingTime !== undefined, {
     message: "At least one field must be provided",
-  });
+  })
+  .refine(zoneHasTime, ZONE_WITHOUT_TIME);
 
 export type UpdateEventInput = z.infer<typeof UpdateEventSchema>;
 
