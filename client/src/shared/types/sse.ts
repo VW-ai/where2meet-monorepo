@@ -1,3 +1,4 @@
+import type { Event } from '@/entities/event/types';
 import type { Participant } from '@/entities/participant/types';
 
 // Base SSE event structure
@@ -10,21 +11,20 @@ export interface SSEEvent<T = unknown> {
 
 // Event-specific payloads based on backend API specification
 export interface EventUpdatedPayload {
-  eventId: string;
-  title?: string;
-  meetingTime?: string | null;
-  updatedAt: string;
+  event: Pick<Event, 'id' | 'title' | 'meetingTime' | 'publishedAt' | 'publishedVenueId'>;
 }
 
 export interface EventPublishedPayload {
-  eventId: string;
-  publishedVenueId: string;
-  publishedAt: string;
+  event: EventUpdatedPayload['event'] & {
+    publishedVenueId: string;
+    publishedAt: string;
+  };
   venue: {
     id: string;
     name: string;
-    address: string;
-    location: { lat: number; lng: number };
+    address: string | null;
+    lat: number;
+    lng: number;
   };
 }
 
@@ -45,20 +45,27 @@ export interface ParticipantRemovedPayload {
 }
 
 export interface VoteStatisticsPayload {
+  eventId: string;
+  seq: number;
   venues: Array<{
     venueId: string;
     voteCount: number;
-    voterNames: string[]; // Backend sends "voterNames" but it contains participant IDs
+    voterIds: string[];
+    voterNames?: string[];
   }>;
   totalVotes: number;
+  updatedAt: string;
 }
 
 export interface VoteChangedPayload {
   eventId: string;
   seq: number;
   venueId: string;
-  voterNames: string[]; // Participant IDs who voted
+  voterId: string;
+  delta: 1 | -1;
   voteCount: number;
+  totalVotes: number;
+  updatedAt: string;
 }
 
 // Discriminated union of all SSE event types
