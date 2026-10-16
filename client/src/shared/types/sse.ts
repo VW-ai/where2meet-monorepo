@@ -71,10 +71,20 @@ function isSSEEventType(type: string): type is SSEEventType {
   return Object.hasOwn(sseEventSchemas, type);
 }
 
-export function parseSSEEvent(message: SSEMessage, eventId: string): SSEEventData | null {
-  if (!isSSEEventType(message.event)) return null;
-  const payload = sseEventSchemas[message.event](JSON.parse(message.data), '');
-  return { type: message.event, data: { eventId, ...payload } } as SSEEventData;
+export type ParsedSSEEvent =
+  | { kind: 'event'; event: SSEEventData }
+  | { kind: 'ignored' }
+  | { kind: 'invalid'; reason: string };
+
+export function parseSSEEvent(message: SSEMessage, eventId: string): ParsedSSEEvent {
+  if (!isSSEEventType(message.event)) return { kind: 'ignored' };
+  try {
+    const payload = sseEventSchemas[message.event](JSON.parse(message.data), '');
+    const event = { type: message.event, data: { ...payload, eventId } } as SSEEventData;
+    return { kind: 'event', event };
+  } catch (error) {
+    return { kind: 'invalid', reason: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 // Connection states for SSE

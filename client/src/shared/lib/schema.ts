@@ -2,11 +2,9 @@ export type Schema<T> = (value: unknown, path: string) => T;
 
 export type Infer<S extends Schema<unknown>> = ReturnType<S>;
 
-export class SchemaError extends Error {}
-
 function fail(path: string, expected: string, value: unknown): never {
   const actual = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
-  throw new SchemaError(`${path || 'payload'}: expected ${expected}, got ${actual}`);
+  throw new Error(`${path || 'payload'}: expected ${expected}, got ${actual}`);
 }
 
 function at(path: string, key: string | number): string {

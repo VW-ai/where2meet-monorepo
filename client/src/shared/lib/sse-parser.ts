@@ -14,10 +14,11 @@ export function createSSEParser(
   let event = '';
   let data: string[] = [];
   let id = '';
+  let ready: SSEMessage[] = [];
 
   function readLine(line: string) {
     if (line === '') {
-      if (data.length > 0) onMessage({ event: event || 'message', data: data.join('\n'), id });
+      if (data.length > 0) ready.push({ event: event || 'message', data: data.join('\n'), id });
       event = '';
       data = [];
       return;
@@ -43,5 +44,9 @@ export function createSSEParser(
     const lines = (partialLine + text).split(/\r\n|\r|\n/);
     partialLine = lines.pop() ?? '';
     lines.forEach(readLine);
+
+    const messages = ready;
+    ready = [];
+    messages.forEach(onMessage);
   };
 }

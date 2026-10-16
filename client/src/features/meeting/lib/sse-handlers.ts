@@ -28,15 +28,14 @@ function transformParticipant({ lat, lng, ...rest }: SSEParticipant): Participan
 }
 
 export function handleSSEMessage(message: SSEMessage, eventId: string): void {
-  let event: SSEEventData | null;
+  const parsed = parseSSEEvent(message, eventId);
+  if (parsed.kind === 'invalid') console.error(`[SSE] Dropped ${message.event}: ${parsed.reason}`);
+  if (parsed.kind !== 'event') return;
   try {
-    event = parseSSEEvent(message, eventId);
+    handleSSEEvent(parsed.event);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    console.error(`[SSE] Dropped ${message.event}: ${reason}`);
-    return;
+    console.error(`[SSE] Failed to apply ${message.event}:`, error);
   }
-  if (event) handleSSEEvent(event);
 }
 
 /**
