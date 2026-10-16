@@ -1,0 +1,99 @@
+/**
+ * Unit tests for approximate locations.
+ */
+
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("crypto", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("crypto")>()),
+  randomInt: vi.fn(),
+}));
+
+import { randomInt } from "crypto";
+import { approximateLocation } from "../../src/utils/approximate-location.js";
+
+const mockRandomInt = vi.mocked(randomInt);
+
+const EXACT = { lat: 40.7128, lng: -74.006 };
+
+/** Mulberry32, so the sample below is the same on every run. */
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
+  };
+}
+
+function drawWith(pick: (max: number) => number) {
+  mockRandomInt.mockImplementation(pick as unknown as typeof randomInt);
+}
+
+/** Great-circle distance in meters and initial bearing in degrees clockwise from north. */
+function measure(from: typeof EXACT, to: typeof EXACT) {
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const [lat1, lat2] = [radians(from.lat), radians(to.lat)];
+  const dLat = lat2 - lat1;
+  const dLng = radians(to.lng - from.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  const meters = 2 * 6_378_137 * Math.asin(Math.sqrt(h));
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  const bearing = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+  return { meters, bearing };
+}
+
+const rounded = ({ meters, bearing }: { meters: number; bearing: number }) => ({
+  meters: Math.round(meters),
+  bearing: Math.round(bearing) % 360,
+});
+
+describe("approximateLocation", () => {
+  beforeEach(() => {
+    mockRandomInt.mockReset();
+  });
+
+  it("maps the lowest, middle, and highest draws to 800 m north, 1265 m south, and 1600 m north", () => {
+    drawWith(() => 0);
+    const lowest = measure(EXACT, approximateLocation(EXACT));
+    drawWith((max) => max / 2);
+    const middle = measure(EXACT, approximateLocation(EXACT));
+    drawWith((max) => max - 1);
+    const highest = measure(EXACT, approximateLocation(EXACT));
+
+    expect([lowest, middle, highest].map(rounded)).toEqual([
+      { meters: 800, bearing: 0 },
+      { meters: 1265, bearing: 180 },
+      { meters: 1600, bearing: 0 },
+    ]);
+  });
+
+  it("spreads areas evenly over every direction and the whole 800 to 1600 m ring", () => {
+    const next = seededRandom(20_261_016);
+    drawWith((max) => Math.floor(next() * max));
+
+    const samples = Array.from({ length: 10_000 }, () =>
+      measure(EXACT, approximateLocation(EXACT))
+    );
+    const meters = samples.map((sample) => sample.meters);
+    const shareByOctant = Array.from(
+      { length: 8 },
+      (_, octant) =>
+        samples.filter((sample) => Math.floor(sample.bearing / 45) === octant).length /
+        samples.length
+    );
+    // Half the ring's area lies within sqrt((800² + 1600²) / 2) ≈ 1265 m
+    const shareInInnerHalf = meters.filter((m) => m < 1264.9).length / samples.length;
+
+    expect(Math.min(...meters)).toBeGreaterThan(799.5);
+    expect(Math.min(...meters)).toBeLessThan(802);
+    expect(Math.max(...meters)).toBeGreaterThan(1598);
+    expect(Math.max(...meters)).toBeLessThan(1600.5);
+    expect(Math.min(...shareByOctant)).toBeGreaterThan(0.1);
+    expect(Math.max(...shareByOctant)).toBeLessThan(0.15);
+    expect(shareInInnerHalf).toBeGreaterThan(0.47);
+    expect(shareInInnerHalf).toBeLessThan(0.53);
+  });
+});
