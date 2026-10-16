@@ -124,7 +124,7 @@ describe("Event Endpoints", () => {
       expect(response.json().meetingTimeZone).toBeNull();
     });
 
-    it("should return 400 for a time zone that does not exist", async () => {
+    it("should store an IANA-shaped zone the server's own tzdata doesn't know", async () => {
       const response = await server.inject({
         method: "POST",
         url: "/api/events",
@@ -132,6 +132,21 @@ describe("Event Endpoints", () => {
           title: "Friday Dinner",
           meetingTime: "2026-10-17T01:30:00.000Z",
           meetingTimeZone: "Mars/Olympus_Mons",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().meetingTimeZone).toBe("Mars/Olympus_Mons");
+    });
+
+    it("should return 400 for a time zone that is not an IANA name", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/api/events",
+        payload: {
+          title: "Friday Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+          meetingTimeZone: '"; DROP TABLE event; --',
         },
       });
 

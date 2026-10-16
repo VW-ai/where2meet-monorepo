@@ -137,18 +137,35 @@ describe("Event Schemas", () => {
       }
     });
 
-    it("rejects a time zone that does not exist", () => {
-      const result = CreateEventSchema.safeParse({
-        title: "Dinner",
-        meetingTime: "2026-10-17T01:30:00.000Z",
-        meetingTimeZone: "Mars/Olympus_Mons",
-      });
+    it("accepts IANA-shaped zones the server's tzdata may not know", () => {
+      for (const meetingTimeZone of ["America/Coyhaique", "Mars/Olympus_Mons"]) {
+        const result = CreateEventSchema.safeParse({
+          title: "Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+          meetingTimeZone,
+        });
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0]?.message).toBe(
-          "Meeting time zone must be a valid IANA time zone"
-        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.meetingTimeZone).toBe(meetingTimeZone);
+        }
+      }
+    });
+
+    it("rejects a zone that is not shaped like an IANA name", () => {
+      for (const meetingTimeZone of ['"; DROP', "America/New York", ""]) {
+        const result = CreateEventSchema.safeParse({
+          title: "Dinner",
+          meetingTime: "2026-10-17T01:30:00.000Z",
+          meetingTimeZone,
+        });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues[0]?.message).toBe(
+            "Meeting time zone must be an IANA time zone name"
+          );
+        }
       }
     });
 
@@ -303,16 +320,16 @@ describe("Event Schemas", () => {
       }
     });
 
-    it("rejects a time zone that does not exist", () => {
+    it("rejects a zone that is not shaped like an IANA name", () => {
       const result = UpdateEventSchema.safeParse({
         meetingTime: "2026-10-17T23:00:00.000Z",
-        meetingTimeZone: "Mars/Olympus_Mons",
+        meetingTimeZone: '"; DROP',
       });
 
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.issues[0]?.message).toBe(
-          "Meeting time zone must be a valid IANA time zone"
+          "Meeting time zone must be an IANA time zone name"
         );
       }
     });
