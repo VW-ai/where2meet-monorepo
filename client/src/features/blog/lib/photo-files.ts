@@ -9,13 +9,15 @@ const PHOTOS_DIR = path.join('public', BLOG_PATH, IMAGES_SEGMENT);
 const DOWNLOADS_DIR = path.join('.next', 'cache', 'blog-photos');
 const FETCH_TIMEOUT_MS = 10_000;
 const PHOTO_ATTEMPTS = 3;
+const JPEG_START = Buffer.from([0xff, 0xd8, 0xff]);
+const JPEG_END = Buffer.from([0xff, 0xd9]);
 
 type Attempt = { jpeg: Buffer } | { failure: string; transient: boolean };
 
 /**
  * Vercel's image optimizer resizes files in `public/` but passes route handler output through,
  * so the photos are static files. Vercel keeps `.next/cache` between builds, so a later build
- * fetches only new photos.
+ * fetches only new photos. A photo already in `public/` counts too, so `npm run dev` works offline.
  */
 export async function writePhotoFiles(
   catalog: Catalog,
@@ -29,14 +31,15 @@ export async function writePhotoFiles(
   let fetched = 0;
   for (const image of images.values()) {
     const download = path.join(downloadsDir, `${sha256(image.sourceUrl)}.jpg`);
-    const cached = await readFile(download).catch(() => null);
-    const jpeg = cached ?? (await fetchJpeg(image));
-    if (!cached) {
+    const photo = path.join(photosDir, image.fileName);
+    const kept = (await readJpeg(download)) ?? (await readJpeg(photo));
+    const jpeg = kept ?? (await fetchJpeg(image));
+    if (!kept) {
       await writeFile(`${download}.part`, jpeg);
       await rename(`${download}.part`, download);
       fetched += 1;
     }
-    await writeFile(path.join(photosDir, image.fileName), jpeg);
+    await writeFile(photo, jpeg);
   }
   for (const name of await readdir(photosDir)) {
     if (!images.has(name)) await rm(path.join(photosDir, name), { recursive: true, force: true });
@@ -49,6 +52,12 @@ export async function readPhotoFile(image: CommonsImage): Promise<Buffer> {
   return readFile(path.join(process.cwd(), file)).catch((error: unknown) => {
     throw new Error(`${file} is missing. Run npm run blog-photos.`, { cause: error });
   });
+}
+
+async function readJpeg(file: string): Promise<Buffer | null> {
+  const bytes = await readFile(file).catch(() => null);
+  const whole = bytes?.subarray(0, 3).equals(JPEG_START) && bytes.subarray(-2).equals(JPEG_END);
+  return whole ? bytes : null;
 }
 
 function sha256(text: string): string {

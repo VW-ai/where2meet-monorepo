@@ -34,7 +34,7 @@ const FIXTURE_PHOTOS = [
   'times-square-crowds-new-york.jpg',
 ];
 
-const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
+const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9]);
 
 function jpegResponse() {
   return new Response(JPEG_BYTES, { headers: { 'Content-Type': 'image/jpeg' } });
@@ -132,11 +132,31 @@ describe('writePhotoFiles', () => {
 
   it('keeps the photos it already wrote when a later build fails', async () => {
     await writePhotoFiles(fixtureCatalog, root);
+    await rm(path.join(root, 'public/blog/images', SKYLINE));
     fetchMock.mockImplementation(async () => new Response('gone', { status: 404 }));
     await expect(writePhotoFiles(skylineOnly(`${SKYLINE_SOURCE}?gone`), root)).rejects.toThrow(
       `Wikimedia answered 404 for ${SKYLINE}`
     );
-    expect(await photosOnDisk()).toEqual(FIXTURE_PHOTOS);
+    expect(await photosOnDisk()).toEqual(FIXTURE_PHOTOS.filter((name) => name !== SKYLINE));
+  });
+
+  it('makes no network call when every photo is already in public/blog/images', async () => {
+    await writePhotoFiles(fixtureCatalog, root);
+    await rm(path.join(root, '.next'), { recursive: true });
+    fetchMock.mockClear();
+    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+    expect(await writePhotoFiles(fixtureCatalog, root)).toEqual({ written: 14, fetched: 0 });
+    expect([await photosOnDisk(), fetchMock.mock.calls]).toEqual([FIXTURE_PHOTOS, []]);
+  });
+
+  it('fetches a photo again when its file in public/blog/images is cut short', async () => {
+    await writePhotoFiles(skylineOnly(), root);
+    await rm(path.join(root, '.next'), { recursive: true });
+    await writeFile(path.join(root, 'public/blog/images', SKYLINE), JPEG_BYTES.subarray(0, 4));
+    expect(await writePhotoFiles(skylineOnly(), root)).toEqual({ written: 1, fetched: 1 });
+    expect(new Uint8Array(await readFile(path.join(root, 'public/blog/images', SKYLINE)))).toEqual(
+      JPEG_BYTES
+    );
   });
 
   it('retries a download whose connection drops partway through the photo', async () => {
@@ -172,7 +192,7 @@ describe('writePhotoFiles', () => {
     ]);
   });
 
-  it('reuses a downloaded photo on the next build, and fetches it again when its source changes', async () => {
+  it('reuses a downloaded photo on the next build, and fetches it again when its source changes on a fresh checkout', async () => {
     expect(await writePhotoFiles(fixtureCatalog, root)).toEqual({ written: 14, fetched: 14 });
 
     await rm(path.join(root, 'public'), { recursive: true });
@@ -180,6 +200,7 @@ describe('writePhotoFiles', () => {
     expect(await writePhotoFiles(fixtureCatalog, root)).toEqual({ written: 14, fetched: 0 });
     expect([(await photosOnDisk()).length, fetchMock.mock.calls]).toEqual([14, []]);
 
+    await rm(path.join(root, 'public'), { recursive: true });
     const sourceUrl = `${SKYLINE_SOURCE}?moved`;
     expect(await writePhotoFiles(skylineOnly(sourceUrl), root)).toEqual({ written: 1, fetched: 1 });
     expect([await photosOnDisk(), fetchMock.mock.calls.map(([url]) => url)]).toEqual([
