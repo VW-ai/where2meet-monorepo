@@ -29,7 +29,7 @@ places:
     note: Plan a weeknight party at this cocktail lounge on the 30th floor at 200 West 39th Street, open from 5 p.m. to midnight on weekdays and closed on weekends. It takes reservations and is about a 1-minute walk from the Times Sq-42 St station.
   - place_id: ChIJlSsnN_NZwokRD4CVvN0DPYE
     label: RH Rooftop Restaurant at RH New York
-    note: Book a birthday brunch at this rooftop restaurant at RH New York on Ninth Avenue. It opens at 10 a.m. on weekends, closes at 10 p.m. and takes reservations. The 14 St station on the A, C, E and L is about a 4-minute walk away.
+    note: Book a birthday brunch at this rooftop restaurant at RH New York on Ninth Avenue. On weekends it opens at 10 a.m. It closes at 10 p.m. and takes reservations. The 14 St station on the A, C, E and L is about a 4-minute walk away.
   - place_id: ChIJmamBZtVZwokR6phs86DKbP0
     label: Color Factory NYC
     note: Kids or adults can spend a daytime birthday among the hands-on color installations at this museum at 251 Spring Street. Entry is by ticket, and it's open until 7 p.m. on Fridays and Saturdays. It is about a 4-minute walk from the Houston St station on the 1.

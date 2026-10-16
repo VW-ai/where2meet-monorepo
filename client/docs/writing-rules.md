@@ -70,9 +70,9 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 The card already shows the place's name, photo, rating and address. The note tells the reader why this place suits this plan.
 
 - **Why it fits.** Open with why the place fits the post's occasion and group, in specific terms. "Keep this coffee shop for a check-in of two or three, because it isn't good for groups" says why. "A coffee shop on West 38th Street" only restates the card.
-- **One planning detail.** Give the reader something to act on: book ahead or walk in, which station or exit, the group size it suits, or when it closes.
+- **Something to act on.** Give the reader at least one thing to act on: book ahead or walk in, which station or exit, the group size it suits, or when it closes.
 - **Plain facts.** State what you checked as plain facts: takes reservations, good for groups, price level, hours, and the walk from the station.
-- **One source line.** Name the source once per post, in one plain sentence on the line right after `:::places`, as in "The hours, reservations, price levels and walk times on these cards come from Google Maps as of October 2026."
+- **One source line.** Name the source once per post, in a plain sentence or two on the line right after `:::places`, as in "The hours, reservations, price levels and walk times on these cards come from Google Maps as of October 2026."
 - **No source tags in notes.** Never write "per Google", "Google lists", "according to Google" or anything else that names Google in a note. CI blocks it. When a Google office is a landmark, name it another way, as in "near the Chelsea Market building".
 - **No shared template.** Vary how notes open and how their sentences run. At most two notes in a post start with the same word, and "A" and "An" count as one word. CI blocks more.
 - **Never invent first-hand experience.** Don't claim a visit, a taste, the staff's manner or a room's atmosphere that you can't source. No "we loved".
