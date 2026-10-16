@@ -15,7 +15,11 @@ export type { LocationResponse, DeleteSuccessResponse } from "./common.dto.js";
 
 // Participant DTOs
 export { ParticipantResponseSchema, CreateParticipantResponseSchema } from "./participant.dto.js";
-export type { ParticipantResponse, CreateParticipantResponse } from "./participant.dto.js";
+export type {
+  PublicParticipant,
+  ParticipantResponse,
+  CreateParticipantResponse,
+} from "./participant.dto.js";
 
 // Event DTOs
 export {

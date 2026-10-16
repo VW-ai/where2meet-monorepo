@@ -21,8 +21,24 @@ import {
   type MECResponse,
   type GetMECResponse,
   type EventSettingsResponse,
+  type PublicParticipant,
 } from "../dto/index.js";
 import type { MECResult } from "../utils/mec.js";
+
+export function toPublicParticipant(entity: Participant): PublicParticipant {
+  const participant = {
+    id: entity.id,
+    name: entity.name,
+    lat: entity.lat === null ? null : Number(entity.lat),
+    lng: entity.lng === null ? null : Number(entity.lng),
+    color: entity.color,
+    isOrganizer: entity.isOrganizer,
+  };
+
+  return entity.fuzzyLocation
+    ? { ...participant, fuzzyLocation: true, address: null }
+    : { ...participant, fuzzyLocation: false, address: entity.address };
+}
 
 /**
  * Transforms a Participant entity to ParticipantResponse DTO.
@@ -30,47 +46,27 @@ import type { MECResult } from "../utils/mec.js";
  * Handles null lat/lng for organizer participants.
  */
 export function toParticipantResponse(entity: Participant): ParticipantResponse {
-  const response = {
-    id: entity.id,
-    name: entity.name,
-    address: entity.address,
-    location:
-      entity.lat !== null && entity.lng !== null
-        ? { lat: Number(entity.lat), lng: Number(entity.lng) }
-        : null,
-    color: entity.color,
-    fuzzyLocation: entity.fuzzyLocation,
-    isOrganizer: entity.isOrganizer,
-  };
+  const { lat, lng, ...participant } = toPublicParticipant(entity);
 
-  return ParticipantResponseSchema.parse(response);
+  return ParticipantResponseSchema.parse({
+    ...participant,
+    location: lat !== null && lng !== null ? { lat, lng } : null,
+  });
 }
 
 /**
  * Transforms a Participant entity to CreateParticipantResponse DTO.
  * Includes optional participantToken for self-registration.
  * Validates output at runtime to ensure contract compliance.
- * Handles null lat/lng for organizer participants.
  */
 export function toCreateParticipantResponse(
   entity: Participant,
   participantToken?: string
 ): CreateParticipantResponse {
-  const response = {
-    id: entity.id,
-    name: entity.name,
-    address: entity.address,
-    location:
-      entity.lat !== null && entity.lng !== null
-        ? { lat: Number(entity.lat), lng: Number(entity.lng) }
-        : null,
-    color: entity.color,
-    fuzzyLocation: entity.fuzzyLocation,
-    isOrganizer: entity.isOrganizer,
+  return CreateParticipantResponseSchema.parse({
+    ...toParticipantResponse(entity),
     participantToken,
-  };
-
-  return CreateParticipantResponseSchema.parse(response);
+  });
 }
 
 /**

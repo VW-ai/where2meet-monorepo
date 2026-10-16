@@ -79,15 +79,20 @@ curl -N -H "Authorization: Bearer {token}" \
 
 Fired when a new participant joins the event.
 
+An approximate participant (`fuzzyLocation: true`) arrives with `address: null`
+and coordinates that are already offset 100 to 900 m. The REST responses use the
+same rule, so no client ever receives the address they typed.
+
 ```typescript
 interface ParticipantAddedEvent {
   participant: {
     id: string;
     name: string;
-    address: string | null;
+    address: string | null; // null when fuzzyLocation is true
     lat: number | null;
     lng: number | null;
     color: string;
+    fuzzyLocation: boolean;
     isOrganizer: boolean;
   };
 }
@@ -102,10 +107,11 @@ interface ParticipantUpdatedEvent {
   participant: {
     id: string;
     name: string;
-    address: string | null;
+    address: string | null; // null when fuzzyLocation is true
     lat: number | null;
     lng: number | null;
     color: string;
+    fuzzyLocation: boolean;
     isOrganizer: boolean;
   };
 }

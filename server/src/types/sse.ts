@@ -6,6 +6,7 @@
  */
 
 import type { FastifyReply } from "fastify";
+import type { PublicParticipant } from "../dto/index.js";
 
 /**
  * SSE event types that can be broadcast to clients.
@@ -24,30 +25,14 @@ export type SSEEventType =
  * Payload for participant:added event.
  */
 export interface ParticipantAddedPayload {
-  participant: {
-    id: string;
-    name: string;
-    address: string | null;
-    lat: number | null;
-    lng: number | null;
-    color: string;
-    isOrganizer: boolean;
-  };
+  participant: PublicParticipant;
 }
 
 /**
  * Payload for participant:updated event.
  */
 export interface ParticipantUpdatedPayload {
-  participant: {
-    id: string;
-    name: string;
-    address: string | null;
-    lat: number | null;
-    lng: number | null;
-    color: string;
-    isOrganizer: boolean;
-  };
+  participant: PublicParticipant;
 }
 
 /**

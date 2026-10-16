@@ -327,7 +327,7 @@ POST /api/events/:id/participants
 |------|------|------|
 | id | string | 参与者 UUID |
 | name | string | 姓名 |
-| address | string | 用户输入的原始地址 |
+| address | string \| null | 用户输入的原始地址；fuzzyLocation=true 时为 null，原始地址只保存在服务端 |
 | location | Location | { lat, lng } 坐标（后端 geocode 结果） |
 | color | string | 分配的颜色 |
 | fuzzyLocation | boolean | 是否模糊 |
