@@ -74,6 +74,17 @@ describe('createSSEParser', () => {
     ]);
   });
 
+  it('starts the next read clean after the callback throws', () => {
+    const messages: SSEMessage[] = [];
+    const push = createSSEParser((message) => {
+      if (message.data === 'one') throw new Error('handler broke');
+      messages.push(message);
+    });
+    expect(() => push(encoder.encode('data: one\n\ndata: two\n\n'))).toThrow('handler broke');
+    push(encoder.encode('data: three\n\n'));
+    expect(messages).toEqual([{ event: 'message', data: 'three', id: '' }]);
+  });
+
   it('forgets the event type when a blank line ends a message with no data', () => {
     expect(parse(['event: vote:changed\n\ndata: {}\n\n'])).toEqual([
       { event: 'message', data: '{}', id: '' },

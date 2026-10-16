@@ -148,6 +148,25 @@ describe('SSE messages the server sends', () => {
     ]);
   });
 
+  it('logs a handler that throws and keeps applying later messages', () => {
+    const { setCurrentEvent } = useMeetingStore.getState();
+    useMeetingStore.setState({
+      setCurrentEvent: () => {
+        throw new Error('store broke');
+      },
+    });
+    try {
+      receive('event:updated', RENAME);
+    } finally {
+      useMeetingStore.setState({ setCurrentEvent });
+    }
+    receive('event:updated', RENAME);
+    expect([errors.map(([first]) => first), currentEvent()?.title]).toEqual([
+      ['[SSE] Failed to apply event:updated:'],
+      'Café SSE test, split reads before fix',
+    ]);
+  });
+
   it('ignores heartbeat, close, vote:changed and unknown events without logging', () => {
     receive('heartbeat', '{"timestamp":"2026-10-16T17:57:14.771Z"}');
     receive('close', '{"reason":"server_shutdown"}');
