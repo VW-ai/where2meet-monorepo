@@ -12,6 +12,7 @@ import type {
   VoteChangedPayload,
   VoteStatisticsPayload,
 } from '@/shared/types/sse';
+import type { SSEMessage } from '@/shared/lib/sse-parser';
 import type { Participant } from '@/entities';
 
 /**
@@ -27,6 +28,19 @@ function transformParticipant(
     ...rest,
     location: lat != null && lng != null ? { lat, lng } : null,
   } as Participant;
+}
+
+export function handleSSEMessage(message: SSEMessage, eventId: string): void {
+  try {
+    const parsedData = JSON.parse(message.data);
+    if (message.event === 'heartbeat') return;
+    handleSSEEvent({
+      type: message.event,
+      data: { ...parsedData, eventId: parsedData.eventId || eventId },
+    } as SSEEventData);
+  } catch (error) {
+    console.error('[SSE] Failed to parse event:', error);
+  }
 }
 
 /**

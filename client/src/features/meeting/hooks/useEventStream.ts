@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { SSEEventData, SSEConnectionState } from '@/shared/types/sse';
-import { handleSSEEvent } from '@/features/meeting/lib/sse-handlers';
+import type { SSEConnectionState } from '@/shared/types/sse';
+import { createSSEParser } from '@/shared/lib/sse-parser';
+import { handleSSEMessage } from '@/features/meeting/lib/sse-handlers';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -44,66 +45,6 @@ export function useEventStream(
       onConnectionStateChange?.(state);
     },
     [onConnectionStateChange]
-  );
-
-  // Parse and handle SSE events
-  const handleMessage = useCallback(
-    (event: MessageEvent, eventType?: string, contextEventId?: string) => {
-      try {
-        const parsedData = JSON.parse(event.data);
-
-        // Store last event ID for reconnection
-        if (event.lastEventId) {
-          setLastEventId(event.lastEventId);
-        }
-
-        // Handle system events (connected, heartbeat)
-        if (eventType === 'connected') {
-          console.log(`[SSE] System event (connected):`, parsedData);
-          // Trigger snapshot reconciliation on connect
-          onConnect?.();
-          return;
-        }
-        if (eventType === 'heartbeat') {
-          console.log(`[SSE] System event (heartbeat):`, parsedData);
-          return;
-        }
-
-        // For application events, use the SSE event type (from event: line)
-        // instead of requiring it in the JSON payload
-        if (eventType) {
-          // Add eventId to payload if missing (handlers expect it)
-          const dataWithEventId = {
-            ...parsedData,
-            eventId: parsedData.eventId || contextEventId,
-          };
-
-          // Construct the expected SSEEventData format
-          const sseEvent = {
-            type: eventType,
-            data: dataWithEventId,
-          } as SSEEventData;
-
-          console.log(
-            '[SSE] Handling application event:',
-            eventType,
-            'with eventId:',
-            dataWithEventId.eventId
-          );
-          handleSSEEvent(sseEvent);
-        } else {
-          // Fallback: check if data has type field (old format)
-          if (parsedData && typeof parsedData === 'object' && 'type' in parsedData) {
-            handleSSEEvent(parsedData as SSEEventData);
-          } else {
-            console.warn('[SSE] Event has no type (neither SSE event: nor data.type):', parsedData);
-          }
-        }
-      } catch (error) {
-        console.error('[SSE] Failed to parse event:', error);
-      }
-    },
-    [onConnect]
   );
 
   // Connect to SSE stream using fetch (EventSource doesn't support headers)
@@ -165,9 +106,12 @@ export function useEventStream(
         onConnect?.();
 
         const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
         let messageCount = 0;
+        const parse = createSSEParser((message) => {
+          messageCount++;
+          if (message.id) setLastEventId(message.id);
+          handleSSEMessage(message, eventId);
+        });
 
         try {
           while (true) {
@@ -182,45 +126,7 @@ export function useEventStream(
               break;
             }
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            let currentEventType: string | undefined;
-            let currentData: string | undefined;
-
-            for (const line of lines) {
-              if (line.startsWith('event: ')) {
-                currentEventType = line.slice(7);
-                console.log('[SSE] Event type:', currentEventType);
-              } else if (line.startsWith('data: ')) {
-                currentData = line.slice(6);
-                messageCount++;
-                console.log(`[SSE] Message #${messageCount}:`, currentData.substring(0, 100));
-              } else if (line.startsWith('id: ')) {
-                const sseEventId = line.slice(4);
-                console.log('[SSE] Event ID:', sseEventId);
-                setLastEventId(sseEventId);
-              } else if (line.startsWith(':')) {
-                // Comment/heartbeat
-                console.log('[SSE] Heartbeat comment');
-              } else if (line === '') {
-                // Empty line separates messages - process the event
-                if (currentData) {
-                  try {
-                    const event = { data: currentData } as MessageEvent;
-                    // Pass the connection's eventId (not SSE event ID)
-                    handleMessage(event, currentEventType, eventId);
-                  } catch (error) {
-                    console.error('[SSE] Failed to handle message:', error);
-                  }
-                  currentData = undefined;
-                  currentEventType = undefined;
-                }
-              } else if (line.trim()) {
-                console.log('[SSE] Unknown line:', line);
-              }
-            }
+            parse(value);
           }
         } catch (error) {
           if ((error as Error).name !== 'AbortError') {
@@ -260,7 +166,7 @@ export function useEventStream(
 
     // Store abort controller as eventSource for cleanup
     eventSourceRef.current = { close: () => controller.abort() } as EventSource;
-  }, [eventId, token, enabled, connectionState, lastEventId, handleMessage, updateConnectionState]);
+  }, [eventId, token, enabled, connectionState, lastEventId, onConnect, updateConnectionState]);
 
   // Disconnect from SSE stream
   const disconnect = useCallback(() => {
