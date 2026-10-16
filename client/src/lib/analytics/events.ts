@@ -1,5 +1,7 @@
+import posthog from 'posthog-js';
+
 /**
- * Google Analytics 4 custom event tracking helpers
+ * Custom event tracking helpers. Each event goes to Google Analytics 4 and PostHog.
  *
  * Usage:
  * ```typescript
@@ -18,12 +20,12 @@ declare global {
 }
 
 /**
- * Track a custom event in Google Analytics
+ * Track a custom event in Google Analytics and PostHog
  */
 export function trackEvent(eventName: string, parameters?: Record<string, unknown>) {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', eventName, parameters);
-  }
+  if (typeof window === 'undefined') return;
+  window.gtag?.('event', eventName, parameters);
+  if (posthog.__loaded) posthog.capture(eventName, parameters);
 }
 
 /**
