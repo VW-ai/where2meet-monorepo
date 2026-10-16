@@ -14,22 +14,22 @@ updated_at: 2026-10-16
 places:
   - place_id: ChIJw0iarSJawokRYslMIjGxy1o
     label: Wall Street Bath & Spa 88
-    note: A bathhouse on Fulton Street with a stone-heated sauna, a steam room, a cold plunge and a pool, about a 3-minute walk from the Fulton St station. Day passes are walk-in only, so the group can decide on the day.
+    note: Decide on the day, since day passes at this bathhouse on Fulton Street are walk-in only. It has a stone-heated sauna, a steam room, a cold plunge and a pool. From the Fulton St station, it is about a 3-minute walk.
   - place_id: ChIJ63NebSBawokRnDuPylB7t38
     label: AIRE Ancient Baths New York · Tribeca
-    note: Thermal baths in a restored 1883 textile building on Franklin Street, about a 1-minute walk from the Franklin St station on the 1. You book a time ahead, and it has experiences for two. Google lists it open until 11 p.m. Friday to Sunday and 10 p.m. on other days.
+    note: Book a time ahead for these thermal baths in a restored 1883 textile building on Franklin Street, and pick one of its experiences for two if it's just a pair. It's open until 11 p.m. Friday to Sunday and 10 p.m. on other days, about a 1-minute walk from the Franklin St station on the 1.
   - place_id: ChIJkQxhg_VZwokRu69-xykT-IE
     label: Shibui Spa
-    note: The spa in the Greenwich Hotel on Greenwich Street, with a heated pool and steam showers, about a 3-minute walk from the Franklin St station on the 1. It takes bookings by phone, and Google lists it open from 9 a.m. to 9 p.m. every day.
+    note: Swim and steam at the spa in the Greenwich Hotel on Greenwich Street. It has a heated pool and steam showers, takes bookings by phone and is open from 9 a.m. to 9 p.m. every day. The Franklin St station on the 1 is about a 3-minute walk away.
   - place_id: ChIJK9Is4xhawokRM9cdEltMbdk
     label: The Spa at Four Seasons Hotel New York Downtown
-    note: The hotel spa on Barclay Street, about a 3-minute walk from the Park Place station on the 2 and 3. Guests who book a treatment can add a day at its 75-foot lap pool, and it offers an infrared sauna session.
+    note: Friends who want to swim book a treatment at this hotel spa on Barclay Street, then add a day at its 75-foot lap pool. It also offers an infrared sauna session. From the Park Place station on the 2 and 3, it is about a 3-minute walk.
   - place_id: ChIJbwsKYcZbwokRpiaJ6WfJ6Uc
     label: Clean Market
-    note: A wellness center on the second floor of Brookfield Place, about a 6-minute walk from the World Trade Center station on the E. It books infrared sauna sessions, and Google lists it open until 8 p.m. every day.
+    note: After work, reserve an infrared sauna session at this wellness center on the second floor of Brookfield Place. It is open until 8 p.m. every day, and the World Trade Center station on the E is about a 6-minute walk away.
   - place_id: ChIJE4Zm12FZwokRujB68vExqV8
     label: Remedy Place SoHo
-    note: A wellness club on Greene Street with private infrared sauna suites and guided ice baths, about a 1-minute walk from the Canal St station on the N, Q, R and W. It takes bookings online, and Google lists it open until 8 p.m. on weekdays and 7 p.m. on weekends.
+    note: Private infrared sauna suites and guided ice baths suit two friends at this wellness club on Greene Street. Book online. It's open until 8 p.m. on weekdays and 7 p.m. on weekends, and the Canal St station on the N, Q, R and W is about a 1-minute walk away.
 images:
   - file_name: winter-garden-atrium-brookfield-place.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Winter_Garden_Atrium_189.jpg/1280px-Winter_Garden_Atrium_189.jpg
@@ -72,6 +72,8 @@ This post suggests six bathhouses, saunas and spas from Fulton Street to Canal S
 Each of these six places is within a 6-minute walk of a subway station. Pick the one on a line most of the group rides.
 
 :::places
+
+We checked the details on these cards against Google Maps and each place's own site in October 2026. Walk times come from Google Maps.
 
 The picks fall into three areas. Fulton Street suits friends coming from Brooklyn, since the 2, 3, 4, 5, A, C and J stop at Fulton St. Park Place and Brookfield Place are close to the PATH trains at [World Trade Center](https://www.panynj.gov/path/en/stations/world-trade-center-station.html). Tribeca and Canal Street suit friends on the 1 or the Broadway lines.
 

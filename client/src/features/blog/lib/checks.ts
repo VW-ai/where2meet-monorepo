@@ -1,6 +1,6 @@
 import { buildPageTitle } from '@/lib/seo/metadata';
 import { PLACES_LINE } from './body';
-import type { Area, Catalog, Post } from './catalog';
+import type { Area, Catalog, CuratedPlace, Post } from './catalog';
 import {
   KEYWORDS_FILE,
   PLACES_DIR,
@@ -25,6 +25,8 @@ export type Rule = 'fields' | PostRule | PlaceRule;
 type PostRule =
   | 'word-count'
   | 'places'
+  | 'note-source'
+  | 'note-openings'
   | 'images'
   | 'image-size'
   | 'title'
@@ -80,6 +82,7 @@ const DESCRIPTION_RANGE = [120, 155] as const;
 const BODY_WORDS = { general: [700, 1000], local: [400, 800] } as const;
 const PLACES_MIN = 6;
 const PLACE_NOTE_MIN_WORDS = 12;
+const NOTE_OPENING_MAX = 2;
 const IMAGES_MIN = 3;
 /** The site caches a photo only up to this many bytes. */
 const IMAGE_BYTES_MAX = 2_000_000;
@@ -92,6 +95,12 @@ const WORD_CHAR = String.raw`[\p{L}\p{N}_]`;
 /** Brand wording: "convenient", never "fair" (or fairly, fairness) or "meet in the middle". */
 const OFF_BRAND = new RegExp(
   String.raw`(?<!${WORD_CHAR})fair${WORD_CHAR}*|(?<!${WORD_CHAR})meet(?:s|ing)?(?:${SPACE}|-)+in(?:${SPACE}|-)+the(?:${SPACE}|-)+middle(?!${WORD_CHAR})`,
+  'giu'
+);
+const GOOGLE_NAME = String.raw`google(?:${SPACE}+maps)?`;
+const GOOGLE_TAG = String.raw`(?:per|according${SPACE}+to)${SPACE}+${GOOGLE_NAME}|${GOOGLE_NAME}${SPACE}+(?:lists|listed|says|said|shows|showed|rates|rated)|on${SPACE}+google${SPACE}+maps`;
+const GOOGLE_SOURCE = new RegExp(
+  String.raw`(?<!${WORD_CHAR})(?:${GOOGLE_TAG}|${GOOGLE_NAME})(?!${WORD_CHAR})`,
   'giu'
 );
 const STYLE_MARKS: Record<string, string> = {
@@ -201,6 +210,28 @@ const POST_RULES: { [R in PostRule]: Check<Post> } = {
       );
     }),
   ],
+
+  'note-source': ({ places }) =>
+    found(GOOGLE_SOURCE, noteText(places)).map(
+      ({ field, phrase }) =>
+        `${field} says "${phrase}"; state the fact plainly and name the source once in the body, or if Google is a landmark here, name it another way, as in "near the Chelsea Market building"`
+    ),
+
+  'note-openings': ({ places }) => {
+    const groups = new Map<string, { label: string; word: string }[]>();
+    for (const { label, note } of places) {
+      const word = asRead(note).match(WORD)?.[0];
+      if (word === undefined) continue;
+      const lower = word.toLowerCase();
+      const first = lower === 'an' ? 'a' : lower;
+      groups.set(first, [...(groups.get(first) ?? []), { label, word }]);
+    }
+    return [...groups.values()].map(
+      (notes) =>
+        notes.length > NOTE_OPENING_MAX &&
+        `the notes for ${sentenceList(notes.map(({ label }) => `"${label}"`))} all start with ${[...new Set(notes.map(({ word }) => `"${word}"`))].join(' or ')}; at most ${NOTE_OPENING_MAX} notes may share a first word, so open each one with why the place fits`
+    );
+  },
 
   images: ({ markdown, images }) => {
     const listed = new Set(images.map(({ fileName }) => fileName));
@@ -442,9 +473,13 @@ function postText(post: Post): PublishedText {
     ['the title', post.title],
     ['the description', post.description],
     ['the body', post.markdown],
-    ...post.places.map(({ label, note }): [string, string] => [`the note for "${label}"`, note]),
+    ...noteText(post.places),
     ...imageText(post.images),
   ];
+}
+
+function noteText(places: readonly CuratedPlace[]): PublishedText {
+  return places.map(({ label, note }): [string, string] => [`the note for "${label}"`, note]);
 }
 
 function placeText(area: Area): PublishedText {
