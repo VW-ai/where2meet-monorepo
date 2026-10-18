@@ -466,7 +466,7 @@ describe("Participant SSE Broadcasting", () => {
       // Assert
       expect(response.statusCode).toBe(200);
 
-      expect(broadcastMock).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(2));
       expect(broadcastMock).toHaveBeenCalledWith({
         eventId: testEventId,
         type: "participant:removed",
@@ -485,7 +485,7 @@ describe("Participant SSE Broadcasting", () => {
       });
 
       // Assert
-      expect(broadcastMock).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(2));
       const broadcastCall = broadcastMock.mock.calls[0][0];
 
       expect(broadcastCall).toHaveProperty("eventId", testEventId);
@@ -510,7 +510,7 @@ describe("Participant SSE Broadcasting", () => {
 
       // Assert - deletion should still succeed
       expect(response.statusCode).toBe(200);
-      expect(broadcastMock).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(2));
     });
   });
 
@@ -675,7 +675,7 @@ describe("Participant SSE Broadcasting", () => {
       });
 
       // Assert
-      expect(broadcastMock).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(3));
 
       // Verify update broadcast
       const updateCall = broadcastMock.mock.calls[0][0];
@@ -687,6 +687,7 @@ describe("Participant SSE Broadcasting", () => {
       const deleteCall = broadcastMock.mock.calls[1][0];
       expect(deleteCall.type).toBe("participant:removed");
       expect(deleteCall.payload.participantId).toBe(participantId);
+      expect(broadcastMock.mock.calls[2][0].type).toBe("vote:statistics");
     });
   });
 });

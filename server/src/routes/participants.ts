@@ -10,6 +10,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createParticipantService } from "../services/participant.js";
+import { createVoteService } from "../services/vote.js";
 import {
   CreateParticipantSchema,
   UpdateParticipantSchema,
@@ -18,6 +19,7 @@ import {
 } from "../schemas/participant.js";
 import { EventIdSchema } from "../schemas/event.js";
 import { toParticipantResponse, toCreateParticipantResponse } from "../mappers/event.mapper.js";
+import { toVoteStatisticsPayload } from "../mappers/vote.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { createVerifyToken, createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
@@ -52,6 +54,7 @@ interface ParticipantParams extends EventParams {
  */
 export function participantRoutes(fastify: FastifyInstance): void {
   const participantService = createParticipantService(fastify.db);
+  const voteService = createVoteService(fastify.db);
 
   /**
    * POST /api/events/:id/participants
@@ -208,6 +211,21 @@ export function participantRoutes(fastify: FastifyInstance): void {
           type: "participant:removed",
           payload: ssePayload,
         })
+        .catch(() => {
+          /* SSE broadcast failure is non-critical */
+        });
+
+      // The participant's votes went with them (cascade), so other tabs need a fresh snapshot.
+      const eventId = request.params.id;
+      voteService
+        .getVoteStatistics(eventId)
+        .then((stats) =>
+          fastify.sse.broadcast({
+            eventId,
+            type: "vote:statistics",
+            payload: toVoteStatisticsPayload(eventId, stats),
+          })
+        )
         .catch(() => {
           /* SSE broadcast failure is non-critical */
         });
