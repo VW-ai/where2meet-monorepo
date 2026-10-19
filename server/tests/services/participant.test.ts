@@ -96,7 +96,6 @@ function createMockParticipant(overrides: Partial<{
     formattedAddress: "123 Main Street, New York, NY 10001",
     lat: new Decimal(40.7128),
     lng: new Decimal(-74.006),
-    fuzzyLocation: false,
     color: "coral",
     isOrganizer: false,
     createdAt: new Date(),
@@ -130,7 +129,6 @@ describe("ParticipantService", () => {
       const result = await service.addParticipant(TEST_EVENT_ID, {
         name: "Alice",
         address: "123 Main St",
-        fuzzyLocation: false,
       });
 
       // Result now returns { participant, participantToken? }
@@ -169,7 +167,6 @@ describe("ParticipantService", () => {
       await service.addParticipant(TEST_EVENT_ID, {
         name: "Bob",
         address: "456 Oak Ave",
-        fuzzyLocation: false,
       });
 
       expect(mockPrisma.participant.create).toHaveBeenCalledWith(
@@ -188,7 +185,6 @@ describe("ParticipantService", () => {
         service.addParticipant("non-existent", {
           name: "Alice",
           address: "123 Main St",
-          fuzzyLocation: false,
         })
       ).rejects.toMatchObject({
         code: "EVENT_NOT_FOUND",
@@ -207,7 +203,6 @@ describe("ParticipantService", () => {
         service.addParticipant(TEST_EVENT_ID, {
           name: "Alice",
           address: "123 Main St",
-          fuzzyLocation: false,
         })
       ).rejects.toMatchObject({
         code: "EVENT_ALREADY_PUBLISHED",
@@ -225,7 +220,6 @@ describe("ParticipantService", () => {
         service.addParticipant(TEST_EVENT_ID, {
           name: "Alice",
           address: "invalid address",
-          fuzzyLocation: false,
         })
       ).rejects.toMatchObject({
         code: "ADDRESS_NOT_FOUND",
@@ -241,7 +235,6 @@ describe("ParticipantService", () => {
         service.addParticipant(TEST_EVENT_ID, {
           name: "Alice",
           address: "123 Main St",
-          fuzzyLocation: false,
         })
       ).rejects.toMatchObject({
         code: "EXTERNAL_SERVICE_ERROR",
@@ -255,7 +248,7 @@ describe("ParticipantService", () => {
       mockGeocode.mockRejectedValue(apiError);
 
       await service
-        .addParticipant(TEST_EVENT_ID, { name: "Alice", address: "123 Main St", fuzzyLocation: false })
+        .addParticipant(TEST_EVENT_ID, { name: "Alice", address: "123 Main St" })
         .catch(() => undefined);
 
       expect(logError.mock.calls).toEqual([[{ err: apiError }, "Geocoding API error"]]);
