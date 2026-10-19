@@ -26,7 +26,7 @@ Where2Meet 解决的核心问题：**多人聚会时，如何公平地选择一�
 |--------|------|
 | **公平性** | 基于几何算法（MEC）计算最优区域，而非某人主观决定 |
 | **透明性** | 所有人看到相同的数据（距离、时间） |
-| **隐私可选** | 支持模糊位置，不暴露精确地址 |
+| **隐私** | 之前选择模糊位置的参与者不暴露精确地址（不再支持新开启） |
 | **便捷性** | 无需注册，链接分享即可参与 |
 
 ### 用户角色
@@ -113,7 +113,7 @@ Created ──► Active ──► Published
 | 添加参与者 | 输入姓名+地址，后端 geocode 获取坐标 |
 | 更新参与者 | 修改姓名或地址（地址变更需重新 geocode） |
 | 删除参与者 | 从活动中移除 |
-| 模糊位置 | 可选开启，对坐标添加随机偏移（~0.5-1 mile） |
+| 模糊位置 | 不再支持开启；之前开启的参与者显示模糊区域的中心（~0.5-1 mile），不返回地址 |
 
 #### 业务规则
 
@@ -130,7 +130,7 @@ Created ──► Active ──► Published
 | name | 必填，1-50 字符 |
 | address | 必填（普通参与者），null（organizer 参与者） |
 | location | 必填（普通参与者），null（organizer 参与者） |
-| fuzzyLocation | 可选，布尔值 |
+| fuzzyLocation | 旧客户端字段；请求中为 true 时返回 400 |
 | isOrganizer | 系统字段，标识是否为活动创建者 |
 
 ---
@@ -542,7 +542,7 @@ HTTP Request → Zod Schema → Request DTO → Service → DB Entity → Mapper
 ### 5.2 添加参与者流程
 
 ```
-用户输入 (name, address, fuzzyLocation?)
+用户输入 (name, address)
          │
          ▼
     Controller
@@ -560,7 +560,6 @@ HTTP Request → Zod Schema → Request DTO → Service → DB Entity → Mapper
     │    ├── 调用 Google Geocoding API
     │    └── 返回 { lat, lng }
     │         │
-    ├── 如果 fuzzyLocation，添加随机偏移
     ├── 分配颜色
     ├── 存储 Participant，返回 Participant entity
     └── 触发 MEC 重算

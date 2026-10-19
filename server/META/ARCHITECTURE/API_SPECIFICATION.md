@@ -310,13 +310,13 @@ POST /api/events/:id/participants
 | Authorization | Header | string | - | Bearer {participantToken}（可选，需 isOrganizer=true） |
 | name | Body | string | ✓ | 参与者姓名，max 50 |
 | address | Body | string | ✓ | 地址（用户输入） |
-| fuzzyLocation | Body | boolean | - | 是否模糊位置，默认 false |
+| fuzzyLocation | Body | boolean | - | 旧客户端字段。false 或省略：正常加入；true：返回 400 VALIDATION_ERROR，不再支持隐藏精确地址 |
 
 **后端处理**：
 1. 验证活动存在且未发布
 2. 如有 Authorization header：验证 participantToken 且 isOrganizer=true（失败则 403）
-3. 调用 Google Geocoding 获取坐标（内部服务）
-4. 如果 fuzzyLocation=true，对坐标添加随机偏移
+3. 如果 fuzzyLocation=true，返回 400 VALIDATION_ERROR，不保存
+4. 调用 Google Geocoding 获取坐标（内部服务）
 5. 分配颜色
 6. 如**无认证**：生成 participantToken，存储 hash
 7. 保存到数据库
@@ -327,16 +327,16 @@ POST /api/events/:id/participants
 |------|------|------|
 | id | string | 参与者 UUID |
 | name | string | 姓名 |
-| address | string \| null | 用户输入的原始地址；fuzzyLocation=true 时为 null，原始地址只保存在服务端 |
+| address | string \| null | 用户输入的原始地址；fuzzyLocation=true 时为 null |
 | location | Location | { lat, lng } 坐标（后端 geocode 结果） |
 | color | string | 分配的颜色 |
-| fuzzyLocation | boolean | 是否模糊 |
+| fuzzyLocation | boolean | 之前选择模糊位置的参与者为 true（坐标为模糊区域的中心）；新参与者总是 false |
 | participantToken | string | 参与者令牌（**仅无认证时返回**，用于自管理） |
 
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
-| 400 | VALIDATION_ERROR | 缺少必填字段 |
+| 400 | VALIDATION_ERROR | 缺少必填字段，或 fuzzyLocation=true |
 | 400 | ADDRESS_NOT_FOUND | 无法解析地址 |
 | 403 | FORBIDDEN | 无效的 participantToken 或非组织者 |
 | 404 | EVENT_NOT_FOUND | 活动不存在 |
@@ -359,8 +359,8 @@ PATCH /api/events/:id/participants/:participantId
 | participantId | URL Path | string | ✓ | 参与者 UUID |
 | Authorization | Header | string | ✓ | Bearer {participantToken} |
 | name | Body | string | - | 新姓名 |
-| address | Body | string | - | 新地址（会触发重新 geocode） |
-| fuzzyLocation | Body | boolean | - | 是否模糊 |
+| address | Body | string \| null | - | 新地址（会触发重新 geocode，参与者变为精确位置）；null 等同于省略 |
+| fuzzyLocation | Body | boolean | - | 旧客户端字段。false 不做任何改动。true 只在参与者已是模糊位置且请求不带 address 时被接受（不做改动），否则返回 400 VALIDATION_ERROR |
 
 **认证逻辑**：
 1. 验证 participantToken 属于该活动

@@ -387,11 +387,9 @@ INSERT INTO event (id, title, meeting_time, organizer_participant_id)
 ### 添加参与者
 
 ```
-输入: { eventId, name, address, fuzzyLocation }
+输入: { eventId, name, address }（fuzzyLocation=true 返回 400）
   ↓
 Geocode address → { lat, lng, formattedAddress }
-  ↓
-如果 fuzzyLocation: 对 lat/lng 添加随机偏移
   ↓
 生成: id = uuid(), color = nextColor()
   ↓
