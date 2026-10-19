@@ -41,6 +41,11 @@ const logger = createLogger("ParticipantService");
 export const HIDE_ADDRESS_UNAVAILABLE =
   'Hiding the exact address is no longer available. Turn off "Hide exact address" and save again.';
 
+function asksToHideAddress(input: UpdateParticipantInput, current: Participant): boolean {
+  const keepsHiddenAddress = current.fuzzyLocation && input.address === undefined;
+  return input.fuzzyLocation === true && !keepsHiddenAddress;
+}
+
 /**
  * Geocodes an address and converts errors to business errors.
  * @param address - Address to geocode
@@ -194,12 +199,14 @@ export class ParticipantService {
       throw new ParticipantNotFoundError(participantId);
     }
 
-    if (input.fuzzyLocation === true && (input.address !== undefined || !current.fuzzyLocation)) {
+    if (asksToHideAddress(input, current)) {
       throw new ValidationError(HIDE_ADDRESS_UNAVAILABLE);
     }
 
     const newAddress =
-      input.address !== undefined && input.address !== current.address ? input.address : undefined;
+      input.address !== undefined && (current.fuzzyLocation || input.address !== current.address)
+        ? input.address
+        : undefined;
     const updateData: UpdateParticipantData = { name: input.name };
     if (newAddress !== undefined) {
       const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(newAddress);
