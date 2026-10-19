@@ -47,7 +47,7 @@ function parseOptions() {
   }
 }
 
-function envProblems(secret: string): string[] {
+function envProblems(secret: string, write: boolean): string[] {
   const missing = (["DATABASE_URL", "REDIS_URL", "LOCATION_SHIFT_SECRET"] as const)
     .filter((name) => !process.env[name])
     .map((name) => `${name} is not set\n`);
@@ -55,7 +55,11 @@ function envProblems(secret: string): string[] {
     secret && Buffer.byteLength(secret, "utf8") < MIN_SECRET_BYTES
       ? [`LOCATION_SHIFT_SECRET must be at least ${String(MIN_SECRET_BYTES)} bytes\n`]
       : [];
-  return [...missing, ...tooShort];
+  const noMapsKey =
+    write && !process.env.GOOGLE_MAPS_API_KEY
+      ? ["GOOGLE_MAPS_API_KEY is not set (required with --write)\n"]
+      : [];
+  return [...missing, ...tooShort, ...noMapsKey];
 }
 
 async function main(): Promise<number> {
@@ -73,7 +77,7 @@ async function main(): Promise<number> {
     return 1;
   }
   const secret = process.env.LOCATION_SHIFT_SECRET ?? "";
-  const problems = envProblems(secret);
+  const problems = envProblems(secret, options.write);
   if (problems.length > 0) {
     process.stderr.write(problems.join(""));
     return 1;
