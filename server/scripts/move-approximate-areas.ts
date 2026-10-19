@@ -78,7 +78,6 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  // Imported only now: the Redis client falls back to localhost when REDIS_URL is unset.
   const { prisma, disconnectPrisma } = await import("../src/lib/prisma.js");
   const { disconnectRedis } = await import("../src/lib/redis.js");
   const { moveApproximateAreas } = await import("../src/services/move-approximate-areas.js");

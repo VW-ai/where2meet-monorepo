@@ -38,7 +38,6 @@ export interface AddParticipantResult {
 
 const logger = createLogger("ParticipantService");
 
-/** Answer to any request that asks to hide a participant's exact address. */
 export const HIDE_ADDRESS_UNAVAILABLE =
   'Hiding the exact address is no longer available. Turn off "Hide exact address" and save again.';
 
@@ -195,9 +194,6 @@ export class ParticipantService {
       throw new ParticipantNotFoundError(participantId);
     }
 
-    // Older web clients resend `fuzzyLocation: true` on a name-only edit of an approximate
-    // participant. That request changes nothing. Any other request with
-    // `fuzzyLocation: true`, whatever address it carries, is turned away.
     if (input.fuzzyLocation === true && (input.address !== undefined || !current.fuzzyLocation)) {
       throw new ValidationError(HIDE_ADDRESS_UNAVAILABLE);
     }

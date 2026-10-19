@@ -1,17 +1,8 @@
-/**
- * One-off that gives each approximate participant a new area.
- *
- * `scripts/move-approximate-areas.ts` runs it. Delete both once the production
- * run is done.
- * @module services/move-approximate-areas
- */
-
 import type { PrismaClient } from "@prisma/client";
 import { AddressNotFoundError, cachedGeocode, geocode, type GeocodeResult } from "../lib/maps.js";
 import { approximateArea } from "../utils/approximate-area.js";
 import type { GeoPoint } from "../utils/mec.js";
 
-/** What happened to one approximate participant with a stored address. */
 export type MoveOutcome =
   | "wouldMove"
   | "notCached"
@@ -25,15 +16,10 @@ export type MoveOutcome =
 export type MoveCounts = Record<MoveOutcome, number>;
 
 export interface MoveOptions {
-  /** Saves changes when true. A dry run reads only the geocode cache. */
   write: boolean;
-  /** Limits the run to one event */
   eventId?: string;
-  /** Clears the location of participants whose address is not found */
   clearUnresolved: boolean;
-  /** Also removes the stored address of each participant it moves */
   forgetAddresses: boolean;
-  /** Key for `approximateArea` */
   secret: string;
 }
 
@@ -50,10 +36,6 @@ async function lookUp(address: string): Promise<GeocodeResult | "notFound" | "lo
   }
 }
 
-/**
- * Saves the change only if the participant still has the address and the
- * approximate setting it had when the run read it.
- */
 async function saveIfUnchanged(
   db: PrismaClient,
   { id, address }: ApproximateParticipant,
@@ -94,12 +76,6 @@ async function move(
   return forgetAddresses ? "movedAddressRemoved" : "moved";
 }
 
-/**
- * Gives approximate participants with a stored address a new area.
- * @param db - Prisma client
- * @param options - Run options
- * @returns Counts per outcome only, so callers never print addresses or coordinates
- */
 export async function moveApproximateAreas(
   db: PrismaClient,
   options: MoveOptions

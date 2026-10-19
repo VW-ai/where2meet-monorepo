@@ -17,7 +17,6 @@ export const CreateParticipantSchema = z.object({
     .string()
     .min(1, "Address is required")
     .max(255, "Address must be 255 characters or less"),
-  /** Sent by older web clients. The service turns away `true`. */
   fuzzyLocation: z.boolean().optional(),
 });
 
@@ -33,14 +32,12 @@ export const UpdateParticipantSchema = z
       .min(1, "Name cannot be empty")
       .max(50, "Name must be 50 characters or less")
       .optional(),
-    /** The iOS app sends `null` when its address field is empty. It means no new address. */
     address: z
       .string()
       .min(1, "Address cannot be empty")
       .max(255, "Address must be 255 characters or less")
       .nullish()
       .transform((address) => address ?? undefined),
-    /** Sent by older web clients. The service turns away `true` except on a no-op edit. */
     fuzzyLocation: z.boolean().optional(),
   })
   .refine(

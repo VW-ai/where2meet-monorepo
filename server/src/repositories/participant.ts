@@ -27,9 +27,6 @@ export interface CreateParticipantData {
   isOrganizer?: boolean;
 }
 
-/**
- * A typed address with its geocoded point.
- */
 export interface ExactLocation {
   address: string;
   formattedAddress: string;
@@ -37,9 +34,6 @@ export interface ExactLocation {
   lng: number;
 }
 
-/**
- * Data for updating a participant. A new location is always exact.
- */
 export interface UpdateParticipantData {
   name?: string;
   exactLocation?: ExactLocation;

@@ -1,8 +1,3 @@
-/**
- * Approximate area module.
- * @module utils/approximate-area
- */
-
 import { createHmac } from "node:crypto";
 import type { GeoPoint } from "./mec.js";
 
@@ -13,15 +8,6 @@ const UINT48_RANGE = 2 ** 48;
 
 const roundTo5Decimals = (degrees: number) => Math.round(degrees * 1e5) / 1e5;
 
-/**
- * Picks the center of an approximate area 800 to 1,600 m from a point.
- *
- * The result is the same for the same point, rounded to 5 decimals, and the
- * same secret. Areas spread evenly over the ring's area and over directions.
- * @param exact - Geocoded point
- * @param secret - Key that picks the area
- * @returns Center of the approximate area
- */
 export function approximateArea(exact: GeoPoint, secret: string): GeoPoint {
   const lat = roundTo5Decimals(exact.lat);
   const lng = roundTo5Decimals(exact.lng);

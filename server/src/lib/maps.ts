@@ -153,7 +153,7 @@ function parseGeocodeResponse(response: GoogleGeocodeResponse): GeocodeResult {
 }
 
 /**
- * Retrieves cached geocode result from Redis. Never calls Google.
+ * Retrieves cached geocode result from Redis.
  * @param address - Address to look up
  * @returns Cached result or null if not found
  */
