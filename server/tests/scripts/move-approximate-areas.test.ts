@@ -36,6 +36,8 @@ const countLines = (counts: Record<string, number>) =>
     ["Left alone, address lookup failed", counts.lookupFailed],
   ].map(([label, count]) => `${String(label)}: ${String(count ?? 0)}`);
 
+const NO_SUCH_EVENT = "evt_1702000000000_a8K3mX2pQrS7nBvW";
+
 const testEnv = {
   DATABASE_URL: process.env.DATABASE_URL,
   REDIS_URL: process.env.REDIS_URL,
@@ -97,6 +99,14 @@ describe("scripts/move-approximate-areas", () => {
     },
     30_000
   );
+
+  it("stops a --write run without GOOGLE_MAPS_API_KEY", async () => {
+    expect(await runScript(["--write", `--event=${NO_SUCH_EVENT}`], testEnv)).toEqual({
+      code: 1,
+      stdout: "",
+      stderr: "GOOGLE_MAPS_API_KEY is not set (required with --write)\n",
+    });
+  }, 30_000);
 
   it("stops when Redis is not reachable", async () => {
     expect(await runScript([], { ...testEnv, REDIS_URL: "redis://127.0.0.1:1" })).toEqual({
@@ -164,7 +174,7 @@ describe("scripts/move-approximate-areas", () => {
       );
     });
 
-    it("prints counts only on a dry run and saves nothing, even with --forget-addresses", async () => {
+    it("prints counts only on a dry run without a Maps key and saves nothing, even with --forget-addresses", async () => {
       const eventId = await seedEvent([ana, ben]);
 
       const result = await runScript([`--event=${eventId}`, "--forget-addresses"], testEnv);
@@ -187,10 +197,10 @@ describe("scripts/move-approximate-areas", () => {
     it("moves and removes the stored address with --write --forget-addresses", async () => {
       const eventId = await seedEvent([ana, cal]);
 
-      const result = await runScript(
-        ["--write", `--event=${eventId}`, "--forget-addresses"],
-        testEnv
-      );
+      const result = await runScript(["--write", `--event=${eventId}`, "--forget-addresses"], {
+        ...testEnv,
+        GOOGLE_MAPS_API_KEY: "test-maps-key",
+      });
 
       expect(result).toEqual({
         code: 0,
