@@ -15,6 +15,8 @@ import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { participantErrorMessage } from '@/features/meeting/lib/participant-error-message';
+import { participantEdits } from '@/features/meeting/lib/participant-edits';
+import { hidesAddress } from '@/features/meeting/lib/starting-location';
 
 export function ParticipantSection() {
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
@@ -126,11 +128,7 @@ export function ParticipantSection() {
         const updatedParticipant = await participantClient.update(
           currentEvent.id,
           editingParticipant.id,
-          {
-            name: data.name,
-            address: data.address || undefined,
-            fuzzyLocation: data.fuzzyLocation,
-          },
+          participantEdits(data),
           token
         );
 
@@ -157,11 +155,7 @@ export function ParticipantSection() {
           // Organizer adds a participant
           const newParticipant = await participantClient.add(
             currentEvent.id,
-            {
-              name: data.name,
-              address: data.address,
-              fuzzyLocation: data.fuzzyLocation,
-            },
+            { name: data.name, address: data.address },
             organizerToken
           );
 
@@ -191,7 +185,6 @@ export function ParticipantSection() {
           const response = await participantClient.join(currentEvent.id, {
             name: data.name,
             address: data.address,
-            fuzzyLocation: data.fuzzyLocation,
           });
 
           // Store participant token for self-management
@@ -373,14 +366,13 @@ export function ParticipantSection() {
               }
               cancelLabel={lastAddedName ? 'Done' : 'Cancel'}
               mode={editingParticipant ? 'edit' : 'add'}
-              hasHiddenAddress={!!editingParticipant?.location && !editingParticipant.address}
+              hasHiddenAddress={!!editingParticipant && hidesAddress(editingParticipant)}
               initialData={
                 editingParticipant
                   ? {
                       name: editingParticipant.name,
                       address: editingParticipant.address || '',
                       placeId: '',
-                      fuzzyLocation: editingParticipant.fuzzyLocation ?? false,
                     }
                   : undefined
               }

@@ -1,3 +1,12 @@
+import type { Participant } from '@/entities';
+
+export function hidesAddress({
+  fuzzyLocation,
+  location,
+}: Pick<Participant, 'fuzzyLocation' | 'location'>): boolean {
+  return fuzzyLocation && location !== null;
+}
+
 export function startingLocationError({
   address,
   placeId,

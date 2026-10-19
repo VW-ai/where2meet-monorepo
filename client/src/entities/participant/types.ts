@@ -28,9 +28,8 @@ export interface ParticipantResponse extends Participant {
 // DTOs
 export type CreateParticipantDTO = Pick<Participant, 'name'> & {
   address?: string | null;
-  fuzzyLocation?: boolean;
 };
 
-export type UpdateParticipantDTO = Partial<Pick<Participant, 'name' | 'fuzzyLocation'>> & {
+export type UpdateParticipantDTO = Partial<Pick<Participant, 'name'>> & {
   address?: string | null;
 };
