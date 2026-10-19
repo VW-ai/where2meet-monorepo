@@ -137,7 +137,7 @@ class MockDataStore {
 
   async addParticipant(
     eventId: string,
-    data: Omit<Participant, 'id' | 'createdAt' | 'location' | 'color'>
+    data: Omit<Participant, 'id' | 'createdAt' | 'location' | 'color' | 'fuzzyLocation'>
   ): Promise<Participant | undefined> {
     const event = this.events.get(eventId);
     if (!event) return undefined;
@@ -145,21 +145,12 @@ class MockDataStore {
     // Geocode address using Google Maps API or mock (skip if no address - organizer)
     let location: Location | null = null;
     if (data.address) {
-      const geocodeResult = await geocodeAddress(data.address);
-
-      // Apply fuzzy location offset if requested
-      location = geocodeResult.location;
-      if (data.fuzzyLocation) {
-        const offset = 0.05; // ~5km offset for fuzzy location
-        location = {
-          lat: location.lat + (Math.random() - 0.5) * offset,
-          lng: location.lng + (Math.random() - 0.5) * offset,
-        };
-      }
+      location = (await geocodeAddress(data.address)).location;
     }
 
     const newParticipant: Participant = {
       ...data,
+      fuzzyLocation: false,
       id: `prt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       location,
       color: this.getRandomColor(),
@@ -177,7 +168,7 @@ class MockDataStore {
   async updateParticipant(
     eventId: string,
     participantId: string,
-    updates: Partial<Participant>
+    updates: Partial<Omit<Participant, 'fuzzyLocation'>>
   ): Promise<Participant | undefined> {
     const event = this.events.get(eventId);
     if (!event) return undefined;
@@ -185,30 +176,14 @@ class MockDataStore {
     const participantIndex = event.participants.findIndex((p) => p.id === participantId);
     if (participantIndex === -1) return undefined;
 
-    // If address changed, re-geocode
-    if (updates.address) {
-      const fuzzy =
-        updates.fuzzyLocation !== undefined
-          ? updates.fuzzyLocation
-          : event.participants[participantIndex].fuzzyLocation;
-
-      const geocodeResult = await geocodeAddress(updates.address);
-      let location = geocodeResult.location;
-
-      if (fuzzy) {
-        const offset = 0.05;
-        location = {
-          lat: location.lat + (Math.random() - 0.5) * offset,
-          lng: location.lng + (Math.random() - 0.5) * offset,
-        };
-      }
-
-      updates.location = location;
-    }
+    const relocated = updates.address
+      ? { location: (await geocodeAddress(updates.address)).location, fuzzyLocation: false }
+      : {};
 
     const updatedParticipant = {
       ...event.participants[participantIndex],
       ...updates,
+      ...relocated,
       updatedAt: new Date().toISOString(),
     };
 
