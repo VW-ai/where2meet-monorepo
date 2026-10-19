@@ -58,7 +58,7 @@ describe("approximateArea", () => {
     expect(approximateArea({ lat: 40.712801, lng: -74.006004 }, SECRET)).toEqual(areaA);
   });
 
-  it("keeps every area 800 to 1,600 m away, spread evenly over the ring's area and over directions", () => {
+  it("keeps every area 800 to 1,600 m away by spherical distance, spread evenly over the ring's area and over directions", () => {
     const distances: number[] = [];
     const annuli = Array<number>(10).fill(0);
     const sectors = Array<number>(8).fill(0);
