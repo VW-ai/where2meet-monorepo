@@ -153,11 +153,11 @@ function parseGeocodeResponse(response: GoogleGeocodeResponse): GeocodeResult {
 }
 
 /**
- * Retrieves cached geocode result from Redis.
+ * Retrieves cached geocode result from Redis. Never calls Google.
  * @param address - Address to look up
  * @returns Cached result or null if not found
  */
-async function getCachedGeocode(address: string): Promise<GeocodeResult | null> {
+export async function cachedGeocode(address: string): Promise<GeocodeResult | null> {
   try {
     const cached = await redis.get(getCacheKey(address));
     if (cached) {
@@ -225,7 +225,7 @@ function isRetryableError(error: unknown): boolean {
  */
 export async function geocode(address: string): Promise<GeocodeResult> {
   // Check cache first
-  const cached = await getCachedGeocode(address);
+  const cached = await cachedGeocode(address);
   if (cached) {
     return cached;
   }
