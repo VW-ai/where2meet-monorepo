@@ -23,7 +23,7 @@ const LABELS: Record<MoveOutcome, string> = {
   notCached: "Not in the geocode cache",
   moved: "Moved, stored address kept",
   movedAddressRemoved: "Moved, stored address removed",
-  editedDuringRun: "Left alone, edited during the run",
+  changedDuringRun: "Left alone, changed or removed during the run",
   notFound: "Left alone, address not found",
   cleared: "Location cleared, address not found",
   lookupFailed: "Left alone, address lookup failed",

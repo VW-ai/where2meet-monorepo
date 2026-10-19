@@ -8,7 +8,7 @@ export type MoveOutcome =
   | "notCached"
   | "moved"
   | "movedAddressRemoved"
-  | "editedDuringRun"
+  | "changedDuringRun"
   | "notFound"
   | "cleared"
   | "lookupFailed";
@@ -66,12 +66,12 @@ async function move(
       return "notFound";
     }
     const cleared = await saveIfUnchanged(db, participant, { lat: null, lng: null });
-    return cleared ? "cleared" : "editedDuringRun";
+    return cleared ? "cleared" : "changedDuringRun";
   }
   const area = approximateArea(exact, secret);
   const change = forgetAddresses ? { ...area, address: null, formattedAddress: null } : area;
   if (!(await saveIfUnchanged(db, participant, change))) {
-    return "editedDuringRun";
+    return "changedDuringRun";
   }
   return forgetAddresses ? "movedAddressRemoved" : "moved";
 }
@@ -89,7 +89,7 @@ export async function moveApproximateAreas(
     notCached: 0,
     moved: 0,
     movedAddressRemoved: 0,
-    editedDuringRun: 0,
+    changedDuringRun: 0,
     notFound: 0,
     cleared: 0,
     lookupFailed: 0,
