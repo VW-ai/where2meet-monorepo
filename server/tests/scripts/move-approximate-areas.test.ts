@@ -8,17 +8,31 @@ import { generateEventId } from "../../src/utils/id.js";
 const SERVER_DIR = fileURLToPath(new URL("../..", import.meta.url));
 const SECRET = "test-location-shift-secret-0123456789";
 
-const USAGE = `Usage: npx tsx scripts/move-approximate-areas.ts [--write] [--event=<id>] [--clear-unresolved]
+const USAGE = `Usage: npx tsx scripts/move-approximate-areas.ts [options]
 
 Gives each approximate participant a new area. Without --write it only counts.
 
 Options:
-  --write              save the new areas
-  --event=<id>         only participants of this event
-  --clear-unresolved   clear the location when the address is not found
+  --write              saves the new areas
+  --event=<id>         limits the run to one event
+  --clear-unresolved   clears the location when the address is not found
+  --forget-addresses   removes the stored address after moving; the move can't be recomputed later
+  --help               shows this help
 
 Environment: DATABASE_URL, REDIS_URL, LOCATION_SHIFT_SECRET (at least 32 bytes)
 `;
+
+const countLines = (counts: Record<string, number>) => [
+  `Approximate participants with an address: ${String(counts.total ?? 0)}`,
+  `Would move: ${String(counts.wouldMove ?? 0)}`,
+  `Not in the geocode cache: ${String(counts.notCached ?? 0)}`,
+  `Moved, stored address kept: ${String(counts.moved ?? 0)}`,
+  `Moved, stored address removed: ${String(counts.movedAddressRemoved ?? 0)}`,
+  "Left alone, edited during the run: 0",
+  "Left alone, address not found: 0",
+  "Location cleared, address not found: 0",
+  "Left alone, address lookup failed: 0",
+];
 
 const testEnv = {
   DATABASE_URL: process.env.DATABASE_URL,
@@ -70,6 +84,10 @@ describe("scripts/move-approximate-areas", () => {
     30_000
   );
 
+  it("prints the usage on --help without needing the environment", async () => {
+    expect(await runScript(["--help"], {})).toEqual({ code: 0, stdout: USAGE, stderr: "" });
+  }, 30_000);
+
   it.each([[["--force"]], [["extra"]]])(
     "prints the usage and stops on %j",
     async (args) => {
@@ -87,7 +105,45 @@ describe("scripts/move-approximate-areas", () => {
   }, 30_000);
 
   describe("against the database", () => {
-    let eventId: string;
+    const participants = (eventId: string) =>
+      prisma.participant
+        .findMany({ where: { eventId }, orderBy: { name: "asc" } })
+        .then((rows) =>
+          rows.map(({ name, address, lat, lng }) => [name, address, Number(lat), Number(lng)])
+        );
+
+    async function seedEvent(people: object[]) {
+      const id = generateEventId();
+      await prisma.event.create({
+        data: { id, title: "Move areas from the command line", participants: { create: people } },
+      });
+      return id;
+    }
+
+    const ana = {
+      name: "Ana",
+      address: "10 Cedar Ct, Clitown",
+      lat: 40.71,
+      lng: -74.01,
+      fuzzyLocation: true,
+      color: "teal",
+    };
+    const ben = {
+      name: "Ben",
+      address: "20 Birch Way, Clitown",
+      lat: 40.72,
+      lng: -74.02,
+      fuzzyLocation: true,
+      color: "gold",
+    };
+    const cal = {
+      name: "Cal",
+      address: "30 Ash Pl, Clitown",
+      lat: 40.73,
+      lng: -74.03,
+      fuzzyLocation: false,
+      color: "blue",
+    };
 
     beforeEach(async () => {
       const staleKeys = await redis.keys("geocode:*clitown");
@@ -96,63 +152,50 @@ describe("scripts/move-approximate-areas", () => {
         "geocode:10 cedar ct, clitown",
         JSON.stringify({ lat: 40.7411, lng: -73.9897, formattedAddress: "10 Cedar Court, Clitown" })
       );
-      eventId = generateEventId();
-      await prisma.event.create({
-        data: {
-          id: eventId,
-          title: "Move areas from the command line",
-          participants: {
-            create: [
-              {
-                name: "Ana",
-                address: "10 Cedar Ct, Clitown",
-                lat: 40.71,
-                lng: -74.01,
-                fuzzyLocation: true,
-                color: "teal",
-              },
-              {
-                name: "Ben",
-                address: "20 Birch Way, Clitown",
-                lat: 40.72,
-                lng: -74.02,
-                fuzzyLocation: true,
-                color: "gold",
-              },
-            ],
-          },
-        },
-      });
     });
 
-    it("prints counts only on a dry run and saves nothing", async () => {
-      const result = await runScript([`--event=${eventId}`], testEnv);
-      const saved = await prisma.participant.findMany({
-        where: { eventId },
-        orderBy: { name: "asc" },
-        select: { name: true, lat: true, lng: true },
-      });
+    it("prints counts only on a dry run and saves nothing, even with --forget-addresses", async () => {
+      const eventId = await seedEvent([ana, ben]);
+
+      const result = await runScript([`--event=${eventId}`, "--forget-addresses"], testEnv);
 
       expect(result).toEqual({
         code: 0,
         stdout: [
           "[Redis] Connected successfully",
           "Mode: dry run, nothing saved (pass --write to save)",
-          "Approximate participants with an address: 2",
-          "Would move: 1",
-          "Not in the geocode cache: 1",
-          "Moved: 0",
-          "Left alone, edited during the run: 0",
-          "Left alone, address not found: 0",
-          "Location cleared, address not found: 0",
-          "Left alone, address lookup failed: 0",
+          ...countLines({ total: 2, wouldMove: 1, notCached: 1 }),
           "",
         ].join("\n"),
         stderr: "",
       });
-      expect(saved.map(({ name, lat, lng }) => [name, Number(lat), Number(lng)])).toEqual([
-        ["Ana", 40.71, -74.01],
-        ["Ben", 40.72, -74.02],
+      expect(await participants(eventId)).toEqual([
+        ["Ana", "10 Cedar Ct, Clitown", 40.71, -74.01],
+        ["Ben", "20 Birch Way, Clitown", 40.72, -74.02],
+      ]);
+    }, 30_000);
+
+    it("moves and removes the stored address with --write --forget-addresses", async () => {
+      const eventId = await seedEvent([ana, cal]);
+
+      const result = await runScript(
+        ["--write", `--event=${eventId}`, "--forget-addresses"],
+        testEnv
+      );
+
+      expect(result).toEqual({
+        code: 0,
+        stdout: [
+          "[Redis] Connected successfully",
+          "Mode: write",
+          ...countLines({ total: 1, movedAddressRemoved: 1 }),
+          "",
+        ].join("\n"),
+        stderr: "",
+      });
+      expect(await participants(eventId)).toEqual([
+        ["Ana", null, 40.7532166, -73.998158],
+        ["Cal", "30 Ash Pl, Clitown", 40.73, -74.03],
       ]);
     }, 30_000);
   });
