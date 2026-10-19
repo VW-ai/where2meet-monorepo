@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, EyeOff, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Edit2, Trash2 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { TravelTimeBubble } from './travel-time-bubble';
@@ -14,6 +14,7 @@ interface ParticipantPillProps {
   onDelete?: () => void;
   /** The viewer's own participant record */
   isYou?: boolean;
+  /** Handler for "Add starting location" when there is no address (defaults to onEdit) */
   onAddLocation?: () => void;
 }
 
@@ -100,21 +101,11 @@ export function ParticipantPill({
                     You
                   </span>
                 )}
-                {participant.fuzzyLocation && (
-                  <span
-                    className="inline-flex items-center justify-center bg-muted/50 rounded-full p-0.5 flex-shrink-0"
-                    title="Approximate location"
-                  >
-                    <EyeOff className="w-3 h-3 text-muted-foreground" />
-                  </span>
-                )}
               </div>
-              {participant.location ? (
+              {participant.address ? (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
                   <MapPin className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate font-medium min-w-0">
-                    {participant.fuzzyLocation ? 'Approximate location' : participant.address}
-                  </span>
+                  <span className="truncate font-medium min-w-0">{participant.address}</span>
                 </div>
               ) : addLocation ? (
                 <button

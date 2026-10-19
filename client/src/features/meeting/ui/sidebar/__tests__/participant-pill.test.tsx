@@ -24,28 +24,7 @@ function cardText(participant: Participant) {
 }
 
 describe('ParticipantPill', () => {
-  it('says "Approximate location" when the server hides the address', () => {
-    expect(
-      cardText({
-        ...BOB,
-        location: { lat: 40.7160306, lng: -74.0056271 },
-        fuzzyLocation: true,
-      })
-    ).toEqual(['Bob Lee', 'Approximate location', 'BL']);
-  });
-
-  it('never shows the address of an approximate participant, even when a server still sends it', () => {
-    expect(
-      cardText({
-        ...BOB,
-        address: '456 Oak Ave',
-        location: { lat: 40.7160306, lng: -74.0056271 },
-        fuzzyLocation: true,
-      })
-    ).toEqual(['Bob Lee', 'Approximate location', 'BL']);
-  });
-
-  it('shows the address of an exact participant', () => {
+  it('shows the address of a participant who added one', () => {
     expect(
       cardText({ ...BOB, address: '456 Oak Ave', location: { lat: 40.7128, lng: -74.006 } })
     ).toEqual(['Bob Lee', '456 Oak Ave', 'BL']);

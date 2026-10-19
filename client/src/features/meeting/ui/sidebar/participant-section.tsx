@@ -15,7 +15,6 @@ import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { participantErrorMessage } from '@/features/meeting/lib/participant-error-message';
-import { hidesAddress } from '@/features/meeting/lib/starting-location';
 
 export function ParticipantSection() {
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
@@ -54,7 +53,7 @@ export function ParticipantSection() {
   // The viewer's own participant record, if they have one in this event
   const myParticipantId = organizerParticipantId || currentParticipantId;
   const me = currentEvent?.participants?.find((p) => p.id === myParticipantId);
-  const iNeedLocation = !!me && !me.location && !isPublished;
+  const iNeedLocation = !!me && !me.address && !isPublished;
 
   // Save the viewer's own starting point from the inline prompt
   const handleSaveMyLocation = async (data: { name?: string; address: string }) => {
@@ -127,7 +126,10 @@ export function ParticipantSection() {
         const updatedParticipant = await participantClient.update(
           currentEvent.id,
           editingParticipant.id,
-          { name: data.name, address: data.address || undefined },
+          {
+            name: data.name,
+            address: data.address,
+          },
           token
         );
 
@@ -154,7 +156,10 @@ export function ParticipantSection() {
           // Organizer adds a participant
           const newParticipant = await participantClient.add(
             currentEvent.id,
-            { name: data.name, address: data.address },
+            {
+              name: data.name,
+              address: data.address,
+            },
             organizerToken
           );
 
@@ -365,7 +370,6 @@ export function ParticipantSection() {
               }
               cancelLabel={lastAddedName ? 'Done' : 'Cancel'}
               mode={editingParticipant ? 'edit' : 'add'}
-              hasHiddenAddress={!!editingParticipant && hidesAddress(editingParticipant)}
               initialData={
                 editingParticipant
                   ? {
