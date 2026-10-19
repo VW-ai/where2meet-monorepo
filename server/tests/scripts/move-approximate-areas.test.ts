@@ -6,6 +6,7 @@ import { redis } from "../../src/lib/redis.js";
 import { generateEventId } from "../../src/utils/id.js";
 
 const SERVER_DIR = fileURLToPath(new URL("../..", import.meta.url));
+const FAKE_GOOGLE = new URL("./fake-google-geocoding.mjs", import.meta.url).href;
 const SECRET = "test-location-shift-secret-0123456789";
 
 const USAGE = `Usage: npx tsx scripts/move-approximate-areas.ts [options]
@@ -49,7 +50,7 @@ function runScript(args: string[], env: Record<string, string | undefined>) {
   return new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve) => {
     const child = spawn(
       process.execPath,
-      ["--import", "tsx", "scripts/move-approximate-areas.ts", ...args],
+      ["--import", FAKE_GOOGLE, "--import", "tsx", "scripts/move-approximate-areas.ts", ...args],
       {
         cwd: SERVER_DIR,
         env: { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR, ...env },
@@ -130,7 +131,12 @@ describe("scripts/move-approximate-areas", () => {
       prisma.participant
         .findMany({ where: { eventId }, orderBy: { name: "asc" } })
         .then((rows) =>
-          rows.map(({ name, address, lat, lng }) => [name, address, Number(lat), Number(lng)])
+          rows.map(({ name, address, lat, lng }) => [
+            name,
+            address,
+            lat === null ? null : Number(lat),
+            lng === null ? null : Number(lng),
+          ])
         );
 
     async function seedEvent(people: object[]) {
@@ -156,6 +162,14 @@ describe("scripts/move-approximate-areas", () => {
       lng: -74.02,
       fuzzyLocation: true,
       color: "gold",
+    };
+    const dee = {
+      name: "Dee",
+      address: "40 Fir Rd, Clitown",
+      lat: 40.74,
+      lng: -74.04,
+      fuzzyLocation: true,
+      color: "coral",
     };
     const cal = {
       name: "Cal",
@@ -211,6 +225,49 @@ describe("scripts/move-approximate-areas", () => {
       expect(await participants(eventId)).toEqual([
         ["Ana", null, 40.7532166, -73.998158],
         ["Cal", "30 Ash Pl, Clitown", 40.73, -74.03],
+      ]);
+    }, 30_000);
+
+    it("moves and keeps the stored address with plain --write", async () => {
+      const eventId = await seedEvent([ana, cal]);
+
+      const result = await runScript(["--write", `--event=${eventId}`], {
+        ...testEnv,
+        GOOGLE_MAPS_API_KEY: "test-maps-key",
+      });
+
+      expect(result).toEqual({
+        code: 0,
+        stdout: ["Mode: write", ...countLines({ total: 1, moved: 1 }), ""].join("\n"),
+        stderr: "",
+      });
+      expect(await participants(eventId)).toEqual([
+        ["Ana", "10 Cedar Ct, Clitown", 40.7532166, -73.998158],
+        ["Cal", "30 Ash Pl, Clitown", 40.73, -74.03],
+      ]);
+    }, 30_000);
+
+    it("clears only a location whose address is not found with --write --clear-unresolved", async () => {
+      const eventId = await seedEvent([ben, dee]);
+
+      const result = await runScript(["--write", `--event=${eventId}`, "--clear-unresolved"], {
+        ...testEnv,
+        GOOGLE_MAPS_API_KEY: "test-maps-key",
+        FAKE_GEOCODE_ANSWERS: JSON.stringify({
+          "20 Birch Way, Clitown": { status: "ZERO_RESULTS", results: [] },
+        }),
+      });
+
+      expect(result).toEqual({
+        code: 0,
+        stdout: ["Mode: write", ...countLines({ total: 2, cleared: 1, lookupFailed: 1 }), ""].join(
+          "\n"
+        ),
+        stderr: "",
+      });
+      expect(await participants(eventId)).toEqual([
+        ["Ben", "20 Birch Way, Clitown", null, null],
+        ["Dee", "40 Fir Rd, Clitown", 40.74, -74.04],
       ]);
     }, 30_000);
   });
