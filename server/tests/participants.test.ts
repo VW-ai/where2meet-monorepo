@@ -711,11 +711,37 @@ describe("Participant Endpoints", () => {
         ["an old tab's name-only edit", { name: "Ana Lee", fuzzyLocation: true }],
         ["a name-only edit with fuzzyLocation false", { name: "Ana Lee", fuzzyLocation: false }],
         ["a name-only edit with a null address", { name: "Ana Lee", address: null }],
+        [
+          "an old tab's edit with a null address",
+          { name: "Ana Lee", address: null, fuzzyLocation: true },
+        ],
       ])("keeps the area and the hidden address on %s", async (_case, body) => {
         const response = await editParticipant(participantId, body);
 
         expect([response.statusCode, view(response.json())]).toEqual([200, hiddenAna]);
         expect(await meetingPeople()).toEqual([hiddenAna]);
+      });
+
+      it("becomes exact when the edit types 456 Oak Ave", async () => {
+        const response = await editParticipant(participantId, {
+          name: "Ana Lee",
+          address: "456 Oak Ave",
+        });
+
+        expect({
+          status: response.statusCode,
+          participant: view(response.json()),
+          geocodeCalls: mockGeocode.mock.calls,
+        }).toEqual({
+          status: 200,
+          participant: {
+            name: "Ana Lee",
+            address: "456 Oak Ave",
+            location: { lat: 40.7128, lng: -74.006 },
+            fuzzyLocation: false,
+          },
+          geocodeCalls: [["456 Oak Ave"]],
+        });
       });
 
       it.each([
