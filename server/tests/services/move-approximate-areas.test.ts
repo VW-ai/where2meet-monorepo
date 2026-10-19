@@ -15,7 +15,7 @@ const NO_COUNTS = {
   notCached: 0,
   moved: 0,
   movedAddressRemoved: 0,
-  editedDuringRun: 0,
+  changedDuringRun: 0,
   notFound: 0,
   cleared: 0,
   lookupFailed: 0,
@@ -245,7 +245,7 @@ describe("moveApproximateAreas", () => {
         counts: {
           ...NO_COUNTS,
           [forgetAddresses ? "movedAddressRemoved" : "moved"]: 1,
-          editedDuringRun: 1,
+          changedDuringRun: 1,
           notFound: 1,
           lookupFailed: 1,
         },

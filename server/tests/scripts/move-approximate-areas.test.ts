@@ -28,7 +28,7 @@ const countLines = (counts: Record<string, number>) => [
   `Not in the geocode cache: ${String(counts.notCached ?? 0)}`,
   `Moved, stored address kept: ${String(counts.moved ?? 0)}`,
   `Moved, stored address removed: ${String(counts.movedAddressRemoved ?? 0)}`,
-  "Left alone, edited during the run: 0",
+  "Left alone, changed or removed during the run: 0",
   "Left alone, address not found: 0",
   "Location cleared, address not found: 0",
   "Left alone, address lookup failed: 0",
