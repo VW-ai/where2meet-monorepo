@@ -103,7 +103,7 @@ export function ParticipantPill({
                 {participant.fuzzyLocation && (
                   <span
                     className="inline-flex items-center justify-center bg-muted/50 rounded-full p-0.5 flex-shrink-0"
-                    title="Fuzzy location enabled"
+                    title="Approximate location"
                   >
                     <EyeOff className="w-3 h-3 text-muted-foreground" />
                   </span>
