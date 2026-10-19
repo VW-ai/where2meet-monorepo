@@ -710,6 +710,7 @@ describe("Participant Endpoints", () => {
         ["a name-only edit", { name: "Ana Lee" }],
         ["an old tab's name-only edit", { name: "Ana Lee", fuzzyLocation: true }],
         ["a name-only edit with fuzzyLocation false", { name: "Ana Lee", fuzzyLocation: false }],
+        ["a name-only edit with a null address", { name: "Ana Lee", address: null }],
       ])("keeps the area and the hidden address on %s", async (_case, body) => {
         const response = await editParticipant(participantId, body);
 
