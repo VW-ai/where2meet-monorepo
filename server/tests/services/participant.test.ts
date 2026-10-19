@@ -11,8 +11,8 @@ import { Decimal } from "@prisma/client/runtime/library";
 vi.mock("../../src/lib/maps.js", () => ({
   geocode: vi.fn(),
   AddressNotFoundError: class AddressNotFoundError extends Error {
-    constructor(address: string) {
-      super(`Address not found: ${address}`);
+    constructor() {
+      super("Address not found");
       this.name = "AddressNotFoundError";
     }
   },
@@ -138,16 +138,23 @@ describe("ParticipantService", () => {
       expect(result.participant.color).toBe("coral");
       expect(result.participantToken).toBeUndefined(); // No token when not self-registering
       expect(mockGeocode).toHaveBeenCalledWith("123 Main St");
-      expect(mockPrisma.participant.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            eventId: TEST_EVENT_ID,
-            name: "Alice",
-            address: "123 Main St",
-            color: "coral",
-          }),
-        })
-      );
+      expect(vi.mocked(mockPrisma.participant.create).mock.calls).toStrictEqual([
+        [
+          {
+            data: {
+              eventId: TEST_EVENT_ID,
+              name: "Alice",
+              address: "123 Main St",
+              formattedAddress: "123 Main Street, New York, NY 10001",
+              lat: 40.7128,
+              lng: -74.006,
+              color: "coral",
+              tokenHash: undefined,
+              isOrganizer: false,
+            },
+          },
+        ],
+      ]);
     });
 
     it("should assign second color when first is used", async () => {
@@ -212,7 +219,7 @@ describe("ParticipantService", () => {
 
     it("should throw AddressNotFoundError when geocoding fails", async () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
-      mockGeocode.mockRejectedValue(new AddressNotFoundError("invalid address"));
+      mockGeocode.mockRejectedValue(new AddressNotFoundError());
 
       await expect(
         service.addParticipant(TEST_EVENT_ID, {

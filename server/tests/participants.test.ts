@@ -14,8 +14,8 @@ vi.mock("../src/lib/maps.js", () => ({
     formattedAddress: "123 Main Street, New York, NY 10001",
   }),
   AddressNotFoundError: class AddressNotFoundError extends Error {
-    constructor(address: string) {
-      super(`Address not found: ${address}`);
+    constructor() {
+      super("Address not found");
       this.name = "AddressNotFoundError";
     }
   },
@@ -193,7 +193,7 @@ describe("Participant Endpoints", () => {
     });
 
     it("should return 400 for address not found", async () => {
-      mockGeocode.mockRejectedValue(new AddressNotFoundError("invalid address xyz"));
+      mockGeocode.mockRejectedValue(new AddressNotFoundError());
 
       const response = await server.inject({
         method: "POST",

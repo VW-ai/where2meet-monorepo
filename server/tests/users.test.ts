@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { buildServer } from "../src/server.js";
+import { prisma } from "../src/lib/prisma.js";
 import type { FastifyInstance } from "fastify";
 
 // Mock Geocoding API for participant creation
@@ -139,6 +140,10 @@ describe("User Endpoints", () => {
         cookies: { session_token: sessionToken },
         payload: { name: "Ana", defaultFuzzyLocation: true },
       });
+      const saved = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { name: true, defaultFuzzyLocation: true },
+      });
 
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({
@@ -152,6 +157,7 @@ describe("User Endpoints", () => {
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });
+      expect(saved).toEqual({ name: "Ana", defaultFuzzyLocation: false });
     });
 
     it("should clear name by setting to null", async () => {
