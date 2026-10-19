@@ -31,7 +31,6 @@ export function toUserResponse(entity: User): UserResponse {
     emailVerified: entity.emailVerified,
     defaultAddress: entity.defaultAddress,
     defaultPlaceId: entity.defaultPlaceId,
-    defaultFuzzyLocation: entity.defaultFuzzyLocation,
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString(),
   };

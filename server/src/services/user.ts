@@ -46,7 +46,6 @@ export class UserService {
    * - avatarUrl
    * - defaultAddress
    * - defaultPlaceId
-   * - defaultFuzzyLocation
    * @param userId - User ID
    * @param data - Fields to update
    * @returns Updated user profile

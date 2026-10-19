@@ -27,15 +27,13 @@ export const UpdateUserSchema = z
       .max(255, "Place ID must be 255 characters or less")
       .nullable()
       .optional(),
-    defaultFuzzyLocation: z.boolean().optional(),
   })
   .refine(
     (data) =>
       data.name !== undefined ||
       data.avatarUrl !== undefined ||
       data.defaultAddress !== undefined ||
-      data.defaultPlaceId !== undefined ||
-      data.defaultFuzzyLocation !== undefined,
+      data.defaultPlaceId !== undefined,
     {
       message: "At least one field must be provided",
     }

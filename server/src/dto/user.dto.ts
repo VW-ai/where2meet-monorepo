@@ -19,7 +19,6 @@ export const UserResponseSchema = z.object({
   emailVerified: z.boolean(),
   defaultAddress: z.string().nullable(),
   defaultPlaceId: z.string().nullable(),
-  defaultFuzzyLocation: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
