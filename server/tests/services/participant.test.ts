@@ -253,33 +253,6 @@ describe("ParticipantService", () => {
 
       expect(logError.mock.calls).toEqual([[{ err: apiError }, "Geocoding API error"]]);
     });
-
-    it("should apply fuzzy offset when fuzzyLocation is true", async () => {
-      vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
-      vi.mocked(mockPrisma.participant.findMany).mockResolvedValue([]);
-      vi.mocked(mockPrisma.participant.create).mockImplementation(async (args) => {
-        const data = (args as { data: Record<string, unknown> }).data;
-        return createMockParticipant({
-          ...data,
-        } as Parameters<typeof createMockParticipant>[0]);
-      });
-
-      await service.addParticipant(TEST_EVENT_ID, {
-        name: "Alice",
-        address: "123 Main St",
-        fuzzyLocation: true,
-      });
-
-      // Verify coordinates were offset (not exact geocode result)
-      const createCall = vi.mocked(mockPrisma.participant.create).mock.calls[0];
-      const createData = (createCall?.[0] as { data: { lat: number; lng: number } })?.data;
-
-      // With fuzzy, coordinates should be different from exact geocode result
-      // Due to deterministic offset based on name, we can't predict exact values
-      // but they should be close to original (within ~0.01 degrees / ~1km)
-      expect(Math.abs(createData.lat - 40.7128)).toBeLessThan(0.01);
-      expect(Math.abs(createData.lng - (-74.006))).toBeLessThan(0.01);
-    });
   });
 
   describe("updateParticipant", () => {

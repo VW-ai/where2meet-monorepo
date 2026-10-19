@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { buildServer } from "../src/server.js";
+import { prisma } from "../src/lib/prisma.js";
 import type { FastifyInstance } from "fastify";
 import type {
   ParticipantAddedPayload,
@@ -112,42 +113,6 @@ describe("Participant SSE Broadcasting", () => {
           },
         }),
       });
-    });
-
-    it("should broadcast an approximate participant without their typed address", async () => {
-      const response = await server.inject({
-        method: "POST",
-        url: `/api/events/${testEventId}/participants`,
-        headers: {
-          authorization: `Bearer ${testParticipantToken}`,
-        },
-        payload: {
-          name: "Bob",
-          address: "456 Oak Ave",
-          fuzzyLocation: true,
-        },
-      });
-
-      expect(broadcastMock.mock.calls).toEqual([
-        [
-          {
-            eventId: testEventId,
-            type: "participant:added",
-            payload: {
-              participant: {
-                id: response.json().id,
-                name: "Bob",
-                address: null,
-                lat: 40.7160306,
-                lng: -74.0056271,
-                color: "teal",
-                fuzzyLocation: true,
-                isOrganizer: false,
-              },
-            },
-          },
-        ],
-      ]);
     });
 
     it("should broadcast for self-registration (no auth)", async () => {
@@ -553,17 +518,31 @@ describe("Participant SSE Broadcasting", () => {
       broadcastMock.mock.calls.map(
         ([call]) => [call.type, (call.payload as ParticipantUpdatedPayload).participant] as const
       );
+    const hiddenBob = {
+      name: "Bob",
+      address: null,
+      lat: 40.7199865,
+      lng: -74.006,
+      color: "teal",
+      fuzzyLocation: true,
+      isOrganizer: false,
+    };
 
     beforeEach(async () => {
-      const response = await server.inject({
-        method: "POST",
-        url: `/api/events/${testEventId}/participants`,
-        headers: auth(),
-        payload: { name: "Bob", address: "456 Oak Ave", fuzzyLocation: true },
+      const seeded = await prisma.participant.create({
+        data: {
+          eventId: testEventId,
+          name: "Bob",
+          address: "456 Oak Ave",
+          formattedAddress: "456 Oak Avenue, New York, NY 10001",
+          lat: 40.7199865,
+          lng: -74.006,
+          fuzzyLocation: true,
+          color: "teal",
+        },
       });
-      participantId = response.json().id;
+      participantId = seeded.id;
       participantUrl = `/api/events/${testEventId}/participants/${participantId}`;
-      broadcastMock.mockClear();
     });
 
     it("should keep the typed address out of participant:updated", async () => {
@@ -575,23 +554,11 @@ describe("Participant SSE Broadcasting", () => {
       });
 
       expect(broadcastParticipants()).toEqual([
-        [
-          "participant:updated",
-          {
-            id: participantId,
-            name: "Bobby",
-            address: null,
-            lat: 40.7160306,
-            lng: -74.0056271,
-            color: "teal",
-            fuzzyLocation: true,
-            isOrganizer: false,
-          },
-        ],
+        ["participant:updated", { ...hiddenBob, id: participantId, name: "Bobby" }],
       ]);
     });
 
-    it("should broadcast the exact address once approximate is off, and hide it again when back on", async () => {
+    it("should keep the participant hidden on fuzzyLocation false, and broadcast the exact point once a new address is saved", async () => {
       await server.inject({
         method: "PATCH",
         url: participantUrl,
@@ -602,33 +569,21 @@ describe("Participant SSE Broadcasting", () => {
         method: "PATCH",
         url: participantUrl,
         headers: auth(),
-        payload: { fuzzyLocation: true },
+        payload: { address: "789 Pine Rd" },
       });
 
       expect(broadcastParticipants()).toEqual([
+        ["participant:updated", { ...hiddenBob, id: participantId }],
         [
           "participant:updated",
           {
             id: participantId,
             name: "Bob",
-            address: "456 Oak Ave",
+            address: "789 Pine Rd",
             lat: 40.7128,
             lng: -74.006,
             color: "teal",
             fuzzyLocation: false,
-            isOrganizer: false,
-          },
-        ],
-        [
-          "participant:updated",
-          {
-            id: participantId,
-            name: "Bob",
-            address: null,
-            lat: 40.7160306,
-            lng: -74.0056271,
-            color: "teal",
-            fuzzyLocation: true,
             isOrganizer: false,
           },
         ],
