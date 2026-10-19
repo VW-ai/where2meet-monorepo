@@ -11,6 +11,7 @@ import {
 const SECRET = "test-location-shift-secret-0123456789";
 
 const NO_COUNTS = {
+  alreadyMoved: 0,
   wouldMove: 0,
   notCached: 0,
   moved: 0,
@@ -53,14 +54,17 @@ async function rows(eventId: string) {
     where: { eventId },
     orderBy: { name: "asc" },
   });
-  return participants.map(({ name, address, formattedAddress, lat, lng, fuzzyLocation }) => ({
-    name,
-    address,
-    formattedAddress,
-    lat: lat === null ? null : Number(lat),
-    lng: lng === null ? null : Number(lng),
-    fuzzyLocation,
-  }));
+  return participants.map(
+    ({ name, address, formattedAddress, lat, lng, fuzzyLocation, approximateAreaMovedAt }) => ({
+      name,
+      address,
+      formattedAddress,
+      lat: lat === null ? null : Number(lat),
+      lng: lng === null ? null : Number(lng),
+      fuzzyLocation,
+      areaMoved: approximateAreaMovedAt !== null,
+    })
+  );
 }
 
 const [ana, ben, cal, dee, eve, org] = [
@@ -110,6 +114,8 @@ const seededRows = [ana, ben, cal, dee, eve, org];
 const anaArea = { lat: 40.7111034, lng: -74.0153564 };
 const eveArea = { lat: 40.7366183, lng: -74.0003114 };
 const addressRemoved = { address: null, formattedAddress: null };
+const unmoved = (row: object) => ({ ...row, areaMoved: false });
+const moved = (row: object, area: object) => ({ ...row, ...area, areaMoved: true });
 
 describe("moveApproximateAreas", () => {
   let eventId: string;
@@ -171,7 +177,7 @@ describe("moveApproximateAreas", () => {
       cacheKeys: await testvilleKeys(),
     }).toEqual({
       counts: { ...NO_COUNTS, wouldMove: 1, notCached: 3 },
-      rows: seededRows,
+      rows: seededRows.map(unmoved),
       googleCalls: [],
       cacheKeys: ["geocode:456 oak ave, testville", "geocode:456 oak avenue, testville"],
     });
@@ -182,7 +188,14 @@ describe("moveApproximateAreas", () => {
 
     expect({ counts, rows: await rows(eventId), googleCalls: googleCalls.sort() }).toEqual({
       counts: { ...NO_COUNTS, moved: 2, notFound: 1, lookupFailed: 1 },
-      rows: [{ ...ana, ...anaArea }, ben, cal, dee, { ...eve, ...eveArea }, org],
+      rows: [
+        moved(ana, anaArea),
+        unmoved(ben),
+        unmoved(cal),
+        unmoved(dee),
+        moved(eve, eveArea),
+        unmoved(org),
+      ],
       googleCalls: ["1 Nowhere Ln, Testville", "2 Denied Rd, Testville", "789 Pine Rd, Testville"],
     });
   });
@@ -203,27 +216,72 @@ describe("moveApproximateAreas", () => {
     await run({ eventId: otherEventId });
 
     expect([(await rows(eventId))[0], ...(await rows(otherEventId))]).toEqual([
-      { ...ana, ...anaArea },
+      moved(ana, anaArea),
       {
         name: "Zed",
         address: "456 Oak Avenue, Testville",
         formattedAddress: null,
         ...anaArea,
         fuzzyLocation: true,
+        areaMoved: true,
       },
     ]);
   });
 
-  it("stores the same areas when it runs again with the same secret", async () => {
+  it("skips participants moved by an earlier run, also after the geocode cache changes", async () => {
     await run();
     const afterFirstRun = await rows(eventId);
+    await redis.set(
+      "geocode:456 oak ave, testville",
+      JSON.stringify({ lat: 40.8, lng: -73.9, formattedAddress: "456 Oak Avenue, Testville" })
+    );
+    await redis.set(
+      "geocode:789 pine rd, testville",
+      JSON.stringify({ lat: 40.8, lng: -73.9, formattedAddress: "789 Pine Road, Testville" })
+    );
+    googleCalls = [];
 
     const secondCounts = await run();
+    const secondRunGoogleCalls = googleCalls.sort();
+    const dryRunCounts = await run({ write: false });
 
-    expect({ afterFirstRun, secondCounts, afterSecondRun: await rows(eventId) }).toEqual({
-      afterFirstRun: [{ ...ana, ...anaArea }, ben, cal, dee, { ...eve, ...eveArea }, org],
-      secondCounts: { ...NO_COUNTS, moved: 2, notFound: 1, lookupFailed: 1 },
+    expect({
+      afterFirstRun,
+      secondCounts,
+      secondRunGoogleCalls,
+      dryRunCounts,
+      afterSecondRun: await rows(eventId),
+    }).toEqual({
+      afterFirstRun: [
+        moved(ana, anaArea),
+        unmoved(ben),
+        unmoved(cal),
+        unmoved(dee),
+        moved(eve, eveArea),
+        unmoved(org),
+      ],
+      secondCounts: { ...NO_COUNTS, alreadyMoved: 2, notFound: 1, lookupFailed: 1 },
+      secondRunGoogleCalls: ["1 Nowhere Ln, Testville", "2 Denied Rd, Testville"],
+      dryRunCounts: { ...NO_COUNTS, alreadyMoved: 2, notCached: 2 },
       afterSecondRun: afterFirstRun,
+    });
+  });
+
+  it("leaves a participant alone that another run moved first", async () => {
+    beforeGoogleAnswers = async (address) => {
+      if (address === "789 Pine Rd, Testville") {
+        await prisma.participant.updateMany({
+          where: { eventId, name: "Eve" },
+          data: { approximateAreaMovedAt: new Date() },
+        });
+      }
+    };
+
+    const counts = await run();
+
+    expect({ counts, eve: (await rows(eventId))[4] }).toEqual({
+      counts: { ...NO_COUNTS, moved: 1, changedDuringRun: 1, notFound: 1, lookupFailed: 1 },
+      eve: { ...eve, areaMoved: true },
     });
   });
 
@@ -249,7 +307,7 @@ describe("moveApproximateAreas", () => {
           notFound: 1,
           lookupFailed: 1,
         },
-        eve: { ...eve, address: "12 New St, Testville" },
+        eve: { ...unmoved(eve), address: "12 New St, Testville" },
       });
     }
   );
@@ -261,12 +319,12 @@ describe("moveApproximateAreas", () => {
     expect({ counts, rows: await rows(eventId) }).toEqual({
       counts: { ...NO_COUNTS, moved: 2, cleared: 1, lookupFailed: 1 },
       rows: [
-        { ...ana, ...anaArea },
-        { ...ben, lat: null, lng: null },
-        cal,
-        dee,
-        { ...eve, ...eveArea },
-        org,
+        moved(ana, anaArea),
+        { ...unmoved(ben), lat: null, lng: null },
+        unmoved(cal),
+        unmoved(dee),
+        moved(eve, eveArea),
+        unmoved(org),
       ],
     });
     expect(toParticipantResponse(benRow)).toEqual({
@@ -286,12 +344,12 @@ describe("moveApproximateAreas", () => {
     expect({ counts, rows: await rows(eventId) }).toEqual({
       counts: { ...NO_COUNTS, movedAddressRemoved: 2, cleared: 1, lookupFailed: 1 },
       rows: [
-        { ...ana, ...anaArea, ...addressRemoved },
-        { ...ben, lat: null, lng: null },
-        cal,
-        dee,
-        { ...eve, ...eveArea, ...addressRemoved },
-        org,
+        { ...moved(ana, anaArea), ...addressRemoved },
+        { ...unmoved(ben), lat: null, lng: null },
+        unmoved(cal),
+        unmoved(dee),
+        { ...moved(eve, eveArea), ...addressRemoved },
+        unmoved(org),
       ],
     });
   });
@@ -304,12 +362,12 @@ describe("moveApproximateAreas", () => {
 
     expect({ afterFirstRun, secondCounts, afterSecondRun: await rows(eventId) }).toEqual({
       afterFirstRun: [
-        { ...ana, ...anaArea, ...addressRemoved },
-        ben,
-        cal,
-        dee,
-        { ...eve, ...eveArea, ...addressRemoved },
-        org,
+        { ...moved(ana, anaArea), ...addressRemoved },
+        unmoved(ben),
+        unmoved(cal),
+        unmoved(dee),
+        { ...moved(eve, eveArea), ...addressRemoved },
+        unmoved(org),
       ],
       secondCounts: { ...NO_COUNTS, notFound: 1, lookupFailed: 1 },
       afterSecondRun: afterFirstRun,

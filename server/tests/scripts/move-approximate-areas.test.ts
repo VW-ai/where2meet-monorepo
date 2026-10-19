@@ -22,17 +22,19 @@ Options:
 Environment: DATABASE_URL, REDIS_URL, LOCATION_SHIFT_SECRET (at least 32 bytes)
 `;
 
-const countLines = (counts: Record<string, number>) => [
-  `Approximate participants with an address: ${String(counts.total ?? 0)}`,
-  `Would move: ${String(counts.wouldMove ?? 0)}`,
-  `Not in the geocode cache: ${String(counts.notCached ?? 0)}`,
-  `Moved, stored address kept: ${String(counts.moved ?? 0)}`,
-  `Moved, stored address removed: ${String(counts.movedAddressRemoved ?? 0)}`,
-  "Left alone, changed or removed during the run: 0",
-  "Left alone, address not found: 0",
-  "Location cleared, address not found: 0",
-  "Left alone, address lookup failed: 0",
-];
+const countLines = (counts: Record<string, number>) =>
+  [
+    ["Approximate participants with an address", counts.total],
+    ["Skipped, moved by an earlier run", counts.alreadyMoved],
+    ["Would move", counts.wouldMove],
+    ["Not in the geocode cache", counts.notCached],
+    ["Moved, stored address kept", counts.moved],
+    ["Moved, stored address removed", counts.movedAddressRemoved],
+    ["Left alone, changed or removed during the run", counts.changedDuringRun],
+    ["Left alone, address not found", counts.notFound],
+    ["Location cleared, address not found", counts.cleared],
+    ["Left alone, address lookup failed", counts.lookupFailed],
+  ].map(([label, count]) => `${String(label)}: ${String(count ?? 0)}`);
 
 const testEnv = {
   DATABASE_URL: process.env.DATABASE_URL,
