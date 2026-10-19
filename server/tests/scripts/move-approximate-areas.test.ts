@@ -98,6 +98,14 @@ describe("scripts/move-approximate-areas", () => {
     30_000
   );
 
+  it("stops when Redis is not reachable", async () => {
+    expect(await runScript([], { ...testEnv, REDIS_URL: "redis://127.0.0.1:1" })).toEqual({
+      code: 1,
+      stdout: "",
+      stderr: "Redis is not reachable\n",
+    });
+  }, 30_000);
+
   it("stops on an --event that is not an event ID", async () => {
     expect(await runScript(["--event=nope"], testEnv)).toEqual({
       code: 1,
@@ -164,7 +172,6 @@ describe("scripts/move-approximate-areas", () => {
       expect(result).toEqual({
         code: 0,
         stdout: [
-          "[Redis] Connected successfully",
           "Mode: dry run, nothing saved (pass --write to save)",
           ...countLines({ total: 2, wouldMove: 1, notCached: 1 }),
           "",
@@ -187,12 +194,7 @@ describe("scripts/move-approximate-areas", () => {
 
       expect(result).toEqual({
         code: 0,
-        stdout: [
-          "[Redis] Connected successfully",
-          "Mode: write",
-          ...countLines({ total: 1, movedAddressRemoved: 1 }),
-          "",
-        ].join("\n"),
+        stdout: ["Mode: write", ...countLines({ total: 1, movedAddressRemoved: 1 }), ""].join("\n"),
         stderr: "",
       });
       expect(await participants(eventId)).toEqual([
