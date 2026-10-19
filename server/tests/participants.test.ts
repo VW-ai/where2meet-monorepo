@@ -225,8 +225,9 @@ describe("Participant Endpoints", () => {
       });
 
       expect(response.statusCode).toBe(400);
-      const body = response.json();
-      expect(body.error.code).toBe("ADDRESS_NOT_FOUND");
+      expect(response.json()).toEqual({
+        error: { code: "ADDRESS_NOT_FOUND", message: "Address not found" },
+      });
     });
 
     it("should return 404 for non-existent event", async () => {
