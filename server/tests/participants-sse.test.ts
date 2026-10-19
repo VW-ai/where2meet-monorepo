@@ -7,7 +7,6 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { buildServer } from "../src/server.js";
-import { prisma } from "../src/lib/prisma.js";
 import type { FastifyInstance } from "fastify";
 import type {
   ParticipantAddedPayload,
@@ -572,87 +571,6 @@ describe("Participant SSE Broadcasting", () => {
 
       // Verify no broadcast was sent for failed deletion
       expect(broadcastMock).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("Approximate participant updates", () => {
-    let participantUrl: string;
-    let participantId: string;
-    const auth = () => ({ authorization: `Bearer ${testParticipantToken}` });
-    const broadcastParticipants = () =>
-      broadcastMock.mock.calls.map(
-        ([call]) => [call.type, (call.payload as ParticipantUpdatedPayload).participant] as const
-      );
-    const hiddenBob = {
-      name: "Bob",
-      address: null,
-      lat: 40.7199865,
-      lng: -74.006,
-      color: "teal",
-      fuzzyLocation: true,
-      isOrganizer: false,
-    };
-
-    beforeEach(async () => {
-      const seeded = await prisma.participant.create({
-        data: {
-          eventId: testEventId,
-          name: "Bob",
-          address: "456 Oak Ave",
-          formattedAddress: "456 Oak Avenue, New York, NY 10001",
-          lat: 40.7199865,
-          lng: -74.006,
-          fuzzyLocation: true,
-          color: "teal",
-        },
-      });
-      participantId = seeded.id;
-      participantUrl = `/api/events/${testEventId}/participants/${participantId}`;
-    });
-
-    it("should keep the typed address out of participant:updated", async () => {
-      await server.inject({
-        method: "PATCH",
-        url: participantUrl,
-        headers: auth(),
-        payload: { name: "Bobby" },
-      });
-
-      expect(broadcastParticipants()).toEqual([
-        ["participant:updated", { ...hiddenBob, id: participantId, name: "Bobby" }],
-      ]);
-    });
-
-    it("should keep the participant hidden on fuzzyLocation false, and broadcast the exact point once a new address is saved", async () => {
-      await server.inject({
-        method: "PATCH",
-        url: participantUrl,
-        headers: auth(),
-        payload: { fuzzyLocation: false },
-      });
-      await server.inject({
-        method: "PATCH",
-        url: participantUrl,
-        headers: auth(),
-        payload: { address: "789 Pine Rd" },
-      });
-
-      expect(broadcastParticipants()).toEqual([
-        ["participant:updated", { ...hiddenBob, id: participantId }],
-        [
-          "participant:updated",
-          {
-            id: participantId,
-            name: "Bob",
-            address: "789 Pine Rd",
-            lat: 40.7128,
-            lng: -74.006,
-            color: "teal",
-            fuzzyLocation: false,
-            isOrganizer: false,
-          },
-        ],
-      ]);
     });
   });
 

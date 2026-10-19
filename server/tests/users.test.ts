@@ -142,7 +142,7 @@ describe("User Endpoints", () => {
       });
       const saved = await prisma.user.findUniqueOrThrow({
         where: { id: user.id },
-        select: { name: true, defaultFuzzyLocation: true },
+        select: { name: true },
       });
 
       expect(response.statusCode).toBe(200);
@@ -157,7 +157,7 @@ describe("User Endpoints", () => {
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });
-      expect(saved).toEqual({ name: "Ana", defaultFuzzyLocation: false });
+      expect(saved).toEqual({ name: "Ana" });
     });
 
     it("should answer an older client's settings save with only the default approximate-location setting with the unchanged profile", async () => {
@@ -171,7 +171,7 @@ describe("User Endpoints", () => {
       });
       const saved = await prisma.user.findUniqueOrThrow({
         where: { id: user.id },
-        select: { name: true, defaultFuzzyLocation: true },
+        select: { name: true },
       });
 
       expect([response.statusCode, response.json()]).toEqual([
@@ -188,7 +188,7 @@ describe("User Endpoints", () => {
           updatedAt: expect.any(String),
         },
       ]);
-      expect(saved).toEqual({ name: "Old Tab", defaultFuzzyLocation: false });
+      expect(saved).toEqual({ name: "Old Tab" });
     });
 
     it("should clear name by setting to null", async () => {
