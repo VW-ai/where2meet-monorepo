@@ -27,7 +27,7 @@ export interface CreateParticipantData {
   isOrganizer?: boolean;
 }
 
-export interface ExactLocation {
+interface ExactLocation {
   address: string;
   formattedAddress: string;
   lat: number;

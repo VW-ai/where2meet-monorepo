@@ -38,7 +38,7 @@ export interface AddParticipantResult {
 
 const logger = createLogger("ParticipantService");
 
-export const HIDE_ADDRESS_UNAVAILABLE =
+const HIDE_ADDRESS_UNAVAILABLE =
   'Hiding the exact address is no longer available. Turn off "Hide exact address" and save again.';
 
 function asksToHideAddress(input: UpdateParticipantInput, current: Participant): boolean {

@@ -8,6 +8,12 @@ const UINT48_RANGE = 2 ** 48;
 
 const roundTo5Decimals = (degrees: number) => Math.round(degrees * 1e5) / 1e5;
 
+// Even over the ring's area, not its radius.
+const distanceInRing = (fraction: number) =>
+  Math.sqrt(
+    MIN_DISTANCE_METERS ** 2 + fraction * (MAX_DISTANCE_METERS ** 2 - MIN_DISTANCE_METERS ** 2)
+  );
+
 export function approximateArea(exact: GeoPoint, secret: string): GeoPoint {
   const lat = roundTo5Decimals(exact.lat);
   const lng = roundTo5Decimals(exact.lng);
@@ -16,11 +22,7 @@ export function approximateArea(exact: GeoPoint, secret: string): GeoPoint {
     .digest();
 
   const bearing = 2 * Math.PI * (digest.readUIntBE(0, 6) / UINT48_RANGE);
-  const distance = Math.sqrt(
-    MIN_DISTANCE_METERS ** 2 +
-      (digest.readUIntBE(6, 6) / UINT48_RANGE) *
-        (MAX_DISTANCE_METERS ** 2 - MIN_DISTANCE_METERS ** 2)
-  );
+  const distance = distanceInRing(digest.readUIntBE(6, 6) / UINT48_RANGE);
 
   return {
     lat: lat + (distance * Math.cos(bearing)) / METERS_PER_LAT_DEGREE,
