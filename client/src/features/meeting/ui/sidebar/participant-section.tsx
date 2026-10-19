@@ -15,7 +15,6 @@ import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { participantErrorMessage } from '@/features/meeting/lib/participant-error-message';
-import { participantEdits } from '@/features/meeting/lib/participant-edits';
 import { hidesAddress } from '@/features/meeting/lib/starting-location';
 
 export function ParticipantSection() {
@@ -128,7 +127,7 @@ export function ParticipantSection() {
         const updatedParticipant = await participantClient.update(
           currentEvent.id,
           editingParticipant.id,
-          participantEdits(data),
+          { name: data.name, address: data.address || undefined },
           token
         );
 
