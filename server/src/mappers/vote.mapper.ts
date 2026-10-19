@@ -8,6 +8,7 @@
 
 import type { Vote, Venue } from "@prisma/client";
 import type { VoteStats } from "../repositories/vote.js";
+import type { VoteStatisticsPayload } from "../types/sse.js";
 import {
   VoteResponseSchema,
   VenueWithVotesSchema,
@@ -80,6 +81,28 @@ export function toVoteStatisticsResponse(stats: VoteStats[]): VoteStatisticsResp
   };
 
   return VoteStatisticsResponseSchema.parse(response);
+}
+
+/**
+ * Transforms vote statistics to the vote:statistics SSE payload, a full snapshot of an event's votes.
+ * The SSE service sets seq and updatedAt when it broadcasts.
+ */
+export function toVoteStatisticsPayload(
+  eventId: string,
+  stats: VoteStats[]
+): VoteStatisticsPayload {
+  return {
+    eventId,
+    seq: 0,
+    venues: stats.map((stat) => ({
+      venueId: stat.venue.id,
+      voteCount: stat.voteCount,
+      voterIds: stat.voterIds,
+      voterNames: stat.voterIds, // DEPRECATED: kept for backward compatibility
+    })),
+    totalVotes: stats.reduce((sum, stat) => sum + stat.voteCount, 0),
+    updatedAt: "",
+  };
 }
 
 /**
