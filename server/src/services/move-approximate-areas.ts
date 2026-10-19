@@ -14,7 +14,7 @@ export type MoveOutcome =
   | "cleared"
   | "lookupFailed";
 
-export type MoveCounts = Record<MoveOutcome, number>;
+type MoveCounts = Record<MoveOutcome, number>;
 
 export interface MoveOptions {
   write: boolean;

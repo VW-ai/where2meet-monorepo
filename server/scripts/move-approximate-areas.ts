@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import type { MoveOutcome } from "../src/services/move-approximate-areas.js";
-import { EVENT_ID_PATTERN } from "../src/utils/id.js";
+import { isValidEventId } from "../src/utils/id.js";
 
 const USAGE = `Usage: npx tsx scripts/move-approximate-areas.ts [options]
 
@@ -73,7 +73,7 @@ async function main(): Promise<number> {
     process.stdout.write(USAGE);
     return 0;
   }
-  if (options.event !== undefined && !EVENT_ID_PATTERN.test(options.event)) {
+  if (options.event !== undefined && !isValidEventId(options.event)) {
     process.stderr.write("--event must be an event ID like evt_1702000000000_a8K3mX2pQrS7nBvW\n");
     return 1;
   }
