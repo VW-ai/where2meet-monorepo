@@ -25,7 +25,7 @@ const sections = [
   },
   {
     heading: 'How it works',
-    body: 'Places and routes come from Google Maps. Travel times are real trip times by car, transit, walking or bike, not straight-line distance. Nobody needs an account to join, and anyone can show an approximate area instead of their exact address.',
+    body: 'Places and routes come from Google Maps. Travel times are real trip times by car, transit, walking or bike, not straight-line distance. Nobody needs an account to join, and anyone can enter a nearby cross street or neighborhood instead of their home address.',
   },
   {
     heading: 'Our guides',

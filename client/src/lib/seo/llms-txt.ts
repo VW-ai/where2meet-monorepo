@@ -12,7 +12,7 @@ Common uses: dinner with friends from different neighborhoods, a date somewhere 
 How it works:
 
 1. Create a meeting with a title, a time, your name and where you are coming from.
-2. Share the link. Each person adds their own starting point, optionally as an approximate area instead of an exact address.
+2. Share the link. Each person adds their own starting point, which can be a nearby cross street, station or neighborhood instead of a home address.
 3. Search for places such as cafes or restaurants around the group, or add a specific place by name.
 4. Select a place to see every person's travel time and route on the map, then like the places you would go to.
 5. The organizer picks the final place from the group's shortlist.
@@ -20,7 +20,7 @@ How it works:
 ## Pages
 
 - [Home](https://www.where2meet.org/): Create a meeting and see how planning works.
-- [FAQ](https://www.where2meet.org/faq): How group planning works, accounts, hiding your exact address, travel modes, voting and cost.
+- [FAQ](https://www.where2meet.org/faq): How group planning works, accounts, choosing a starting point, travel modes, voting and cost.
 - [Blog](https://www.where2meet.org/blog): Guides to planning where to meet with friends, family and coworkers.
 `;
 
