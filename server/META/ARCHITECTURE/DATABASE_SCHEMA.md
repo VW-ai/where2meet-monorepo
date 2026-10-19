@@ -75,6 +75,7 @@
 │  is_organizer    BOOLEAN         DEFAULT FALSE          │
 │  token_hash      VARCHAR(64)     NULL                   │
 │  created_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
+│  approximate_area_moved_at TIMESTAMP NULL               │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -92,6 +93,7 @@
 | `is_organizer` | BOOLEAN | 是否为组织者参与者 |
 | `token_hash` | VARCHAR(64) | 参与者令牌哈希（SHA-256），用于认证。组织者和自行加入者有此令牌，组织者添加的参与者为空 |
 | `created_at` | TIMESTAMP | 创建时间 |
+| `approximate_area_moved_at` | TIMESTAMP | 一次性脚本 `scripts/move-approximate-areas.ts` 为模糊位置参与者设置新区域的时间；未设置时为 NULL |
 
 **说明**：
 - `address`：用户输入的原始地址（如 "台北101"），组织者可为空

@@ -19,6 +19,7 @@ Environment: DATABASE_URL, REDIS_URL, LOCATION_SHIFT_SECRET (at least 32 bytes)
 const MIN_SECRET_BYTES = 32;
 
 const LABELS: Record<MoveOutcome, string> = {
+  alreadyMoved: "Skipped, moved by an earlier run",
   wouldMove: "Would move",
   notCached: "Not in the geocode cache",
   moved: "Moved, stored address kept",

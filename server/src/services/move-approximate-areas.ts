@@ -4,6 +4,7 @@ import { approximateArea } from "../utils/approximate-area.js";
 import type { GeoPoint } from "../utils/mec.js";
 
 export type MoveOutcome =
+  | "alreadyMoved"
   | "wouldMove"
   | "notCached"
   | "moved"
@@ -39,10 +40,14 @@ async function lookUp(address: string): Promise<GeocodeResult | "notFound" | "lo
 async function saveIfUnchanged(
   db: PrismaClient,
   { id, address }: ApproximateParticipant,
-  change: (GeoPoint | { lat: null; lng: null }) & { address?: null; formattedAddress?: null }
+  change: (GeoPoint | { lat: null; lng: null }) & {
+    approximateAreaMovedAt?: Date;
+    address?: null;
+    formattedAddress?: null;
+  }
 ): Promise<boolean> {
   const { count } = await db.participant.updateMany({
-    where: { id, address, fuzzyLocation: true },
+    where: { id, address, fuzzyLocation: true, approximateAreaMovedAt: null },
     data: change,
   });
   return count === 1;
@@ -69,7 +74,11 @@ async function move(
     return cleared ? "cleared" : "changedDuringRun";
   }
   const area = approximateArea(exact, secret);
-  const change = forgetAddresses ? { ...area, address: null, formattedAddress: null } : area;
+  const change = {
+    ...area,
+    approximateAreaMovedAt: new Date(),
+    ...(forgetAddresses ? { address: null, formattedAddress: null } : {}),
+  };
   if (!(await saveIfUnchanged(db, participant, change))) {
     return "changedDuringRun";
   }
@@ -82,9 +91,10 @@ export async function moveApproximateAreas(
 ): Promise<MoveCounts> {
   const rows = await db.participant.findMany({
     where: { eventId: options.eventId, fuzzyLocation: true },
-    select: { id: true, address: true },
+    select: { id: true, address: true, approximateAreaMovedAt: true },
   });
   const counts: MoveCounts = {
+    alreadyMoved: 0,
     wouldMove: 0,
     notCached: 0,
     moved: 0,
@@ -95,9 +105,9 @@ export async function moveApproximateAreas(
     lookupFailed: 0,
   };
 
-  for (const row of rows) {
-    if (row.address !== null) {
-      counts[await move(db, { id: row.id, address: row.address }, options)]++;
+  for (const { id, address, approximateAreaMovedAt } of rows) {
+    if (address !== null) {
+      counts[approximateAreaMovedAt ? "alreadyMoved" : await move(db, { id, address }, options)]++;
     }
   }
 
