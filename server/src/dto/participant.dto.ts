@@ -6,19 +6,19 @@
 import { z } from "zod";
 import { LocationResponseSchema } from "./common.dto.js";
 
-export type PublicParticipant = {
+export interface PublicParticipant {
   id: string;
   name: string;
+  address: string | null;
   lat: number | null;
   lng: number | null;
   color: string;
+  fuzzyLocation: false;
   isOrganizer: boolean;
-} & ({ fuzzyLocation: true; address: null } | { fuzzyLocation: false; address: string | null });
+}
 
 /**
  * Participant data in API response.
- * Note: address is null for approximate participants, and address and location
- * are null for an organizer without a location.
  */
 export const ParticipantResponseSchema = z.object({
   id: z.uuid(),
@@ -26,7 +26,7 @@ export const ParticipantResponseSchema = z.object({
   address: z.string().nullable(),
   location: LocationResponseSchema.nullable(),
   color: z.string(),
-  fuzzyLocation: z.boolean(),
+  fuzzyLocation: z.literal(false),
   isOrganizer: z.boolean(),
 });
 
@@ -42,7 +42,7 @@ export const CreateParticipantResponseSchema = z.object({
   address: z.string().nullable(),
   location: LocationResponseSchema.nullable(),
   color: z.string(),
-  fuzzyLocation: z.boolean(),
+  fuzzyLocation: z.literal(false),
   isOrganizer: z.boolean(),
   participantToken: z.string().optional(),
 });

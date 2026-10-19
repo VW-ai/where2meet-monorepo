@@ -27,7 +27,7 @@ export interface CreateParticipantData {
   isOrganizer?: boolean;
 }
 
-interface ExactLocation {
+interface StartingPoint {
   address: string;
   formattedAddress: string;
   lat: number;
@@ -36,7 +36,7 @@ interface ExactLocation {
 
 export interface UpdateParticipantData {
   name?: string;
-  exactLocation?: ExactLocation;
+  startingPoint?: StartingPoint;
 }
 
 /**
@@ -127,10 +127,7 @@ export class ParticipantRepository {
 
     return this.db.participant.update({
       where: { id },
-      data: {
-        name: data.name,
-        ...(data.exactLocation && { ...data.exactLocation, fuzzyLocation: false }),
-      },
+      data: { name: data.name, ...data.startingPoint },
     });
   }
 

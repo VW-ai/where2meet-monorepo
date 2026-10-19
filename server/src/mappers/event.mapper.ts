@@ -26,18 +26,17 @@ import {
 import type { MECResult } from "../utils/mec.js";
 
 export function toPublicParticipant(entity: Participant): PublicParticipant {
-  const participant = {
+  return {
     id: entity.id,
     name: entity.name,
+    address: entity.address,
     lat: entity.lat === null ? null : Number(entity.lat),
     lng: entity.lng === null ? null : Number(entity.lng),
     color: entity.color,
+    // The shipped iOS app decodes fuzzyLocation as a required field.
+    fuzzyLocation: false,
     isOrganizer: entity.isOrganizer,
   };
-
-  return entity.fuzzyLocation
-    ? { ...participant, fuzzyLocation: true, address: null }
-    : { ...participant, fuzzyLocation: false, address: entity.address };
 }
 
 /**

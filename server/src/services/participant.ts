@@ -39,12 +39,7 @@ export interface AddParticipantResult {
 const logger = createLogger("ParticipantService");
 
 const HIDE_ADDRESS_UNAVAILABLE =
-  'Hiding the exact address is no longer available. Turn off "Hide exact address" and save again.';
-
-function asksToHideAddress(input: UpdateParticipantInput, current: Participant): boolean {
-  const keepsHiddenAddress = current.fuzzyLocation && input.address === undefined;
-  return input.fuzzyLocation === true && !keepsHiddenAddress;
-}
+  "Hiding the exact address is no longer available. Reload the page, then enter a nearby cross street or station instead of your address.";
 
 /**
  * Geocodes an address and converts errors to business errors.
@@ -118,7 +113,7 @@ export class ParticipantService {
    * @returns Created participant and optional token
    * @throws EventNotFoundError if event doesn't exist
    * @throws EventAlreadyPublishedError if event is published
-   * @throws ValidationError if the input asks to hide the exact address
+   * @throws ValidationError if the input sets fuzzyLocation to true
    * @throws BusinessAddressNotFoundError if address cannot be geocoded
    */
   async addParticipant(
@@ -177,7 +172,7 @@ export class ParticipantService {
    * @throws EventNotFoundError if event doesn't exist
    * @throws ParticipantNotFoundError if participant doesn't exist
    * @throws EventAlreadyPublishedError if event is published
-   * @throws ValidationError if the input asks to hide the exact address
+   * @throws ValidationError if the input sets fuzzyLocation to true
    * @throws BusinessAddressNotFoundError if new address cannot be geocoded
    */
   async updateParticipant(
@@ -187,6 +182,10 @@ export class ParticipantService {
   ): Promise<Participant> {
     // Check event exists and is not published
     await this.ensureEventModifiable(eventId);
+
+    if (input.fuzzyLocation) {
+      throw new ValidationError(HIDE_ADDRESS_UNAVAILABLE);
+    }
 
     // Check participant exists and belongs to event
     const exists = await this.participantRepo.belongsToEvent(participantId, eventId);
@@ -199,18 +198,12 @@ export class ParticipantService {
       throw new ParticipantNotFoundError(participantId);
     }
 
-    if (asksToHideAddress(input, current)) {
-      throw new ValidationError(HIDE_ADDRESS_UNAVAILABLE);
-    }
-
     const newAddress =
-      input.address !== undefined && (current.fuzzyLocation || input.address !== current.address)
-        ? input.address
-        : undefined;
+      input.address !== undefined && input.address !== current.address ? input.address : undefined;
     const updateData: UpdateParticipantData = { name: input.name };
     if (newAddress !== undefined) {
       const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(newAddress);
-      updateData.exactLocation = { address: newAddress, formattedAddress, lat, lng };
+      updateData.startingPoint = { address: newAddress, formattedAddress, lat, lng };
     }
 
     const updated = await this.participantRepo.update(participantId, updateData);
