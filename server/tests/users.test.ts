@@ -160,6 +160,37 @@ describe("User Endpoints", () => {
       expect(saved).toEqual({ name: "Ana", defaultFuzzyLocation: false });
     });
 
+    it("should answer an older client's settings save with only the default approximate-location setting with the unchanged profile", async () => {
+      const { user, sessionToken } = await registerUser(undefined, "Old Tab");
+
+      const response = await server.inject({
+        method: "PATCH",
+        url: "/api/users/me",
+        cookies: { session_token: sessionToken },
+        payload: { defaultFuzzyLocation: true },
+      });
+      const saved = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { name: true, defaultFuzzyLocation: true },
+      });
+
+      expect([response.statusCode, response.json()]).toEqual([
+        200,
+        {
+          id: user.id,
+          email: user.email,
+          name: "Old Tab",
+          avatarUrl: null,
+          emailVerified: false,
+          defaultAddress: null,
+          defaultPlaceId: null,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
+      ]);
+      expect(saved).toEqual({ name: "Old Tab", defaultFuzzyLocation: false });
+    });
+
     it("should clear name by setting to null", async () => {
       const { sessionToken } = await registerUser(undefined, "Initial Name");
 
