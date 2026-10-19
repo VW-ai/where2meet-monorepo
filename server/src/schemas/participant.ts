@@ -17,7 +17,8 @@ export const CreateParticipantSchema = z.object({
     .string()
     .min(1, "Address is required")
     .max(255, "Address must be 255 characters or less"),
-  fuzzyLocation: z.boolean().optional().default(false),
+  /** Sent by older web clients. The service turns away `true`. */
+  fuzzyLocation: z.boolean().optional(),
 });
 
 export type CreateParticipantInput = z.infer<typeof CreateParticipantSchema>;
@@ -37,6 +38,7 @@ export const UpdateParticipantSchema = z
       .min(1, "Address cannot be empty")
       .max(255, "Address must be 255 characters or less")
       .optional(),
+    /** Sent by older web clients. The service turns away `true` except on a no-op edit. */
     fuzzyLocation: z.boolean().optional(),
   })
   .refine(

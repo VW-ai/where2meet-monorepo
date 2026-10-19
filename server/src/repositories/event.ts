@@ -269,7 +269,6 @@ export class EventRepository {
               formattedAddress: null,
               lat: null,
               lng: null,
-              fuzzyLocation: false,
               color: organizerData.color,
               tokenHash: organizerData.tokenHash,
               isOrganizer: true,

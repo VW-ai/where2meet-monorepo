@@ -2,7 +2,7 @@
  * Participant service module.
  *
  * Contains business logic for participant operations including
- * geocoding, color assignment, and fuzzy location handling.
+ * geocoding and color assignment.
  * @module services/participant
  */
 
@@ -10,6 +10,7 @@ import type { PrismaClient, Participant } from "@prisma/client";
 import {
   createParticipantRepository,
   type ParticipantRepository,
+  type UpdateParticipantData,
 } from "../repositories/participant.js";
 import { createEventRepository, type EventRepository } from "../repositories/event.js";
 import type { CreateParticipantInput, UpdateParticipantInput } from "../schemas/participant.js";
@@ -20,6 +21,7 @@ import {
   AddressNotFoundError as BusinessAddressNotFoundError,
   ExternalServiceError,
   ForbiddenError,
+  ValidationError,
 } from "../types/errors.js";
 import { geocode, AddressNotFoundError, GeocodingApiError } from "../lib/maps.js";
 import { assignColor } from "../utils/colors.js";
@@ -36,44 +38,9 @@ export interface AddParticipantResult {
 
 const logger = createLogger("ParticipantService");
 
-/** Maximum offset in meters for fuzzy location (~0.5 mile) */
-const FUZZY_OFFSET_METERS = 800;
-
-/** Meters per degree of latitude (approximate) */
-const METERS_PER_LAT_DEGREE = 111_320;
-
-/**
- * Applies a deterministic fuzzy offset to coordinates.
- *
- * Uses participant name as seed for consistent offset across requests.
- * @param lat - Original latitude
- * @param lng - Original longitude
- * @param seed - Seed string for deterministic randomness (e.g., participant name)
- * @returns Offset coordinates
- */
-function applyFuzzyOffset(lat: number, lng: number, seed: string): { lat: number; lng: number } {
-  // Simple hash function for deterministic "randomness"
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    const char = seed.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-
-  // Use hash to generate angle and distance
-  const angle = (Math.abs(hash) % 360) * (Math.PI / 180);
-  const distance = (Math.abs(hash >> 8) % FUZZY_OFFSET_METERS) + 100; // 100m - 800m
-
-  // Calculate offset in degrees
-  const latOffset = (distance * Math.cos(angle)) / METERS_PER_LAT_DEGREE;
-  const lngOffset =
-    (distance * Math.sin(angle)) / (METERS_PER_LAT_DEGREE * Math.cos(lat * (Math.PI / 180)));
-
-  return {
-    lat: lat + latOffset,
-    lng: lng + lngOffset,
-  };
-}
+/** Answer to any request that asks to hide a participant's exact address. */
+export const HIDE_ADDRESS_UNAVAILABLE =
+  'Hiding the exact address is no longer available. Turn off "Hide exact address" and save again.';
 
 /**
  * Geocodes an address and converts errors to business errors.
@@ -147,6 +114,7 @@ export class ParticipantService {
    * @returns Created participant and optional token
    * @throws EventNotFoundError if event doesn't exist
    * @throws EventAlreadyPublishedError if event is published
+   * @throws ValidationError if the input asks to hide the exact address
    * @throws BusinessAddressNotFoundError if address cannot be geocoded
    */
   async addParticipant(
@@ -157,16 +125,11 @@ export class ParticipantService {
     // Check event exists and is not published
     await this.ensureEventModifiable(eventId);
 
-    // Geocode the address
-    const geocodeResult = await geocodeWithBusinessErrors(input.address);
-
-    // Apply fuzzy offset if requested
-    let { lat, lng } = geocodeResult;
     if (input.fuzzyLocation) {
-      const offset = applyFuzzyOffset(lat, lng, input.name);
-      lat = offset.lat;
-      lng = offset.lng;
+      throw new ValidationError(HIDE_ADDRESS_UNAVAILABLE);
     }
+
+    const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(input.address);
 
     // Assign color
     const usedColors = await this.participantRepo.getUsedColors(eventId);
@@ -186,10 +149,9 @@ export class ParticipantService {
       eventId,
       name: input.name,
       address: input.address,
-      formattedAddress: geocodeResult.formattedAddress,
+      formattedAddress,
       lat,
       lng,
-      fuzzyLocation: input.fuzzyLocation,
       color,
       tokenHash,
     });
@@ -211,6 +173,7 @@ export class ParticipantService {
    * @throws EventNotFoundError if event doesn't exist
    * @throws ParticipantNotFoundError if participant doesn't exist
    * @throws EventAlreadyPublishedError if event is published
+   * @throws ValidationError if the input asks to hide the exact address
    * @throws BusinessAddressNotFoundError if new address cannot be geocoded
    */
   async updateParticipant(
@@ -227,69 +190,24 @@ export class ParticipantService {
       throw new ParticipantNotFoundError(participantId);
     }
 
-    // Get current participant for potential re-geocoding
     const current = await this.participantRepo.findById(participantId);
     if (!current) {
       throw new ParticipantNotFoundError(participantId);
     }
 
-    // Build update data
-    const updateData: {
-      name?: string;
-      address?: string;
-      formattedAddress?: string;
-      lat?: number;
-      lng?: number;
-      fuzzyLocation?: boolean;
-    } = {};
-
-    if (input.name !== undefined) {
-      updateData.name = input.name;
+    // Older web clients resend `fuzzyLocation: true` on a name-only edit of an approximate
+    // participant. That request changes nothing. Any other request with
+    // `fuzzyLocation: true`, whatever address it carries, is turned away.
+    if (input.fuzzyLocation === true && (input.address !== undefined || !current.fuzzyLocation)) {
+      throw new ValidationError(HIDE_ADDRESS_UNAVAILABLE);
     }
 
-    if (input.fuzzyLocation !== undefined) {
-      updateData.fuzzyLocation = input.fuzzyLocation;
-    }
-
-    // Re-geocode if address changed
-    if (input.address !== undefined && input.address !== current.address) {
-      const geocodeResult = await geocodeWithBusinessErrors(input.address);
-
-      updateData.address = input.address;
-      updateData.formattedAddress = geocodeResult.formattedAddress;
-
-      // Apply fuzzy offset using the name (current or updated)
-      const nameForOffset = input.name ?? current.name;
-      const shouldFuzzy = input.fuzzyLocation ?? current.fuzzyLocation;
-
-      if (shouldFuzzy) {
-        const offset = applyFuzzyOffset(geocodeResult.lat, geocodeResult.lng, nameForOffset);
-        updateData.lat = offset.lat;
-        updateData.lng = offset.lng;
-      } else {
-        updateData.lat = geocodeResult.lat;
-        updateData.lng = geocodeResult.lng;
-      }
-    } else if (
-      input.fuzzyLocation !== undefined &&
-      input.fuzzyLocation !== current.fuzzyLocation &&
-      current.address !== null
-    ) {
-      // Fuzzy setting changed but address didn't - need to re-apply or remove offset
-      // For simplicity, we re-geocode to get clean coordinates
-      // Note: Skip this for organizer participants (null address)
-      const geocodeResult = await geocodeWithBusinessErrors(current.address);
-      const nameForOffset = input.name ?? current.name;
-
-      if (input.fuzzyLocation) {
-        const offset = applyFuzzyOffset(geocodeResult.lat, geocodeResult.lng, nameForOffset);
-        updateData.lat = offset.lat;
-        updateData.lng = offset.lng;
-      } else {
-        updateData.lat = geocodeResult.lat;
-        updateData.lng = geocodeResult.lng;
-      }
-      updateData.formattedAddress = geocodeResult.formattedAddress;
+    const newAddress =
+      input.address !== undefined && input.address !== current.address ? input.address : undefined;
+    const updateData: UpdateParticipantData = { name: input.name };
+    if (newAddress !== undefined) {
+      const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(newAddress);
+      updateData.exactLocation = { address: newAddress, formattedAddress, lat, lng };
     }
 
     const updated = await this.participantRepo.update(participantId, updateData);
