@@ -89,10 +89,10 @@ async function geocodeWithBusinessErrors(
     return await geocode(address);
   } catch (error) {
     if (error instanceof AddressNotFoundError) {
-      throw new BusinessAddressNotFoundError(address);
+      throw new BusinessAddressNotFoundError();
     }
     if (error instanceof GeocodingApiError) {
-      logger.error({ err: error, address }, "Geocoding API error");
+      logger.error({ err: error }, "Geocoding API error");
       throw new ExternalServiceError("Google Maps", error.message);
     }
     throw error;
