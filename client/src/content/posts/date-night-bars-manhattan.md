@@ -120,7 +120,7 @@ Where2Meet lets you choose the bar together from one shared link.
 
 1. Open [Where2Meet](/), choose the **Date night** chip, and set the day and the time you'll meet.
 2. Send the link to your date. Neither of you needs an account.
-3. Each of you adds where you're starting from. An approximate area is enough if you'd rather not share an address.
+3. Each of you adds where you're starting from. A cross street is enough if you'd rather not share an address.
 4. Search for bars around you both, or look one up by name. Compare each person's travel time by transit, walking, car or bike, and see the routes on the map.
 5. Vote on the bars you like. The organizer picks the final one, and you both see it without a refresh.
 
