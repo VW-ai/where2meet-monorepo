@@ -13,7 +13,8 @@ Options:
   --forget-addresses   removes the stored address after moving; the move can't be recomputed later
   --help               shows this help
 
-Environment: DATABASE_URL, REDIS_URL, LOCATION_SHIFT_SECRET (at least 32 bytes)
+Environment: DATABASE_URL, REDIS_URL, LOCATION_SHIFT_SECRET (at least 32 bytes),
+GOOGLE_MAPS_API_KEY (with --write)
 `;
 
 const MIN_SECRET_BYTES = 32;
