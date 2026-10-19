@@ -79,11 +79,20 @@ async function main(): Promise<number> {
     return 1;
   }
 
+  const { redis, checkRedisHealth, disconnectRedis } = await import("../src/lib/redis.js");
+  // The shared client logs connection events to stdout and stderr; this command prints counts only.
+  for (const event of ["connect", "reconnecting", "error"]) {
+    redis.removeAllListeners(event);
+  }
+  redis.on("error", () => undefined);
   const { prisma, disconnectPrisma } = await import("../src/lib/prisma.js");
-  const { disconnectRedis } = await import("../src/lib/redis.js");
   const { moveApproximateAreas } = await import("../src/services/move-approximate-areas.js");
 
   try {
+    if (!(await checkRedisHealth())) {
+      process.stderr.write("Redis is not reachable\n");
+      return 1;
+    }
     const counts = await moveApproximateAreas(prisma, {
       write: options.write,
       eventId: options.event,
@@ -108,7 +117,7 @@ async function main(): Promise<number> {
     console.error(`Failed with ${error instanceof Error ? error.name : "a non-Error value"}`);
     return 1;
   } finally {
-    await Promise.all([disconnectPrisma(), disconnectRedis()]);
+    await Promise.allSettled([disconnectPrisma(), disconnectRedis()]);
   }
 }
 
