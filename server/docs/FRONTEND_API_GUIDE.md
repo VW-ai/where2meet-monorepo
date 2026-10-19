@@ -482,13 +482,13 @@ interface EventResponse {
 interface ParticipantResponse {
   id: string;                      // UUID
   name: string;
-  address: string | null;          // Original user input; null when fuzzyLocation is true
+  address: string | null;          // Original user input; null without a starting point
   location: {
     lat: number;
     lng: number;
   } | null;
   color: string;                   // e.g., "coral", "teal"
-  fuzzyLocation: boolean;          // true only for participants who chose an approximate location before
+  fuzzyLocation: false;            // Always false; the shipped iOS app requires the key
   participantToken?: string;       // Only on self-registration
 }
 ```
@@ -521,7 +521,7 @@ await fetch('/health/ready');
 ## Notes
 
 1. **Event IDs** use semantic format: `evt_<timestamp>_<random16>`
-2. **Approximate location** is no longer offered. A request with `fuzzyLocation: true` gets 400 VALIDATION_ERROR. Participants who chose it before keep `fuzzyLocation: true`, come back with `address: null`, and their location is the center of an approximate area.
+2. **`fuzzyLocation`** is always `false` in responses. A request with `fuzzyLocation: true` gets 400 VALIDATION_ERROR. A participant without a starting point has `address` and `location` set to `null`.
 3. **Geocoding** is done server-side via Google Maps API
 4. **Colors** are auto-assigned from a 16-color palette
 5. **Published Events** cannot have participants added/modified/removed

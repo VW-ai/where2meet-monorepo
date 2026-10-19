@@ -79,22 +79,20 @@ curl -N -H "Authorization: Bearer {token}" \
 
 Fired when a new participant joins the event.
 
-An approximate participant (`fuzzyLocation: true`) arrives with `address: null`
-and the center of an approximate area as `lat`/`lng`. The REST responses use the
-same rule, so no client ever receives the address they typed. Requests can no
-longer make a participant approximate, so only participants who chose it before
-carry `fuzzyLocation: true`.
+A participant without a starting point has `address`, `lat` and `lng` set to
+`null`. `fuzzyLocation` is always `false`. The server keeps the key because the
+shipped iOS app requires it.
 
 ```typescript
 interface ParticipantAddedEvent {
   participant: {
     id: string;
     name: string;
-    address: string | null; // null when fuzzyLocation is true
+    address: string | null;
     lat: number | null;
     lng: number | null;
     color: string;
-    fuzzyLocation: boolean;
+    fuzzyLocation: false;
     isOrganizer: boolean;
   };
 }
@@ -109,11 +107,11 @@ interface ParticipantUpdatedEvent {
   participant: {
     id: string;
     name: string;
-    address: string | null; // null when fuzzyLocation is true
+    address: string | null;
     lat: number | null;
     lng: number | null;
     color: string;
-    fuzzyLocation: boolean;
+    fuzzyLocation: false;
     isOrganizer: boolean;
   };
 }

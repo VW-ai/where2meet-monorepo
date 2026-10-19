@@ -70,7 +70,6 @@
 │  formatted_address VARCHAR(255)  NULL                   │
 │  lat             DECIMAL(10,7)   NULL (组织者可为空)     │
 │  lng             DECIMAL(10,7)   NULL (组织者可为空)     │
-│  fuzzy_location  BOOLEAN         DEFAULT FALSE          │
 │  color           VARCHAR(20)     NOT NULL               │
 │  is_organizer    BOOLEAN         DEFAULT FALSE          │
 │  token_hash      VARCHAR(64)     NULL                   │
@@ -87,7 +86,6 @@
 | `formatted_address` | VARCHAR(255) | Google 返回的标准化地址 |
 | `lat` | DECIMAL(10,7) | 纬度（组织者可为空；MEC 计算包含所有有位置的参与者） |
 | `lng` | DECIMAL(10,7) | 经度（组织者可为空；MEC 计算包含所有有位置的参与者） |
-| `fuzzy_location` | BOOLEAN | 是否模糊位置 |
 | `color` | VARCHAR(20) | 显示颜色（如 "coral"） |
 | `is_organizer` | BOOLEAN | 是否为组织者参与者 |
 | `token_hash` | VARCHAR(64) | 参与者令牌哈希（SHA-256），用于认证。组织者和自行加入者有此令牌，组织者添加的参与者为空 |
@@ -97,7 +95,6 @@
 - `address`：用户输入的原始地址（如 "台北101"），组织者可为空
 - `formatted_address`：Google Geocode 返回的标准化地址（如 "110台北市信義區信義路五段7號"）
 - lat/lng 由后端 geocode 填入，不接受前端传入
-- 如果 fuzzy_location=true，存储的是偏移后的坐标
 - `is_organizer=true` 的参与者在创建活动时自动创建，无需提供位置信息
 - 组织者参与者若 lat/lng 为 NULL 则不会计入 MEC；当组织者添加了位置后，将计入 MEC 计算
 - 组织者通过 `token_hash` 认证，权限由 `is_organizer` 标志确定
@@ -337,7 +334,7 @@ ALTER TABLE vote ADD CONSTRAINT unique_vote
 │ address          │    │    │ address      │    │
 │ formatted_address│    │    │ lat, lng     │    │
 │ lat, lng         │    │    │ category     │    │
-│ fuzzy_location   │    │    │ rating       │    │
+│ is_organizer     │    │    │ rating       │    │
 │ color            │    │    │ price_level  │    │
 │ created_at       │    │    │ photo_url    │    │
 └──────────────────┘    │    │ created_at   │    │

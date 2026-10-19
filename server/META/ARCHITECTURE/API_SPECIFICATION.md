@@ -327,10 +327,10 @@ POST /api/events/:id/participants
 |------|------|------|
 | id | string | 参与者 UUID |
 | name | string | 姓名 |
-| address | string \| null | 用户输入的原始地址；fuzzyLocation=true 时为 null |
+| address | string \| null | 用户输入的原始地址；没有出发地点时为 null |
 | location | Location | { lat, lng } 坐标（后端 geocode 结果） |
 | color | string | 分配的颜色 |
-| fuzzyLocation | boolean | 之前选择模糊位置的参与者为 true（坐标为模糊区域的中心）；新参与者总是 false |
+| fuzzyLocation | boolean | 总是 false。已发布的 iOS 应用要求此字段 |
 | participantToken | string | 参与者令牌（**仅无认证时返回**，用于自管理） |
 
 **错误响应：**
@@ -359,8 +359,8 @@ PATCH /api/events/:id/participants/:participantId
 | participantId | URL Path | string | ✓ | 参与者 UUID |
 | Authorization | Header | string | ✓ | Bearer {participantToken} |
 | name | Body | string | - | 新姓名 |
-| address | Body | string \| null | - | 新地址（会触发重新 geocode，参与者变为精确位置）；null 等同于省略 |
-| fuzzyLocation | Body | boolean | - | 旧客户端字段。false 不做任何改动。true 只在参与者已是模糊位置且请求不带 address 时被接受（不做改动），否则返回 400 VALIDATION_ERROR |
+| address | Body | string \| null | - | 新地址（会触发重新 geocode）；null 等同于省略 |
+| fuzzyLocation | Body | boolean | - | 旧客户端字段。false 或省略：不做改动；true：返回 400 VALIDATION_ERROR |
 
 **认证逻辑**：
 1. 验证 participantToken 属于该活动
