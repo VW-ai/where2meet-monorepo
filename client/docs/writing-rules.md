@@ -87,7 +87,7 @@ After: "Keep this coffee shop on West 38th Street for a check-in of two or three
 - Only describe features the app has today:
   - a shared link with no account needed
   - everyone adds where they're coming from, or the organizer adds them
-  - an approximate area instead of an exact address
+  - a cross street, station or neighborhood instead of a home address
   - searching places around the group or by name
   - travel time by car, transit, walking and bike
   - routes on the map
