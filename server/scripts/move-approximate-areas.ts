@@ -2,14 +2,16 @@ import { parseArgs } from "node:util";
 import type { MoveOutcome } from "../src/services/move-approximate-areas.js";
 import { EVENT_ID_PATTERN } from "../src/utils/id.js";
 
-const USAGE = `Usage: npx tsx scripts/move-approximate-areas.ts [--write] [--event=<id>] [--clear-unresolved]
+const USAGE = `Usage: npx tsx scripts/move-approximate-areas.ts [options]
 
 Gives each approximate participant a new area. Without --write it only counts.
 
 Options:
-  --write              save the new areas
-  --event=<id>         only participants of this event
-  --clear-unresolved   clear the location when the address is not found
+  --write              saves the new areas
+  --event=<id>         limits the run to one event
+  --clear-unresolved   clears the location when the address is not found
+  --forget-addresses   removes the stored address after moving; the move can't be recomputed later
+  --help               shows this help
 
 Environment: DATABASE_URL, REDIS_URL, LOCATION_SHIFT_SECRET (at least 32 bytes)
 `;
@@ -19,7 +21,8 @@ const MIN_SECRET_BYTES = 32;
 const LABELS: Record<MoveOutcome, string> = {
   wouldMove: "Would move",
   notCached: "Not in the geocode cache",
-  moved: "Moved",
+  moved: "Moved, stored address kept",
+  movedAddressRemoved: "Moved, stored address removed",
   editedDuringRun: "Left alone, edited during the run",
   notFound: "Left alone, address not found",
   cleared: "Location cleared, address not found",
@@ -38,6 +41,8 @@ function parseOptions() {
         write: { type: "boolean", default: false },
         event: { type: "string" },
         "clear-unresolved": { type: "boolean", default: false },
+        "forget-addresses": { type: "boolean", default: false },
+        help: { type: "boolean", default: false },
       },
       strict: true,
     }).values;
@@ -47,6 +52,10 @@ function parseOptions() {
 }
 
 const options = parseOptions();
+if (options.help) {
+  process.stdout.write(USAGE);
+  process.exit(0);
+}
 if (options.event !== undefined && !EVENT_ID_PATTERN.test(options.event)) {
   stop("--event must be an event ID like evt_1702000000000_a8K3mX2pQrS7nBvW\n");
 }
@@ -74,6 +83,7 @@ try {
     write: options.write,
     eventId: options.event,
     clearUnresolved: options["clear-unresolved"],
+    forgetAddresses: options["forget-addresses"],
     secret,
   });
   const total = Object.values(counts).reduce((sum, count) => sum + count, 0);

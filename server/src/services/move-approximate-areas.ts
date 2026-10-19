@@ -16,6 +16,7 @@ export type MoveOutcome =
   | "wouldMove"
   | "notCached"
   | "moved"
+  | "movedAddressRemoved"
   | "editedDuringRun"
   | "notFound"
   | "cleared"
@@ -30,6 +31,8 @@ export interface MoveOptions {
   eventId?: string;
   /** Clears the location of participants whose address is not found */
   clearUnresolved: boolean;
+  /** Also removes the stored address of each participant it moves */
+  forgetAddresses: boolean;
   /** Key for `approximateArea` */
   secret: string;
 }
@@ -48,17 +51,17 @@ async function lookUp(address: string): Promise<GeocodeResult | "notFound" | "lo
 }
 
 /**
- * Saves the location only if the participant still has the address and the
+ * Saves the change only if the participant still has the address and the
  * approximate setting it had when the run read it.
  */
 async function saveIfUnchanged(
   db: PrismaClient,
   { id, address }: ApproximateParticipant,
-  location: GeoPoint | { lat: null; lng: null }
+  change: (GeoPoint | { lat: null; lng: null }) & { address?: null; formattedAddress?: null }
 ): Promise<boolean> {
   const { count } = await db.participant.updateMany({
     where: { id, address, fuzzyLocation: true },
-    data: location,
+    data: change,
   });
   return count === 1;
 }
@@ -66,7 +69,7 @@ async function saveIfUnchanged(
 async function move(
   db: PrismaClient,
   participant: ApproximateParticipant,
-  { write, clearUnresolved, secret }: MoveOptions
+  { write, clearUnresolved, forgetAddresses, secret }: MoveOptions
 ): Promise<MoveOutcome> {
   if (!write) {
     return (await cachedGeocode(participant.address)) ? "wouldMove" : "notCached";
@@ -83,8 +86,12 @@ async function move(
     const cleared = await saveIfUnchanged(db, participant, { lat: null, lng: null });
     return cleared ? "cleared" : "editedDuringRun";
   }
-  const moved = await saveIfUnchanged(db, participant, approximateArea(exact, secret));
-  return moved ? "moved" : "editedDuringRun";
+  const area = approximateArea(exact, secret);
+  const change = forgetAddresses ? { ...area, address: null, formattedAddress: null } : area;
+  if (!(await saveIfUnchanged(db, participant, change))) {
+    return "editedDuringRun";
+  }
+  return forgetAddresses ? "movedAddressRemoved" : "moved";
 }
 
 /**
@@ -105,6 +112,7 @@ export async function moveApproximateAreas(
     wouldMove: 0,
     notCached: 0,
     moved: 0,
+    movedAddressRemoved: 0,
     editedDuringRun: 0,
     notFound: 0,
     cleared: 0,
