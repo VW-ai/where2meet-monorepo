@@ -9,7 +9,6 @@ const BOB: Participant = {
   address: null,
   location: null,
   color: 'teal',
-  fuzzyLocation: false,
   isOrganizer: false,
 };
 

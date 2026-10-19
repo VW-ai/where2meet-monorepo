@@ -10,7 +10,6 @@ export interface Participant {
   address: string | null;
   location: Location | null;
   color: string; // Tailwind color class (e.g., 'bg-coral-500')
-  fuzzyLocation: boolean;
   isOrganizer: boolean;
   avatarUrl?: string;
   createdAt?: string;

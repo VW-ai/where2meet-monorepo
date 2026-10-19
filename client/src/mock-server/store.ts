@@ -137,7 +137,7 @@ class MockDataStore {
 
   async addParticipant(
     eventId: string,
-    data: Omit<Participant, 'id' | 'createdAt' | 'location' | 'color' | 'fuzzyLocation'>
+    data: Omit<Participant, 'id' | 'createdAt' | 'location' | 'color'>
   ): Promise<Participant | undefined> {
     const event = this.events.get(eventId);
     if (!event) return undefined;
@@ -145,12 +145,12 @@ class MockDataStore {
     // Geocode address using Google Maps API or mock (skip if no address - organizer)
     let location: Location | null = null;
     if (data.address) {
-      location = (await geocodeAddress(data.address)).location;
+      const geocodeResult = await geocodeAddress(data.address);
+      location = geocodeResult.location;
     }
 
     const newParticipant: Participant = {
       ...data,
-      fuzzyLocation: false,
       id: `prt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       location,
       color: this.getRandomColor(),
@@ -168,7 +168,7 @@ class MockDataStore {
   async updateParticipant(
     eventId: string,
     participantId: string,
-    updates: Partial<Omit<Participant, 'fuzzyLocation'>>
+    updates: Partial<Participant>
   ): Promise<Participant | undefined> {
     const event = this.events.get(eventId);
     if (!event) return undefined;
@@ -176,14 +176,15 @@ class MockDataStore {
     const participantIndex = event.participants.findIndex((p) => p.id === participantId);
     if (participantIndex === -1) return undefined;
 
-    const relocated = updates.address
-      ? { location: (await geocodeAddress(updates.address)).location, fuzzyLocation: false }
-      : {};
+    // If address changed, re-geocode
+    if (updates.address) {
+      const geocodeResult = await geocodeAddress(updates.address);
+      updates.location = geocodeResult.location;
+    }
 
     const updatedParticipant = {
       ...event.participants[participantIndex],
       ...updates,
-      ...relocated,
       updatedAt: new Date().toISOString(),
     };
 
