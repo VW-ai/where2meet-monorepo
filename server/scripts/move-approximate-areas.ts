@@ -29,11 +29,6 @@ const LABELS: Record<MoveOutcome, string> = {
   lookupFailed: "Left alone, address lookup failed",
 };
 
-function stop(message: string): never {
-  process.stderr.write(message);
-  process.exit(1);
-}
-
 function parseOptions() {
   try {
     return parseArgs({
@@ -47,60 +42,74 @@ function parseOptions() {
       strict: true,
     }).values;
   } catch {
-    return stop(USAGE);
+    return undefined;
   }
 }
 
-const options = parseOptions();
-if (options.help) {
-  process.stdout.write(USAGE);
-  process.exit(0);
-}
-if (options.event !== undefined && !EVENT_ID_PATTERN.test(options.event)) {
-  stop("--event must be an event ID like evt_1702000000000_a8K3mX2pQrS7nBvW\n");
-}
-
-const secret = process.env.LOCATION_SHIFT_SECRET ?? "";
-const envProblems = [
-  ...(["DATABASE_URL", "REDIS_URL", "LOCATION_SHIFT_SECRET"] as const)
+function envProblems(secret: string): string[] {
+  const missing = (["DATABASE_URL", "REDIS_URL", "LOCATION_SHIFT_SECRET"] as const)
     .filter((name) => !process.env[name])
-    .map((name) => `${name} is not set\n`),
-  ...(secret && Buffer.byteLength(secret, "utf8") < MIN_SECRET_BYTES
-    ? [`LOCATION_SHIFT_SECRET must be at least ${String(MIN_SECRET_BYTES)} bytes\n`]
-    : []),
-];
-if (envProblems.length > 0) {
-  stop(envProblems.join(""));
+    .map((name) => `${name} is not set\n`);
+  const tooShort =
+    secret && Buffer.byteLength(secret, "utf8") < MIN_SECRET_BYTES
+      ? [`LOCATION_SHIFT_SECRET must be at least ${String(MIN_SECRET_BYTES)} bytes\n`]
+      : [];
+  return [...missing, ...tooShort];
 }
 
-// Imported only now: the Redis client falls back to localhost when REDIS_URL is unset.
-const { prisma, disconnectPrisma } = await import("../src/lib/prisma.js");
-const { disconnectRedis } = await import("../src/lib/redis.js");
-const { moveApproximateAreas } = await import("../src/services/move-approximate-areas.js");
+async function main(): Promise<number> {
+  const options = parseOptions();
+  if (!options) {
+    process.stderr.write(USAGE);
+    return 1;
+  }
+  if (options.help) {
+    process.stdout.write(USAGE);
+    return 0;
+  }
+  if (options.event !== undefined && !EVENT_ID_PATTERN.test(options.event)) {
+    process.stderr.write("--event must be an event ID like evt_1702000000000_a8K3mX2pQrS7nBvW\n");
+    return 1;
+  }
+  const secret = process.env.LOCATION_SHIFT_SECRET ?? "";
+  const problems = envProblems(secret);
+  if (problems.length > 0) {
+    process.stderr.write(problems.join(""));
+    return 1;
+  }
 
-try {
-  const counts = await moveApproximateAreas(prisma, {
-    write: options.write,
-    eventId: options.event,
-    clearUnresolved: options["clear-unresolved"],
-    forgetAddresses: options["forget-addresses"],
-    secret,
-  });
-  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
-  process.stdout.write(
-    [
-      options.write ? "Mode: write" : "Mode: dry run, nothing saved (pass --write to save)",
-      `Approximate participants with an address: ${String(total)}`,
-      ...Object.entries(LABELS).map(
-        ([outcome, label]) => `${label}: ${String(counts[outcome as MoveOutcome])}`
-      ),
-      "",
-    ].join("\n")
-  );
-} catch (error) {
-  // Database error messages can quote query arguments, so print only the error type
-  console.error(`Failed with ${error instanceof Error ? error.name : "a non-Error value"}`);
-  process.exitCode = 1;
-} finally {
-  await Promise.all([disconnectPrisma(), disconnectRedis()]);
+  // Imported only now: the Redis client falls back to localhost when REDIS_URL is unset.
+  const { prisma, disconnectPrisma } = await import("../src/lib/prisma.js");
+  const { disconnectRedis } = await import("../src/lib/redis.js");
+  const { moveApproximateAreas } = await import("../src/services/move-approximate-areas.js");
+
+  try {
+    const counts = await moveApproximateAreas(prisma, {
+      write: options.write,
+      eventId: options.event,
+      clearUnresolved: options["clear-unresolved"],
+      forgetAddresses: options["forget-addresses"],
+      secret,
+    });
+    const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    process.stdout.write(
+      [
+        options.write ? "Mode: write" : "Mode: dry run, nothing saved (pass --write to save)",
+        `Approximate participants with an address: ${String(total)}`,
+        ...Object.entries(LABELS).map(
+          ([outcome, label]) => `${label}: ${String(counts[outcome as MoveOutcome])}`
+        ),
+        "",
+      ].join("\n")
+    );
+    return 0;
+  } catch (error) {
+    // Database error messages can quote query arguments, so print only the error type
+    console.error(`Failed with ${error instanceof Error ? error.name : "a non-Error value"}`);
+    return 1;
+  } finally {
+    await Promise.all([disconnectPrisma(), disconnectRedis()]);
+  }
 }
+
+process.exitCode = await main();
