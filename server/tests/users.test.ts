@@ -72,12 +72,17 @@ describe("User Endpoints", () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = response.json();
-      expect(body.id).toBe(user.id);
-      expect(body.email).toBe(user.email);
-      expect(body.name).toBe("Profile User");
-      expect(body.emailVerified).toBe(false);
-      expect(body.defaultFuzzyLocation).toBe(false);
+      expect(response.json()).toEqual({
+        id: user.id,
+        email: user.email,
+        name: "Profile User",
+        avatarUrl: null,
+        emailVerified: false,
+        defaultAddress: null,
+        defaultPlaceId: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
     });
 
     it("should return 401 without session", async () => {
@@ -125,19 +130,28 @@ describe("User Endpoints", () => {
       expect(body.defaultPlaceId).toBe("place_123");
     });
 
-    it("should update default fuzzy location", async () => {
-      const { sessionToken } = await registerUser();
+    it("should ignore the default approximate-location setting an older client sends", async () => {
+      const { user, sessionToken } = await registerUser();
 
       const response = await server.inject({
         method: "PATCH",
         url: "/api/users/me",
         cookies: { session_token: sessionToken },
-        payload: { defaultFuzzyLocation: true },
+        payload: { name: "Ana", defaultFuzzyLocation: true },
       });
 
       expect(response.statusCode).toBe(200);
-      const body = response.json();
-      expect(body.defaultFuzzyLocation).toBe(true);
+      expect(response.json()).toEqual({
+        id: user.id,
+        email: user.email,
+        name: "Ana",
+        avatarUrl: null,
+        emailVerified: false,
+        defaultAddress: null,
+        defaultPlaceId: null,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
     });
 
     it("should clear name by setting to null", async () => {
