@@ -90,7 +90,8 @@ async function main(): Promise<number> {
     redis.removeAllListeners(event);
   }
   redis.on("error", () => undefined);
-  const { prisma, disconnectPrisma } = await import("../src/lib/prisma.js");
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient({ log: [] });
   const { moveApproximateAreas } = await import("../src/services/move-approximate-areas.js");
 
   try {
@@ -122,7 +123,7 @@ async function main(): Promise<number> {
     console.error(`Failed with ${error instanceof Error ? error.name : "a non-Error value"}`);
     return 1;
   } finally {
-    await Promise.allSettled([disconnectPrisma(), disconnectRedis()]);
+    await Promise.allSettled([prisma.$disconnect(), disconnectRedis()]);
   }
 }
 
