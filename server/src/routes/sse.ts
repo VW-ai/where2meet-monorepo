@@ -7,6 +7,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createParticipantService } from "../services/participant.js";
+import { openMeetingVisit } from "../services/usage.js";
 import { UnauthorizedError, ForbiddenError, ValidationError } from "../types/errors.js";
 import { createLogger } from "../lib/logger.js";
 import { EventIdSchema } from "../schemas/event.js";
@@ -40,6 +41,8 @@ export function sseRoutes(fastify: FastifyInstance): void {
    * Authentication:
    * - Token provided via Authorization header (Bearer token)
    * - Validates token belongs to a participant in the event
+   *
+   * Each accepted stream records one meeting visit for the owner's usage panel.
    *
    * Headers:
    * - Content-Type: text/event-stream
@@ -97,6 +100,11 @@ export function sseRoutes(fastify: FastifyInstance): void {
         participantId,
         isOrganizer,
       });
+
+      const visit = openMeetingVisit(fastify.db, eventId, participantId);
+      reply.raw.once("close", () => void visit.close());
+      // A client that aborted during an earlier await has already fired "close".
+      if (reply.raw.destroyed) void visit.close();
 
       logger.info({ eventId, connectionId, isOrganizer, participantId }, "SSE stream connected");
 
