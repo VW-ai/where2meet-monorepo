@@ -97,6 +97,9 @@
   occasion: pickup-basketball
 - phrase: basketball courts near me
   occasion: pickup-basketball
+- phrase: indoor basketball courts near me free
+  occasion: pickup-basketball
+  note: Rising on Google Trends in US-NY on 2026-10-20
 - phrase: where to play badminton
   occasion: badminton
 - phrase: badminton courts near me
