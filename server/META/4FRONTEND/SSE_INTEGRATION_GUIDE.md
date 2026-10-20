@@ -469,3 +469,4 @@ curl -X POST "http://localhost:3000/api/events/$EVENT_ID/participants" \
 - **CORS**: SSE endpoint includes CORS headers for cross-origin requests.
 - **Proxy**: If behind nginx, ensure `X-Accel-Buffering: no` header is respected (server already sends it).
 - **Mobile**: Consider using fetch-based SSE for better mobile browser support.
+- **Visits**: Each accepted stream records one `meeting_visit` row for the owner's usage panel. `started_at` is set at connect, and `last_seen_at` moves forward every 30 seconds while the stream is open and once more at disconnect. A refused stream records nothing, and neither does a client that disconnects before its stream is accepted.

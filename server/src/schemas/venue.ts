@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { CATEGORY_TO_PLACE_TYPE } from "../lib/places/index.js";
+import { EVENT_ID_PATTERN } from "../utils/id.js";
 
 /** Valid venue category values */
 const validCategories = Object.keys(CATEGORY_TO_PLACE_TYPE) as [string, ...string[]];
@@ -30,6 +31,7 @@ const CenterSchema = z.object({
  * Schema for searching venues.
  * Requires center (user-provided search location) and searchRadius.
  * At least one of query or categories must be provided.
+ * An optional eventId names the meeting the search is made from.
  */
 export const SearchVenuesSchema = z
   .object({
@@ -48,6 +50,8 @@ export const SearchVenuesSchema = z
       .array(z.enum(validCategories))
       .min(1, "At least one category required")
       .optional(),
+    // Only attributes the search for usage recording, so a bad value is dropped, never a 400.
+    eventId: z.string().regex(EVENT_ID_PATTERN).optional().catch(undefined),
   })
   .refine((data) => data.query !== undefined || data.categories !== undefined, {
     message: "At least one of query or categories must be provided",

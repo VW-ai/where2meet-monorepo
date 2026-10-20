@@ -187,7 +187,12 @@ describe(`migration ${MIGRATION}`, () => {
     });
   });
 
-  it("leaves the database matching schema.prisma", () => {
+  it("leaves a database that the later migrations bring to schema.prisma", () => {
+    const later = readdirSync(MIGRATIONS_DIR)
+      .filter((name) => /^\d{14}_/.test(name) && name > MIGRATION)
+      .sort();
+    runSql(later.map(migrationSql).join("\n"));
+
     const schema = fileURLToPath(new URL("../../prisma/schema.prisma", import.meta.url));
     const diff = execFileSync(
       PRISMA_CLI,
