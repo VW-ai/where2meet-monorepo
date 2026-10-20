@@ -16,12 +16,12 @@ import { createLogger } from "../lib/logger.js";
 const logger = createLogger("UsageService");
 
 /** How often an open visit moves last_seen_at forward, so a crash loses at most this much. */
-export const VISIT_TOUCH_INTERVAL_MS = 30_000;
+const VISIT_TOUCH_INTERVAL_MS = 30_000;
 
 /**
  * A meeting visit being recorded for one open stream.
  */
-export interface MeetingVisit {
+export interface OpenMeetingVisit {
   /** Stops the timer and writes the final last_seen_at. Safe to call more than once. */
   close(): Promise<void>;
 }
@@ -41,7 +41,7 @@ export function openMeetingVisit(
   db: PrismaClient,
   eventId: string,
   participantId: string
-): MeetingVisit {
+): OpenMeetingVisit {
   const visits = createMeetingVisitRepository(db);
   const id = randomUUID();
   const warn = (err: unknown) => {
