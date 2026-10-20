@@ -10,7 +10,6 @@ export interface Participant {
   address: string | null;
   location: Location | null;
   color: string; // Tailwind color class (e.g., 'bg-coral-500')
-  fuzzyLocation: boolean;
   isOrganizer: boolean;
   avatarUrl?: string;
   createdAt?: string;
@@ -28,9 +27,8 @@ export interface ParticipantResponse extends Participant {
 // DTOs
 export type CreateParticipantDTO = Pick<Participant, 'name'> & {
   address?: string | null;
-  fuzzyLocation?: boolean;
 };
 
-export type UpdateParticipantDTO = Partial<Pick<Participant, 'name' | 'fuzzyLocation'>> & {
+export type UpdateParticipantDTO = Partial<Pick<Participant, 'name'>> & {
   address?: string | null;
 };

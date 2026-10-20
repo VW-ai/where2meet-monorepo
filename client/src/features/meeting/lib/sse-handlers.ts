@@ -16,11 +16,10 @@ import {
 import type { SSEMessage } from '@/shared/lib/sse-parser';
 import type { Participant } from '@/entities';
 
-function participantFields({ lat, lng, fuzzyLocation, ...rest }: SSEParticipant) {
+function participantFields({ lat, lng, ...rest }: SSEParticipant) {
   return {
     ...rest,
     location: lat != null && lng != null ? { lat, lng } : null,
-    ...(fuzzyLocation === undefined ? {} : { fuzzyLocation }),
   };
 }
 
@@ -138,7 +137,7 @@ function handleParticipantAdded(data: ParticipantAddedPayload): void {
     return;
   }
 
-  const participant: Participant = { fuzzyLocation: false, ...participantFields(data.participant) };
+  const participant: Participant = participantFields(data.participant);
 
   // Add to participant store
   addParticipant(participant);

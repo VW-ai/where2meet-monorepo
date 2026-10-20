@@ -128,7 +128,6 @@ const response = await fetch(`/api/events/${eventId}/participants`, {
   body: JSON.stringify({
     name: 'Alice',
     address: '123 Main St, San Francisco, CA',
-    fuzzyLocation: false, // Optional, default false
   }),
 });
 
@@ -139,7 +138,7 @@ const participant = await response.json();
 //   address: "123 Main St, San Francisco, CA",
 //   location: { lat: 37.7749, lng: -122.4194 },
 //   color: "coral",
-//   fuzzyLocation: false,
+//   fuzzyLocation: false, // Always false; the shipped iOS app requires the key
 //   participantToken: "pt_x1y2z3..."  // ONLY returned for self-registration!
 // }
 
@@ -196,7 +195,6 @@ await fetch(`/api/events/${eventId}/participants/${myParticipantId}`, {
   body: JSON.stringify({
     name: 'Alice Smith',
     address: '789 New St, SF, CA', // Will re-geocode
-    fuzzyLocation: true,
   }),
 });
 ```
@@ -254,7 +252,6 @@ const participant = await fetch(`/api/events/${eventId}/participants`, {
   body: JSON.stringify({
     name: userName,
     address: userAddress,
-    fuzzyLocation: userWantsFuzzy,
   }),
 }).then((r) => r.json());
 
@@ -392,10 +389,7 @@ class Where2MeetAPI {
   }
 
   // Participants
-  async joinEvent(
-    eventId: string,
-    data: { name: string; address: string; fuzzyLocation?: boolean }
-  ) {
+  async joinEvent(eventId: string, data: { name: string; address: string }) {
     // Self-registration (no token)
     return this.post(`/api/events/${eventId}/participants`, data);
   }
@@ -403,7 +397,7 @@ class Where2MeetAPI {
   async addParticipant(
     eventId: string,
     organizerToken: string,
-    data: { name: string; address: string; fuzzyLocation?: boolean }
+    data: { name: string; address: string }
   ) {
     // Organizer adds participant
     return this.post(`/api/events/${eventId}/participants`, data, organizerToken);
@@ -413,7 +407,7 @@ class Where2MeetAPI {
     eventId: string,
     participantId: string,
     token: string,
-    data: { name?: string; address?: string; fuzzyLocation?: boolean }
+    data: { name?: string; address?: string }
   ) {
     return this.patch(`/api/events/${eventId}/participants/${participantId}`, data, token);
   }
@@ -501,13 +495,13 @@ interface EventResponse {
 interface ParticipantResponse {
   id: string; // UUID
   name: string;
-  address: string; // Original user input
+  address: string | null; // Original user input; null without a starting point
   location: {
     lat: number;
     lng: number;
-  };
+  } | null;
   color: string; // e.g., "coral", "teal"
-  fuzzyLocation: boolean;
+  fuzzyLocation: false; // Always false; the shipped iOS app requires the key
   participantToken?: string; // Only on self-registration
 }
 ```
@@ -540,7 +534,7 @@ await fetch('/health/ready');
 ## Notes
 
 1. **Event IDs** use semantic format: `evt_<timestamp>_<random16>`
-2. **Fuzzy Location** offsets coordinates by 100-800m for privacy
+2. **`fuzzyLocation`** is always `false` in responses. A request with `fuzzyLocation: true` gets 400 VALIDATION_ERROR. A participant without a starting point has `address` and `location` set to `null`.
 3. **Geocoding** is done server-side via Google Maps API
 4. **Colors** are auto-assigned from a 16-color palette
 5. **Published Events** cannot have participants added/modified/removed

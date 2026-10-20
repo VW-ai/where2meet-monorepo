@@ -129,7 +129,6 @@ export function ParticipantSection() {
           {
             name: data.name,
             address: data.address,
-            fuzzyLocation: data.fuzzyLocation,
           },
           token
         );
@@ -160,7 +159,6 @@ export function ParticipantSection() {
             {
               name: data.name,
               address: data.address,
-              fuzzyLocation: data.fuzzyLocation,
             },
             organizerToken
           );
@@ -191,7 +189,6 @@ export function ParticipantSection() {
           const response = await participantClient.join(currentEvent.id, {
             name: data.name,
             address: data.address,
-            fuzzyLocation: data.fuzzyLocation,
           });
 
           // Store participant token for self-management
@@ -379,7 +376,6 @@ export function ParticipantSection() {
                       name: editingParticipant.name,
                       address: editingParticipant.address || '',
                       placeId: '',
-                      fuzzyLocation: editingParticipant.fuzzyLocation ?? false,
                     }
                   : undefined
               }

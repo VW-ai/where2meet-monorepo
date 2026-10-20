@@ -79,6 +79,10 @@ curl -N -H "Authorization: Bearer {token}" \
 
 Fired when a new participant joins the event.
 
+A participant without a starting point has `address`, `lat` and `lng` set to
+`null`. `fuzzyLocation` is always `false`. The server keeps the key because the
+shipped iOS app requires it.
+
 ```typescript
 interface ParticipantAddedEvent {
   participant: {
@@ -88,6 +92,7 @@ interface ParticipantAddedEvent {
     lat: number | null;
     lng: number | null;
     color: string;
+    fuzzyLocation: false;
     isOrganizer: boolean;
   };
 }
@@ -106,6 +111,7 @@ interface ParticipantUpdatedEvent {
     lat: number | null;
     lng: number | null;
     color: string;
+    fuzzyLocation: false;
     isOrganizer: boolean;
   };
 }

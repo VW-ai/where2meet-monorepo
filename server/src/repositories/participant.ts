@@ -22,23 +22,21 @@ export interface CreateParticipantData {
   formattedAddress: string | null;
   lat: number | null;
   lng: number | null;
-  fuzzyLocation: boolean;
   color: string;
   tokenHash?: string;
   isOrganizer?: boolean;
 }
 
-/**
- * Data for updating a participant.
- * If address changes, new coordinates should be provided.
- */
+interface StartingPoint {
+  address: string;
+  formattedAddress: string;
+  lat: number;
+  lng: number;
+}
+
 export interface UpdateParticipantData {
   name?: string;
-  address?: string;
-  formattedAddress?: string;
-  lat?: number;
-  lng?: number;
-  fuzzyLocation?: boolean;
+  startingPoint?: StartingPoint;
 }
 
 /**
@@ -63,7 +61,6 @@ export class ParticipantRepository {
         formattedAddress: data.formattedAddress,
         lat: data.lat,
         lng: data.lng,
-        fuzzyLocation: data.fuzzyLocation,
         color: data.color,
         tokenHash: data.tokenHash,
         isOrganizer: data.isOrganizer ?? false,
@@ -128,35 +125,9 @@ export class ParticipantRepository {
   async update(id: string, data: UpdateParticipantData): Promise<Participant> {
     logger.debug({ participantId: id }, "Updating participant");
 
-    const updateData: Record<string, unknown> = {};
-
-    if (data.name !== undefined) {
-      updateData.name = data.name;
-    }
-
-    if (data.address !== undefined) {
-      updateData.address = data.address;
-    }
-
-    if (data.formattedAddress !== undefined) {
-      updateData.formattedAddress = data.formattedAddress;
-    }
-
-    if (data.lat !== undefined) {
-      updateData.lat = data.lat;
-    }
-
-    if (data.lng !== undefined) {
-      updateData.lng = data.lng;
-    }
-
-    if (data.fuzzyLocation !== undefined) {
-      updateData.fuzzyLocation = data.fuzzyLocation;
-    }
-
     return this.db.participant.update({
       where: { id },
-      data: updateData,
+      data: { name: data.name, ...data.startingPoint },
     });
   }
 

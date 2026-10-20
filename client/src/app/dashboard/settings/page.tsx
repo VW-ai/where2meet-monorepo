@@ -26,7 +26,6 @@ export default function SettingsPage() {
   const [name, setName] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [placeId, setPlaceId] = useState<string | null>(null);
-  const [defaultFuzzyLocation, setDefaultFuzzyLocation] = useState(false);
   const [_isLocating, setIsLocating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -41,7 +40,6 @@ export default function SettingsPage() {
       setName(user.name || '');
       setAddressInput(user.defaultAddress || '');
       setPlaceId(user.defaultPlaceId || null);
-      setDefaultFuzzyLocation(user.defaultFuzzyLocation);
     }
   }, [user]);
 
@@ -148,7 +146,6 @@ export default function SettingsPage() {
         name: name || undefined,
         defaultAddress: addressInput || undefined,
         defaultPlaceId: placeId || undefined,
-        defaultFuzzyLocation,
       });
       setSaveMessage('Settings saved successfully!');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -268,27 +265,6 @@ export default function SettingsPage() {
                           ? ' Type and select from dropdown to verify.'
                           : ''}
                     </p>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <input
-                      id="defaultFuzzyLocation"
-                      type="checkbox"
-                      checked={defaultFuzzyLocation}
-                      onChange={(e) => setDefaultFuzzyLocation(e.target.checked)}
-                      className="mt-1 w-4 h-4 text-coral-500 border-gray-300 rounded focus:ring-coral-500"
-                    />
-                    <div className="flex-1">
-                      <label
-                        htmlFor="defaultFuzzyLocation"
-                        className="block text-sm font-medium text-gray-700"
-                      >
-                        Use fuzzy location by default
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Hide your exact location from other participants (shows approximate area)
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>

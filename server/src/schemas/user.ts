@@ -39,7 +39,8 @@ export const UpdateUserSchema = z
     {
       message: "At least one field must be provided",
     }
-  );
+  )
+  .transform(({ defaultFuzzyLocation: _ignoredLegacySetting, ...profile }) => profile);
 
 export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
 

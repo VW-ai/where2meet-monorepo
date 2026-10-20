@@ -125,7 +125,6 @@ Create a new user account.
     "emailVerified": false,
     "defaultAddress": null,
     "defaultPlaceId": null,
-    "defaultFuzzyLocation": false,
     "createdAt": "2025-12-25T23:33:19.277Z",
     "updatedAt": "2025-12-25T23:33:19.277Z"
   }
@@ -402,7 +401,6 @@ Get current user profile.
   "emailVerified": false,
   "defaultAddress": "123 Main St, City, State",
   "defaultPlaceId": "ChIJ...",
-  "defaultFuzzyLocation": false,
   "createdAt": "2025-12-25T...",
   "updatedAt": "2025-12-25T..."
 }
@@ -426,7 +424,6 @@ Update user profile.
   "name": "Jane Doe",
   "defaultAddress": "456 Oak Ave, City, State",
   "defaultPlaceId": "ChIJ...",
-  "defaultFuzzyLocation": true,
   "avatarUrl": "https://example.com/avatar.jpg"
 }
 ```
@@ -440,7 +437,6 @@ Update user profile.
   "name": "Jane Doe",
   "defaultAddress": "456 Oak Ave, City, State",
   "defaultPlaceId": "ChIJ...",
-  "defaultFuzzyLocation": true,
   "avatarUrl": "https://example.com/avatar.jpg",
   "updatedAt": "2025-12-26T..." // Updated timestamp
 }
@@ -501,7 +497,6 @@ interface User {
   emailVerified: boolean; // Email verification status (always false in Phase 1)
   defaultAddress: string | null; // User's home/default address
   defaultPlaceId: string | null; // Google Places ID for address
-  defaultFuzzyLocation: boolean; // Privacy setting (hide exact location)
   createdAt: string; // ISO 8601 timestamp
   updatedAt: string; // ISO 8601 timestamp
 }
@@ -518,7 +513,6 @@ interface User {
   "emailVerified": false,
   "defaultAddress": "123 Main St, San Francisco, CA",
   "defaultPlaceId": "ChIJIQBpAG2ahYAR_6128GcTUEo",
-  "defaultFuzzyLocation": false,
   "createdAt": "2025-12-25T23:33:19.277Z",
   "updatedAt": "2025-12-26T10:15:30.123Z"
 }
@@ -978,7 +972,6 @@ The dashboard now includes a dedicated section showing all venues you've liked a
   - **"Locate Me" button** - Automatically detect current location via geolocation
   - **Address verification indicator** - Shows checkmark when address has valid Place ID
   - **Place ID storage** - Stores both address string and Google Place ID for accuracy
-  - Fuzzy location toggle
 - Connected accounts section (OAuth):
   - Google account linking/unlinking
   - GitHub account linking/unlinking
@@ -1214,7 +1207,6 @@ persist(storeConfig, {
 ### Privacy & Anti-Enumeration
 
 ✅ **Email Enumeration Prevention** - Password reset always returns success
-✅ **Fuzzy Location** - Optional location privacy setting
 ✅ **Token Exclusion** - Sensitive tokens excluded from API responses
 
 ---
@@ -1507,7 +1499,6 @@ CREATE TABLE users (
   email_verified BOOLEAN DEFAULT FALSE,    -- Email verification status
   default_address TEXT,                    -- Home/default address (nullable)
   default_place_id VARCHAR(255),           -- Google Places ID (nullable)
-  default_fuzzy_location BOOLEAN DEFAULT FALSE,  -- Privacy setting
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -2037,7 +2028,6 @@ await db.query('DELETE FROM sessions WHERE user_id = ?', [userId]);
 - ✅ `name`
 - ✅ `defaultAddress`
 - ✅ `defaultPlaceId`
-- ✅ `defaultFuzzyLocation`
 - ✅ `avatarUrl`
 
 **Forbidden Fields:**

@@ -119,7 +119,7 @@ Where2Meet lets the group choose the birthday spot together from one shared link
 
 1. Open [Where2Meet](/), type **Birthday** in the first box, and set the day and the time.
 2. Send the link to the guests. Nobody needs an account.
-3. Each guest adds where they're coming from. An approximate area is enough. For a surprise, the organizer adds the birthday person's area instead of sending them the link.
+3. Each guest adds where they're coming from. A cross street is enough. For a surprise, the organizer adds the birthday person's area instead of sending them the link.
 4. Search for places around the group, or look one up by name. Compare each guest's travel time by transit, walking, car or bike, and see the routes on the map.
 5. Vote on the places you like. The organizer picks the final spot, and everyone sees it without a refresh.
 

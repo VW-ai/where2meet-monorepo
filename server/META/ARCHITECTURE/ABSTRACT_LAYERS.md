@@ -157,7 +157,7 @@ export function toParticipantResponse(entity: Participant): ParticipantResponse 
       ? { lat: Number(entity.lat), lng: Number(entity.lng) }
       : null,
     color: entity.color,
-    fuzzyLocation: entity.fuzzyLocation,
+    fuzzyLocation: false,  // the shipped iOS app requires the key
     isOrganizer: entity.isOrganizer,  // true for auto-created organizer
   };
 }

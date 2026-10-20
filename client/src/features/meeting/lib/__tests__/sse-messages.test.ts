@@ -16,7 +16,6 @@ const TESTER: Participant = {
   address: null,
   location: null,
   color: 'coral',
-  fuzzyLocation: false,
   isOrganizer: true,
 };
 
@@ -63,14 +62,6 @@ const VOTE_STATISTICS =
 
 const VOTE_STATISTICS_EMPTY =
   '{"eventId":"evt_1792167269143_bqAdVLMBseGmhgHK","seq":4,"venues":[],"totalVotes":0,"updatedAt":"2026-10-16T17:58:41.043Z"}';
-
-const FUZZY_ID = '7c1f3a2e-0b9d-4c55-9e61-2f8d4a6b1c30';
-const FUZZY_ADDED =
-  '{"participant":{"id":"7c1f3a2e-0b9d-4c55-9e61-2f8d4a6b1c30","name":"Quiet Probe","address":null,"lat":40.7541,"lng":-73.9849,"color":"violet","isOrganizer":false,"fuzzyLocation":true}}';
-const FUZZY_RENAMED_BY_OLDER_SERVER =
-  '{"participant":{"id":"7c1f3a2e-0b9d-4c55-9e61-2f8d4a6b1c30","name":"Quiet Probe renamed","address":null,"lat":40.7541,"lng":-73.9849,"color":"violet","isOrganizer":false}}';
-const FUZZY_TURNED_OFF =
-  '{"participant":{"id":"7c1f3a2e-0b9d-4c55-9e61-2f8d4a6b1c30","name":"Quiet Probe renamed","address":"Bryant Park, New York, NY","lat":40.7536,"lng":-73.9832,"color":"violet","isOrganizer":false,"fuzzyLocation":false}}';
 
 function receive(event: string, data: string) {
   handleSSEMessage({ event, data, id: '' }, EVENT_ID);
@@ -139,29 +130,6 @@ describe('SSE messages the server sends', () => {
       ['Tester', 'SSE Probe'],
       ['Tester', 'SSE Probe renamed'],
       ['Tester'],
-    ]);
-  });
-
-  it('keeps whether a participant chose an approximate location', () => {
-    const fuzzy = () => {
-      const p = useParticipantStore.getState().getParticipantById(FUZZY_ID);
-      return [p?.name, p?.address, p?.fuzzyLocation];
-    };
-    receive('participant:added', FUZZY_ADDED);
-    const afterAdd = fuzzy();
-    receive('participant:updated', FUZZY_RENAMED_BY_OLDER_SERVER);
-    const afterRename = fuzzy();
-    receive('participant:updated', FUZZY_TURNED_OFF);
-    const afterTurnOff = fuzzy();
-    receive('participant:added', PARTICIPANT_ADDED);
-    const probe = useParticipantStore
-      .getState()
-      .getParticipantById('53d4c04a-e630-4c5c-8b1c-b36e142918f8');
-    expect([afterAdd, afterRename, afterTurnOff, probe?.fuzzyLocation]).toEqual([
-      ['Quiet Probe', null, true],
-      ['Quiet Probe renamed', null, true],
-      ['Quiet Probe renamed', 'Bryant Park, New York, NY', false],
-      false,
     ]);
   });
 

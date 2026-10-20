@@ -98,7 +98,7 @@ Settle the plan by Thursday, and ask everyone to vote by then. For a weekday mee
 Where2Meet lets friends plan where to meet from one shared link. Nobody needs an account.
 
 1. Open [Where2Meet](/), choose the **Weekend hangout** chip, pick the day and time, and add your name.
-2. Share the link in your group chat. Each friend adds where they're coming from, or an approximate area, or you add it for them.
+2. Share the link in your group chat. Each friend adds where they're coming from, or a cross street, or you add it for them.
 3. Search around the group for a restaurant, a bar or a museum, or look one up by name.
 4. Select a place to see each friend's route and travel time by car, transit, walking or bike.
 5. Everyone votes, and the organizer picks the final spot. Changes show up without a refresh.

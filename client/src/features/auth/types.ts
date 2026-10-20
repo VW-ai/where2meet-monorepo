@@ -6,7 +6,6 @@ export interface User {
   emailVerified: boolean;
   defaultAddress: string | null;
   defaultPlaceId: string | null;
-  defaultFuzzyLocation: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,7 +25,6 @@ export interface UpdateUserDTO {
   name?: string;
   defaultAddress?: string;
   defaultPlaceId?: string;
-  defaultFuzzyLocation?: boolean;
   avatarUrl?: string;
 }
 

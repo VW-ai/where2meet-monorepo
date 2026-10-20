@@ -9,7 +9,7 @@ import catLogo from '@/components/cat/logo.svg';
 export const metadata: Metadata = createMetadata({
   title: 'FAQ',
   description:
-    'Answers about planning where to meet with Where2Meet: accounts, sharing a link, hiding your exact address, travel modes, voting and cost.',
+    'Answers about planning where to meet with Where2Meet: accounts, sharing a link, choosing a starting point, travel modes, voting and cost.',
   canonical: '/faq',
   robots: { index: true, follow: true },
 });
@@ -42,7 +42,7 @@ const faqs: FAQItem[] = [
   {
     question: 'Do I have to share my exact address?',
     answer:
-      'No. Turn on "Hide exact address" and others see only an approximate area, about half a mile to a mile around you.',
+      "No. You can enter a nearby cross street, station or neighborhood instead of your home address. Everyone in the group sees the starting point you enter, so pick one you're comfortable sharing.",
   },
   {
     question: 'What kinds of places can we search for?',

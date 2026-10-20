@@ -22,8 +22,8 @@ vi.mock("../src/lib/maps.js", () => ({
     formattedAddress: "123 Main Street, New York, NY 10001",
   }),
   AddressNotFoundError: class AddressNotFoundError extends Error {
-    constructor(address: string) {
-      super(`Address not found: ${address}`);
+    constructor() {
+      super("Address not found");
       this.name = "AddressNotFoundError";
     }
   },
@@ -107,56 +107,11 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
       });
-    });
-
-    it("should broadcast participant:added with correct payload structure", async () => {
-      // Arrange
-      const participantData = {
-        name: "Bob",
-        address: "456 Oak Ave",
-        fuzzyLocation: true,
-      };
-
-      // Act
-      await server.inject({
-        method: "POST",
-        url: `/api/events/${testEventId}/participants`,
-        headers: {
-          authorization: `Bearer ${testParticipantToken}`,
-        },
-        payload: participantData,
-      });
-
-      // Assert
-      expect(broadcastMock).toHaveBeenCalledOnce();
-      const broadcastCall = broadcastMock.mock.calls[0][0];
-
-      expect(broadcastCall).toHaveProperty("eventId", testEventId);
-      expect(broadcastCall).toHaveProperty("type", "participant:added");
-      expect(broadcastCall).toHaveProperty("payload");
-      expect(broadcastCall.payload).toHaveProperty("participant");
-
-      const { participant } = broadcastCall.payload as ParticipantAddedPayload;
-      expect(participant).toHaveProperty("id");
-      expect(participant).toHaveProperty("name", "Bob");
-      expect(participant).toHaveProperty("address", "456 Oak Ave");
-      expect(participant).toHaveProperty("lat");
-      expect(participant).toHaveProperty("lng");
-      expect(participant).toHaveProperty("color");
-      expect(participant).toHaveProperty("isOrganizer", false);
-
-      // Verify types
-      expect(typeof participant.id).toBe("string");
-      expect(typeof participant.name).toBe("string");
-      expect(typeof participant.address).toBe("string");
-      expect(typeof participant.lat).toBe("number");
-      expect(typeof participant.lng).toBe("number");
-      expect(typeof participant.color).toBe("string");
-      expect(typeof participant.isOrganizer).toBe("boolean");
     });
 
     it("should broadcast for self-registration (no auth)", async () => {
@@ -189,6 +144,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
@@ -268,6 +224,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
@@ -304,6 +261,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
@@ -374,6 +332,68 @@ describe("Participant SSE Broadcasting", () => {
     });
   });
 
+  describe("DELETE /api/events/:id/participants/:participantId - vote snapshot", () => {
+    const venueId = "ChIJN1t_tDeuEmsRUsoyG83frY4";
+
+    it("should broadcast vote:statistics without the removed participant's votes", async () => {
+      const join = async (name: string) =>
+        (
+          await server.inject({
+            method: "POST",
+            url: `/api/events/${testEventId}/participants`,
+            payload: { name, address: "123 Main St" },
+          })
+        ).json();
+      const vote = (voter: { id: string; participantToken: string }) =>
+        server.inject({
+          method: "POST",
+          url: `/api/events/${testEventId}/participants/${voter.id}/votes`,
+          headers: { authorization: `Bearer ${voter.participantToken}` },
+          payload: {
+            venueId,
+            venueData: {
+              name: "Cozy Cafe",
+              address: "789 Pine Rd, New York, NY",
+              lat: 40.7484,
+              lng: -73.9857,
+            },
+          },
+        });
+      const alice = await join("Alice");
+      const bob = await join("Bob");
+      await vote(alice);
+      await vote(bob);
+      await vi.waitFor(() =>
+        expect(
+          broadcastMock.mock.calls.filter(([call]) => call.type === "vote:statistics")
+        ).toHaveLength(2)
+      );
+      broadcastMock.mockClear();
+
+      const response = await server.inject({
+        method: "DELETE",
+        url: `/api/events/${testEventId}/participants/${alice.id}`,
+        headers: { authorization: `Bearer ${testParticipantToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(2));
+      expect(broadcastMock.mock.calls.map(([call]) => [call.type, call.payload])).toEqual([
+        ["participant:removed", { participantId: alice.id }],
+        [
+          "vote:statistics",
+          {
+            eventId: testEventId,
+            seq: 0,
+            venues: [{ venueId, voteCount: 1, voterIds: [bob.id], voterNames: [bob.id] }],
+            totalVotes: 1,
+            updatedAt: "",
+          },
+        ],
+      ]);
+    });
+  });
+
   describe("DELETE /api/events/:id/participants/:participantId - participant:removed broadcast", () => {
     let participantId: string;
 
@@ -404,7 +424,7 @@ describe("Participant SSE Broadcasting", () => {
       // Assert
       expect(response.statusCode).toBe(200);
 
-      expect(broadcastMock).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(2));
       expect(broadcastMock).toHaveBeenCalledWith({
         eventId: testEventId,
         type: "participant:removed",
@@ -423,7 +443,7 @@ describe("Participant SSE Broadcasting", () => {
       });
 
       // Assert
-      expect(broadcastMock).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(2));
       const broadcastCall = broadcastMock.mock.calls[0][0];
 
       expect(broadcastCall).toHaveProperty("eventId", testEventId);
@@ -448,7 +468,7 @@ describe("Participant SSE Broadcasting", () => {
 
       // Assert - deletion should still succeed
       expect(response.statusCode).toBe(200);
-      expect(broadcastMock).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(2));
     });
   });
 
@@ -463,7 +483,9 @@ describe("Participant SSE Broadcasting", () => {
         url: `/api/events/${testEventId}`,
       });
       const participants = eventResponse.json().participants;
-      const organizerParticipant = participants.find((p: { isOrganizer: boolean }) => p.isOrganizer);
+      const organizerParticipant = participants.find(
+        (p: { isOrganizer: boolean }) => p.isOrganizer
+      );
       organizerParticipantId = organizerParticipant.id;
       broadcastMock.mockClear();
     });
@@ -501,7 +523,8 @@ describe("Participant SSE Broadcasting", () => {
 
       // Verify the broadcast payload has isOrganizer: true
       const broadcastCall = broadcastMock.mock.calls[0][0];
-      const { participant: broadcastParticipant } = broadcastCall.payload as ParticipantUpdatedPayload;
+      const { participant: broadcastParticipant } =
+        broadcastCall.payload as ParticipantUpdatedPayload;
       expect(broadcastParticipant.isOrganizer).toBe(true);
     });
 
@@ -610,7 +633,7 @@ describe("Participant SSE Broadcasting", () => {
       });
 
       // Assert
-      expect(broadcastMock).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() => expect(broadcastMock).toHaveBeenCalledTimes(3));
 
       // Verify update broadcast
       const updateCall = broadcastMock.mock.calls[0][0];
@@ -622,6 +645,7 @@ describe("Participant SSE Broadcasting", () => {
       const deleteCall = broadcastMock.mock.calls[1][0];
       expect(deleteCall.type).toBe("participant:removed");
       expect(deleteCall.payload.participantId).toBe(participantId);
+      expect(broadcastMock.mock.calls[2][0].type).toBe("vote:statistics");
     });
   });
 });

@@ -109,7 +109,7 @@ A Saturday meeting narrows the list. Blender Space is closed on weekends, and Th
 Where2Meet lets the whole team choose the location from one link, with no accounts.
 
 1. Open [Where2Meet](/), choose the **Team meeting** chip, and set the date and start time.
-2. Send the link to the team. Everyone enters a starting point, either an address or just an approximate area, and you can enter it for anyone who doesn't.
+2. Send the link to the team. Everyone enters a starting point, either an address or just a cross street, and you can enter it for anyone who doesn't.
 3. Look for meeting rooms and restaurants near everyone's starting points, or find a specific place by name.
 4. Open a place to compare everyone's travel time by transit, car, walking or bike, with each route on the map.
 5. Let the team vote. The organizer makes the final pick, and everyone sees it update live.

@@ -14,11 +14,12 @@ import { EventIdSchema } from "../schemas/event.js";
 import {
   toVoteResponse,
   toVoteStatisticsResponse,
+  toVoteStatisticsPayload,
   toVoteRemovalResponse,
 } from "../mappers/vote.mapper.js";
 import { createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
-import type { VoteStatisticsPayload, VoteChangedPayload } from "../types/sse.js";
+import type { VoteChangedPayload } from "../types/sse.js";
 import { getCurrentSSESequence } from "../lib/redis.js";
 
 /**
@@ -164,19 +165,9 @@ export function voteRoutes(fastify: FastifyInstance): void {
               /* SSE broadcast failure is non-critical */
             });
 
-          // Also broadcast full snapshot (for backward compatibility)
-          const statsPayload: VoteStatisticsPayload = {
-            eventId, // Will be added by SSE service
-            seq: 0, // Will be set by SSE service
-            venues: stats.map((stat) => ({
-              venueId: stat.venue.id,
-              voteCount: stat.voteCount,
-              voterIds: stat.voterIds,
-              voterNames: stat.voterIds, // DEPRECATED: kept for backward compatibility
-            })),
-            totalVotes,
-            updatedAt: "", // Will be set by SSE service
-          };
+          // Also broadcast the full snapshot
+
+          const statsPayload = toVoteStatisticsPayload(eventId, stats);
 
           await fastify.sse
             .broadcast({
@@ -258,19 +249,9 @@ export function voteRoutes(fastify: FastifyInstance): void {
                 /* SSE broadcast failure is non-critical */
               });
 
-            // Also broadcast full snapshot (for backward compatibility)
-            const statsPayload: VoteStatisticsPayload = {
-              eventId, // Will be added by SSE service
-              seq: 0, // Will be set by SSE service
-              venues: stats.map((stat) => ({
-                venueId: stat.venue.id,
-                voteCount: stat.voteCount,
-                voterIds: stat.voterIds,
-                voterNames: stat.voterIds, // DEPRECATED: kept for backward compatibility
-              })),
-              totalVotes,
-              updatedAt: "", // Will be set by SSE service
-            };
+            // Also broadcast the full snapshot
+
+            const statsPayload = toVoteStatisticsPayload(eventId, stats);
 
             await fastify.sse
               .broadcast({

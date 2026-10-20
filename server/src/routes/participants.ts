@@ -10,6 +10,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createParticipantService } from "../services/participant.js";
+import { createVoteService } from "../services/vote.js";
 import {
   CreateParticipantSchema,
   UpdateParticipantSchema,
@@ -17,7 +18,12 @@ import {
   type UpdateParticipantInput,
 } from "../schemas/participant.js";
 import { EventIdSchema } from "../schemas/event.js";
-import { toParticipantResponse, toCreateParticipantResponse } from "../mappers/event.mapper.js";
+import {
+  toParticipantResponse,
+  toCreateParticipantResponse,
+  toPublicParticipant,
+} from "../mappers/event.mapper.js";
+import { toVoteStatisticsPayload } from "../mappers/vote.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { createVerifyToken, createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
@@ -52,6 +58,7 @@ interface ParticipantParams extends EventParams {
  */
 export function participantRoutes(fastify: FastifyInstance): void {
   const participantService = createParticipantService(fastify.db);
+  const voteService = createVoteService(fastify.db);
 
   /**
    * POST /api/events/:id/participants
@@ -97,15 +104,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
 
       // Broadcast SSE event (non-blocking)
       const ssePayload: ParticipantAddedPayload = {
-        participant: {
-          id: result.participant.id,
-          name: result.participant.name,
-          address: result.participant.address,
-          lat: result.participant.lat ? Number(result.participant.lat) : null,
-          lng: result.participant.lng ? Number(result.participant.lng) : null,
-          color: result.participant.color,
-          isOrganizer: result.participant.isOrganizer,
-        },
+        participant: toPublicParticipant(result.participant),
       };
       fastify.sse
         .broadcast({
@@ -155,15 +154,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
 
       // Broadcast SSE event (non-blocking)
       const ssePayload: ParticipantUpdatedPayload = {
-        participant: {
-          id: participant.id,
-          name: participant.name,
-          address: participant.address,
-          lat: participant.lat ? Number(participant.lat) : null,
-          lng: participant.lng ? Number(participant.lng) : null,
-          color: participant.color,
-          isOrganizer: participant.isOrganizer,
-        },
+        participant: toPublicParticipant(participant),
       };
       fastify.sse
         .broadcast({
@@ -208,6 +199,21 @@ export function participantRoutes(fastify: FastifyInstance): void {
           type: "participant:removed",
           payload: ssePayload,
         })
+        .catch(() => {
+          /* SSE broadcast failure is non-critical */
+        });
+
+      // The participant's votes went with them (cascade), so other tabs need a fresh snapshot.
+      const eventId = request.params.id;
+      voteService
+        .getVoteStatistics(eventId)
+        .then((stats) =>
+          fastify.sse.broadcast({
+            eventId,
+            type: "vote:statistics",
+            payload: toVoteStatisticsPayload(eventId, stats),
+          })
+        )
         .catch(() => {
           /* SSE broadcast failure is non-critical */
         });

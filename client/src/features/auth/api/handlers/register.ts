@@ -92,7 +92,6 @@ async function handleRegisterMock(request: NextRequest): Promise<NextResponse> {
       emailVerified: false,
       defaultAddress: null,
       defaultPlaceId: null,
-      defaultFuzzyLocation: false,
       createdAt: now,
       updatedAt: now,
     };

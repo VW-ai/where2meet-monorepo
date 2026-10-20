@@ -84,7 +84,6 @@ interface AuthResponse {
     emailVerified: boolean; // Always false initially
     defaultAddress: string | null;
     defaultPlaceId: string | null;
-    defaultFuzzyLocation: boolean;
     createdAt: string; // ISO 8601
     updatedAt: string;
   };
@@ -271,7 +270,6 @@ interface UserResponse {
   emailVerified: boolean;
   defaultAddress: string | null;
   defaultPlaceId: string | null;
-  defaultFuzzyLocation: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -295,7 +293,6 @@ interface UpdateUserRequest {
   avatarUrl?: string | null;
   defaultAddress?: string | null;
   defaultPlaceId?: string | null;
-  defaultFuzzyLocation?: boolean;
 }
 // At least one field required
 ```
@@ -325,7 +322,6 @@ await fetch('/api/users/me', {
     name: 'Jane Doe',
     defaultAddress: '123 Main St, City',
     defaultPlaceId: 'ChIJ...',
-    defaultFuzzyLocation: true,
   }),
 });
 ```
@@ -473,7 +469,6 @@ interface User {
   emailVerified: boolean;
   defaultAddress: string | null;
   defaultPlaceId: string | null;
-  defaultFuzzyLocation: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -497,7 +492,6 @@ interface UpdateUserRequest {
   avatarUrl?: string | null;
   defaultAddress?: string | null;
   defaultPlaceId?: string | null;
-  defaultFuzzyLocation?: boolean;
 }
 
 // ============ Event Types ============
