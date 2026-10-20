@@ -25,7 +25,13 @@ CREATE TABLE "venue_search" (
 CREATE INDEX "meeting_visit_event_id_idx" ON "meeting_visit"("event_id");
 
 -- CreateIndex
+CREATE INDEX "meeting_visit_started_at_idx" ON "meeting_visit"("started_at");
+
+-- CreateIndex
 CREATE INDEX "venue_search_event_id_idx" ON "venue_search"("event_id");
+
+-- CreateIndex
+CREATE INDEX "venue_search_created_at_idx" ON "venue_search"("created_at");
 
 -- AddForeignKey
 ALTER TABLE "meeting_visit" ADD CONSTRAINT "meeting_visit_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "event"("id") ON DELETE CASCADE ON UPDATE CASCADE;

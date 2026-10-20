@@ -113,6 +113,7 @@ model MeetingVisit {
   participant Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
 
   @@index([eventId])
+  @@index([startedAt])
   @@map("meeting_visit")
 }
 
@@ -129,6 +130,7 @@ model VenueSearch {
   participant Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
 
   @@index([eventId])
+  @@index([createdAt])
   @@map("venue_search")
 }
 
