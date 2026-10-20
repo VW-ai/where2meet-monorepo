@@ -152,8 +152,7 @@ POST /api/events/[id]/participants
 ```json
 {
   "name": "Alice",
-  "address": "350 5th Ave, New York, NY",
-  "fuzzyLocation": false
+  "address": "350 5th Ave, New York, NY"
 }
 ```
 
@@ -171,13 +170,14 @@ POST /api/events/[id]/participants
 }
 ```
 
+`fuzzyLocation` is always `false`. The server keeps the key because the shipped iOS app requires it.
+
 **Backend Flow:**
 
 1. Geocode address -> coordinates (Google API or mock)
-2. If `fuzzyLocation: true`, add ~5km random offset
-3. Assign random color from 10-color palette
-4. Generate unique ID
-5. Persist to storage
+2. Assign random color from 10-color palette
+3. Generate unique ID
+4. Persist to storage
 
 #### Update Participant
 
@@ -353,7 +353,6 @@ interface Participant {
   address: string;
   location: Location;
   color: string; // Tailwind class: 'bg-coral-500'
-  fuzzyLocation: boolean;
   avatarUrl?: string;
   createdAt: string;
   updatedAt?: string;
@@ -580,7 +579,6 @@ CREATE TABLE participants (
   lat DECIMAL(10, 8),
   lng DECIMAL(11, 8),
   color VARCHAR NOT NULL,
-  fuzzy_location BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -625,7 +623,7 @@ POST /api/events/[id]/publish        # Publish final venue
 
 ```
 1. Frontend: POST /api/events/[id]/participants
-   Body: { name, address, fuzzyLocation }
+   Body: { name, address }
 
 2. API Route: src/app/api/events/[id]/participants/route.ts
    - Validates event exists
@@ -638,7 +636,6 @@ POST /api/events/[id]/publish        # Publish final venue
 4. Store: src/mock-server/store.ts
    - Generates participant ID
    - Assigns random color
-   - Applies fuzzy offset if enabled
    - Persists to .mock-data/events.json
 
 5. Response: Created participant object
