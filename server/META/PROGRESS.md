@@ -863,3 +863,37 @@ Reproduced locally by running the production image with the same argv and no she
 - `CORS_ORIGINS` is still required on Railway (production fail-fast in `src/server.ts`)
 - `REDIS_URL` is optional; `/health/ready` returns `degraded` without it
 - Reference: https://docs.railway.com/guides/start-command (Dockerfile/Image: exec form; Railpack: shell)
+
+---
+
+## 2026-10-20
+
+### Meeting Usage Recording
+
+#### Problem Statement
+The owner's internal usage panel needs to see how people use a meeting page: when they open it, how long they stay, and what venues they search for while they plan together. Nothing recorded that.
+
+#### Solution
+- Two new tables, `meeting_visit` and `venue_search` (migration `20261020120000_record_meeting_visits_and_venue_searches`). Deleting a meeting deletes its rows. Deleting a participant keeps them with a null `participant_id`.
+- The migration grants SELECT on both tables to the read-only `control_usage` role, only where that role exists (production).
+- Each accepted `GET /api/events/:id/stream` records one visit: `started_at` and `last_seen_at` at connect, `last_seen_at` again every 30 seconds on a per-visit timer and once more at disconnect. Time on page is `last_seen_at - started_at`, and a crash loses at most 30 seconds.
+- `POST /api/venues/search` accepts an optional `eventId` and Bearer token. A successful search with query text from an existing meeting adds one row with the query, the result count and the participant. A missing, bad or foreign token records a null participant.
+- Recording never fails or slows the request it describes. The visit insert is not awaited, every write failure is logged as a warning, and a bad `eventId` is dropped instead of returning 400.
+- The web client sends `eventId` and the organizer or participant token with venue searches.
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `prisma/schema.prisma` | `MeetingVisit` and `VenueSearch` models, back-relations on `Event` and `Participant` |
+| `prisma/migrations/20261020120000_record_meeting_visits_and_venue_searches/` | Tables, indexes, foreign keys, conditional grant |
+| `src/repositories/meetingVisit.ts`, `src/repositories/venueSearch.ts` | Insert and touch operations |
+| `src/services/usage.ts` | `openMeetingVisit` and `recordVenueSearch` |
+| `src/routes/sse.ts` | Opens a visit for each accepted stream |
+| `src/schemas/venue.ts`, `src/routes/venues.ts` | Optional `eventId`, search recording |
+| `tests/migrations/remove-approximate-locations.test.ts` | Applies later migrations before comparing with `schema.prisma` |
+| `META/ARCHITECTURE/DATABASE_SCHEMA.md`, `META/ARCHITECTURE/API_SPECIFICATION.md`, `META/4FRONTEND/SSE_INTEGRATION_GUIDE.md` | New tables, search fields, visit note |
+
+#### Test Summary
+- New: `tests/migrations/record-meeting-usage.test.ts` (4), `tests/meeting-visits.test.ts` (5), `tests/venue-searches.test.ts` (6)
+- All tests passing (32 files, 498 tests)
