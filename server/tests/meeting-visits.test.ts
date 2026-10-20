@@ -8,6 +8,8 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
+import { once } from "node:events";
+import type { ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { FastifyInstance } from "fastify";
 import { buildServer } from "../src/server.js";
@@ -170,6 +172,36 @@ describe("meeting visits", () => {
       { participant_id: meeting.participant.id, started_at: T0, last_seen_at: T0 },
     ]);
     accepted.close();
+  });
+
+  it("records no visit for a client that leaves before its stream is accepted", async () => {
+    const { eventId, organizer, participant } = await createMeeting();
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"], now: T0 });
+
+    await server.db.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe("LOCK TABLE participant IN ACCESS EXCLUSIVE MODE");
+        const arrived = new Promise<ServerResponse>((resolve) => {
+          server.server.once("request", (_request, response) => resolve(response));
+        });
+        const controller = new AbortController();
+        streams.push(controller);
+        fetch(`${baseUrl}/api/events/${eventId}/stream`, {
+          headers: { authorization: `Bearer ${organizer.token}` },
+          signal: controller.signal,
+        }).catch(() => undefined);
+        const response = await arrived;
+        controller.abort();
+        await once(response, "close");
+      },
+      { timeout: 10_000 }
+    );
+
+    const stream = await openStream(eventId, participant.token);
+    await expect.poll(() => visits(eventId)).toEqual([
+      { participant_id: participant.id, started_at: T0, last_seen_at: T0 },
+    ]);
+    stream.close();
   });
 
   it("opens the stream without waiting on a visit write that hangs and then fails", async () => {
