@@ -41,31 +41,9 @@ src/
 
 ## Mock Data Locations
 
-### 1. Mock Venues (9 NYC venues)
+The Fastify API in `server/` serves events, participants, and venues. The client calls it through `src/lib/api/`.
 
-**File:** `src/mock-server/data/venues.ts`
-
-Used for venue search results when Google Places API is not available.
-
-```typescript
-// Example venue structure
-{
-  id: 'central-park-cafe',
-  name: 'Central Park Cafe',
-  address: '14 E 60th St, New York, NY 10022',
-  location: { lat: 40.7649, lng: -73.9725 },
-  category: 'cafe',
-  rating: 4.5,
-  priceLevel: 2,
-  openNow: true
-}
-```
-
-### 2. Mock Data Store (Persistence)
-
-**File:** `src/mock-server/store.ts`
-
-In-memory store with file persistence to `.mock-data/events.json`
+The `/api/auth` and `/api/users` route handlers can use a file-backed mock instead of the server. `src/lib/api/auth-user-router.ts` turns the mock on through `NEXT_PUBLIC_MOCK_MODE`. The mock reads and writes JSON files in `.mock-data/` through `src/mock-server/auth-persistence.ts` and `src/mock-server/services/persistence.ts`.
 
 ---
 
@@ -152,8 +130,7 @@ POST /api/events/[id]/participants
 ```json
 {
   "name": "Alice",
-  "address": "350 5th Ave, New York, NY",
-  "fuzzyLocation": false
+  "address": "350 5th Ave, New York, NY"
 }
 ```
 
@@ -171,13 +148,14 @@ POST /api/events/[id]/participants
 }
 ```
 
+`fuzzyLocation` is always `false`. The server keeps the key because the shipped iOS app requires it.
+
 **Backend Flow:**
 
 1. Geocode address -> coordinates (Google API or mock)
-2. If `fuzzyLocation: true`, add ~5km random offset
-3. Assign random color from 10-color palette
-4. Generate unique ID
-5. Persist to storage
+2. Assign random color from 10-color palette
+3. Generate unique ID
+4. Persist to storage
 
 #### Update Participant
 
@@ -233,8 +211,7 @@ POST /api/venues/search
 }
 ```
 
-**Current Implementation:** Filters mock venues by Haversine distance.
-**Production:** Should call Google Places API.
+**Current Implementation:** The Fastify server searches Google Places in `server/src/services/venue.ts`.
 
 #### Get Venue Details
 
@@ -353,7 +330,6 @@ interface Participant {
   address: string;
   location: Location;
   color: string; // Tailwind class: 'bg-coral-500'
-  fuzzyLocation: boolean;
   avatarUrl?: string;
   createdAt: string;
   updatedAt?: string;
@@ -451,13 +427,13 @@ All Google Maps integrations: `src/lib/google-maps/`
 
 ### APIs Used
 
-| API                  | Current Usage                    | Location                                     |
-| -------------------- | -------------------------------- | -------------------------------------------- |
-| Geocoding            | Server-side (with mock fallback) | `src/mock-server/services/geocoding.ts`      |
-| Places Autocomplete  | Client-side                      | `src/lib/google-maps/places-autocomplete.ts` |
-| Places Nearby Search | Client-side                      | `src/lib/google-maps/places-nearby.ts`       |
-| Place Details        | Client-side                      | `src/lib/google-maps/places-nearby.ts`       |
-| Directions           | **MOCKED**                       | `src/app/api/directions/route.ts`            |
+| API                  | Current Usage | Location                                     |
+| -------------------- | ------------- | -------------------------------------------- |
+| Geocoding            | Server-side   | `server/src/lib/maps.ts`                     |
+| Places Autocomplete  | Client-side   | `src/lib/google-maps/places-autocomplete.ts` |
+| Places Nearby Search | Client-side   | `src/lib/google-maps/places-nearby.ts`       |
+| Place Details        | Client-side   | `src/lib/google-maps/places-nearby.ts`       |
+| Directions           | **MOCKED**    | `src/app/api/directions/route.ts`            |
 
 ### Category Mapping (Places API)
 
@@ -543,14 +519,11 @@ interface RouteInfo {
 
 ### Currently Mocked (Replace with Database)
 
-| Feature      | Mock Location                | Production Need                 |
-| ------------ | ---------------------------- | ------------------------------- |
-| Event CRUD   | `src/mock-server/store.ts`   | Database table                  |
-| Participants | Part of Event in store       | Database table with FK          |
-| Venue Search | `src/app/api/venues/search/` | Google Places API (server-side) |
-| Directions   | `src/app/api/directions/`    | Google Directions API           |
-| Venue Voting | In-memory only               | Database persistence            |
-| Saved Venues | In-memory only               | User preferences table          |
+| Feature      | Mock Location             | Production Need        |
+| ------------ | ------------------------- | ---------------------- |
+| Directions   | `src/app/api/directions/` | Google Directions API  |
+| Venue Voting | In-memory only            | Database persistence   |
+| Saved Venues | In-memory only            | User preferences table |
 
 ### Production Backend Requirements
 
@@ -580,7 +553,6 @@ CREATE TABLE participants (
   lat DECIMAL(10, 8),
   lng DECIMAL(11, 8),
   color VARCHAR NOT NULL,
-  fuzzy_location BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -624,26 +596,21 @@ POST /api/events/[id]/publish        # Publish final venue
 ### Adding a Participant (Current Flow)
 
 ```
-1. Frontend: POST /api/events/[id]/participants
-   Body: { name, address, fuzzyLocation }
+1. Frontend: participantClient.join() or participantClient.add()
+   in src/features/meeting/ui/sidebar/participant-section.tsx
+   POST /api/events/:id/participants on the Fastify server
+   Body: { name, address }
 
-2. API Route: src/app/api/events/[id]/participants/route.ts
-   - Validates event exists
-   - Calls geocodeAddress(address)
+2. Server: ParticipantService.addParticipant() in server/src/services/participant.ts
+   - Checks that the event exists and is not published
+   - Geocodes the address with Google Geocoding
+   - Assigns a color and saves the participant
 
-3. Geocoding: src/mock-server/services/geocoding.ts
-   - If GOOGLE_API_KEY: calls Google Geocoding API
-   - Else: returns mock NYC coordinates
+3. Server: broadcasts a participant:added SSE event
 
-4. Store: src/mock-server/store.ts
-   - Generates participant ID
-   - Assigns random color
-   - Applies fuzzy offset if enabled
-   - Persists to .mock-data/events.json
+4. Response (201): Created participant object
 
-5. Response: Created participant object
-
-6. Frontend: useMeetingStore.addParticipant(participant)
+5. Frontend: useParticipantStore().addParticipant(participant)
 ```
 
 ### Searching Venues (Current Flow)
@@ -672,8 +639,6 @@ POST /api/events/[id]/publish        # Publish final venue
 | ---------------- | ----------------------------------------- |
 | API Routes       | `src/app/api/`                            |
 | Type Definitions | `src/types/`                              |
-| Mock Data        | `src/mock-server/data/`                   |
-| Mock Store       | `src/mock-server/store.ts`                |
 | Persistence      | `src/mock-server/services/persistence.ts` |
 | Google Maps      | `src/lib/google-maps/`                    |
 | Frontend State   | `src/store/`                              |
@@ -695,6 +660,5 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key
 Key files to understand the full picture:
 
 1. `src/types/index.ts` - All type exports
-2. `src/mock-server/store.ts` - Data model behavior
-3. `src/app/api/events/[id]/route.ts` - Event CRUD pattern
-4. `src/lib/google-maps/places-nearby.ts` - Venue search implementation
+2. `src/app/api/events/[id]/route.ts` - Event CRUD pattern
+3. `src/lib/google-maps/places-nearby.ts` - Venue search implementation

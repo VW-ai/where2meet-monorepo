@@ -39,7 +39,7 @@ Mascot is a Cat
         - **“Add participant” component**
             - Input Name, a dice icon for a randomized name, ex(apple_cat)
             - Input Address, have autocompletition
-            - an eye icon (For Fuzzy location) with explanation icon beside it (Hover to show instructions on what it does) and a Join Button (To join the participant list)
+            - a Join Button (To join the participant list)
         - Participants + number of participants header
         - **participants list component**: A List with **Participant Component**s
         - **Participant Component**:

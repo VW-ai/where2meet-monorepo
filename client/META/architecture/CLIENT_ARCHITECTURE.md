@@ -960,7 +960,6 @@ export interface Participant {
     lat: number;
     lng: number;
   };
-  fuzzyLocation: boolean;
   color: string;
   avatar: number;
   createdAt: string;
@@ -969,7 +968,6 @@ export interface Participant {
 export interface ParticipantInput {
   name: string;
   address: string;
-  fuzzyLocation: boolean;
 }
 ```
 

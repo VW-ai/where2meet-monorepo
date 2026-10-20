@@ -309,29 +309,27 @@ POST /api/events/:id/participants
 | Authorization | Header | string | - | Bearer {organizerToken}（可选） |
 | name | Body | string | ✓ | 参与者姓名，max 50 |
 | address | Body | string | ✓ | 地址（用户输入） |
-| fuzzyLocation | Body | boolean | - | 是否模糊位置，默认 false |
 
 **后端处理**：
 
 1. 验证活动存在且未发布
 2. 如有 Authorization header：验证 organizerToken（失败则 403）
 3. 调用 Google Geocoding 获取坐标（内部服务）
-4. 如果 fuzzyLocation=true，对坐标添加随机偏移
-5. 分配颜色
-6. 如**无认证**：生成 participantToken，存储 hash
-7. 保存到数据库
+4. 分配颜色
+5. 如**无认证**：生成 participantToken，存储 hash
+6. 保存到数据库
 
 **后端输出（成功 201）：**
 
-| 字段             | 类型     | 说明                                         |
-| ---------------- | -------- | -------------------------------------------- |
-| id               | string   | 参与者 UUID                                  |
-| name             | string   | 姓名                                         |
-| address          | string   | 用户输入的原始地址                           |
-| location         | Location | { lat, lng } 坐标（后端 geocode 结果）       |
-| color            | string   | 分配的颜色                                   |
-| fuzzyLocation    | boolean  | 是否模糊                                     |
-| participantToken | string   | 参与者令牌（**仅无认证时返回**，用于自管理） |
+| 字段             | 类型           | 说明                                         |
+| ---------------- | -------------- | -------------------------------------------- |
+| id               | string         | 参与者 UUID                                  |
+| name             | string         | 姓名                                         |
+| address          | string \| null | 用户输入的原始地址；没有出发地点时为 null    |
+| location         | Location       | { lat, lng } 坐标（后端 geocode 结果）       |
+| color            | string         | 分配的颜色                                   |
+| fuzzyLocation    | boolean        | 总是 false。已发布的 iOS 应用要求此字段      |
+| participantToken | string         | 参与者令牌（**仅无认证时返回**，用于自管理） |
 
 **错误响应：**
 | 状态码 | code | 说明 |
@@ -360,7 +358,6 @@ PATCH /api/events/:id/participants/:participantId
 | Authorization | Header | string | ✓ | Bearer {organizerToken} 或 Bearer {participantToken} |
 | name | Body | string | - | 新姓名 |
 | address | Body | string | - | 新地址（会触发重新 geocode） |
-| fuzzyLocation | Body | boolean | - | 是否模糊 |
 
 **认证逻辑**：
 
