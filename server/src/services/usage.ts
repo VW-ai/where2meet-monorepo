@@ -8,7 +8,10 @@
 
 import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
+import { createEventRepository } from "../repositories/event.js";
 import { createMeetingVisitRepository } from "../repositories/meetingVisit.js";
+import { createVenueSearchRepository } from "../repositories/venueSearch.js";
+import { createParticipantService } from "./participant.js";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("UsageService");
@@ -66,4 +69,45 @@ export function openMeetingVisit(
       return writes;
     },
   };
+}
+
+/**
+ * A successful venue search made from a meeting.
+ */
+export interface MeetingVenueSearch {
+  eventId: string;
+  /** Bearer token sent with the search, or null when there was none. */
+  token: string | null;
+  query: string;
+  resultCount: number;
+}
+
+/**
+ * Records a venue search made from a meeting.
+ *
+ * Records nothing when the meeting does not exist. A missing token, or one that does not
+ * belong to the meeting, records the search without a participant.
+ * @param db - Prisma client instance
+ * @param search - The search to record
+ */
+export async function recordVenueSearch(
+  db: PrismaClient,
+  search: MeetingVenueSearch
+): Promise<void> {
+  const { eventId, token, query, resultCount } = search;
+  try {
+    if (!(await createEventRepository(db).exists(eventId))) return;
+    const participant =
+      token === null
+        ? null
+        : await createParticipantService(db).findParticipantByTokenWithDetails(eventId, token);
+    await createVenueSearchRepository(db).create({
+      eventId,
+      participantId: participant?.participantId ?? null,
+      query,
+      resultCount,
+    });
+  } catch (err) {
+    logger.warn({ err, eventId }, "Failed to record venue search");
+  }
 }

@@ -8,6 +8,7 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createVenueService } from "../services/venue.js";
+import { recordVenueSearch } from "../services/usage.js";
 import {
   SearchVenuesSchema,
   VenueIdSchema,
@@ -16,6 +17,7 @@ import {
 } from "../schemas/venue.js";
 import { toVenueSearchResponse, toVenueDetailsResponse } from "../mappers/venue.mapper.js";
 import { ValidationError } from "../types/errors.js";
+import { extractBearerToken } from "../utils/auth.js";
 
 /**
  * Request types for route handlers.
@@ -36,7 +38,8 @@ export function venueRoutes(fastify: FastifyInstance): void {
   /**
    * POST /api/venues/search
    * Searches for venues near the user-specified center.
-   * No authentication required.
+   * No authentication required. An optional eventId and Bearer token only attribute the
+   * search for the owner's usage panel and never change the response.
    */
   fastify.post("/api/venues/search", async (request: SearchVenuesRequest, reply: FastifyReply) => {
     // Validate request body
@@ -45,7 +48,7 @@ export function venueRoutes(fastify: FastifyInstance): void {
       throw parseResult.error;
     }
 
-    const { center, searchRadius, query, categories } = parseResult.data;
+    const { center, searchRadius, query, categories, eventId } = parseResult.data;
 
     const { places, searchCenter } = await venueService.searchVenues(center, searchRadius, {
       query,
@@ -53,6 +56,15 @@ export function venueRoutes(fastify: FastifyInstance): void {
     });
 
     const response = toVenueSearchResponse(places, searchCenter);
+
+    if (eventId && query) {
+      await recordVenueSearch(fastify.db, {
+        eventId,
+        token: extractBearerToken(request.headers.authorization),
+        query,
+        resultCount: places.length,
+      });
+    }
 
     return reply.send(response);
   });
