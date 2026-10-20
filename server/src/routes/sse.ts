@@ -101,10 +101,11 @@ export function sseRoutes(fastify: FastifyInstance): void {
         isOrganizer,
       });
 
-      const visit = openMeetingVisit(fastify.db, eventId, participantId);
-      reply.raw.once("close", () => void visit.close());
-      // A client that aborted during an earlier await has already fired "close".
-      if (reply.raw.destroyed) void visit.close();
+      // A client that left during an earlier await has already closed, and is not a visit.
+      if (!reply.raw.destroyed) {
+        const visit = openMeetingVisit(fastify.db, eventId, participantId);
+        reply.raw.once("close", () => void visit.close());
+      }
 
       logger.info({ eventId, connectionId, isOrganizer, participantId }, "SSE stream connected");
 
