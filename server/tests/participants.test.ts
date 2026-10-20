@@ -14,8 +14,8 @@ vi.mock("../src/lib/maps.js", () => ({
     formattedAddress: "123 Main Street, New York, NY 10001",
   }),
   AddressNotFoundError: class AddressNotFoundError extends Error {
-    constructor(address: string) {
-      super(`Address not found: ${address}`);
+    constructor() {
+      super("Address not found");
       this.name = "AddressNotFoundError";
     }
   },
@@ -31,6 +31,7 @@ vi.mock("../src/lib/maps.js", () => ({
 }));
 
 import { geocode, AddressNotFoundError } from "../src/lib/maps.js";
+import { prisma } from "../src/lib/prisma.js";
 
 const mockGeocode = vi.mocked(geocode);
 
@@ -96,27 +97,6 @@ describe("Participant Endpoints", () => {
       // Note: organizer participant gets "coral", so first added participant gets "teal"
       expect(body).toHaveProperty("color", "teal");
       expect(body).toHaveProperty("fuzzyLocation", false);
-    });
-
-    it("should add participant with fuzzyLocation", async () => {
-      const response = await server.inject({
-        method: "POST",
-        url: `/api/events/${testEventId}/participants`,
-        headers: {
-          authorization: `Bearer ${testParticipantToken}`,
-        },
-        payload: {
-          name: "Bob",
-          address: "456 Oak Ave",
-          fuzzyLocation: true,
-        },
-      });
-
-      expect(response.statusCode).toBe(201);
-      const body = response.json();
-      expect(body.fuzzyLocation).toBe(true);
-      // Location should be offset from exact geocode result
-      // Can't predict exact values due to hash-based offset
     });
 
     it("should assign different colors to multiple participants", async () => {
@@ -212,7 +192,7 @@ describe("Participant Endpoints", () => {
     });
 
     it("should return 400 for address not found", async () => {
-      mockGeocode.mockRejectedValue(new AddressNotFoundError("invalid address xyz"));
+      mockGeocode.mockRejectedValue(new AddressNotFoundError());
 
       const response = await server.inject({
         method: "POST",
@@ -225,8 +205,9 @@ describe("Participant Endpoints", () => {
       });
 
       expect(response.statusCode).toBe(400);
-      const body = response.json();
-      expect(body.error.code).toBe("ADDRESS_NOT_FOUND");
+      expect(response.json()).toEqual({
+        error: { code: "ADDRESS_NOT_FOUND", message: "Address not found" },
+      });
     });
 
     it("should return 404 for non-existent event", async () => {
@@ -551,6 +532,169 @@ describe("Participant Endpoints", () => {
       const body = response.json();
       expect(body.name).toBe("OrganizerAdded");
       expect(body.participantToken).toBeUndefined();
+    });
+  });
+
+  describe("Older clients", () => {
+    const HIDE_ADDRESS_UNAVAILABLE = {
+      error: {
+        code: "VALIDATION_ERROR",
+        message:
+          "Hiding the exact address is no longer available. Reload the page, then enter a nearby cross street or station instead of your address.",
+      },
+    };
+
+    type ParticipantView = {
+      name: string;
+      address: string | null;
+      location: { lat: number; lng: number } | null;
+      fuzzyLocation: boolean;
+    };
+
+    const view = ({ name, address, location, fuzzyLocation }: ParticipantView) => ({
+      name,
+      address,
+      location,
+      fuzzyLocation,
+    });
+
+    const cal = {
+      name: "Cal",
+      address: "789 Pine Rd",
+      location: { lat: 40.7128, lng: -74.006 },
+      fuzzyLocation: false,
+    };
+
+    const addParticipant = (payload: Record<string, unknown>, token?: string) =>
+      server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+        payload,
+      });
+
+    const editParticipant = (id: string, payload: Record<string, unknown>) =>
+      server.inject({
+        method: "PATCH",
+        url: `/api/events/${testEventId}/participants/${id}`,
+        headers: { authorization: `Bearer ${testParticipantToken}` },
+        payload,
+      });
+
+    const meetingPeople = async () => {
+      const response = await server.inject({ method: "GET", url: `/api/events/${testEventId}` });
+      return response
+        .json()
+        .participants.filter((p: { isOrganizer: boolean }) => !p.isOrganizer)
+        .map(view);
+    };
+
+    it("turns away a join that asks to hide the exact address and saves the same join without it", async () => {
+      const hidden = await addParticipant(
+        { name: "Cal", address: "789 Pine Rd", fuzzyLocation: true },
+        testParticipantToken
+      );
+      const exact = await addParticipant(
+        { name: "Cal", address: "789 Pine Rd" },
+        testParticipantToken
+      );
+
+      expect([hidden.statusCode, hidden.json()]).toEqual([400, HIDE_ADDRESS_UNAVAILABLE]);
+      expect(exact.statusCode).toBe(201);
+      expect(await meetingPeople()).toEqual([cal]);
+    });
+
+    it("saves a join that sends fuzzyLocation false", async () => {
+      const joined = await addParticipant({
+        name: "Cal",
+        address: "789 Pine Rd",
+        fuzzyLocation: false,
+      });
+
+      expect([joined.statusCode, view(joined.json())]).toEqual([201, cal]);
+    });
+
+    it.each([
+      ["on its own", { fuzzyLocation: true }],
+      [
+        "with a new name and address",
+        { name: "Cal Lee", address: "456 Oak Ave", fuzzyLocation: true },
+      ],
+    ])(
+      "turns away an edit that asks to hide the address %s and changes nothing",
+      async (_case, body) => {
+        const added = await addParticipant(
+          { name: "Cal", address: "789 Pine Rd" },
+          testParticipantToken
+        );
+
+        const response = await editParticipant(added.json().id, body);
+
+        expect([response.statusCode, response.json()]).toEqual([400, HIDE_ADDRESS_UNAVAILABLE]);
+        expect(await meetingPeople()).toEqual([cal]);
+      }
+    );
+
+    it("saves an edit that sends fuzzyLocation false", async () => {
+      const added = await addParticipant(
+        { name: "Cal", address: "789 Pine Rd" },
+        testParticipantToken
+      );
+
+      const response = await editParticipant(added.json().id, {
+        name: "Cal Lee",
+        address: "789 Pine Rd",
+        fuzzyLocation: false,
+      });
+
+      expect([response.statusCode, view(response.json())]).toEqual([
+        200,
+        { ...cal, name: "Cal Lee" },
+      ]);
+    });
+
+    describe("a participant with no starting point", () => {
+      let participantId: string;
+
+      beforeEach(async () => {
+        const seeded = await prisma.participant.create({
+          data: { eventId: testEventId, name: "Ana", color: "teal" },
+        });
+        participantId = seeded.id;
+      });
+
+      it("keeps no starting point on a rename that sends a null address", async () => {
+        const response = await editParticipant(participantId, { name: "Ana Lee", address: null });
+
+        const ana = { name: "Ana Lee", address: null, location: null, fuzzyLocation: false };
+        expect([response.statusCode, view(response.json()), await meetingPeople()]).toEqual([
+          200,
+          ana,
+          [ana],
+        ]);
+      });
+
+      it("adds a starting point again", async () => {
+        const response = await editParticipant(participantId, {
+          name: "Ana",
+          address: "456 Oak Ave",
+        });
+
+        expect({
+          status: response.statusCode,
+          participant: view(response.json()),
+          geocodeCalls: mockGeocode.mock.calls,
+        }).toEqual({
+          status: 200,
+          participant: {
+            name: "Ana",
+            address: "456 Oak Ave",
+            location: { lat: 40.7128, lng: -74.006 },
+            fuzzyLocation: false,
+          },
+          geocodeCalls: [["456 Oak Ave"]],
+        });
+      });
     });
   });
 });

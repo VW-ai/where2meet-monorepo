@@ -102,7 +102,7 @@ The [Union Square Greenmarket](https://grownyc.org/locations/union-square-greenm
 Where2Meet lets two people plan where to meet from one shared link. Nobody needs an account.
 
 1. Open [Where2Meet](/), choose the **Date night** chip, pick the day and time, and add your name.
-2. Send the link to your date. Each of you adds where you're coming from, or an approximate area if you'd rather not share an address yet.
+2. Send the link to your date. Each of you adds where you're coming from, or a cross street if you'd rather not share an address yet.
 3. Search for bars or restaurants around you both, or look one up by name.
 4. Select a place to see each person's route and travel time by car, transit, walking or bike.
 5. You both vote, and the person who made the plan picks the final spot. Changes show up without a refresh.

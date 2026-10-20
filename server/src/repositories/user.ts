@@ -28,7 +28,6 @@ export interface UpdateUserData {
   avatarUrl?: string | null;
   defaultAddress?: string | null;
   defaultPlaceId?: string | null;
-  defaultFuzzyLocation?: boolean;
 }
 
 /**

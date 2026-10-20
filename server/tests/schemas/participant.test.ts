@@ -13,35 +13,27 @@ import {
 
 describe("Participant Schemas", () => {
   describe("CreateParticipantSchema", () => {
-    it("accepts valid input with all fields", () => {
-      const input = {
+    it("accepts an explicit fuzzyLocation false", () => {
+      const result = CreateParticipantSchema.safeParse({
         name: "John Doe",
         address: "123 Main St, New York, NY",
-        fuzzyLocation: true,
-      };
+        fuzzyLocation: false,
+      });
 
-      const result = CreateParticipantSchema.safeParse(input);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.name).toBe("John Doe");
-        expect(result.data.address).toBe("123 Main St, New York, NY");
-        expect(result.data.fuzzyLocation).toBe(true);
-      }
+      expect(result.data).toEqual({
+        name: "John Doe",
+        address: "123 Main St, New York, NY",
+        fuzzyLocation: false,
+      });
     });
 
-    it("accepts valid input without fuzzyLocation (defaults to false)", () => {
-      const input = {
+    it("accepts input without fuzzyLocation and adds none", () => {
+      const result = CreateParticipantSchema.safeParse({
         name: "Jane Doe",
         address: "456 Oak Ave",
-      };
+      });
 
-      const result = CreateParticipantSchema.safeParse(input);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.fuzzyLocation).toBe(false);
-      }
+      expect(result.data).toEqual({ name: "Jane Doe", address: "456 Oak Ave" });
     });
 
     it("rejects empty name", () => {

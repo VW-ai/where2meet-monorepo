@@ -26,8 +26,8 @@ export interface GeocodeResult {
  * Error thrown when an address cannot be found or geocoded.
  */
 export class AddressNotFoundError extends Error {
-  constructor(address: string) {
-    super(`Address not found: ${address}`);
+  constructor() {
+    super("Address not found");
     this.name = "AddressNotFoundError";
   }
 }
@@ -119,17 +119,16 @@ async function fetchFromGoogleApi(address: string): Promise<GoogleGeocodeRespons
 /**
  * Parses Google API response into GeocodeResult.
  * @param response - Google API response
- * @param address - Original address (for error messages)
  * @returns Parsed geocode result
  * @throws AddressNotFoundError if no results
  * @throws GeocodingApiError on API errors
  */
-function parseGeocodeResponse(response: GoogleGeocodeResponse, address: string): GeocodeResult {
+function parseGeocodeResponse(response: GoogleGeocodeResponse): GeocodeResult {
   switch (response.status) {
     case "OK": {
       const result = response.results[0];
       if (!result) {
-        throw new AddressNotFoundError(address);
+        throw new AddressNotFoundError();
       }
       return {
         lat: result.geometry.location.lat,
@@ -138,7 +137,7 @@ function parseGeocodeResponse(response: GoogleGeocodeResponse, address: string):
       };
     }
     case "ZERO_RESULTS":
-      throw new AddressNotFoundError(address);
+      throw new AddressNotFoundError();
     case "OVER_QUERY_LIMIT":
       throw new GeocodingApiError("API quota exceeded", response.status);
     case "REQUEST_DENIED":
@@ -239,7 +238,7 @@ export async function geocode(address: string): Promise<GeocodeResult> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const response = await fetchFromGoogleApi(address);
-      const result = parseGeocodeResponse(response, address);
+      const result = parseGeocodeResponse(response);
 
       // Cache in the background; a slow or unavailable cache must not delay the user
       void cacheGeocode(address, result);

@@ -22,8 +22,8 @@ vi.mock("../src/lib/maps.js", () => ({
     formattedAddress: "123 Main Street, New York, NY 10001",
   }),
   AddressNotFoundError: class AddressNotFoundError extends Error {
-    constructor(address: string) {
-      super(`Address not found: ${address}`);
+    constructor() {
+      super("Address not found");
       this.name = "AddressNotFoundError";
     }
   },
@@ -107,56 +107,11 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
       });
-    });
-
-    it("should broadcast participant:added with correct payload structure", async () => {
-      // Arrange
-      const participantData = {
-        name: "Bob",
-        address: "456 Oak Ave",
-        fuzzyLocation: true,
-      };
-
-      // Act
-      await server.inject({
-        method: "POST",
-        url: `/api/events/${testEventId}/participants`,
-        headers: {
-          authorization: `Bearer ${testParticipantToken}`,
-        },
-        payload: participantData,
-      });
-
-      // Assert
-      expect(broadcastMock).toHaveBeenCalledOnce();
-      const broadcastCall = broadcastMock.mock.calls[0][0];
-
-      expect(broadcastCall).toHaveProperty("eventId", testEventId);
-      expect(broadcastCall).toHaveProperty("type", "participant:added");
-      expect(broadcastCall).toHaveProperty("payload");
-      expect(broadcastCall.payload).toHaveProperty("participant");
-
-      const { participant } = broadcastCall.payload as ParticipantAddedPayload;
-      expect(participant).toHaveProperty("id");
-      expect(participant).toHaveProperty("name", "Bob");
-      expect(participant).toHaveProperty("address", "456 Oak Ave");
-      expect(participant).toHaveProperty("lat");
-      expect(participant).toHaveProperty("lng");
-      expect(participant).toHaveProperty("color");
-      expect(participant).toHaveProperty("isOrganizer", false);
-
-      // Verify types
-      expect(typeof participant.id).toBe("string");
-      expect(typeof participant.name).toBe("string");
-      expect(typeof participant.address).toBe("string");
-      expect(typeof participant.lat).toBe("number");
-      expect(typeof participant.lng).toBe("number");
-      expect(typeof participant.color).toBe("string");
-      expect(typeof participant.isOrganizer).toBe("boolean");
     });
 
     it("should broadcast for self-registration (no auth)", async () => {
@@ -189,6 +144,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
@@ -268,6 +224,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),
@@ -304,6 +261,7 @@ describe("Participant SSE Broadcasting", () => {
             lat: 40.7128,
             lng: -74.006,
             color: participant.color,
+            fuzzyLocation: false,
             isOrganizer: false,
           },
         }),

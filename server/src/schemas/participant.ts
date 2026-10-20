@@ -8,6 +8,8 @@
 
 import { z } from "zod";
 
+const legacyFuzzyLocation = z.boolean().optional();
+
 /**
  * Schema for creating a new participant.
  */
@@ -17,7 +19,7 @@ export const CreateParticipantSchema = z.object({
     .string()
     .min(1, "Address is required")
     .max(255, "Address must be 255 characters or less"),
-  fuzzyLocation: z.boolean().optional().default(false),
+  fuzzyLocation: legacyFuzzyLocation,
 });
 
 export type CreateParticipantInput = z.infer<typeof CreateParticipantSchema>;
@@ -36,8 +38,9 @@ export const UpdateParticipantSchema = z
       .string()
       .min(1, "Address cannot be empty")
       .max(255, "Address must be 255 characters or less")
-      .optional(),
-    fuzzyLocation: z.boolean().optional(),
+      .nullish()
+      .transform((address) => address ?? undefined),
+    fuzzyLocation: legacyFuzzyLocation,
   })
   .refine(
     (data) =>

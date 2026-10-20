@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Dices, UserPlus, X, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Dices, UserPlus, X, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { generateRandomName } from '@/features/meeting/lib/name-generator';
 import { LocationField } from '@/shared/ui/location-field';
@@ -23,7 +23,6 @@ export interface ParticipantFormData {
   name: string;
   address: string;
   placeId: string;
-  fuzzyLocation: boolean;
 }
 
 export function AddParticipant({
@@ -41,11 +40,10 @@ export function AddParticipant({
   const [name, setName] = useState(initialData?.name || '');
   const [address, setAddress] = useState(initialData?.address || '');
   const [placeId, setPlaceId] = useState(initialData?.placeId || '');
-  const [fuzzyLocation, setFuzzyLocation] = useState(initialData?.fuzzyLocation ?? false);
   const [errors, setErrors] = useState<{ name?: string; address?: string }>({});
 
   // An address that was already saved has been geocoded, so editing only the name
-  // (or the privacy toggle) must not force the user to re-pick it from the dropdown.
+  // must not force the user to re-pick it from the dropdown.
   const savedAddress = mode === 'edit' ? initialData?.address?.trim() : undefined;
   const addressIsSaved = !!savedAddress && address.trim() === savedAddress;
 
@@ -107,7 +105,6 @@ export function AddParticipant({
       name: name.trim(),
       address: address.trim(),
       placeId,
-      fuzzyLocation,
     });
   };
 
@@ -239,53 +236,6 @@ export function AddParticipant({
             Pick a suggestion, or tap the target icon to use where you are now.
           </p>
         )}
-      </div>
-
-      {/* Privacy switch */}
-      <div
-        className={cn(
-          'flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-colors duration-200',
-          fuzzyLocation ? 'bg-coral-50/90 ring-1 ring-coral-500/30' : 'bg-white/80 shadow-md'
-        )}
-      >
-        <div className="min-w-0">
-          <p
-            id="fuzzy-location-label"
-            className="flex items-center gap-1.5 text-sm font-medium text-foreground"
-          >
-            <EyeOff
-              className={cn('w-4 h-4', fuzzyLocation ? 'text-coral-500' : 'text-muted-foreground')}
-            />
-            Hide exact address
-          </p>
-          <p id="fuzzy-location-help" className="text-xs text-muted-foreground">
-            {fuzzyLocation
-              ? 'Others see an approximate area (0.5–1 mi)'
-              : 'Others can see this exact location'}
-          </p>
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={fuzzyLocation}
-          aria-labelledby="fuzzy-location-label"
-          aria-describedby="fuzzy-location-help"
-          onClick={() => setFuzzyLocation(!fuzzyLocation)}
-          disabled={isSubmitting}
-          className={cn(
-            'relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2',
-            fuzzyLocation ? 'bg-coral-500' : 'bg-gray-300',
-            isSubmitting && 'opacity-50 cursor-not-allowed'
-          )}
-        >
-          <span
-            className={cn(
-              'inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200',
-              fuzzyLocation ? 'translate-x-5' : 'translate-x-0.5'
-            )}
-          />
-        </button>
       </div>
 
       {/* Action Buttons */}

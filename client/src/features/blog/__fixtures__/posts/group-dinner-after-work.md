@@ -113,7 +113,7 @@ Where2Meet lets a group plan where to meet from one shared link. Nobody needs an
 
 1. Open [Where2Meet](/), choose the **Group dinner** chip, pick the date and time, and add your name.
 2. Share the link with the group.
-3. Each person adds where they're coming from, such as their office. Anyone can show an approximate area instead of an exact address, and the organizer can add starting points too.
+3. Each person adds where they're coming from, such as their office. Anyone can enter a cross street instead of an exact address, and the organizer can add starting points too.
 4. Search for restaurants around the group, or look one up by name.
 5. Select a restaurant to see each person's route on the map and their travel time by car, transit, walking or bike.
 6. Everyone votes, and the organizer picks the final spot. Changes show up for everyone without a refresh.

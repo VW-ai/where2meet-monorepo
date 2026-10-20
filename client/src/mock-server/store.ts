@@ -146,16 +146,7 @@ class MockDataStore {
     let location: Location | null = null;
     if (data.address) {
       const geocodeResult = await geocodeAddress(data.address);
-
-      // Apply fuzzy location offset if requested
       location = geocodeResult.location;
-      if (data.fuzzyLocation) {
-        const offset = 0.05; // ~5km offset for fuzzy location
-        location = {
-          lat: location.lat + (Math.random() - 0.5) * offset,
-          lng: location.lng + (Math.random() - 0.5) * offset,
-        };
-      }
     }
 
     const newParticipant: Participant = {
@@ -187,23 +178,8 @@ class MockDataStore {
 
     // If address changed, re-geocode
     if (updates.address) {
-      const fuzzy =
-        updates.fuzzyLocation !== undefined
-          ? updates.fuzzyLocation
-          : event.participants[participantIndex].fuzzyLocation;
-
       const geocodeResult = await geocodeAddress(updates.address);
-      let location = geocodeResult.location;
-
-      if (fuzzy) {
-        const offset = 0.05;
-        location = {
-          lat: location.lat + (Math.random() - 0.5) * offset,
-          lng: location.lng + (Math.random() - 0.5) * offset,
-        };
-      }
-
-      updates.location = location;
+      updates.location = geocodeResult.location;
     }
 
     const updatedParticipant = {

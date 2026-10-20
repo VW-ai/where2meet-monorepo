@@ -23,6 +23,7 @@ import {
   toEventResponse,
   toCreateEventResponse,
   toGetMECResponse,
+  toPublicParticipant,
 } from "../mappers/event.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { createVerifyToken } from "../hooks/auth.js";
@@ -115,15 +116,16 @@ export function eventRoutes(fastify: FastifyInstance): void {
       // Get full participant details
       const participantService = createParticipantService(fastify.db);
       const participant = await participantService.getParticipant(eventId, participantId);
+      const { id, name, color, address, lat, lng } = toPublicParticipant(participant);
 
       const response: ParticipantMeResponse = {
-        participantId: participant.id,
-        name: participant.name,
+        participantId: id,
+        name,
         isOrganizer,
-        color: participant.color,
-        address: participant.address,
-        lat: participant.lat ? Number(participant.lat) : null,
-        lng: participant.lng ? Number(participant.lng) : null,
+        color,
+        address,
+        lat,
+        lng,
       };
 
       return reply.send(response);

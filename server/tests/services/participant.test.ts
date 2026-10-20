@@ -11,8 +11,8 @@ import { Decimal } from "@prisma/client/runtime/library";
 vi.mock("../../src/lib/maps.js", () => ({
   geocode: vi.fn(),
   AddressNotFoundError: class AddressNotFoundError extends Error {
-    constructor(address: string) {
-      super(`Address not found: ${address}`);
+    constructor() {
+      super("Address not found");
       this.name = "AddressNotFoundError";
     }
   },
@@ -25,6 +25,11 @@ vi.mock("../../src/lib/maps.js", () => ({
       this.name = "GeocodingApiError";
     }
   },
+}));
+
+const { logError } = vi.hoisted(() => ({ logError: vi.fn() }));
+vi.mock("../../src/lib/logger.js", () => ({
+  createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: logError }),
 }));
 
 import { geocode, AddressNotFoundError, GeocodingApiError } from "../../src/lib/maps.js";
@@ -91,7 +96,6 @@ function createMockParticipant(overrides: Partial<{
     formattedAddress: "123 Main Street, New York, NY 10001",
     lat: new Decimal(40.7128),
     lng: new Decimal(-74.006),
-    fuzzyLocation: false,
     color: "coral",
     isOrganizer: false,
     createdAt: new Date(),
@@ -125,7 +129,6 @@ describe("ParticipantService", () => {
       const result = await service.addParticipant(TEST_EVENT_ID, {
         name: "Alice",
         address: "123 Main St",
-        fuzzyLocation: false,
       });
 
       // Result now returns { participant, participantToken? }
@@ -133,16 +136,23 @@ describe("ParticipantService", () => {
       expect(result.participant.color).toBe("coral");
       expect(result.participantToken).toBeUndefined(); // No token when not self-registering
       expect(mockGeocode).toHaveBeenCalledWith("123 Main St");
-      expect(mockPrisma.participant.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            eventId: TEST_EVENT_ID,
-            name: "Alice",
-            address: "123 Main St",
-            color: "coral",
-          }),
-        })
-      );
+      expect(vi.mocked(mockPrisma.participant.create).mock.calls).toStrictEqual([
+        [
+          {
+            data: {
+              eventId: TEST_EVENT_ID,
+              name: "Alice",
+              address: "123 Main St",
+              formattedAddress: "123 Main Street, New York, NY 10001",
+              lat: 40.7128,
+              lng: -74.006,
+              color: "coral",
+              tokenHash: undefined,
+              isOrganizer: false,
+            },
+          },
+        ],
+      ]);
     });
 
     it("should assign second color when first is used", async () => {
@@ -157,7 +167,6 @@ describe("ParticipantService", () => {
       await service.addParticipant(TEST_EVENT_ID, {
         name: "Bob",
         address: "456 Oak Ave",
-        fuzzyLocation: false,
       });
 
       expect(mockPrisma.participant.create).toHaveBeenCalledWith(
@@ -176,7 +185,6 @@ describe("ParticipantService", () => {
         service.addParticipant("non-existent", {
           name: "Alice",
           address: "123 Main St",
-          fuzzyLocation: false,
         })
       ).rejects.toMatchObject({
         code: "EVENT_NOT_FOUND",
@@ -195,7 +203,6 @@ describe("ParticipantService", () => {
         service.addParticipant(TEST_EVENT_ID, {
           name: "Alice",
           address: "123 Main St",
-          fuzzyLocation: false,
         })
       ).rejects.toMatchObject({
         code: "EVENT_ALREADY_PUBLISHED",
@@ -207,13 +214,12 @@ describe("ParticipantService", () => {
 
     it("should throw AddressNotFoundError when geocoding fails", async () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
-      mockGeocode.mockRejectedValue(new AddressNotFoundError("invalid address"));
+      mockGeocode.mockRejectedValue(new AddressNotFoundError());
 
       await expect(
         service.addParticipant(TEST_EVENT_ID, {
           name: "Alice",
           address: "invalid address",
-          fuzzyLocation: false,
         })
       ).rejects.toMatchObject({
         code: "ADDRESS_NOT_FOUND",
@@ -229,7 +235,6 @@ describe("ParticipantService", () => {
         service.addParticipant(TEST_EVENT_ID, {
           name: "Alice",
           address: "123 Main St",
-          fuzzyLocation: false,
         })
       ).rejects.toMatchObject({
         code: "EXTERNAL_SERVICE_ERROR",
@@ -237,31 +242,16 @@ describe("ParticipantService", () => {
       });
     });
 
-    it("should apply fuzzy offset when fuzzyLocation is true", async () => {
+    it("should log a geocoding API error without the typed address", async () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
-      vi.mocked(mockPrisma.participant.findMany).mockResolvedValue([]);
-      vi.mocked(mockPrisma.participant.create).mockImplementation(async (args) => {
-        const data = (args as { data: Record<string, unknown> }).data;
-        return createMockParticipant({
-          ...data,
-        } as Parameters<typeof createMockParticipant>[0]);
-      });
+      const apiError = new GeocodingApiError("API quota exceeded", "OVER_QUERY_LIMIT");
+      mockGeocode.mockRejectedValue(apiError);
 
-      await service.addParticipant(TEST_EVENT_ID, {
-        name: "Alice",
-        address: "123 Main St",
-        fuzzyLocation: true,
-      });
+      await service
+        .addParticipant(TEST_EVENT_ID, { name: "Alice", address: "123 Main St" })
+        .catch(() => undefined);
 
-      // Verify coordinates were offset (not exact geocode result)
-      const createCall = vi.mocked(mockPrisma.participant.create).mock.calls[0];
-      const createData = (createCall?.[0] as { data: { lat: number; lng: number } })?.data;
-
-      // With fuzzy, coordinates should be different from exact geocode result
-      // Due to deterministic offset based on name, we can't predict exact values
-      // but they should be close to original (within ~0.01 degrees / ~1km)
-      expect(Math.abs(createData.lat - 40.7128)).toBeLessThan(0.01);
-      expect(Math.abs(createData.lng - (-74.006))).toBeLessThan(0.01);
+      expect(logError.mock.calls).toEqual([[{ err: apiError }, "Geocoding API error"]]);
     });
   });
 

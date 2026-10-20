@@ -96,7 +96,7 @@ If the meeting turns into dinner downtown, see our [group dinner spots in Lower 
 Where2Meet lets a team plan where to meet from one shared link. Nobody needs an account.
 
 1. Open [Where2Meet](/), choose the **Team meeting** chip, pick the date and time, and add your name.
-2. Share the link. Each person adds where they're coming from, or an approximate area, or you add it for them.
+2. Share the link. Each person adds where they're coming from, or a cross street, or you add it for them.
 3. Search for rooms or restaurants around the group, or look one up by name.
 4. Select a place to see each person's route and travel time by car, transit, walking or bike.
 5. Everyone votes, and the organizer picks the final spot. Changes show up without a refresh.

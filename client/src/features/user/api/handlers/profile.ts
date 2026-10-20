@@ -51,7 +51,7 @@ async function handleUpdateProfileMock(request: NextRequest): Promise<NextRespon
 
     // Parse update data
     const body = await request.json();
-    const { name, defaultAddress, defaultPlaceId, defaultFuzzyLocation, avatarUrl } = body;
+    const { name, defaultAddress, defaultPlaceId, avatarUrl } = body;
 
     // Update user
     const usersData = (await authPersistence.getUsers()) as UsersData;
@@ -60,8 +60,6 @@ async function handleUpdateProfileMock(request: NextRequest): Promise<NextRespon
       name: name !== undefined ? name : user.name,
       defaultAddress: defaultAddress !== undefined ? defaultAddress : user.defaultAddress,
       defaultPlaceId: defaultPlaceId !== undefined ? defaultPlaceId : user.defaultPlaceId,
-      defaultFuzzyLocation:
-        defaultFuzzyLocation !== undefined ? defaultFuzzyLocation : user.defaultFuzzyLocation,
       avatarUrl: avatarUrl !== undefined ? avatarUrl : user.avatarUrl,
       updatedAt: new Date().toISOString(),
     };

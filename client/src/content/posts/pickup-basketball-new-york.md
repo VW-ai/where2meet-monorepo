@@ -114,7 +114,7 @@ Where2Meet lets the group choose the court together from one shared link.
 
 1. Open [Where2Meet](/), type **Pickup basketball** in the first box, and set the day and the time.
 2. Send the link to the group chat. Nobody needs an account.
-3. Each player adds where they're coming from. An approximate area is enough.
+3. Each player adds where they're coming from. A cross street is enough.
 4. Search for basketball courts around the group, or look one up by name. Compare each player's travel time by transit, walking, car or bike, and see the routes on the map.
 5. Vote on the courts you like. The organizer picks the final court, and everyone sees it without a refresh.
 

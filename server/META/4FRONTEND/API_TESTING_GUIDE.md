@@ -211,7 +211,7 @@ interface ParticipantResponse {
   id: string;
   name: string;
   color: string;
-  location: LocationResponse | null;  // null if fuzzy
+  location: LocationResponse | null;  // null without a starting point
 }
 
 // Location
