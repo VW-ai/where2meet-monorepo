@@ -1,9 +1,11 @@
 /**
  * Venue search recording: a search made from a meeting adds one venue_search row.
  *
- * Rows are read with SQL so the test pins the table the usage panel reads.
+ * Rows are read with SQL so the test pins the table the usage panel reads. The search records
+ * in the background, so rows are polled, and an absence is checked after a later search lands.
  */
 
+import { setTimeout as sleep } from "node:timers/promises";
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildServer } from "../src/server.js";
@@ -120,7 +122,7 @@ describe("venue searches", () => {
       "Corner Cafe",
       "Blue Bottle Coffee",
     ]);
-    expect(await searches(eventId)).toEqual([
+    await expect.poll(() => searches(eventId)).toEqual([
       { participant_id: participant.id, query: "coffee near the park", result_count: 2 },
     ]);
   });
@@ -131,7 +133,7 @@ describe("venue searches", () => {
 
     await search({ eventId, query: "ramen" }, organizer.token);
 
-    expect(await searches(eventId)).toEqual([
+    await expect.poll(() => searches(eventId)).toEqual([
       { participant_id: organizer.id, query: "ramen", result_count: 1 },
     ]);
   });
@@ -148,7 +150,7 @@ describe("venue searches", () => {
     ].map((response) => response.statusCode);
 
     expect(statuses).toEqual([200, 200, 200]);
-    expect(await searches(meeting.eventId)).toEqual([
+    await expect.poll(() => searches(meeting.eventId)).toEqual([
       { participant_id: null, query: "a: no token", result_count: 0 },
       { participant_id: null, query: "b: bad token", result_count: 0 },
       { participant_id: null, query: "c: other token", result_count: 0 },
@@ -169,9 +171,11 @@ describe("venue searches", () => {
     ].map((response) => ({ status: response.statusCode, body: response.json() }));
 
     expect(responses).toEqual([expected, expected, expected, expected]);
-    expect(await searchCount()).toBe(countBefore);
 
     await search({ eventId, query: "tea" }, participant.token);
+    await expect.poll(() => searches(eventId)).toEqual([
+      { participant_id: participant.id, query: "tea", result_count: 1 },
+    ]);
     expect(await searchCount()).toBe((countBefore ?? 0) + 1);
   });
 
@@ -188,7 +192,7 @@ describe("venue searches", () => {
     expect([failed.statusCode, categoriesOnly.statusCode, succeeded.statusCode]).toEqual([
       502, 200, 200,
     ]);
-    expect(await searches(eventId)).toEqual([
+    await expect.poll(() => searches(eventId)).toEqual([
       { participant_id: participant.id, query: "pizza", result_count: 1 },
     ]);
   });
@@ -198,7 +202,10 @@ describe("venue searches", () => {
     const { eventId, participant } = await createMeeting();
     await server.db.$executeRawUnsafe(`
       CREATE OR REPLACE FUNCTION reject_search_write() RETURNS trigger AS $$
-      BEGIN RAISE EXCEPTION 'search recording is down'; END $$ LANGUAGE plpgsql`);
+      BEGIN
+        IF NEW.query = 'bakery' THEN RAISE EXCEPTION 'search recording is down'; END IF;
+        RETURN NEW;
+      END $$ LANGUAGE plpgsql`);
     await server.db.$executeRawUnsafe(`
       CREATE TRIGGER reject_searches BEFORE INSERT ON venue_search
       FOR EACH ROW EXECUTE FUNCTION reject_search_write()`);
@@ -209,6 +216,36 @@ describe("venue searches", () => {
       await plainResponse("bakery")
     );
     expect(response.json().venues.map((venue: { name: string }) => venue.name)).toEqual(["Bakery"]);
-    expect(await searches(eventId)).toEqual([]);
+
+    await search({ eventId, query: "bread" }, participant.token);
+    await expect.poll(() => searches(eventId)).toEqual([
+      { participant_id: participant.id, query: "bread", result_count: 1 },
+    ]);
+  });
+
+  it("answers while the recording write is blocked, and records once the database lets it", async () => {
+    vi.mocked(textSearchPlaces).mockResolvedValue([place("place_8", "Dumpling House")]);
+    const { eventId, participant } = await createMeeting();
+    const expected = await plainResponse("dumplings");
+
+    const whileBlocked = await server.db.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe("LOCK TABLE venue_search IN EXCLUSIVE MODE");
+        const response = await Promise.race([
+          search({ eventId, query: "dumplings" }, participant.token),
+          sleep(2000, null),
+        ]);
+        return {
+          response: response && { status: response.statusCode, body: response.json() },
+          rows: await searches(eventId),
+        };
+      },
+      { timeout: 10_000 }
+    );
+
+    expect(whileBlocked).toEqual({ response: expected, rows: [] });
+    await expect.poll(() => searches(eventId)).toEqual([
+      { participant_id: participant.id, query: "dumplings", result_count: 1 },
+    ]);
   });
 });
