@@ -86,7 +86,8 @@ export interface MeetingVenueSearch {
  * Records a venue search made from a meeting.
  *
  * Records nothing when the meeting does not exist. A missing token, or one that does not
- * belong to the meeting, records the search without a participant.
+ * belong to the meeting, records the search without a participant. It logs a failure and never
+ * rejects, so callers can start it without awaiting it.
  * @param db - Prisma client instance
  * @param search - The search to record
  */

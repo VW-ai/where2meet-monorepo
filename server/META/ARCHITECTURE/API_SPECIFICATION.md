@@ -453,7 +453,7 @@ Authorization: Bearer {participantToken}
 1. 验证 center 坐标范围、searchRadius 范围
 2. 调用 Google Places API Nearby Search（categories）或 Text Search（query）
 3. 按评分排序（高到低，null 评分排最后）
-4. `eventId` 和 `query` 都存在时记录这次搜索（见下方“使用记录”）
+4. `eventId` 和 `query` 都存在时在后台记录这次搜索（见下方“使用记录”），不等待写入完成
 5. 返回结果
 
 **使用记录**：
@@ -461,7 +461,7 @@ Authorization: Bearer {participantToken}
 - 没有令牌、令牌无效或令牌属于其他活动时，仍然记录，参与者为空
 - 只按 `categories` 搜索、搜索失败、活动不存在时不记录
 - `eventId` 缺失、格式不对或不是字符串时直接忽略，不会返回 400；令牌也不会导致 401/403
-- 记录失败只写警告日志。无论 `eventId` 和令牌是什么，响应都与不带它们的同一次搜索完全相同
+- 记录在后台进行，响应不等待数据库；数据库卡住或写入失败都不会拖慢或改变响应。记录失败只写警告日志。无论 `eventId` 和令牌是什么，响应都与不带它们的同一次搜索完全相同
 
 **后端输出（成功 200）：**
 | 字段 | 类型 | 说明 |
