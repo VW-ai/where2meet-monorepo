@@ -122,7 +122,7 @@ Where2Meet lets the family and friends choose the place together from one shared
 
 1. Open [Where2Meet](/), type **Graduation celebration** in the first box, and set the day and the time.
 2. Send the link to the family chat. Nobody needs an account.
-3. Each guest adds where they're coming from, or the organizer adds the grandparents. An approximate area is enough.
+3. Each guest adds where they're coming from, or the organizer adds the grandparents. A cross street, a station or a neighborhood is enough.
 4. Search for places around the group, or look one up by name. Compare each guest's travel time by transit, walking, car or bike, and see the routes on the map.
 5. Vote on the places you like. The organizer picks the final spot, and everyone sees it without a refresh.
 
