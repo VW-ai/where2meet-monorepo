@@ -138,22 +138,23 @@ describe("venue searches", () => {
     ]);
   });
 
-  it("records a null participant without a token, with a bad token, or with another meeting's token", async () => {
-    vi.mocked(textSearchPlaces).mockResolvedValue([]);
+  it("records nothing without a token, with a bad token, or with another meeting's token, and answers exactly as before", async () => {
+    vi.mocked(textSearchPlaces).mockResolvedValue([place("place_9", "Noodle Bar")]);
     const meeting = await createMeeting();
     const other = await createMeeting();
+    const expected = await plainResponse("noodles");
 
-    const statuses = [
-      await search({ eventId: meeting.eventId, query: "a: no token" }),
-      await search({ eventId: meeting.eventId, query: "b: bad token" }, "pt_not_a_real_token"),
-      await search({ eventId: meeting.eventId, query: "c: other token" }, other.participant.token),
-    ].map((response) => response.statusCode);
+    const responses = [
+      await search({ eventId: meeting.eventId, query: "noodles" }),
+      await search({ eventId: meeting.eventId, query: "noodles" }, "pt_not_a_real_token"),
+      await search({ eventId: meeting.eventId, query: "noodles" }, other.participant.token),
+    ].map((response) => ({ status: response.statusCode, body: response.json() }));
 
-    expect(statuses).toEqual([200, 200, 200]);
+    expect(responses).toEqual([expected, expected, expected]);
+
+    await search({ eventId: meeting.eventId, query: "noodles" }, meeting.participant.token);
     await expect.poll(() => searches(meeting.eventId)).toEqual([
-      { participant_id: null, query: "a: no token", result_count: 0 },
-      { participant_id: null, query: "b: bad token", result_count: 0 },
-      { participant_id: null, query: "c: other token", result_count: 0 },
+      { participant_id: meeting.participant.id, query: "noodles", result_count: 1 },
     ]);
   });
 
