@@ -223,6 +223,77 @@ Vote 表是一个 **junction table**，处理 Event-Participant-Venue 之间的�
 
 ---
 
+### 2.5 MeetingVisit（活动页访问记录）
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  MeetingVisit (meeting_visit)                           │
+├─────────────────────────────────────────────────────────┤
+│  id              UUID        PK                         │
+│  event_id        VARCHAR(64) FK -> Event.id, NOT NULL   │
+│  participant_id  UUID        FK -> Participant.id, NULL │
+│  started_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
+│  last_seen_at    TIMESTAMP       NOT NULL, DEFAULT NOW  │
+│                                                         │
+│  INDEX (event_id)                                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | UUID | 主键 |
+| `event_id` | VARCHAR(64) | 外键，关联 Event（ON DELETE CASCADE） |
+| `participant_id` | UUID | 外键，关联 Participant（ON DELETE SET NULL），即打开页面的参与者 |
+| `started_at` | TIMESTAMP | 实时连接（SSE stream）建立的时间 |
+| `last_seen_at` | TIMESTAMP | 连接仍在时每 30 秒更新一次，断开时再更新一次 |
+
+**设计说明**：
+- 每个被接受的活动页实时连接（`GET /api/events/:id/stream`）写入一行；同一个人开两个标签页就是两行
+- 页面停留时长 = `last_seen_at - started_at`。两个时间都由应用服务器时钟写入，不混用数据库时钟
+- 服务器崩溃时最多丢失最后 30 秒
+- 删除 Event → 删除该活动的访问记录；删除 Participant → 保留记录，`participant_id` 置为 NULL
+- 只为产品所有者的内部使用面板（usage panel）而存在，不出现在任何 API 响应中
+
+---
+
+### 2.6 VenueSearch（场所搜索记录）
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  VenueSearch (venue_search)                             │
+├─────────────────────────────────────────────────────────┤
+│  id              UUID        PK                         │
+│  event_id        VARCHAR(64) FK -> Event.id, NOT NULL   │
+│  participant_id  UUID        FK -> Participant.id, NULL │
+│  query           VARCHAR(255)    NOT NULL               │
+│  result_count    INTEGER         NOT NULL               │
+│  created_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
+│                                                         │
+│  INDEX (event_id)                                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | UUID | 主键 |
+| `event_id` | VARCHAR(64) | 外键，关联 Event（ON DELETE CASCADE），即发起搜索的活动 |
+| `participant_id` | UUID | 外键，关联 Participant（ON DELETE SET NULL）。没有令牌或令牌不属于该活动时为 NULL |
+| `query` | VARCHAR(255) | 搜索文本 |
+| `result_count` | INTEGER | 返回的场所数量 |
+| `created_at` | TIMESTAMP | 搜索时间 |
+
+**设计说明**：
+- 只记录从活动页发起、带搜索文本且成功的搜索（`POST /api/venues/search` 带 `eventId` 和 `query`）。只按类别搜索、搜索失败、活动不存在时都不记录
+- 只存搜索文本和结果数量，不存搜索结果本身（结果仍只在 Redis 缓存）
+- 删除 Event → 删除该活动的搜索记录；删除 Participant → 保留记录，`participant_id` 置为 NULL
+- 只为产品所有者的内部使用面板（usage panel）而存在，不出现在任何 API 响应中
+
+**只读角色授权**：
+
+内部使用面板通过只读角色 `control_usage` 读取 `meeting_visit` 和 `venue_search`。迁移 `20261020120000_record_meeting_visits_and_venue_searches` 只在该角色存在时执行 `GRANT SELECT`；只有生产环境有这个角色，其他环境自动跳过。该角色不能读取其他表，也不能写入。
+
+---
+
 ## 三、不需要单独存储的数据
 
 | 数据类型 | 存储方式 | 原因 |
@@ -265,6 +336,10 @@ CREATE INDEX idx_venue_event_id ON venue(event_id);
 CREATE INDEX idx_vote_event_id ON vote(event_id);
 CREATE INDEX idx_vote_participant_id ON vote(participant_id);
 CREATE INDEX idx_vote_venue_id ON vote(venue_id);
+
+-- MeetingVisit / VenueSearch 表
+CREATE INDEX meeting_visit_event_id_idx ON meeting_visit(event_id);
+CREATE INDEX venue_search_event_id_idx ON venue_search(event_id);
 ```
 
 ---
@@ -296,12 +371,22 @@ ALTER TABLE vote ADD CONSTRAINT fk_vote_venue
 
 ALTER TABLE vote ADD CONSTRAINT unique_vote
   UNIQUE (event_id, participant_id, venue_id);
+
+-- MeetingVisit（venue_search 同理）
+ALTER TABLE meeting_visit ADD CONSTRAINT meeting_visit_event_id_fkey
+  FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE;
+
+ALTER TABLE meeting_visit ADD CONSTRAINT meeting_visit_participant_id_fkey
+  FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE SET NULL;
 ```
 
 **ON DELETE CASCADE**：
-- 删除 Event → 自动删除所有 Participants、Venues、Votes
+- 删除 Event → 自动删除所有 Participants、Venues、Votes、MeetingVisits、VenueSearches
 - 删除 Participant → 自动删除该参与者的所有 Votes
 - 删除 Venue → 自动删除该场所的所有 Votes
+
+**ON DELETE SET NULL**：
+- 删除 Participant → 该参与者的 MeetingVisits 和 VenueSearches 保留，`participant_id` 置为 NULL
 
 ---
 
@@ -358,9 +443,10 @@ ALTER TABLE vote ADD CONSTRAINT unique_vote
 • Event 1:N Vote
 • Participant 1:N Vote（一个参与者可以投多个场所）
 • Venue 1:N Vote（一个场所可以被多人投票）
+• Event 1:N MeetingVisit、Event 1:N VenueSearch（图中未画，见 2.5、2.6）
 
 生命周期：
-• 删除 Event → 自动删除 Participants + Venues + Votes
+• 删除 Event → 自动删除 Participants + Venues + Votes + MeetingVisits + VenueSearches
 ```
 
 ---
