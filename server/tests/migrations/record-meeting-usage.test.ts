@@ -17,7 +17,6 @@ const PARTICIPANT_ID = "00000000-0000-4000-8000-000000000001";
 const adminUrl = process.env.DATABASE_URL ?? "";
 const admin = new PrismaClient({ datasourceUrl: adminUrl });
 const databases: string[] = [];
-let createdRole = false;
 
 function databaseUrl(name: string): string {
   const url = new URL(adminUrl);
@@ -36,10 +35,19 @@ function migrationSql(name: string): string {
   return readFileSync(`${MIGRATIONS_DIR}${name}/migration.sql`, "utf8");
 }
 
-async function roleExists(): Promise<boolean> {
-  const rows = await admin.$queryRaw<{ exists: boolean }[]>`
-    SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = ${PANEL_ROLE}) AS exists`;
-  return rows[0]?.exists ?? false;
+/**
+ * Drops the panel role. DROP ROLE fails while any database still grants it something, such as
+ * a scratch database a killed run left, so revoke those first.
+ */
+async function dropPanelRole(): Promise<void> {
+  const holders = await admin.$queryRaw<{ datname: string }[]>`
+    SELECT DISTINCT d.datname FROM pg_shdepend s JOIN pg_database d ON d.oid = s.dbid
+    WHERE s.refclassid = 'pg_authid'::regclass
+      AND s.refobjid = (SELECT oid FROM pg_roles WHERE rolname = ${PANEL_ROLE})`;
+  for (const { datname } of holders) {
+    runSql(databaseUrl(datname), `DROP OWNED BY ${PANEL_ROLE}`);
+  }
+  await admin.$executeRawUnsafe(`DROP ROLE IF EXISTS ${PANEL_ROLE}`);
 }
 
 async function migratedDatabase(): Promise<string> {
@@ -74,16 +82,12 @@ const panelPrivileges = (db: PrismaClient) =>
 describe(`migration ${MIGRATION}`, () => {
   let withoutRole: PrismaClient;
   let withRole: PrismaClient;
-  let roleAbsentBeforeMigrating: boolean;
 
   beforeAll(async () => {
-    roleAbsentBeforeMigrating = !(await roleExists());
+    await dropPanelRole();
     withoutRole = new PrismaClient({ datasourceUrl: await migratedDatabase() });
 
-    if (roleAbsentBeforeMigrating) {
-      await admin.$executeRawUnsafe(`CREATE ROLE ${PANEL_ROLE} NOLOGIN`);
-      createdRole = true;
-    }
+    await admin.$executeRawUnsafe(`CREATE ROLE ${PANEL_ROLE} NOLOGIN`);
     withRole = new PrismaClient({ datasourceUrl: await migratedDatabase() });
   }, 120_000);
 
@@ -93,14 +97,11 @@ describe(`migration ${MIGRATION}`, () => {
     for (const name of databases) {
       await admin.$executeRawUnsafe(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
     }
-    if (createdRole) {
-      await admin.$executeRawUnsafe(`DROP ROLE IF EXISTS ${PANEL_ROLE}`);
-    }
+    await dropPanelRole();
     await admin.$disconnect();
   }, 120_000);
 
   it("applies on a database without the panel role and creates both tables", async () => {
-    expect(roleAbsentBeforeMigrating).toBe(true);
     expect(await columns(withoutRole)).toEqual([
       { table_name: "meeting_visit", column_name: "id", data_type: "uuid", max_length: null, is_nullable: "NO" },
       { table_name: "meeting_visit", column_name: "event_id", data_type: "character varying", max_length: 64, is_nullable: "NO" },
