@@ -154,6 +154,6 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 ### Meeting Usage Recording
 - [x] Add `meeting_visit` and `venue_search` tables with a conditional grant to `control_usage`
 - [x] Record one visit per accepted meeting-page stream
-- [x] Record venue searches made from a meeting
+- [x] Record venue searches made by people in a meeting, in the background
 - [x] Send `eventId` and the token with venue searches from the web client
 - [ ] Record people who open a meeting link without joining. Today they are not recorded: the client opens no stream without a token, and the server refuses a stream without one
