@@ -8,7 +8,6 @@
 
 import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
-import { createEventRepository } from "../repositories/event.js";
 import { createMeetingVisitRepository } from "../repositories/meetingVisit.js";
 import { createVenueSearchRepository } from "../repositories/venueSearch.js";
 import { createParticipantService } from "./participant.js";
@@ -76,18 +75,18 @@ export function openMeetingVisit(
  */
 export interface MeetingVenueSearch {
   eventId: string;
-  /** Bearer token sent with the search, or null when there was none. */
-  token: string | null;
+  /** Bearer token sent with the search. */
+  token: string;
   query: string;
   resultCount: number;
 }
 
 /**
- * Records a venue search made from a meeting.
+ * Records a venue search made by someone in a meeting.
  *
- * Records nothing when the meeting does not exist. A missing token, or one that does not
- * belong to the meeting, records the search without a participant. It logs a failure and never
- * rejects, so callers can start it without awaiting it.
+ * Records nothing unless the token belongs to a participant or the organizer of that meeting,
+ * so only people in the meeting add rows. It logs a failure and never rejects, so callers can
+ * start it without awaiting it.
  * @param db - Prisma client instance
  * @param search - The search to record
  */
@@ -97,14 +96,14 @@ export async function recordVenueSearch(
 ): Promise<void> {
   const { eventId, token, query, resultCount } = search;
   try {
-    if (!(await createEventRepository(db).exists(eventId))) return;
-    const participant =
-      token === null
-        ? null
-        : await createParticipantService(db).findParticipantByTokenWithDetails(eventId, token);
+    const searcher = await createParticipantService(db).findParticipantByTokenWithDetails(
+      eventId,
+      token
+    );
+    if (!searcher) return;
     await createVenueSearchRepository(db).create({
       eventId,
-      participantId: participant?.participantId ?? null,
+      participantId: searcher.participantId,
       query,
       resultCount,
     });

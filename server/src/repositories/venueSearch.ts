@@ -12,7 +12,7 @@ import type { PrismaClient } from "@prisma/client";
  */
 export interface CreateVenueSearchData {
   eventId: string;
-  participantId: string | null;
+  participantId: string;
   query: string;
   resultCount: number;
 }
@@ -25,7 +25,7 @@ export class VenueSearchRepository {
 
   /**
    * Inserts a venue search.
-   * @param search - Meeting, participant (null when unknown), query text and result count
+   * @param search - Meeting, searching participant, query text and result count
    */
   async create(search: CreateVenueSearchData): Promise<void> {
     await this.db.venueSearch.create({

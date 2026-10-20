@@ -280,13 +280,13 @@ Vote 表是一个 **junction table**，处理 Event-Participant-Venue 之间的�
 |------|------|------|
 | `id` | UUID | 主键 |
 | `event_id` | VARCHAR(64) | 外键，关联 Event（ON DELETE CASCADE），即发起搜索的活动 |
-| `participant_id` | UUID | 外键，关联 Participant（ON DELETE SET NULL）。没有令牌或令牌不属于该活动时为 NULL |
+| `participant_id` | UUID | 外键，关联 Participant（ON DELETE SET NULL），即搜索的人。只有该参与者被删除后才为 NULL |
 | `query` | VARCHAR(255) | 搜索文本 |
 | `result_count` | INTEGER | 返回的场所数量 |
 | `created_at` | TIMESTAMP | 搜索时间 |
 
 **设计说明**：
-- 只记录从活动页发起、带搜索文本且成功的搜索（`POST /api/venues/search` 带 `eventId` 和 `query`）。只按类别搜索、搜索失败、活动不存在时都不记录
+- 只记录活动里的人从活动页发起、带搜索文本且成功的搜索（`POST /api/venues/search` 带 `eventId`、`query` 和该活动的参与者或组织者令牌）。没有有效令牌、只按类别搜索、搜索失败、活动不存在时都不记录
 - 只存搜索文本和结果数量，不存搜索结果本身（结果仍只在 Redis 缓存）
 - `created_at` 有索引，所以使用面板每次打开时查询 `min(created_at)` 不必全表扫描
 - 删除 Event → 删除该活动的搜索记录；删除 Participant → 保留记录，`participant_id` 置为 NULL

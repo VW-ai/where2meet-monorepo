@@ -38,9 +38,9 @@ export function venueRoutes(fastify: FastifyInstance): void {
   /**
    * POST /api/venues/search
    * Searches for venues near the user-specified center.
-   * No authentication required. An optional eventId and Bearer token only attribute the
-   * search for the owner's usage panel and never change the response. The search is recorded
-   * in the background, so the response never waits on the database.
+   * No authentication required. An optional eventId and Bearer token never change the
+   * response. When the token belongs to someone in that meeting, the search is recorded for
+   * the owner's usage panel in the background, so the response never waits on the database.
    */
   fastify.post("/api/venues/search", async (request: SearchVenuesRequest, reply: FastifyReply) => {
     // Validate request body
@@ -50,6 +50,7 @@ export function venueRoutes(fastify: FastifyInstance): void {
     }
 
     const { center, searchRadius, query, categories, eventId } = parseResult.data;
+    const token = extractBearerToken(request.headers.authorization);
 
     const { places, searchCenter } = await venueService.searchVenues(center, searchRadius, {
       query,
@@ -58,10 +59,10 @@ export function venueRoutes(fastify: FastifyInstance): void {
 
     const response = toVenueSearchResponse(places, searchCenter);
 
-    if (eventId && query) {
+    if (eventId && query && token) {
       void recordVenueSearch(fastify.db, {
         eventId,
-        token: extractBearerToken(request.headers.authorization),
+        token,
         query,
         resultCount: places.length,
       });
