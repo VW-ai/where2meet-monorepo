@@ -184,7 +184,7 @@ describe('writePhotoFiles', () => {
         {
           headers: {
             'User-Agent':
-              'Where2Meet/1.0 (https://www.where2meet.org/contact; contact@wayvi-ai.com)',
+              'Where2Meet/1.0 (https://www.where2meet.org/contact; victorzhang0218@gmail.com)',
           },
           signal: expect.any(AbortSignal),
         },
