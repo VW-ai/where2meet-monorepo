@@ -17,6 +17,7 @@ export interface VenueSearchRequest {
   searchRadius: number; // meters (100-50000)
   query?: string; // text search
   categories?: VenueCategory[]; // category filter
+  eventId?: string; // the meeting the search is made from
 }
 
 /**

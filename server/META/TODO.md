@@ -146,3 +146,14 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [ ] Set `REDIS_URL` on Railway (Redis service reference) for caching and cross-replica SSE
 - [ ] Add the real frontend origin to `CORS_ORIGINS` before the frontend goes live
 - [ ] Update `docs/DEPLOYMENT.md` and `META/ARCHITECTURE/DEPLOYMENT.md`, which still describe `preDeployCommand`
+
+---
+
+## 2026-10-20
+
+### Meeting Usage Recording
+- [x] Add `meeting_visit` and `venue_search` tables with a conditional grant to `control_usage`
+- [x] Record one visit per accepted meeting-page stream
+- [x] Record venue searches made by people in a meeting, in the background
+- [x] Send `eventId` and the token with venue searches from the web client
+- [ ] Record people who open a meeting link without joining. Today they are not recorded: the client opens no stream without a token, and the server refuses a stream without one

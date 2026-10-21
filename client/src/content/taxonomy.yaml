@@ -117,7 +117,7 @@ occasions:
   - key: pickup-basketball
     label: Pickup basketball game
     times: [after-work, weekend-afternoon]
-    venue_types: [basketball-court]
+    venue_types: [basketball-court, free-indoor-basketball-court]
     group_sizes: [small, large]
   - key: badminton
     label: Badminton game
@@ -180,6 +180,9 @@ venue_types:
     google_type: spa
   - key: basketball-court
     label: Basketball court
+    google_type: athletic_field
+  - key: free-indoor-basketball-court
+    label: Free indoor basketball court
     google_type: athletic_field
   - key: badminton-court
     label: Badminton court

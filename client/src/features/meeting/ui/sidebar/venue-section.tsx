@@ -167,11 +167,16 @@ export function VenueSection() {
           return;
         }
 
-        const response = await venueClient.search({
-          center: searchCircle.center,
-          searchRadius,
-          query: executedSearchQuery,
-        });
+        const { organizerToken, participantToken } = useAuthStore.getState();
+        const response = await venueClient.search(
+          {
+            center: searchCircle.center,
+            searchRadius,
+            query: executedSearchQuery,
+            eventId: currentEvent.id,
+          },
+          organizerToken || participantToken || undefined
+        );
         const searchResults = response.venues;
         setVenues(searchResults);
         setSearchedVenues(searchResults); // Update store so map can show markers
