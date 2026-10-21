@@ -69,8 +69,29 @@ const nextConfig = {
       })),
     ];
   },
+  // Next's built-in trailing-slash redirect would bounce PostHog's /ingest/e/ calls,
+  // so it is off and the first redirect below does the same job for every other path.
+  skipTrailingSlashRedirect: true,
+  async rewrites() {
+    return [
+      {
+        source: '/ingest/static/:path*',
+        destination: 'https://us-assets.i.posthog.com/static/:path*',
+      },
+      {
+        source: '/ingest/array/:path*',
+        destination: 'https://us-assets.i.posthog.com/array/:path*',
+      },
+      { source: '/ingest/:path*', destination: 'https://us.i.posthog.com/:path*' },
+    ];
+  },
   async redirects() {
     return [
+      {
+        source: '/:path((?!ingest(?:/|$)).+)/',
+        destination: '/:path',
+        permanent: true,
+      },
       // Send the Vercel alias and the bare apex to the canonical www host with a
       // permanent (308) redirect so link equity consolidates on one origin.
       ...NON_CANONICAL_HOSTS.map((host) => ({
