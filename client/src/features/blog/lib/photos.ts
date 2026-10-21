@@ -1,6 +1,6 @@
 /** Wikimedia asks every client to name itself and give a way to reach its operator. */
 export const USER_AGENT =
-  'Where2Meet/1.0 (https://www.where2meet.org/contact; contact@wayvi-ai.com)';
+  'Where2Meet/1.0 (https://www.where2meet.org/contact; victorzhang0218@gmail.com)';
 
 /** CC BY asks us to credit the author, link the license and say when we cropped the photo. */
 export const LICENSES = {

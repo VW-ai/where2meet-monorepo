@@ -6,7 +6,7 @@ import catLogo from '@/components/cat/logo.svg';
 
 export const metadata: Metadata = createMetadata({
   title: 'Contact',
-  description: 'Email contact@wayvi-ai.com. We reply within a couple of days.',
+  description: 'Email victorzhang0218@gmail.com. We reply within a couple of days.',
   canonical: '/contact',
   robots: { index: true, follow: true },
 });
@@ -29,8 +29,8 @@ export default function ContactPage() {
         <div className="rounded-[28px] bg-white p-5 shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-6">
           <p className="text-sm leading-relaxed text-[#666b73]">
             Email{' '}
-            <a href="mailto:contact@wayvi-ai.com" className="font-semibold text-[#bd3843]">
-              contact@wayvi-ai.com
+            <a href="mailto:victorzhang0218@gmail.com" className="font-semibold text-[#bd3843]">
+              victorzhang0218@gmail.com
             </a>
             . We reply within a couple of days.
           </p>

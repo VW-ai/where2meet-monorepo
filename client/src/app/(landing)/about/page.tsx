@@ -70,8 +70,8 @@ export default function AboutPage() {
             ))}
             <p className="text-sm leading-relaxed text-[#666b73]">
               Questions or feedback? Email{' '}
-              <a href="mailto:contact@wayvi-ai.com" className="font-semibold text-[#bd3843]">
-                contact@wayvi-ai.com
+              <a href="mailto:victorzhang0218@gmail.com" className="font-semibold text-[#bd3843]">
+                victorzhang0218@gmail.com
               </a>
               .
             </p>
