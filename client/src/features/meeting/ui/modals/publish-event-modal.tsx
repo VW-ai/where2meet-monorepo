@@ -8,6 +8,7 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { eventClient } from '@/features/meeting/api';
 import { APIError } from '@/lib/api/client';
+import { analyticsEvents } from '@/lib/analytics/events';
 
 export function PublishEventModal() {
   const { isPublishModalOpen, closePublishModal, setActiveView } = useUIStore();
@@ -98,6 +99,8 @@ export function PublishEventModal() {
         selectedVenue.id,
         organizerToken
       );
+
+      analyticsEvents.publishMeeting(currentEvent.id, selectedVenue.id);
 
       // Update local state with the returned event data
       setCurrentEvent(updatedEvent);
