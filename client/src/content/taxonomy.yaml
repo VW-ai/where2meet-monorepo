@@ -97,7 +97,7 @@ occasions:
   - key: game-night
     label: Game night
     times: [after-work]
-    venue_types: [bar, bowling-alley]
+    venue_types: [bar, board-game-bar, bowling-alley]
     group_sizes: [small, large]
   - key: networking-meetup
     label: Networking meetup
@@ -172,6 +172,9 @@ venue_types:
   - key: museum
     label: Museum
     google_type: museum
+  - key: board-game-bar
+    label: Board game bar
+    google_type: bar
   - key: bowling-alley
     label: Bowling alley
     google_type: bowling_alley
