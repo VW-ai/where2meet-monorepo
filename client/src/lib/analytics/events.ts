@@ -1,4 +1,4 @@
-import { withPostHog } from './posthog';
+import { captureEvent } from './posthog';
 
 /**
  * Custom event tracking helpers. Each event goes to Google Analytics 4 and PostHog.
@@ -25,7 +25,7 @@ declare global {
 export function trackEvent(eventName: string, parameters?: Record<string, unknown>) {
   if (typeof window === 'undefined') return;
   window.gtag?.('event', eventName, parameters);
-  withPostHog((posthog) => posthog.capture(eventName, parameters));
+  captureEvent(eventName, parameters);
 }
 
 /**
