@@ -29,6 +29,8 @@ export async function loadPostHog() {
     api_host: '/ingest',
     ui_host: 'https://us.posthog.com',
     defaults: '2026-08-30',
+    disable_surveys: true,
+    capture_dead_clicks: false,
   });
   const { calls } = state;
   state = { status: 'ready', posthog };
