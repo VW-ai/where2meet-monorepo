@@ -157,6 +157,31 @@ describe('PostHog loading', () => {
     ]);
   });
 
+  it('turns PostHog off without an unhandled rejection when posthog-js fails to load', async () => {
+    let importAttempts = 0;
+    vi.doMock('posthog-js', () => {
+      importAttempts += 1;
+      throw new Error('Loading chunk 52c376855bd3276a failed.');
+    });
+    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_test');
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const browser = stubBrowser();
+      await import('@/instrumentation-client');
+      const { loadPostHog } = await import('@/lib/analytics/posthog');
+      browser.load();
+      await browser.idle();
+      await loadPostHog();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+
+    expect({ importAttempts, unhandled }).toEqual({ importAttempts: 1, unhandled: [] });
+  });
+
   it('records replay on meeting pages only, and stops after the visitor leaves one', async () => {
     vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_test');
     const browser = stubBrowser();
