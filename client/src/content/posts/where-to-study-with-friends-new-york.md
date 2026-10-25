@@ -82,7 +82,7 @@ The Greenwich Village and Union Square picks reach the most people. W 4 St-Wash 
 
 ![](union-square-plaza-night-manhattan.jpg)
 
-The Lower East Side picks suit students on the F, J, M and Z. The Stavros Niarchos Foundation Library (SNFL) suits the 7, Café-Flor suits the C and E, and Charlotte Cafe suits the 6.
+The Lower East Side picks suit students on the F, J, M and Z. The Stavros Niarchos Foundation Library (SNFL) suits the 7 at 5 Av and the B, D, F and M at 42 St-Bryant Pk, one connected station. Café-Flor suits the C and E, and Charlotte Cafe suits the 6.
 
 ## Can a study group book a room or talk at the library?
 
@@ -92,7 +92,7 @@ At SNFL's Teen Center, ages 13 to 19 can book a study room that seats four, up t
 
 Groups of adults can try [Bloomingdale Library](https://www.nypl.org/locations/bloomingdale) on West 100th Street, whose page offers timeslots in its second-floor study room.
 
-Everywhere else, the group shares open tables. NYPL's [rules](https://www.nypl.org/help/legal-notices/policies-and-rules) ban loud talking. They also ban phone calls and eating outside designated areas, and taking over space or outlets that others need. Step outside to argue a problem through.
+Everywhere else, the group shares open tables. NYPL's [rules](https://www.nypl.org/help/legal-notices/policies-and-rules) ban loud talking. They also ban phone calls and any eating or drinking outside designated areas, so finish your coffees before you sit down. Nobody may take over space or outlets that others need. Step outside to argue a problem through.
 
 ## How long can a study group stay at a cafe?
 

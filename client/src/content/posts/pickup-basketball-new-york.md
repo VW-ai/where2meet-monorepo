@@ -1,6 +1,6 @@
 ---
 title: Where to play pickup basketball in New York
-description: Seven outdoor courts for pickup basketball across New York, from Rucker Park and West 4th Street to Brooklyn Bridge Park, by the trains that reach them.
+description: Seven outdoor courts for pickup basketball in Manhattan and Brooklyn, including Rucker Park, West 4th Street and Pier 2, by the trains that reach them.
 main_keyword: pickup basketball
 occasion: pickup-basketball
 time: null
@@ -32,7 +32,7 @@ places:
     note: Bike to this court on Pier 25 in Hudson River Park in Tribeca, since it is on the Hudson River Greenway. It is open until midnight and about a 9-minute walk from the Franklin St station on the 1.
   - place_id: ChIJ7Tv68jhawokR9bWS2N7TXS4
     label: Brooklyn Bridge Park Basketball Courts
-    note: Rain doesn't have to cancel a game on Pier 2, where two of the park's five courts are covered. Budget a long walk, about 16 minutes from High St on the A and C or 18 from Clark St on the 2 and 3. It's open until 10 p.m.
+    note: Rain doesn't have to cancel a game on Pier 2, where two of the park's five courts are covered. Budget a long walk, about 16 minutes from High St on the A and C or 18 from Clark St on the 2 and 3. The park sets Pier 2's hours by season, so check them before a late game.
 images:
   - file_name: holcombe-rucker-park-basketball-court-harlem.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/6/64/Rucker_Park.jpg/1280px-Rucker_Park.jpg
@@ -86,7 +86,7 @@ Pick the court your group reaches without a transfer.
 
 :::places
 
-The hours and walk times on these cards come from Google Maps as of October 2026, and the lines from MTA schedules.
+The hours and walk times on these cards come from Google Maps as of October 2026, except Pier 2's hours, which Brooklyn Bridge Park sets. The lines come from MTA schedules.
 
 ### Uptown, on the B, C and D
 
