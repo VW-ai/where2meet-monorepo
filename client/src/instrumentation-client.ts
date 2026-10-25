@@ -1,12 +1,11 @@
-import posthog from 'posthog-js';
+import { loadPostHog } from '@/lib/analytics/posthog';
 
-const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-
-if (key) {
-  posthog.init(key, {
-    // Same-origin proxy (rewrites in next.config.js) so ad blockers don't drop events.
-    api_host: '/ingest',
-    ui_host: 'https://us.posthog.com',
-    defaults: '2026-08-30',
-  });
+// Matches next/script's lazyOnload, which loads gtag.js.
+function afterLoadWhenIdle(run: () => void) {
+  const whenIdle = () =>
+    'requestIdleCallback' in window ? window.requestIdleCallback(run) : setTimeout(run, 1);
+  if (document.readyState === 'complete') whenIdle();
+  else window.addEventListener('load', whenIdle, { once: true });
 }
+
+afterLoadWhenIdle(() => void loadPostHog());
