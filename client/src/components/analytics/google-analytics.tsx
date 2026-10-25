@@ -13,16 +13,13 @@ import Script from 'next/script';
  *
  * Features:
  * - Uses Next.js Script component for optimization
- * - strategy="afterInteractive" for non-blocking load
+ * - gtag.js loads after the page does (lazyOnload). Events wait in dataLayer until then.
  * - Tracks page views automatically
  */
 export function GoogleAnalytics({ gaId }: { gaId: string }) {
   return (
     <>
-      <Script
-        strategy="afterInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-      />
+      <Script strategy="lazyOnload" src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
       <Script
         id="google-analytics"
         strategy="afterInteractive"

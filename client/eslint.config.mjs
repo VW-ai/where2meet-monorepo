@@ -44,6 +44,18 @@ const eslintConfig = [
             {
               "name": "@/lib/api/voting",
               "message": "Import from feature API client (@/features/voting/api)"
+            },
+            {
+              "name": "posthog-js",
+              "allowTypeImports": true,
+              "message": "Use withPostHog() from @/lib/analytics/posthog, which imports posthog-js after the page loads."
+            }
+          ],
+          "patterns": [
+            {
+              "group": ["posthog-js/*"],
+              "allowTypeImports": true,
+              "message": "Use withPostHog() from @/lib/analytics/posthog, which imports posthog-js after the page loads."
             }
           ]
         }

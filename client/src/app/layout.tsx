@@ -4,6 +4,7 @@ import { SessionProvider } from '@/features/auth/ui/session-provider';
 import { StructuredData } from '@/components/seo/structured-data';
 import { generateOrganizationSchema } from '@/lib/seo/structured-data';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
+import { SessionReplayScope } from '@/components/analytics/session-replay-scope';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { CatPortal } from '@/features/portal/ui/cat-portal';
 
@@ -62,6 +63,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {gaId && <GoogleAnalytics gaId={gaId} />}
+        <SessionReplayScope />
         <StructuredData data={generateOrganizationSchema()} />
         <SessionProvider>{children}</SessionProvider>
         <CatPortal />
