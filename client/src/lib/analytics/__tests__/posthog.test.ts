@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const sdk = { evaluated: false, calls: [] as unknown[][] };
+const sdk = { evaluated: false, calls: [] as unknown[][], recording: false };
 
 function fakePostHogModule() {
   sdk.evaluated = true;
@@ -11,6 +11,12 @@ function fakePostHogModule() {
       capture: (event: string, properties?: unknown) => record('capture', event, properties),
       identify: (id: string, properties?: unknown) => record('identify', id, properties),
       reset: () => record('reset'),
+      startSessionRecording: () => {
+        sdk.recording = true;
+      },
+      stopSessionRecording: () => {
+        sdk.recording = false;
+      },
     },
   };
 }
@@ -41,6 +47,7 @@ beforeEach(() => {
   vi.doMock('posthog-js', fakePostHogModule);
   sdk.evaluated = false;
   sdk.calls = [];
+  sdk.recording = false;
 });
 
 afterEach(() => {
@@ -60,6 +67,7 @@ describe('PostHog loading', () => {
       await import('@/instrumentation-client');
       await import('@/lib/analytics/events');
       await import('@/features/auth/ui/session-provider');
+      await import('@/components/analytics/session-replay-scope');
       const afterImport = sdk.evaluated;
       browser.load();
       const afterLoad = sdk.evaluated;
@@ -90,5 +98,23 @@ describe('PostHog loading', () => {
       ['reset'],
       ['capture', 'join_event', { event_id: 'evt_1' }],
     ]);
+  });
+
+  it('records replay on meeting pages only, and stops after the visitor leaves one', async () => {
+    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_test');
+    const browser = stubBrowser();
+    await import('@/instrumentation-client');
+    const { scopeReplayTo } = await import('@/lib/analytics/posthog');
+
+    scopeReplayTo('/meet/evt_1');
+    browser.load();
+    await browser.idle();
+    const recording = [sdk.recording];
+    for (const pathname of ['/blog/new-york/midtown', '/meet/evt_2', '/', '/meet', '/meetings']) {
+      scopeReplayTo(pathname);
+      recording.push(sdk.recording);
+    }
+
+    expect(recording).toEqual([true, false, true, false, false, false]);
   });
 });
