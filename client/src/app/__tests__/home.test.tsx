@@ -66,7 +66,7 @@ describe('the homepage', () => {
     ).toEqual([
       '1Add where everyone starts. Share the link, and each person adds a cross street, station or neighborhood. The organizer can add people too.',
       "2Compare travel times on the map. Search places around the group or by name. Open one to see each person's travel time and route on the map.",
-      '3Vote and share the spot. Everyone votes on where to meet. The organizer picks the final spot, and everyone with the link sees it without a refresh.',
+      '3Vote and share the spot. Everyone votes on where to meet. The organizer picks the final spot, and everyone who joined sees it without a refresh.',
     ]);
   });
 

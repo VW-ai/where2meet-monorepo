@@ -183,7 +183,7 @@ export function LandingView({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error creating event:', error);
       usePortalStore.getState().fail();
-      setCreateError('We couldn’t create your meeting. Check your connection and try again.');
+      setCreateError("We couldn't create your meeting. Check your connection and try again.");
     } finally {
       setIsLoading(false);
     }

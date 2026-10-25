@@ -13,7 +13,7 @@ const STEPS = [
   },
   {
     title: 'Vote and share the spot',
-    body: 'Everyone votes on where to meet. The organizer picks the final spot, and everyone with the link sees it without a refresh.',
+    body: 'Everyone votes on where to meet. The organizer picks the final spot, and everyone who joined sees it without a refresh.',
   },
 ];
 
