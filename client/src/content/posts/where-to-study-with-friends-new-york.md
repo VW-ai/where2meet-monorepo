@@ -1,6 +1,6 @@
 ---
 title: Where to study with friends in New York
-description: Seven Manhattan cafes good for laptops and near the subway, with their Wi-Fi, group tables and hours, to settle where to study with friends.
+description: Three free NYPL libraries and four laptop-friendly cafes in Manhattan, with room and talking rules, Wi-Fi and hours, to settle where to study with friends.
 main_keyword: where to study with friends
 occasion: study-session
 time: null
@@ -10,26 +10,26 @@ budget: null
 city: new-york
 town: null
 published_at: 2026-10-21
-updated_at: 2026-10-21
+updated_at: 2026-10-25
 places:
+  - place_id: ChIJuw6oHVZZwokRzYyh9VP9irE
+    label: Stavros Niarchos Foundation Library (SNFL)
+    note: Spread out on the open floors of NYPL's largest circulating branch, which doubled its seating in its 2021 renovation and stays open until 9 p.m. Monday to Thursday. Teens 13 to 19 can book a study room for four. The 5 Av station on the 7 is about a 4-minute walk.
+  - place_id: ChIJicyj7JZZwokRagn5wfATxZ8
+    label: Jefferson Market Library
+    note: Work side by side in the second-floor Adult Reading Room of this former courthouse, open until 8 p.m. Monday to Thursday and from 1 to 5 p.m. on Sundays. The W 4 St-Wash Sq station, on seven lines, is about a 4-minute walk.
+  - place_id: ChIJZ-sbLypawokRCB0zWUxZeXc
+    label: Seward Park Library
+    note: Students on the F can study at this Carnegie branch on East Broadway, which keeps its adult and reference collections on the third floor. It's open until 8 p.m. Monday to Thursday and closed on Sundays, about a 3-minute walk from the East Broadway station.
   - place_id: ChIJjW5AuIFZwokRdNPH7jFGigM
     label: Black Cat LES
     note: Late sessions fit this cafe on Rivington Street, which stays open until 11 p.m. Thursday to Saturday. It's good for groups and for working on a laptop, and it's quiet, but its Wi-Fi is paid. The Delancey St-Essex St station is about a 6-minute walk.
-  - place_id: ChIJxwwfGoJZwokRdkYwAaTplOg
-    label: Pause Cafe
-    note: Start early at this quiet cafe on Clinton Street, open from 7 a.m. every day until 8 p.m., or 7 p.m. on Sundays. It has free Wi-Fi and is good for working on a laptop. Walk about 8 minutes from the Delancey St-Essex St station.
   - place_id: ChIJK0FlVPNZwokR2waVBj-VHko
     label: Ariston Coffee Bar
     note: Groups coming from many directions can use this cafe on Fifth Avenue near 13th Street, about a 6-minute walk from 14 St-Union Sq. It's good for groups and laptops, has free Wi-Fi, and closes at 7 p.m. most days and 6 p.m. on Sundays.
-  - place_id: ChIJIXHjNDxZwokRDprKMI3Pdpo
-    label: Moshava Coffee
-    note: Keep this quiet cafe on West 8th Street for a weekday session, because it closes on weekends and at 6 p.m. Monday to Thursday. It's good for working on a laptop and has Wi-Fi. The W 4 St-Wash Sq station is about a 4-minute walk.
   - place_id: ChIJ_abIqHtZwokRLWbw0G-lzu8
     label: Café-Flor / Bar 21
     note: Book a table here for an evening review, since this cafe and bar on Eighth Avenue takes reservations and stays open until 10 p.m., or 11 p.m. on Fridays and Saturdays. It's good for working on a laptop and has Wi-Fi. It's about a 3-minute walk from the 23 St station on the C and E.
-  - place_id: ChIJjdjCLlJZwokR-qJu3EjlDEg
-    label: Coffee Project New York
-    note: Morning study groups on the 1 can walk about a minute from the 18 St station to this cafe on Seventh Avenue. It opens at 7 a.m. on weekdays, has free Wi-Fi and is good for working on a laptop, but it closes at 5:30 p.m.
   - place_id: ChIJhWNXb1tZwokRyLpRsan63bo
     label: Charlotte Cafe
     note: East Side groups can settle in at this quiet cafe on Second Avenue, which is good for groups and laptops and opens at 6:30 a.m. on weekdays. It lists no Wi-Fi, so download readings first. The 33 St station on the 6 is about an 8-minute walk.
@@ -40,7 +40,7 @@ images:
     width: 1280
     height: 853
     alt: People walking through Washington Square Park toward its arch on a sunny day in Greenwich Village
-    caption: Washington Square Park, a few blocks from Moshava Coffee and the W 4 St-Wash Sq station
+    caption: Washington Square Park, a few blocks from the W 4 St-Wash Sq station
     author: Nielsoncaetanosalmeron
     license: CC BY 4.0
     cropped: false
@@ -60,52 +60,51 @@ images:
     width: 1280
     height: 720
     alt: Street signs for Ludlow Street and Beastie Boys Square on the Lower East Side, with fire escapes behind them
-    caption: Ludlow Street on the Lower East Side, a few blocks from Black Cat LES and Pause Cafe
+    caption: Ludlow Street on the Lower East Side, a few blocks from Black Cat LES
     author: Kidfly182
     license: CC BY 4.0
     cropped: false
 ---
 
-Where to study with friends in New York comes down to a table that fits the group and a cafe that welcomes laptops. The seven Manhattan cafes below are good for working on a laptop, and each is a short walk from the subway. Your study group lives in three boroughs, finals are coming, and nobody agrees on whose side of the city to meet on.
+Where to study with friends in New York comes down to a free public library or a cafe that welcomes laptops. A library suits a group that can work quietly side by side, and a cafe suits one that needs to talk problems through. Your study group lives in three boroughs, finals are coming, and nobody agrees on whose side of the city to meet on.
 
-This post suggests seven cafes from the Lower East Side to Murray Hill. Then it covers how long a group can stay, what to check before you go, and where to study late. It is part of our guide to [New York](/blog/new-york).
+This post suggests three New York Public Library branches and four cafes in Manhattan, each near the subway. Then it covers what libraries let groups do, how long to stay at a cafe, and where to study late. It is part of our guide to [New York](/blog/new-york).
 
 ## Where to study with friends in Manhattan?
 
-Pick a cafe that's good for laptops and on a line most of the group rides. These seven sit in four areas, each near a big station.
+Pick a library if the group can keep its voices down, and a cafe if it can't.
 
 :::places
 
-The hours, Wi-Fi, laptop and group details and the walk times on these cards come from Google Maps as of October 2026.
+The library details on these cards come from each branch's NYPL page, and the cafe details and every walk time from Google Maps, as of October 2026.
 
-The Union Square and Greenwich Village picks reach the most people. The 14 St-Union Sq station has eight lines, and W 4 St-Wash Sq has seven.
+The Greenwich Village and Union Square picks reach the most people. W 4 St-Wash Sq has seven lines, and 14 St-Union Sq has eight.
 
 ![](union-square-plaza-night-manhattan.jpg)
 
-The Lower East Side picks suit students on the F, J, M and Z. The Chelsea picks suit the 1, C and E, and Charlotte Cafe suits the 6 on the East Side.
+The Lower East Side picks suit students on the F, J, M and Z. The Stavros Niarchos Foundation Library (SNFL) suits the 7, Café-Flor suits the C and E, and Charlotte Cafe suits the 6.
+
+## Can a study group book a room or talk at the library?
+
+At SNFL, only people 19 and under can book a room, and every branch bans loud talking.
+
+At SNFL's Teen Center, ages 13 to 19 can book a study room that seats four, up to a day ahead. Email snflteens@nypl.org, call 212-340-0925 or ask at the Teen Center desk. Bring a full-service library card, because ecards don't count. The group gets one booking a day. The [Teen Center room rules](https://www.nypl.org/spotlight/snfl/teen/study) list the rest.
+
+Groups of adults can try [Bloomingdale Library](https://www.nypl.org/locations/bloomingdale) on West 100th Street, whose page offers timeslots in its second-floor study room.
+
+Everywhere else, the group shares open tables. NYPL's [rules](https://www.nypl.org/help/legal-notices/policies-and-rules) ban loud talking. They also ban phone calls and eating outside designated areas, and taking over space or outlets that others need. Step outside to argue a problem through.
 
 ## How long can a study group stay at a cafe?
 
 Plan on a few hours, and buy something as you go. A cafe has to turn tables, so a group that orders once and stays all day takes seats from paying customers.
 
-Order a drink each when you sit down and food around mealtimes. Split one long session into two blocks with a break, and order again after the break. If the cafe fills up, give up the extra chairs.
-
-Check the closing time before you start. Coffee Project closes at 5:30 p.m. and Moshava closes on weekends, so a late afternoon session there runs short.
-
-## What should the group check before going?
-
-Check four things the night before: Wi-Fi, power, seating and noise. A plan that misses one of them can end the session early.
-
-- **Wi-Fi.** Not every pick has free Wi-Fi. Download readings and slides before you leave home.
-- **Power.** Outlets aren't listed for any of these cafes. Charge laptops fully and bring a power bank.
-- **Seating.** Three of the picks are good for groups. For six or more, split across two tables or arrive at opening time.
-- **Noise.** Four of the picks are listed as quiet. Pick a livelier one if the group plans to talk through problem sets out loud.
+Order a drink each when you sit down and food around mealtimes. If the cafe fills up, give up the extra chairs.
 
 ![](ludlow-street-sign-lower-east-side.jpg)
 
 ## Where can you study with friends late at night?
 
-Black Cat LES and Café-Flor / Bar 21 stay open the latest. Both are open until 11 p.m. on some nights.
+Black Cat LES and Café-Flor / Bar 21 stay open the latest, until 11 p.m. on some nights.
 
 Check the train home before you settle in. Late at night, the F and J still stop at Delancey St-Essex St, and the A and E stop at 23 St, but the C doesn't run. The MTA's [late-night subway map](https://www.mta.info/map/5336) shows every line that runs overnight.
 
@@ -113,18 +112,18 @@ For a work session in an office setting instead, see [team meeting location idea
 
 ## How to do it in Where2Meet
 
-Put a **Study session** plan on [Where2Meet](/) so the study group picks the cafe together. Each person adds the station they ride from, then you compare trips to Ariston near Union Square, Pause Cafe and Coffee Project to find the cafe most of you reach fastest. Vote, and the organizer makes the pick.
+Put a **Study session** plan on [Where2Meet](/) so the study group picks a library or a cafe together. Each person adds the station they ride from, then you compare trips to SNFL, Jefferson Market and Ariston near Union Square to find the spot most of you reach fastest. Vote, and the organizer makes the pick.
 
 ## Common questions
 
-### Which cafes in New York are good for studying with a laptop?
+### Which libraries in NYC have study rooms for groups?
 
-Look for cafes listed as good for working on a laptop, with Wi-Fi and seating. All seven picks here are, from Pause Cafe on the Lower East Side to Charlotte Cafe in Murray Hill.
+At SNFL, teens 13 to 19 can book a four-person study room, but adults can't. Bloomingdale Library on the Upper West Side lets you book a timeslot in its study room from its NYPL page.
 
-### Where can I find a quiet place to study with friends in Manhattan?
+### Can you talk in an NYPL library?
 
-Black Cat LES, Pause Cafe, Moshava Coffee and Charlotte Cafe are listed as quiet. Go early in the day for the best chance at a table together.
+Quietly. NYPL's rules ban loud talking and phone calls outside designated areas, so keep voices low at the tables and take long discussions outside.
 
 ### Do NYC cafes have free Wi-Fi for studying?
 
-Many do. Pause Cafe, Ariston Coffee Bar and Coffee Project New York have free Wi-Fi, and Black Cat LES charges for it.
+Many do. Ariston Coffee Bar has free Wi-Fi, Black Cat LES charges for it, and Charlotte Cafe lists none. NYPL branches have Wi-Fi too.
