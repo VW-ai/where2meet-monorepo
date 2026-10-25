@@ -1,6 +1,6 @@
 ---
 title: Where to go on a date near Union Square
-description: Where to go on a date near Union Square, with eight cafes, bars and restaurants a short walk from eight subway lines, plus the trains that run late.
+description: Whether it's a first coffee or an anniversary dinner, eight places near the 14 St-Union Sq station cover where to go on a date, with a backup nearby.
 main_keyword: where to go on a date
 occasion: date-night
 time: null
@@ -99,13 +99,7 @@ The [Union Square Greenmarket](https://grownyc.org/locations/union-square-greenm
 
 ## How to do it in Where2Meet
 
-Where2Meet lets two people plan where to meet from one shared link. Nobody needs an account.
-
-1. Open [Where2Meet](/), choose the **Date night** chip, pick the day and time, and add your name.
-2. Send the link to your date. Each of you adds where you're coming from, or a cross street if you'd rather not share an address yet.
-3. Search for bars or restaurants around you both, or look one up by name.
-4. Select a place to see each person's route and travel time by car, transit, walking or bike.
-5. You both vote, and the person who made the plan picks the final spot. Changes show up without a refresh.
+Make the plan with the **Date night** chip on [Where2Meet](/), then send the link to your date. If one of you rides the L and the other the F, compare your routes to Irving Farm and Raines Law Room before you both vote. The one who made the plan settles on the final spot.
 
 ## Common questions
 

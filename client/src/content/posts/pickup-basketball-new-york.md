@@ -1,6 +1,6 @@
 ---
 title: Where to play pickup basketball in New York
-description: Where to play pickup basketball in New York, with seven outdoor courts near the subway in Lower Manhattan, plus a rain backup and the trains home.
+description: Seven outdoor courts on the Lower East Side and by the Hudson for pickup basketball, matched to the lines players ride, with a backup when it rains.
 main_keyword: pickup basketball
 occasion: pickup-basketball
 time: null
@@ -110,13 +110,7 @@ For food after the game, see [how to pick a restaurant for a group dinner](/blog
 
 ## How to do it in Where2Meet
 
-Where2Meet lets the group choose the court together from one shared link.
-
-1. Open [Where2Meet](/), type **Pickup basketball** in the first box, and set the day and the time.
-2. Send the link to the group chat. Nobody needs an account.
-3. Each player adds where they're coming from. A cross street is enough.
-4. Search for basketball courts around the group, or look one up by name. Compare each player's travel time by transit, walking, car or bike, and see the routes on the map.
-5. Vote on the courts you like. The organizer picks the final court, and everyone sees it without a refresh.
+Start the plan as **Pickup basketball** on [Where2Meet](/) a day ahead, and each player adds the station they'll ride from. Compare the routes to the Lower East Side courts and the Hudson River courts to see which side most players reach without a transfer. Players vote, and the organizer names the court.
 
 ## Common questions
 

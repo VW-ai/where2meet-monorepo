@@ -6,7 +6,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in Santa Monica
-  description: Where to meet up in Santa Monica, from the Third Street Promenade to Palisades Park, with the E Line, its last trains and where to park and ride.
+  description: Plan a beach day or dinner on the Third Street Promenade, and check the E Line first. It's about 45 minutes from Downtown LA, with parking one stop east.
 image:
   file_name: third-street-promenade-santa-monica.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Third_Street_Promenade_%28Santa_Monica%29_en_juillet_2022.JPG/1280px-Third_Street_Promenade_%28Santa_Monica%29_en_juillet_2022.JPG

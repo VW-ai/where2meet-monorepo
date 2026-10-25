@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { coverPath, listPages, pagePath } from '@/features/blog/lib/catalog';
+import { coverPath, listPages, pagePath, relatedPosts } from '@/features/blog/lib/catalog';
 import {
   checkContent,
   formatProblem,
@@ -131,6 +131,18 @@ describe('repo places', () => {
       expect(linesFor(path, true)).toEqual([]);
       photosMeasured(file.name, placePhotos(file), skip);
     });
+  });
+});
+
+describe('More from the blog', () => {
+  it('links every post from at least one other, through the slot relatedPosts keeps for the next slug', () => {
+    const inbound = new Map(catalog.posts.map(({ slug }) => [slug, 0]));
+    for (const post of catalog.posts) {
+      for (const { slug } of relatedPosts(catalog, post)) inbound.set(slug, inbound.get(slug)! + 1);
+    }
+    const floor = Math.min(1, catalog.posts.length - 1);
+    const below = [...inbound].filter(([, links]) => links < floor);
+    expect(below, JSON.stringify(Object.fromEntries(inbound))).toEqual([]);
   });
 });
 

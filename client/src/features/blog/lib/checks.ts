@@ -19,8 +19,9 @@ import {
 } from './content-file';
 import { GETTING_AROUND, parseCatalog, type RepoContent } from './parse';
 import type { CommonsImage } from './photos';
+import { howToWords, titleEcho, wordSimilarity } from './repetition';
 
-export type Rule = 'fields' | PostRule | PlaceRule;
+export type Rule = 'fields' | PostRule | PlaceRule | 'how-to-similarity';
 
 type PostRule =
   | 'word-count'
@@ -89,6 +90,8 @@ const IMAGE_BYTES_MAX = 2_000_000;
 const HEADINGS = ['## How to do it in Where2Meet', '## Common questions'];
 const INTRO_MIN_WORDS = 60;
 const TRANSIT_NOTES_MIN_WORDS = 20;
+/** Above this word-sequence ratio, two posts' How-to sections are near-copies. */
+const HOW_TO_SIMILARITY_MAX = 0.6;
 
 /** Python's `\w`: a Unicode letter, digit or underscore. */
 const WORD_CHAR = String.raw`[\p{L}\p{N}_]`;
@@ -251,7 +254,7 @@ const POST_RULES: { [R in PostRule]: Check<Post> } = {
 
   title: ({ title }) => titleProblems(title),
 
-  description: ({ description }) => descriptionProblems(description),
+  description: ({ title, description }) => descriptionProblems(title, description),
 
   'main-keyword': ({ title, mainKeyword, markdown }, { keywords }) => {
     if (mainKeyword === null) return [];
@@ -310,7 +313,7 @@ const PLACE_RULES: { [R in PlaceRule]: Check<Area> } = {
 
   title: (area) => titleProblems(area.seo.title),
 
-  description: (area) => descriptionProblems(area.seo.description),
+  description: ({ seo }) => descriptionProblems(seo.title, seo.description),
 
   wording: (area) => wordingProblems(placeText(area)),
 
@@ -360,7 +363,33 @@ export function checkContent(repo: RepoContent, options: CheckOptions): Problem[
     ...problems(KEYWORDS_FILE, 'fields', skipped(KEYWORDS_FILE)),
     ...repo.places.flatMap(checkFile(PLACES)),
     ...repo.posts.flatMap(checkFile(POSTS)),
+    ...howToRepeats(
+      repo.posts.flatMap((file) => {
+        const post = keptPost(file, catalog);
+        return post
+          ? [{ file: filePath(POSTS_DIR, file.name), words: howToWords(post.markdown) }]
+          : [];
+      })
+    ),
   ];
+}
+
+/** Each pair of posts whose How-to sections are near-copies, reported on both files. */
+function howToRepeats(sections: readonly { file: string; words: string[] }[]): Problem[] {
+  const written = sections.filter(({ words }) => words.length > 0);
+  const repeat = (file: string, other: string, share: number): Problem => ({
+    file,
+    rule: 'how-to-similarity',
+    message: `the "How to do it in Where2Meet" section is ${percent(share)} percent the same as the one in ${other}, word by word; it may be at most ${percent(HOW_TO_SIMILARITY_MAX)} percent the same, so write it for this post's occasion and places`,
+  });
+  return written.flatMap((a, index) =>
+    written.slice(index + 1).flatMap((b) => {
+      const share = wordSimilarity(a.words, b.words);
+      return share > HOW_TO_SIMILARITY_MAX
+        ? [repeat(a.file, b.file, share), repeat(b.file, a.file, share)]
+        : [];
+    })
+  );
 }
 
 export function formatProblem({ file, rule, message }: Problem): string {
@@ -431,12 +460,15 @@ function titleProblems(title: string): Messages {
   ];
 }
 
-function descriptionProblems(description: string): Messages {
+function descriptionProblems(title: string, description: string): Messages {
   const length = codePoints(description);
   const [min, max] = DESCRIPTION_RANGE;
+  const echo = titleEcho(title, description);
   return [
     !within(length, min, max) &&
       `the description is ${count(length, 'character')}; it needs ${min} to ${max}`,
+    echo !== null &&
+      `the description opens with "${echo}" from the title; open with what the reader gets, because search results show the title right above it`,
   ];
 }
 
@@ -583,6 +615,10 @@ function codePoints(text: string): number {
 
 function n(value: number): string {
   return value.toLocaleString('en-US');
+}
+
+function percent(share: number): number {
+  return Math.round(share * 100);
 }
 
 function count(value: number, noun: string): string {

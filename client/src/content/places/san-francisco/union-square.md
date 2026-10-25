@@ -6,7 +6,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in Union Square
-  description: Where to meet up around Union Square in San Francisco, with the Powell St trains, the cable cars and the Muni lines that keep running late at night.
+  description: Meet on the plaza's Powell Street steps or at the cable car turnaround. Powell St has BART and Muni Metro below, and the 38 Geary runs around the clock.
 image:
   file_name: powell-market-cable-car-turnaround-union-square.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/d/de/Cablecar_turnaround.San_Francisco._%2815530398240%29.jpg/1280px-Cablecar_turnaround.San_Francisco._%2815530398240%29.jpg

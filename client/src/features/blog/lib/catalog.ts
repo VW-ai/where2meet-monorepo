@@ -203,12 +203,25 @@ export function pageCover(page: BlogPage): CommonsImage | null {
   return pagePhotos(page)[0] ?? null;
 }
 
-export function pageUpdatedAt(page: BlogPage): IsoDate {
-  return page.kind === 'post' ? page.post.updatedAt : (page.town ?? page.city).updatedAt;
+/**
+ * A city or town page changes when a post it lists is published, so it dates by that too. It takes the
+ * post's `publishedAt`, not its `updatedAt`, so an edit to a post doesn't re-date every page that lists it.
+ */
+export function pageUpdatedAt(catalog: Catalog, page: BlogPage): IsoDate {
+  if (page.kind === 'post') return page.post.updatedAt;
+  return [
+    (page.town ?? page.city).updatedAt,
+    ...areaPosts(catalog, page).map((post) => post.publishedAt),
+  ]
+    .sort()
+    .at(-1)!;
 }
 
 export function latestUpdate(catalog: Catalog): IsoDate | undefined {
-  return listPages(catalog).map(pageUpdatedAt).sort().at(-1);
+  return listPages(catalog)
+    .map((page) => pageUpdatedAt(catalog, page))
+    .sort()
+    .at(-1);
 }
 
 export function catalogImages(catalog: Catalog): ReadonlyMap<string, CommonsImage> {
@@ -239,22 +252,44 @@ export function areaPosts(catalog: Catalog, { city, town }: AreaPage): Post[] {
   );
 }
 
-export function relatedPosts(catalog: Catalog, post: Post, limit = 4): Post[] {
-  // Places match from the city down, so two cities' "downtown" towns don't count as the same place.
-  const sharedPlace = (other: Post) => {
-    const firstDifference = post.areas.findIndex(
-      (area, index) => other.areas[index]?.slug !== area.slug
-    );
-    return firstDifference === -1 ? post.areas.length : firstDifference;
-  };
-  const sameOccasion = (other: Post) => (other.occasion.key === post.occasion.key ? 1 : 0);
-  return catalog.posts
+/** What a related post scores for each thing it shares with the post. An area scores once per shared level. */
+const RELATED_POINTS = { occasion: 4, venueType: 2, areaLevel: 1 } as const;
+const RELATED_POSTS = 4;
+
+function relatedness(post: Post, other: Post): number {
+  // Areas match from the city down, so two cities' "downtown" towns don't count as the same place.
+  const firstDifference = post.areas.findIndex(
+    (area, index) => other.areas[index]?.slug !== area.slug
+  );
+  const sharedLevels = firstDifference === -1 ? post.areas.length : firstDifference;
+  const venueType = post.parameters.venue_type;
+  return (
+    (other.occasion.key === post.occasion.key ? RELATED_POINTS.occasion : 0) +
+    (venueType && other.parameters.venue_type?.key === venueType.key
+      ? RELATED_POINTS.venueType
+      : 0) +
+    sharedLevels * RELATED_POINTS.areaLevel
+  );
+}
+
+/**
+ * The posts that share the most with `post`, ties going to the next slug in alphabetical order after
+ * `post`'s, wrapping around. The last slot always goes to the first post in that order that isn't
+ * already chosen. So each post's alphabetical predecessor links it, and every post gets at least one link
+ * however many posts share more with the others.
+ */
+export function relatedPosts(catalog: Catalog, post: Post): Post[] {
+  const ring = catalog.posts.map(({ slug }) => slug).toSorted();
+  const start = ring.indexOf(post.slug);
+  const after = (other: Post) => (ring.indexOf(other.slug) - start + ring.length) % ring.length;
+  const inRingOrder = catalog.posts
     .filter((other) => other !== post)
-    .toSorted(
-      (a, b) =>
-        sameOccasion(b) - sameOccasion(a) ||
-        sharedPlace(b) - sharedPlace(a) ||
-        b.publishedAt.localeCompare(a.publishedAt)
-    )
-    .slice(0, limit);
+    .toSorted((a, b) => after(a) - after(b));
+  const best = inRingOrder
+    .map((other) => ({ other, points: relatedness(post, other) }))
+    .toSorted((a, b) => b.points - a.points)
+    .slice(0, RELATED_POSTS - 1)
+    .map(({ other }) => other);
+  const next = inRingOrder.find((other) => !best.includes(other));
+  return next ? [...best, next] : best;
 }

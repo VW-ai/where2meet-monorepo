@@ -6,7 +6,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in the West Loop
-  description: Where to meet up in the West Loop, from Fulton Market to Randolph Street, with the Green, Pink and Blue lines and the trains at Union Station and Ogilvie.
+  description: Fulton Market and Randolph Street suit a group dinner, and Union Station and Ogilvie suit anyone on Metra. The Green, Pink and Blue lines stop nearby.
 image:
   file_name: fulton-market-district-sign-west-loop.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Fulton_Market%2C_West_Loop_%2847090474824%29.jpg/1280px-Fulton_Market%2C_West_Loop_%2847090474824%29.jpg

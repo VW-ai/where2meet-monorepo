@@ -18,7 +18,7 @@ These rules change only when the owner asks, by pull request to this file, `clie
 
 - Every post covers one occasion listed in `client/src/content/taxonomy.yaml`. A post may also have a time, a venue type, a group size and a budget from the same file.
 - Most of every post is practical advice that helps a reader even if they never open Where2Meet.
-- Every post gives advice of its own. Don't reuse another post's text with the occasion or the place swapped. Near-copies look templated to Google and hurt the whole site.
+- Every post gives advice of its own. Don't reuse another post's text with the occasion or the place swapped. That includes the description and the "How to do it in Where2Meet" section. Near-copies look templated to Google and hurt the whole site.
 - We never guess the reader's location. A general post names its example city. A local post's URL fixes its place.
 - **General posts** give the advice that works anywhere, in 700 to 1,000 words.
 - **Local posts** give the local answer, in 400 to 800 words. That means which stations, streets and places work for that occasion there. They link to the general post for the same occasion, when there is one, instead of repeating it.
@@ -32,7 +32,7 @@ Every post:
 2. **Question headings.** Four to five `##` sections in sentence case. Phrase each heading the way people ask it, as in "How far should everyone travel?". Open each section with a one- or two-sentence answer, then the detail.
 3. **Real places.** A local post suggests six to eight real places near the top of the post. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks. The place cards are the list of picks, placed with a `:::places` line right after the first section's answer. Each card's note says why the place fits the occasion, as in Place notes. The line right after `:::places` names where the cards' facts come from. The body doesn't repeat a card. A general post uses at least six examples in one named city.
 4. **Real photos.** A cover photo plus at least two photos in the body. See Pictures.
-5. **"How to do it in Where2Meet."** Numbered steps, starting from the matching chip on the homepage. When the homepage has no chip for the occasion, start by typing its name in the first box.
+5. **"How to do it in Where2Meet."** Two or three sentences on how this group plans this occasion together in Where2Meet, with one link to the homepage. Say what only this post's plan needs, such as who adds whose starting point, which of its places to compare, or whose trip matters most. Describe only features in Facts and honesty. CI compares the section with every other post's, word by word, and fails a pair that is more than 60 percent the same.
 6. **"Common questions."** Three to five questions people search, each answered in two or three sentences. Use real questions from Search Console or the Keywords list when you have them.
 7. **"A quick checklist."** Plain bullets for general posts. No checkboxes.
 
@@ -128,7 +128,7 @@ Search intent and keywords:
 
 The page:
 - **Title.** The search phrase comes first, as in "How to choose a team meeting location" or "Where to hold a team meeting in Midtown". It's at most 60 characters including " | Where2Meet", so about 47 for the title itself.
-- **Description.** 120 to 155 characters, with the main keyword, written as a promise of what the reader gets. Google cuts longer ones.
+- **Description.** 120 to 155 characters, with the main keyword, written as a promise of what the reader gets. Google cuts longer ones. Search results show the title right above the description, so never open with the title's words or restate the title. Open with what the reader gets, such as the places and a detail only this page has. When the title starts with the main keyword, put the keyword later in the description. Vary how descriptions end, so they don't all end on the trains home. CI fails a description when four words in a row from the title start within its first three words, as in "Plan a bathhouse with friends in Lower Manhattan" under the title "Bathhouse with friends in Lower Manhattan".
 - **Slug.** Lowercase words joined by hyphens, keyword first, without filler words like "the" or "a". Never change a published slug.
 - **Headings.** One h1, which is the title and is added by the page. Then `##` sections, and `###` only inside a section.
 
@@ -168,10 +168,12 @@ What the site handles, so don't hand-write it:
   - place notes that never name Google, and no more than two that start with the same word
   - a licensed cover and two body photos with alt text
   - the title and description limits
+  - a description that doesn't open with the title's words
   - a main keyword listed in `keywords.yaml`, said in the title and the first two sentences
   - front matter that follows the format, with parameter keys from `taxonomy.yaml`
   - photos that load as JPEGs of at most 2 MB (skipped when Wikimedia can't be reached)
   - the required sections
+  - a "How to do it in Where2Meet" section that is no more than 60 percent the same as another post's
   - the brand wording and the style rules a machine can check (dashes, quotes)
 - **Local posts.** A local post's city and town each need a place file, already merged or in the same pull request.
 - **After anything goes live,** request indexing for the new URL in Search Console.

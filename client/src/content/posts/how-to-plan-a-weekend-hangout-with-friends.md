@@ -1,6 +1,6 @@
 ---
 title: Weekend hangout spots on the Upper West Side
-description: Weekend hangout spots on the Upper West Side, with eight places to eat, drink and spend a rainy afternoon, plus the trains that change on weekends.
+description: Brunch, a museum if it rains and a bar to end on. Eight places near the 1, 2, 3 and C make a full weekend hangout for a small group of friends.
 main_keyword: weekend hangout
 occasion: weekend-hangout
 time: weekend-afternoon
@@ -95,13 +95,7 @@ Settle the plan by Thursday, and ask everyone to vote by then. For a weekday mee
 
 ## How to do it in Where2Meet
 
-Where2Meet lets friends plan where to meet from one shared link. Nobody needs an account.
-
-1. Open [Where2Meet](/), choose the **Weekend hangout** chip, pick the day and time, and add your name.
-2. Share the link in your group chat. Each friend adds where they're coming from, or a cross street, or you add it for them.
-3. Search around the group for a restaurant, a bar or a museum, or look one up by name.
-4. Select a place to see each friend's route and travel time by car, transit, walking or bike.
-5. Everyone votes, and the organizer picks the final spot. Changes show up without a refresh.
+Set up a **Weekend hangout** on [Where2Meet](/) by Thursday and drop the link in the group chat. Friends add where they're starting, and you compare each route to Levain, TESSA and the museum, whether it's the 2 from Brooklyn or a bike ride across the park. The vote narrows it down, and the organizer picks the place.
 
 ## Common questions
 
