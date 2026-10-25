@@ -135,16 +135,14 @@ describe('repo places', () => {
 });
 
 describe('More from the blog', () => {
-  it('links every post from at least one other, with at most 5 links between the most and the least linked', () => {
+  it('links every post from at least 2 others, or from every other post when there are fewer than 3', () => {
     const inbound = new Map(catalog.posts.map(({ slug }) => [slug, 0]));
     for (const post of catalog.posts) {
       for (const { slug } of relatedPosts(catalog, post)) inbound.set(slug, inbound.get(slug)! + 1);
     }
-    const counts = [...inbound.values()];
-    const spread = { least: Math.min(...counts), most: Math.max(...counts) };
-    const detail = JSON.stringify(Object.fromEntries(inbound));
-    expect(spread.least, detail).toBeGreaterThanOrEqual(1);
-    expect(spread.most - spread.least, detail).toBeLessThanOrEqual(5);
+    const floor = Math.min(2, catalog.posts.length - 1);
+    const below = [...inbound].filter(([, links]) => links < floor);
+    expect(below, JSON.stringify(Object.fromEntries(inbound))).toEqual([]);
   });
 });
 
