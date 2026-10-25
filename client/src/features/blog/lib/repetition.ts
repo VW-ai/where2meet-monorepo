@@ -5,10 +5,14 @@
 
 /** The audit's word pattern. It keeps a trailing period, so "link." and "link" differ. */
 const AUDIT_WORD = /[A-Za-z0-9][A-Za-z0-9'.-]*/g;
-/** A description echoes its title when this many title words in a row start within its first `ECHO_START` words. */
+/**
+ * A description echoes its title when this many title words in a row start within its first `ECHO_START`
+ * words. A shorter title echoes only when the description starts with all of it.
+ */
 const ECHO_RUN = 4;
 const ECHO_START = 3;
-const SECTION_HEADING = /^## (.*)$/;
+const LINE_BREAK = /\r?\n/;
+const SECTION_HEADING = /^## (.*?)\r?$/;
 const HOW_TO_HEADING = 'how to do it in where2meet';
 
 function auditWords(text: string): string[] {
@@ -27,24 +31,27 @@ function plainText(markdown: string): string {
 /** The title words a description opens with, as in "where to meet up", or null. */
 export function titleEcho(title: string, description: string): string | null {
   const titleWords = auditWords(title);
-  const size = Math.min(ECHO_RUN, titleWords.length);
-  if (size === 0) return null;
+  const descriptionWords = auditWords(description);
+  if (titleWords.length === 0) return null;
+  if (titleWords.length < ECHO_RUN) {
+    const whole = titleWords.join(' ');
+    return descriptionWords.slice(0, titleWords.length).join(' ') === whole ? whole : null;
+  }
   const runs = new Set(
     titleWords
-      .slice(0, titleWords.length - size + 1)
-      .map((_, at) => titleWords.slice(at, at + size).join(' '))
+      .slice(0, titleWords.length - ECHO_RUN + 1)
+      .map((_, at) => titleWords.slice(at, at + ECHO_RUN).join(' '))
   );
-  const descriptionWords = auditWords(description);
   for (let start = 0; start < ECHO_START; start++) {
-    const run = descriptionWords.slice(start, start + size);
-    if (run.length === size && runs.has(run.join(' '))) return run.join(' ');
+    const run = descriptionWords.slice(start, start + ECHO_RUN);
+    if (run.length === ECHO_RUN && runs.has(run.join(' '))) return run.join(' ');
   }
   return null;
 }
 
 /** The words of a post's "How to do it in Where2Meet" section, or none when it has no such section. */
 export function howToWords(markdown: string): string[] {
-  const lines = markdown.split('\n');
+  const lines = markdown.split(LINE_BREAK);
   const heading = lines.findIndex((line) =>
     SECTION_HEADING.exec(line)?.[1].trim().toLowerCase().startsWith(HOW_TO_HEADING)
   );
