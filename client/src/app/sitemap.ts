@@ -16,8 +16,8 @@ import { STATIC_PAGES } from '@/lib/seo/site-pages';
  * Generate sitemap for Where2Meet
  *
  * - URLs use the canonical `www` host from SITE_CONFIG.
- * - `lastModified` values are real content dates (see `src/lib/seo/site-pages.ts` and each
- *   post and place file's `updated_at`), never the build time.
+ * - `lastModified` values are real content dates (see `src/lib/seo/site-pages.ts`, each post's
+ *   `updated_at`, and `pageUpdatedAt` for a city or town), never the build time.
  *
  * Note: Dynamic meeting pages (/meet/[id]) are intentionally excluded because:
  * - They are user-generated and mostly private/temporary
@@ -42,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     ...listPages(catalog).map((page) => ({
       url: `${SITE_CONFIG.url}${pagePath(page)}`,
-      lastModified: pageUpdatedAt(page),
+      lastModified: pageUpdatedAt(catalog, page),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
       images: pagePhotos(page).map((photo) => toAbsoluteUrl(photo.src)),

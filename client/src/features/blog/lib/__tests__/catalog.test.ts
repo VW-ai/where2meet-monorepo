@@ -8,6 +8,7 @@ import {
   listPages,
   pagePath,
   pageTrail,
+  pageUpdatedAt,
   postPath,
   relatedPosts,
   type BlogPage,
@@ -184,6 +185,28 @@ describe('blog catalog', () => {
       'seventh-avenue-times-square-north.jpg',
       'times-square-crowds-new-york.jpg',
     ]);
+  });
+
+  it('dates a city or town page by its own file or the newest post it lists, by published date', () => {
+    const city = catalog.cities.get('new-york')!;
+    const midtown = city.towns.get('midtown')!;
+    const lunch = post('new-york/midtown/a-team-welcome-lunch-in-bryant-park');
+    const updated = { ...lunch, updatedAt: '2026-10-20' as const };
+    const edited = {
+      ...catalog,
+      posts: catalog.posts.map((other) => (other === lunch ? updated : other)),
+    };
+    expect([city.updatedAt, midtown.updatedAt, lunch.publishedAt]).toEqual([
+      '2026-10-07',
+      '2026-10-07',
+      '2026-10-08',
+    ]);
+    expect(pageUpdatedAt(edited, { kind: 'area', city, town: null })).toBe('2026-10-08');
+    expect(pageUpdatedAt(edited, { kind: 'area', city, town: midtown })).toBe('2026-10-08');
+    expect(
+      pageUpdatedAt(edited, { kind: 'area', city, town: { ...midtown, updatedAt: '2026-10-09' } })
+    ).toBe('2026-10-09');
+    expect(pageUpdatedAt(edited, { kind: 'post', post: updated })).toBe('2026-10-20');
   });
 
   it('dates the catalog by its newest page', () => {

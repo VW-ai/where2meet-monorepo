@@ -171,14 +171,14 @@ The intro, in Markdown.
 The transit notes, in Markdown.
 ```
 
-| Field               | Value                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------ |
-| `name`              | The place's name, as in breadcrumbs, cards and chips.                                |
-| `region`, `country` | A city only, such as `NY` and `US`. A town file has neither.                         |
-| `center`            | The place's center, as `lat` from -90 to 90 and `lng` from -180 to 180.              |
-| `updated_at`        | `YYYY-MM-DD`. Change it for a real content change. The sitemap dates the page by it. |
-| `seo`               | The page `title`, which is also the h1, and the `description`, with a post's limits. |
-| `image`             | One Wikimedia Commons photo of the area, as in [Photos](#photos).                    |
+| Field               | Value                                                                                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`              | The place's name, as in breadcrumbs, cards and chips.                                                                                                                |
+| `region`, `country` | A city only, such as `NY` and `US`. A town file has neither.                                                                                                         |
+| `center`            | The place's center, as `lat` from -90 to 90 and `lng` from -180 to 180.                                                                                              |
+| `updated_at`        | `YYYY-MM-DD`. Change it for a real content change. The sitemap dates the page by it, or by the newest `published_at` of the posts the page lists when that is later. |
+| `seo`               | The page `title`, which is also the h1, and the `description`, with a post's limits.                                                                                 |
+| `image`             | One Wikimedia Commons photo of the area, as in [Photos](#photos).                                                                                                    |
 
 The intro has at least 60 words on what the area is like for meeting up and which neighborhoods people pick. The transit notes have at least 20 words. They name the lines, stations or roads that matter and anything that changes at night or on weekends.
 
@@ -286,7 +286,7 @@ A place with a bad `image` keeps its page and shows no photo.
 
 ## Search data
 
-The canonical URL, the BlogPosting and BreadcrumbList JSON-LD, `sitemap.xml` and `llms.txt` use each page's `/blog` URL. BlogPosting lists each photo as an ImageObject with `contentUrl`, `width`, `height`, `caption`, `creditText`, `creator`, `license` (left out for public domain) and `acquireLicensePage`. The sitemap dates each page by its `updated_at` and lists its photos. `/blog/content.json` is in neither the sitemap nor `llms.txt`.
+The canonical URL, the BlogPosting and BreadcrumbList JSON-LD, `sitemap.xml` and `llms.txt` use each page's `/blog` URL. BlogPosting lists each photo as an ImageObject with `contentUrl`, `width`, `height`, `caption`, `creditText`, `creator`, `license` (left out for public domain) and `acquireLicensePage`. The sitemap dates a post by its `updated_at`, and a city or a town by the later of its `updated_at` and the newest `published_at` among the posts it lists. A post's `updated_at` doesn't re-date the pages that list it. The sitemap also lists each page's photos. `/blog/content.json` is in neither the sitemap nor `llms.txt`.
 
 ## /blog/content.json
 

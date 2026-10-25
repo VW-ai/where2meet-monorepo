@@ -154,7 +154,7 @@ describe('sitemap', () => {
     ]);
   });
 
-  it('lists every post, city and town at its /blog URL with its update date and its photos', async () => {
+  it('lists every post, city and town at its /blog URL with its update date and its photos, a hub dated by its newest post', async () => {
     disk.files = [...FIXTURE_FILES];
     const blogEntries = (await sitemap()).filter((entry) =>
       entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`)
@@ -203,8 +203,8 @@ describe('sitemap', () => {
           '/blog/images/grand-central-concourse-windows.jpg',
         ],
       ],
-      ['/blog/new-york', '2026-10-07', ['/blog/images/midtown-manhattan-skyline-new-york.jpg']],
-      ['/blog/new-york/midtown', '2026-10-07', ['/blog/images/bryant-park-lawn-midtown.jpg']],
+      ['/blog/new-york', '2026-10-08', ['/blog/images/midtown-manhattan-skyline-new-york.jpg']],
+      ['/blog/new-york/midtown', '2026-10-08', ['/blog/images/bryant-park-lawn-midtown.jpg']],
     ]);
   });
 

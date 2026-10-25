@@ -203,12 +203,25 @@ export function pageCover(page: BlogPage): CommonsImage | null {
   return pagePhotos(page)[0] ?? null;
 }
 
-export function pageUpdatedAt(page: BlogPage): IsoDate {
-  return page.kind === 'post' ? page.post.updatedAt : (page.town ?? page.city).updatedAt;
+/**
+ * A city or town page changes when a post it lists is published, so it dates by that too. It takes the
+ * post's `publishedAt`, not its `updatedAt`, so an edit to a post doesn't re-date every page that lists it.
+ */
+export function pageUpdatedAt(catalog: Catalog, page: BlogPage): IsoDate {
+  if (page.kind === 'post') return page.post.updatedAt;
+  return [
+    (page.town ?? page.city).updatedAt,
+    ...areaPosts(catalog, page).map((post) => post.publishedAt),
+  ]
+    .sort()
+    .at(-1)!;
 }
 
 export function latestUpdate(catalog: Catalog): IsoDate | undefined {
-  return listPages(catalog).map(pageUpdatedAt).sort().at(-1);
+  return listPages(catalog)
+    .map((page) => pageUpdatedAt(catalog, page))
+    .sort()
+    .at(-1);
 }
 
 export function catalogImages(catalog: Catalog): ReadonlyMap<string, CommonsImage> {
