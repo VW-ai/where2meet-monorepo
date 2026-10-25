@@ -298,21 +298,22 @@ export function LandingView({ children }: { children: ReactNode }) {
       </main>
 
       <footer className="mx-auto w-full max-w-xl px-4 py-6 lg:max-w-5xl lg:px-8" data-leave="0">
+        {/* Darker than the gray on white cards, because the backdrop's color glows pass behind the footer. */}
         <nav className="mb-2 flex justify-center gap-5 text-sm">
-          <Link href="/blog" className="font-medium text-[#666b73] hover:text-[#bd3843]">
+          <Link href="/blog" className="font-medium text-[#555a62] hover:text-[#bd3843]">
             Blog
           </Link>
-          <Link href="/faq" className="font-medium text-[#666b73] hover:text-[#bd3843]">
+          <Link href="/faq" className="font-medium text-[#555a62] hover:text-[#bd3843]">
             FAQ
           </Link>
-          <Link href="/about" className="font-medium text-[#666b73] hover:text-[#bd3843]">
+          <Link href="/about" className="font-medium text-[#555a62] hover:text-[#bd3843]">
             About
           </Link>
-          <Link href="/contact" className="font-medium text-[#666b73] hover:text-[#bd3843]">
+          <Link href="/contact" className="font-medium text-[#555a62] hover:text-[#bd3843]">
             Contact
           </Link>
         </nav>
-        <p className="text-center text-xs text-[#666b73]">
+        <p className="text-center text-xs text-[#555a62]">
           © {new Date().getFullYear()} Where2Meet
         </p>
       </footer>
