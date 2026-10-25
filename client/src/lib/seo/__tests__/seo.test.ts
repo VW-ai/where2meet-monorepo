@@ -148,8 +148,8 @@ describe('sitemap', () => {
     expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
       [CANONICAL_ORIGIN, '2026-10-04', undefined],
       [`${CANONICAL_ORIGIN}/faq`, '2026-10-19', undefined],
-      [`${CANONICAL_ORIGIN}/about`, '2026-10-19', undefined],
-      [`${CANONICAL_ORIGIN}/contact`, '2026-09-29', undefined],
+      [`${CANONICAL_ORIGIN}/about`, '2026-10-21', undefined],
+      [`${CANONICAL_ORIGIN}/contact`, '2026-10-21', undefined],
       [`${CANONICAL_ORIGIN}/blog`, undefined, undefined],
     ]);
   });
