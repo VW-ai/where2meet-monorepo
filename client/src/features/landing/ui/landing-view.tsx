@@ -18,6 +18,7 @@ import { analyticsEvents } from '@/lib/analytics/events';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { browserTimeZone } from '@/shared/lib/meeting-times';
+import { missingDetailsMessage } from '@/features/landing/lib/meeting-draft';
 
 export function LandingView() {
   const router = useRouter();
@@ -29,7 +30,9 @@ export function LandingView() {
   const [placeId, setPlaceId] = useState('');
   const [locationError, setLocationError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [triedToCreate, setTriedToCreate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const missingDetails = missingDetailsMessage({ title, meetingTime, organizerName });
   const logoRef = useRef<HTMLImageElement>(null);
   // While the create-meeting transition runs, the page steps aside for the cat.
   const leaving = usePortalStore((state) => state.status === 'running');
@@ -80,7 +83,8 @@ export function LandingView() {
   };
 
   const handleCreateEvent = async () => {
-    if (!title || !meetingTime || !organizerName.trim()) {
+    if (missingDetails) {
+      setTriedToCreate(true);
       return;
     }
 
@@ -277,11 +281,13 @@ export function LandingView() {
                 onLocationError={setLocationError}
               />
 
-              <ActionButtons
-                onCreateEvent={handleCreateEvent}
-                isLoading={isLoading}
-                disabled={!title || !meetingTime || !organizerName.trim()}
-              />
+              <ActionButtons onCreateEvent={handleCreateEvent} isLoading={isLoading} />
+
+              {triedToCreate && missingDetails && (
+                <p role="alert" className="mt-3 text-sm text-red-600">
+                  {missingDetails}
+                </p>
+              )}
 
               {createError && (
                 <p role="alert" className="mt-3 text-sm text-red-600">
@@ -312,7 +318,7 @@ export function LandingView() {
             Contact
           </Link>
         </nav>
-        <p className="text-center text-xs text-[#8b9098]">
+        <p className="text-center text-xs text-[#666b73]">
           © {new Date().getFullYear()} Where2Meet
         </p>
       </footer>

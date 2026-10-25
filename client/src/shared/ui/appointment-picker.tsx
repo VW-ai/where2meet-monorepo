@@ -76,7 +76,7 @@ export function AppointmentPicker({
             variant="outline"
             className={cn(
               'w-full justify-start text-left font-normal px-4 py-3.5 h-auto rounded-2xl border-2 border-gray-200 hover:bg-transparent hover:border-gray-300',
-              !date && 'text-gray-400',
+              !date && 'text-gray-500',
               'focus:outline-none focus:border-coral-500 focus:ring-4 focus:ring-coral-100'
             )}
           >
