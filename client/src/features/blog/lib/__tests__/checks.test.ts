@@ -161,13 +161,13 @@ describe('checkContent on a post', () => {
       const end = example.text.indexOf('## How will everyone get home?');
       const file = edited([[example.text.slice(start, end), '']]);
       expect(check([file])).toEqual([
-        `${FILE}: word-count: the body has 681 words; a general post needs 700 to 1,000`,
+        `${FILE}: word-count: the body has 612 words; a general post needs 700 to 1,000`,
       ]);
     });
 
     it('holds a local post to 400 to 800 words', () => {
       expect(check([edited([['city: null', 'city: new-york']])])).toEqual([
-        `${FILE}: word-count: the body has 902 words; a local post needs 400 to 800`,
+        `${FILE}: word-count: the body has 833 words; a local post needs 400 to 800`,
       ]);
     });
   });
@@ -344,15 +344,28 @@ describe('checkContent on a post', () => {
     ]);
   });
 
-  it('holds the description to 120 to 155 characters', () => {
+  describe('description', () => {
     const description =
-      'description: Plan a group dinner after work that everyone can reach from the office, book a table that fits the latest finisher, and make the trip home easy.';
-    const file = edited([
-      [description, 'description: Plan a group dinner after work that everyone can reach.'],
-    ]);
-    expect(check([file])).toEqual([
-      `${FILE}: description: the description is 55 characters; it needs 120 to 155`,
-    ]);
+      'description: Choose a restaurant everyone can reach from the office, book a table for the latest finisher, and keep a group dinner after work easy to get home from.';
+
+    it('holds the description to 120 to 155 characters', () => {
+      const file = edited([[description, 'description: Choose a restaurant everyone can reach.']]);
+      expect(check([file])).toEqual([
+        `${FILE}: description: the description is 39 characters; it needs 120 to 155`,
+      ]);
+    });
+
+    it("fails a description that opens with the title's words", () => {
+      const file = edited([
+        [
+          description,
+          'description: Plan a group dinner after work that everyone can reach from the office, book a table that fits the latest finisher, and make the trip home easy.',
+        ],
+      ]);
+      expect(check([file])).toEqual([
+        `${FILE}: description: the description opens with "plan a group dinner" from the title; open with what the reader gets, because search results show the title right above it`,
+      ]);
+    });
   });
 
   describe('main-keyword', () => {
@@ -439,6 +452,50 @@ describe('checkContent on a post', () => {
       expect(check([file])).toEqual([
         `${FILE}: style: the caption of west-32nd-street-koreatown-manhattan.jpg has an em dash; use a period or a comma instead of "\u2014"`,
       ]);
+    });
+  });
+
+  describe('how-to-similarity', () => {
+    const OTHER = 'src/content/posts/group-dinner-in-brooklyn.md';
+    const MIDTOWN_STEPS = `Where2Meet lets a team plan where to meet from one shared link. Nobody needs an account.
+
+1. Open [Where2Meet](/), choose the **Team meeting** chip, pick the date and time, and add your name.
+2. Share the link. Each person adds where they're coming from, or a cross street, or you add it for them.
+3. Search for rooms or restaurants around the group, or look one up by name.
+4. Select a place to see each person's route and travel time by car, transit, walking or bike.
+5. Everyone votes, and the organizer picks the final spot. Changes show up without a refresh.`;
+    const DOWNTOWN_STEPS = `Where2Meet lets a group plan where to meet from one shared link. Nobody needs an account.
+
+1. Open [Where2Meet](/), choose the **Group dinner** chip, pick the date and time, and add your name.
+2. Share the link. Each person adds where they're coming from, or a cross street, or you add it for them.
+3. Search for restaurants around the group, or look one up by name.
+4. Select a restaurant to see each person's route and travel time by car, transit, walking or bike.
+5. Everyone votes, and the organizer picks the final spot. Changes show up without a refresh.`;
+
+    function withHowTo(file: ContentFile, section: string): ContentFile {
+      const start = file.text.indexOf('## How to do it in Where2Meet\n');
+      const end = file.text.indexOf('\n## ', start + 1);
+      return {
+        ...file,
+        text: `${file.text.slice(0, start)}## How to do it in Where2Meet\n\n${section}\n${file.text.slice(end)}`,
+      };
+    }
+
+    const other = edited(
+      [
+        ['west-32nd-street-koreatown-manhattan.jpg', 'west-32nd-street-koreatown.jpg'],
+        ['fulton-center-lower-manhattan.jpg', 'fulton-center-station.jpg'],
+        ['atlantic-avenue-barclays-center-station-entrance.jpg', 'barclays-center-entrance.jpg'],
+      ],
+      'group-dinner-in-brooklyn.md'
+    );
+
+    it('fails both posts when their sections are more than 60 percent the same, and passes a section of its own', () => {
+      expect(check([withHowTo(example, MIDTOWN_STEPS), withHowTo(other, DOWNTOWN_STEPS)])).toEqual([
+        `${FILE}: how-to-similarity: the "How to do it in Where2Meet" section is 95 percent the same as the one in ${OTHER}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
+        `${OTHER}: how-to-similarity: the "How to do it in Where2Meet" section is 95 percent the same as the one in ${FILE}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
+      ]);
+      expect(check([example, withHowTo(other, DOWNTOWN_STEPS)])).toEqual([]);
     });
   });
 
@@ -564,6 +621,18 @@ describe('checkContent on a place', () => {
     expect(checkPlaces([city, town])).toEqual([
       `${CITY}: title: the title is 78 characters with its " | Where2Meet" suffix; it needs at most 60`,
       `${TOWN}: description: the description is 35 characters; it needs 120 to 155`,
+    ]);
+  });
+
+  it("fails an SEO description that opens with the title's words", () => {
+    const town = editedPlace(midtown, [
+      [
+        "description: 'Sample page: places in Midtown Manhattan for team meetings and welcome lunches, a short walk from Grand Central and Bryant Park.'",
+        'description: Where to meet in Midtown for team meetings and welcome lunches, a short walk from Grand Central and Bryant Park, with the trains that run late.',
+      ],
+    ]);
+    expect(checkPlaces([newYork, town])).toEqual([
+      `${TOWN}: description: the description opens with "where to meet in" from the title; open with what the reader gets, because search results show the title right above it`,
     ]);
   });
 
