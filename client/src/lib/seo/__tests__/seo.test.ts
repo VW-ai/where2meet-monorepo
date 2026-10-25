@@ -148,13 +148,13 @@ describe('sitemap', () => {
     expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
       [CANONICAL_ORIGIN, '2026-10-04', undefined],
       [`${CANONICAL_ORIGIN}/faq`, '2026-10-19', undefined],
-      [`${CANONICAL_ORIGIN}/about`, '2026-10-19', undefined],
-      [`${CANONICAL_ORIGIN}/contact`, '2026-09-29', undefined],
+      [`${CANONICAL_ORIGIN}/about`, '2026-10-21', undefined],
+      [`${CANONICAL_ORIGIN}/contact`, '2026-10-21', undefined],
       [`${CANONICAL_ORIGIN}/blog`, undefined, undefined],
     ]);
   });
 
-  it('lists every post, city and town at its /blog URL with its update date and its photos', async () => {
+  it('lists every post, city and town at its /blog URL with its update date and its photos, a hub dated by its newest post', async () => {
     disk.files = [...FIXTURE_FILES];
     const blogEntries = (await sitemap()).filter((entry) =>
       entry.url.startsWith(`${CANONICAL_ORIGIN}/blog`)
@@ -203,8 +203,8 @@ describe('sitemap', () => {
           '/blog/images/grand-central-concourse-windows.jpg',
         ],
       ],
-      ['/blog/new-york', '2026-10-07', ['/blog/images/midtown-manhattan-skyline-new-york.jpg']],
-      ['/blog/new-york/midtown', '2026-10-07', ['/blog/images/bryant-park-lawn-midtown.jpg']],
+      ['/blog/new-york', '2026-10-08', ['/blog/images/midtown-manhattan-skyline-new-york.jpg']],
+      ['/blog/new-york/midtown', '2026-10-08', ['/blog/images/bryant-park-lawn-midtown.jpg']],
     ]);
   });
 

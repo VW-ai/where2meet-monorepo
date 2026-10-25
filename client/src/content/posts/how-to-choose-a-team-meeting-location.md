@@ -1,6 +1,6 @@
 ---
 title: Where to hold a team meeting in Midtown
-description: Where to hold a team meeting in Midtown, with eight rooms, cafes, restaurants and bars near Times Square, Grand Central, Bryant Park and Herald Square.
+description: Book a room with a door, a client lunch or one big table near Grand Central, and let the stations your team rides decide where to hold a team meeting.
 main_keyword: where to hold a team meeting
 occasion: team-meeting
 time: null
@@ -93,13 +93,7 @@ If the meeting turns into dinner downtown, see our [group dinner spots in Lower 
 
 ## How to do it in Where2Meet
 
-Where2Meet lets a team plan where to meet from one shared link. Nobody needs an account.
-
-1. Open [Where2Meet](/), choose the **Team meeting** chip, pick the date and time, and add your name.
-2. Share the link. Each person adds where they're coming from, or a cross street, or you add it for them.
-3. Search for rooms or restaurants around the group, or look one up by name.
-4. Select a place to see each person's route and travel time by car, transit, walking or bike.
-5. Everyone votes, and the organizer picks the final spot. Changes show up without a refresh.
+Open a **Team meeting** plan on [Where2Meet](/), post the link in the team channel, and add starting points yourself for anyone who doesn't. Select Convene, Bryant Park Grill or Vanderbilt Market to see who has the longest ride, including anyone on Metro-North. The team votes, and the organizer makes the final call.
 
 ## Common questions
 

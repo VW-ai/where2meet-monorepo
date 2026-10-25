@@ -8,7 +8,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in San Francisco
-  description: Where to meet up in San Francisco, with the Market Street stations where BART and Muni Metro meet, plus BART's hours and the Owl buses at night.
+  description: Four Market Street stations share BART and Muni Metro, so most groups meet near one. Compare five areas, BART's hours and the Owl buses after midnight.
 image:
   file_name: union-square-san-francisco-plaza.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Union_Square%2C_San_Francisco._%2839776431142%29.jpg/1280px-Union_Square%2C_San_Francisco._%2839776431142%29.jpg

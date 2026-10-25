@@ -6,7 +6,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in Hollywood
-  description: Where to meet up in Hollywood, from the TCL Chinese Theatre to Hollywood and Vine, with the B Line stations, last trains and park-and-ride spots.
+  description: Groups meet here for dinner before the Pantages, a movie at the Chinese Theatre or a night at the Bowl, near three B Line stops and parking a stop north.
 image:
   file_name: tcl-chinese-theatre-entrance-hollywood.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/TCL_Chinese_Theatre_%2826776687980%29.jpg/1280px-TCL_Chinese_Theatre_%2826776687980%29.jpg

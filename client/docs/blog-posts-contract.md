@@ -10,6 +10,7 @@ Owner decisions:
 - 2026-10-13. The 4 original posts are Markdown local posts under New York towns, without their widgets. Each kept its slug and moved to `/blog/new-york/<town>/<slug>`, and its old URL redirects there permanently so search engines keep its ranking. The same day the owner asked that every local post suggest 6 to 8 real places, mostly restaurants, cafes and bars that fit the occasion.
 - 2026-10-14. This replaces the 2026-10-13 rule of mostly restaurants, cafes and bars. A local post's place cards are its list of picks, and the body doesn't repeat them. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks.
 - 2026-10-16. A place note says why the place fits the occasion and gives a planning detail, in plain facts. It never names Google. The post names its source once, in one sentence on the line after `:::places`. At most 2 notes in a post start with the same word.
+- 2026-10-25. A description opens with what the reader gets, never with its title's words. A post's "How to do it in Where2Meet" section is two or three sentences written for that post, not steps shared with other posts.
 
 ## Make a change
 
@@ -20,7 +21,7 @@ Every change is one pull request against `main`. Before you open it, run `npm te
 | Add a post               | Write `src/content/posts/<slug>.md`, as in [Posts](#posts). Its `main_keyword` must be in `keywords.yaml`. A local post's city and town must have place files, in `main` or in the same pull request. |
 | Update a post            | Edit its file. Change `updated_at` only for a real content change. Never rename the file, because the name is the published URL.                                                                      |
 | Add a city or a town     | Write `src/content/places/<city>.md` or `src/content/places/<city>/<town>.md`, as in [Places](#places). A town needs its city's file.                                                                 |
-| Update a city or a town  | Edit its file and change `updated_at`. Never rename the file.                                                                                                                                         |
+| Update a city or a town  | Edit its file. Change `updated_at` only for a real content change, such as the intro, the transit notes or the photo. An SEO description edit isn't one. Never rename the file.                       |
 | Add or change a keyword  | Edit `src/content/keywords.yaml`, as in [Keywords](#keywords).                                                                                                                                        |
 | Add a parameter          | Add the occasion, time, venue type, group size or budget to `src/content/taxonomy.yaml`, as in [Parameters](#parameters).                                                                             |
 | Change the writing rules | Edit `docs/writing-rules.md` only when the owner asks. It holds the owner's text as written.                                                                                                          |
@@ -65,7 +66,7 @@ Places claim before posts because a dropped place takes its towns and posts with
 
 ## Posts
 
-A post is one file, `src/content/posts/<slug>.md`. The site builds every post with one template: the title, the byline with the published and updated dates, the cover with its credit, the body, the place cards, the call to action, and up to 4 related posts. Related posts share the occasion first, then the city or the town.
+A post is one file, `src/content/posts/<slug>.md`. The site builds every post with one template: the title, the byline with the published and updated dates, the cover with its credit, the body, the place cards, the call to action, and up to 4 related posts. A related post scores 4 points for a shared occasion, 2 for a shared venue type and 1 for each level of place it shares, the city and then the town. The 3 highest show first, and a tie goes to the next slug in alphabetical order after the post's own, wrapping around. The fourth slot always goes to the first post in that order that isn't already shown. So every post is linked from the post just before it in alphabetical order, whatever the other posts share.
 
 ### Name the file
 
@@ -78,7 +79,7 @@ The file starts with YAML front matter between two `---` lines. The Markdown bod
 ```markdown
 ---
 title: How to pick a coffee meeting spot across town
-description: Pick a coffee meeting spot that is quick for both of you to reach, has room to sit and talk, and stays open late enough for a weekday catch-up.
+description: A cafe that is quick for both of you to reach, with room to sit and talk and open late on weekdays, makes a good coffee meeting spot.
 main_keyword: coffee meeting spot
 occasion: coffee-catch-up
 time: weekday-lunch
@@ -112,7 +113,7 @@ A coffee meeting spot works when both of you can reach it in about the same time
 | Field                                        | Value                                                                                                                                                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `title`                                      | The h1 and the SEO title. With " \| Where2Meet" it is at most 60 characters.                                                                                                                                          |
-| `description`                                | 120 to 155 characters.                                                                                                                                                                                                |
+| `description`                                | 120 to 155 characters, not opening with the title's words.                                                                                                                                                            |
 | `main_keyword`                               | A phrase from `src/content/keywords.yaml` that no other post targets. It appears in the title and in the first two sentences of the body.                                                                             |
 | `occasion`                                   | A key from `occasions` in `src/content/taxonomy.yaml`.                                                                                                                                                                |
 | `time`, `venue_type`, `group_size`, `budget` | A key from that file's `times`, `venue_types`, `group_sizes` or `budgets`, or `null`.                                                                                                                                 |
@@ -170,14 +171,14 @@ The intro, in Markdown.
 The transit notes, in Markdown.
 ```
 
-| Field               | Value                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------ |
-| `name`              | The place's name, as in breadcrumbs, cards and chips.                                |
-| `region`, `country` | A city only, such as `NY` and `US`. A town file has neither.                         |
-| `center`            | The place's center, as `lat` from -90 to 90 and `lng` from -180 to 180.              |
-| `updated_at`        | `YYYY-MM-DD`. Change it for a real content change. The sitemap dates the page by it. |
-| `seo`               | The page `title`, which is also the h1, and the `description`, with a post's limits. |
-| `image`             | One Wikimedia Commons photo of the area, as in [Photos](#photos).                    |
+| Field               | Value                                                                                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`              | The place's name, as in breadcrumbs, cards and chips.                                                                                                                |
+| `region`, `country` | A city only, such as `NY` and `US`. A town file has neither.                                                                                                         |
+| `center`            | The place's center, as `lat` from -90 to 90 and `lng` from -180 to 180.                                                                                              |
+| `updated_at`        | `YYYY-MM-DD`. Change it for a real content change. The sitemap dates the page by it, or by the newest `published_at` of the posts the page lists when that is later. |
+| `seo`               | The page `title`, which is also the h1, and the `description`, with a post's limits.                                                                                 |
+| `image`             | One Wikimedia Commons photo of the area, as in [Photos](#photos).                                                                                                    |
 
 The intro has at least 60 words on what the area is like for meeting up and which neighborhoods people pick. The transit notes have at least 20 words. They name the lines, stations or roads that matter and anything that changes at night or on weekends.
 
@@ -230,21 +231,22 @@ Every file gets the `fields` rule. It fails when the file doesn't parse, when a 
 
 A post gets these rules:
 
-| Rule            | What it wants                                                                                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `word-count`    | 700 to 1,000 words for a general post, or 400 to 800 for a local post. A link counts its text, not its URL.                                                               |
-| `places`        | At least 6 places, and each note has at least 12 words.                                                                                                                   |
-| `note-source`   | No place note names Google, as in "per Google" or "Google lists". The body may name the source once.                                                                      |
-| `note-openings` | At most 2 place notes start with the same word, with "A" and "An" counted as one.                                                                                         |
-| `images`        | At least 3 usable images, and every `![](<file_name>)` line names a listed image.                                                                                         |
-| `image-size`    | Each `source_url` answers a HEAD request with 200, `image/jpeg` and a size of at most 2,000,000 bytes.                                                                    |
-| `title`         | The title with " \| Where2Meet" is at most 60 characters.                                                                                                                 |
-| `description`   | The description is 120 to 155 characters.                                                                                                                                 |
-| `main-keyword`  | `main_keyword` is a phrase in `keywords.yaml`, and the title and the body's first two sentences say it as whole words. Headings, photo lines and `:::places` are skipped. |
-| `headings`      | The body has `## How to do it in Where2Meet` and `## Common questions`.                                                                                                   |
-| `wording`       | No word starting with "fair" and no "meet in the middle", in the title, description, body, place notes, alt text or captions.                                             |
-| `style`         | No em dash, en dash or curly quote in the same fields.                                                                                                                    |
-| `dates`         | `updated_at` is on or after `published_at`.                                                                                                                               |
+| Rule                | What it wants                                                                                                                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `word-count`        | 700 to 1,000 words for a general post, or 400 to 800 for a local post. A link counts its text, not its URL.                                                                              |
+| `places`            | At least 6 places, and each note has at least 12 words.                                                                                                                                  |
+| `note-source`       | No place note names Google, as in "per Google" or "Google lists". The body may name the source once.                                                                                     |
+| `note-openings`     | At most 2 place notes start with the same word, with "A" and "An" counted as one.                                                                                                        |
+| `images`            | At least 3 usable images, and every `![](<file_name>)` line names a listed image.                                                                                                        |
+| `image-size`        | Each `source_url` answers a HEAD request with 200, `image/jpeg` and a size of at most 2,000,000 bytes.                                                                                   |
+| `title`             | The title with " \| Where2Meet" is at most 60 characters.                                                                                                                                |
+| `description`       | The description is 120 to 155 characters, and no 4 words in a row from the title start within its first 3 words. Words follow the 2026-10-22 SEO audit's pattern.                        |
+| `main-keyword`      | `main_keyword` is a phrase in `keywords.yaml`, and the title and the body's first two sentences say it as whole words. Headings, photo lines and `:::places` are skipped.                |
+| `headings`          | The body has `## How to do it in Where2Meet` and `## Common questions`.                                                                                                                  |
+| `how-to-similarity` | No other post's How-to section is more than 60 percent the same, word by word, by Python's `difflib.SequenceMatcher` ratio as the audit scored it. Both posts of a pair get the problem. |
+| `wording`           | No word starting with "fair" and no "meet in the middle", in the title, description, body, place notes, alt text or captions.                                                            |
+| `style`             | No em dash, en dash or curly quote in the same fields.                                                                                                                                   |
+| `dates`             | `updated_at` is on or after `published_at`.                                                                                                                                              |
 
 A city or a town gets these rules:
 
@@ -255,7 +257,7 @@ A city or a town gets these rules:
 | `image`          | The page has an image.                                                                                              |
 | `image-size`     | As for posts.                                                                                                       |
 | `title`          | The SEO title with " \| Where2Meet" is at most 60 characters.                                                       |
-| `description`    | The SEO description is 120 to 155 characters.                                                                       |
+| `description`    | As for posts, with the SEO title and description.                                                                   |
 | `wording`        | As for posts, in the SEO title and description, the intro, the transit notes, and the image's alt text and caption. |
 | `style`          | As for posts, in the same fields.                                                                                   |
 
@@ -284,7 +286,7 @@ A place with a bad `image` keeps its page and shows no photo.
 
 ## Search data
 
-The canonical URL, the BlogPosting and BreadcrumbList JSON-LD, `sitemap.xml` and `llms.txt` use each page's `/blog` URL. BlogPosting lists each photo as an ImageObject with `contentUrl`, `width`, `height`, `caption`, `creditText`, `creator`, `license` (left out for public domain) and `acquireLicensePage`. The sitemap dates each page by its `updated_at` and lists its photos. `/blog/content.json` is in neither the sitemap nor `llms.txt`.
+The canonical URL, the BlogPosting and BreadcrumbList JSON-LD, `sitemap.xml` and `llms.txt` use each page's `/blog` URL. BlogPosting lists each photo as an ImageObject with `contentUrl`, `width`, `height`, `caption`, `creditText`, `creator`, `license` (left out for public domain) and `acquireLicensePage`. The sitemap dates a post by its `updated_at`, and a city or a town by the later of its `updated_at` and the newest `published_at` among the posts it lists. A post's `updated_at` doesn't re-date the pages that list it. The sitemap also lists each page's photos. `/blog/content.json` is in neither the sitemap nor `llms.txt`.
 
 ## /blog/content.json
 

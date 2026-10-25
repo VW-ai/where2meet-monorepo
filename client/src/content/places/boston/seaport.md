@@ -6,7 +6,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in Boston's Seaport
-  description: Where to meet up in Boston's Seaport District, from Fan Pier to Seaport Boulevard, with the Silver Line buses from South Station and their late hours.
+  description: No subway reaches the Seaport, so this page shows the Silver Line buses from South Station, where to meet by the harbor and when the last SL2 leaves.
 image:
   file_name: institute-of-contemporary-art-fan-pier-seaport.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Institute_of_Contemporary_Art%2C_Boston_%2854960644036%29.jpg/1280px-Institute_of_Contemporary_Art%2C_Boston_%2854960644036%29.jpg

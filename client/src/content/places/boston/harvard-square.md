@@ -6,7 +6,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in Harvard Square
-  description: Where to meet up in Harvard Square in Cambridge, with spots to name in a plan, the Red Line and buses at Harvard station, and when the last trains run.
+  description: Meet at the station entrance, the Harvard Yard gates or Brattle Street in Cambridge. This page covers the Red Line and the buses that stop at Harvard.
 image:
   file_name: harvard-square-shops-plaza-cambridge.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bb/Harvard_Square%2C_Cambridge_MA.jpg/1280px-Harvard_Square%2C_Cambridge_MA.jpg

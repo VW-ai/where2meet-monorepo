@@ -1,6 +1,6 @@
 ---
 title: Date night bars in Manhattan
-description: Date night bars in Manhattan a few minutes from the subway, including a 64th-floor cocktail bar and two jazz clubs, with hours and the late trains home.
+description: Eight date night bars near the subway in Midtown, downtown and uptown, including two jazz clubs, with booking tips and which bars close early.
 main_keyword: date night bars
 occasion: date-night
 time: null
@@ -116,13 +116,7 @@ The MTA's [late-night subway map](https://www.mta.info/map/5336) shows every lin
 
 ## How to do it in Where2Meet
 
-Where2Meet lets you choose the bar together from one shared link.
-
-1. Open [Where2Meet](/), choose the **Date night** chip, and set the day and the time you'll meet.
-2. Send the link to your date. Neither of you needs an account.
-3. Each of you adds where you're starting from. A cross street is enough if you'd rather not share an address.
-4. Search for bars around you both, or look one up by name. Compare each person's travel time by transit, walking, car or bike, and see the routes on the map.
-5. Vote on the bars you like. The organizer picks the final one, and you both see it without a refresh.
+Choose the **Date night** chip on [Where2Meet](/) and text your date the link, and each of you adds a cross street if you'd rather not share an address. Compare both trips to Overstory, Dizzy's Club or Employees Only on the map. You vote together, and whoever made the plan picks the bar.
 
 ## Common questions
 

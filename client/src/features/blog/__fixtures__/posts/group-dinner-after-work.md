@@ -1,6 +1,6 @@
 ---
 title: How to plan a group dinner after work
-description: Plan a group dinner after work that everyone can reach from the office, book a table that fits the latest finisher, and make the trip home easy.
+description: Choose a restaurant everyone can reach from the office, book a table for the latest finisher, and keep a group dinner after work easy to get home from.
 main_keyword: group dinner after work
 occasion: group-dinner
 time: after-work
@@ -109,14 +109,7 @@ Ask who drives and who takes transit, and agree on a rough end time, so everyone
 
 ## How to do it in Where2Meet
 
-Where2Meet lets a group plan where to meet from one shared link. Nobody needs an account.
-
-1. Open [Where2Meet](/), choose the **Group dinner** chip, pick the date and time, and add your name.
-2. Share the link with the group.
-3. Each person adds where they're coming from, such as their office. Anyone can enter a cross street instead of an exact address, and the organizer can add starting points too.
-4. Search for restaurants around the group, or look one up by name.
-5. Select a restaurant to see each person's route on the map and their travel time by car, transit, walking or bike.
-6. Everyone votes, and the organizer picks the final spot. Changes show up for everyone without a refresh.
+Pick the **Group dinner** chip on [Where2Meet](/) and send the link to the coworkers coming along. Each person adds the office or station they'll leave from, so you can compare everyone's trip to The Malt House, miss KOREA BBQ and El Zason. Everyone votes, and the organizer picks the table that suits the latest finisher.
 
 ## Common questions
 

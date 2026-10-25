@@ -6,7 +6,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in the Mission District
-  description: Where to meet up in San Francisco's Mission District, from Dolores Park to 24th Street, with the BART stations and the Muni buses that run all night.
+  description: Dolores Park on a sunny weekend or dinner on Valencia Street. Pick the nearer of two BART stations, eight blocks apart, and the buses that run all night.
 image:
   file_name: mission-dolores-park-lawn-skyline.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Mission_Dolores_Park%2C_San_Francisco.jpg/1280px-Mission_Dolores_Park%2C_San_Francisco.jpg

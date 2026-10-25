@@ -6,7 +6,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in SoMa
-  description: Where to meet up in SoMa, San Francisco, from Yerba Buena Gardens to Oracle Park and 4th and King, with Caltrain, BART, Muni Metro and the late buses.
+  description: Dinner before a Giants game, coffee near Moscone or a museum by Yerba Buena Gardens. Caltrain, BART and the T Third bring a group to either end of SoMa.
 image:
   file_name: yerba-buena-gardens-lawn-soma.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/San_Francisco_Yerba_Buena_Gardens_004.jpg/1280px-San_Francisco_Yerba_Buena_Gardens_004.jpg
