@@ -101,13 +101,7 @@ If the dinner follows a meeting uptown, see [where to hold a team meeting in Mid
 
 ## How to do it in Where2Meet
 
-Where2Meet lets a group plan where to meet from one shared link. Nobody needs an account.
-
-1. Open [Where2Meet](/), choose the **Group dinner** chip, pick the date and time, and add your name.
-2. Share the link. Each person adds where they're coming from, or a cross street, or you add it for them.
-3. Search for restaurants around the group, or look one up by name.
-4. Select a restaurant to see each person's route and travel time by car, transit, walking or bike.
-5. Everyone votes, and the organizer picks the final spot. Changes show up without a refresh.
+Pick the **Group dinner** chip on [Where2Meet](/) and share the link, or enter the starting points for coworkers who won't. Compare travel times to Fraunces Tavern, Eataly and The Malt House, so the PATH riders and the Brooklyn half both get a short trip. Everyone votes, and the organizer chooses the restaurant.
 
 ## Common questions
 

@@ -113,13 +113,7 @@ For a work session in an office setting instead, see [team meeting location idea
 
 ## How to do it in Where2Meet
 
-Where2Meet lets the study group choose the cafe together from one shared link.
-
-1. Open [Where2Meet](/), type **Study session** in the first box, and set the day and the time.
-2. Send the link to the group chat. Nobody needs an account.
-3. Each person adds where they're coming from. A cross street, a station or a neighborhood is enough.
-4. Search for cafes around the group, or look one up by name. Compare each person's travel time by transit, walking, car or bike, and see the routes on the map.
-5. Vote on the cafes you like. The organizer picks the final spot, and everyone sees it without a refresh.
+Put a **Study session** plan on [Where2Meet](/) so the study group picks the cafe together. Each person adds the station they ride from, then you compare trips to Ariston near Union Square, Pause Cafe and Coffee Project to find the cafe most of you reach fastest. Vote, and the organizer makes the pick.
 
 ## Common questions
 

@@ -111,13 +111,7 @@ Five of the six close on Sundays. Saturday hours end at 3 p.m. or 4 p.m., and Ja
 
 ## How to do it in Where2Meet
 
-Where2Meet lets the group choose the gym together from one shared link.
-
-1. Open [Where2Meet](/), type **Pickup basketball** in the first box, and set the day and the time.
-2. Send the link to the group chat. Nobody needs an account.
-3. Each player adds where they're coming from. A cross street, a station or a neighborhood is enough.
-4. Search for "recreation center" around the group, or look one up by name. Compare each player's travel time by transit, walking, car or bike, and see the routes on the map.
-5. Vote on the gyms. The organizer picks the final one, and everyone sees it without a refresh.
+Type **Pickup basketball** into the first box on [Where2Meet](/) and send the link to your four or five players. Once each player adds the station they leave from, search "recreation center" and compare everyone's train or bike time to Chelsea, Midtown East and Harlem. Vote on the gyms open that day, and the organizer picks one.
 
 ## Common questions
 

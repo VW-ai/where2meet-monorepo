@@ -115,13 +115,7 @@ Late at night, the R and W don't stop at 23 St or 28 St, and the N and Q stop th
 
 ## How to do it in Where2Meet
 
-Where2Meet lets the group choose the birthday spot together from one shared link.
-
-1. Open [Where2Meet](/), type **Birthday** in the first box, and set the day and the time.
-2. Send the link to the guests. Nobody needs an account.
-3. Each guest adds where they're coming from. A cross street is enough. For a surprise, the organizer adds the birthday person's area instead of sending them the link.
-4. Search for places around the group, or look one up by name. Compare each guest's travel time by transit, walking, car or bike, and see the routes on the map.
-5. Vote on the places you like. The organizer picks the final spot, and everyone sees it without a refresh.
+Type **Birthday** in the first box on [Where2Meet](/) and send the link to the guests, or for a surprise, add the birthday person's area yourself. Compare how long it takes everyone to reach SPIN, Slate or 230 Fifth from Brooklyn, Queens and New Jersey. Guests vote on the shortlist, and the organizer chooses the party spot.
 
 ## Common questions
 
