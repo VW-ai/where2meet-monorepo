@@ -96,7 +96,7 @@ describe('blog catalog', () => {
     ]);
   });
 
-  it('relates posts on the same occasion first, then posts in the same place, then the newest', () => {
+  it('relates posts by a shared occasion, then a shared town, then a shared city', () => {
     expect(
       relatedPosts(catalog, post('new-york/midtown/a-team-welcome-lunch-in-bryant-park')).map(
         postPath
@@ -106,10 +106,33 @@ describe('blog catalog', () => {
       '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
       '/blog/new-york/group-dinner-spots-near-herald-square',
     ]);
+  });
+
+  it('breaks a tie by the next slug in alphabetical order, wrapping around, not by date', () => {
     expect(relatedPosts(catalog, post('how-to-plan-a-team-welcome-lunch')).map(postPath)).toEqual([
       '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
-      '/blog/new-york/group-dinner-spots-near-herald-square',
       '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
+      '/blog/new-york/group-dinner-spots-near-herald-square',
+    ]);
+  });
+
+  it('ranks a shared venue type above a shared city', () => {
+    const groupDinner = post('new-york/group-dinner-spots-near-herald-square');
+    const quiet = post('new-york/midtown/quiet-places-for-a-small-team-meeting');
+    const [newYork] = groupDinner.areas;
+    const barbecue = {
+      ...quiet,
+      slug: 'korean-barbecue-in-testville',
+      title: 'Korean barbecue in Testville',
+      parameters: { ...quiet.parameters, venue_type: groupDinner.parameters.venue_type },
+      areas: [{ ...newYork, slug: 'testville', name: 'Testville' }],
+    } as typeof quiet;
+    const withBarbecue = { ...catalog, posts: [...catalog.posts, barbecue] };
+    expect(relatedPosts(withBarbecue, groupDinner).map((other) => other.title)).toEqual([
+      'Korean barbecue in Testville',
+      'Quiet places for a small team meeting in Midtown',
+      'A team welcome lunch in Bryant Park',
+      'How to plan a team welcome lunch',
     ]);
   });
 

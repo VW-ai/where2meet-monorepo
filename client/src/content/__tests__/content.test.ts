@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { coverPath, listPages, pagePath } from '@/features/blog/lib/catalog';
+import { coverPath, listPages, pagePath, relatedPosts } from '@/features/blog/lib/catalog';
 import {
   checkContent,
   formatProblem,
@@ -131,6 +131,20 @@ describe('repo places', () => {
       expect(linesFor(path, true)).toEqual([]);
       photosMeasured(file.name, placePhotos(file), skip);
     });
+  });
+});
+
+describe('More from the blog', () => {
+  it('links every post from at least one other, with at most 5 links between the most and the least linked', () => {
+    const inbound = new Map(catalog.posts.map(({ slug }) => [slug, 0]));
+    for (const post of catalog.posts) {
+      for (const { slug } of relatedPosts(catalog, post)) inbound.set(slug, inbound.get(slug)! + 1);
+    }
+    const counts = [...inbound.values()];
+    const spread = { least: Math.min(...counts), most: Math.max(...counts) };
+    const detail = JSON.stringify(Object.fromEntries(inbound));
+    expect(spread.least, detail).toBeGreaterThanOrEqual(1);
+    expect(spread.most - spread.least, detail).toBeLessThanOrEqual(5);
   });
 });
 
