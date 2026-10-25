@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Briefcase, Coffee, Heart, Sun, Users, Utensils, type LucideIcon } from 'lucide-react';
 import catLogo from '@/components/cat/logo.svg';
 import { HeroInput } from '@/features/landing/ui/hero-input';
 import { ActionButtons } from '@/features/landing/ui/action-buttons';
@@ -19,6 +18,7 @@ import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { browserTimeZone } from '@/shared/lib/meeting-times';
 import { missingDetailsMessage } from '@/features/landing/lib/meeting-draft';
+import { HOME_OCCASIONS } from '@/features/landing/lib/occasions';
 
 export function LandingView() {
   const router = useRouter();
@@ -189,15 +189,6 @@ export function LandingView() {
     }
   };
 
-  const scenarios: { label: string; icon: LucideIcon }[] = [
-    { label: 'Date night', icon: Heart },
-    { label: 'Team meeting', icon: Briefcase },
-    { label: 'Group dinner', icon: Utensils },
-    { label: 'Coffee catch-up', icon: Coffee },
-    { label: 'Weekend hangout', icon: Sun },
-    { label: 'Family outing', icon: Users },
-  ];
-
   return (
     <div
       className="flex min-h-screen flex-col text-[#21252b]"
@@ -243,7 +234,7 @@ export function LandingView() {
               role="group"
               data-leave="100"
             >
-              {scenarios.map(({ label, icon: Icon }) => {
+              {HOME_OCCASIONS.map(({ label, icon: Icon }) => {
                 const selected = title === label;
                 return (
                   <button
