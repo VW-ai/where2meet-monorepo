@@ -1,6 +1,6 @@
 ---
 title: Where to celebrate a birthday in New York
-description: Where to celebrate a birthday in New York, with eight picks near the subway, from ping pong to a rooftop brunch, plus booking and late-train tips.
+description: Ping pong, pool tables, a rooftop brunch or a bubble show for kids. Eight Manhattan picks near the subway show where to celebrate a birthday.
 main_keyword: where to celebrate a birthday
 occasion: birthday
 time: null

@@ -1,6 +1,6 @@
 ---
 title: Where to hold a team meeting in Midtown
-description: Where to hold a team meeting in Midtown, with eight rooms, cafes, restaurants and bars near Times Square, Grand Central, Bryant Park and Herald Square.
+description: A room with a door, a client lunch or one big table. Eight Midtown picks by Grand Central and Times Square show where to hold a team meeting.
 main_keyword: where to hold a team meeting
 occasion: team-meeting
 time: null

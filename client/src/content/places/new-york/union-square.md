@@ -3,10 +3,10 @@ name: Union Square
 center:
   lat: 40.7356
   lng: -73.9906
-updated_at: 2026-10-13
+updated_at: 2026-10-25
 seo:
   title: Where to meet up near Union Square, NYC
-  description: Where to meet up near Union Square in Manhattan, where eight subway lines stop at 14 St, plus the Greenmarket days and the trains that skip it at night.
+  description: Eight subway lines meet under the park at 14th Street. Find the corner to name on Greenmarket days and which lines skip this stop late at night.
 image:
   file_name: union-square-subway-entrance-night.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Union_Square_%2853262425868%29.jpg/1280px-Union_Square_%2853262425868%29.jpg

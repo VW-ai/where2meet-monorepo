@@ -1,6 +1,6 @@
 ---
 title: Team meeting location ideas across Manhattan
-description: Team meeting location ideas across Manhattan, with seven rooms and restaurants in Lower Manhattan, SoHo, Union Square, NoMad and near Penn Station.
+description: Rooms and tables in Lower Manhattan, SoHo, Union Square, NoMad and by Penn Station, so a spread-out team can agree on a team meeting location.
 main_keyword: team meeting location
 occasion: team-meeting
 time: null

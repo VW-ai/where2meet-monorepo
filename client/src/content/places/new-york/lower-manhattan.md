@@ -3,10 +3,10 @@ name: Lower Manhattan
 center:
   lat: 40.7075
   lng: -74.0119
-updated_at: 2026-10-13
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in Lower Manhattan
-  description: Where to meet up in Lower Manhattan, around Fulton St, the World Trade Center and the Financial District, with PATH, ferry and late-night subway notes.
+  description: Name Fulton St, the Oculus or Stone Street in your plan. This page lists the subway lines, PATH trains and free ferry that reach the island's tip.
 image:
   file_name: oculus-world-trade-center-hall.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Oculus_World_Trade_Center_-_August_18_2016.jpg/1280px-Oculus_World_Trade_Center_-_August_18_2016.jpg

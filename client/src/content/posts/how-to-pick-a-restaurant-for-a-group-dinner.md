@@ -1,6 +1,6 @@
 ---
 title: Group dinner spots in Lower Manhattan
-description: Group dinner spots in Lower Manhattan, with eight restaurants and bars near Fulton St, Wall St and Stone Street, and how everyone gets home after.
+description: For a group dinner downtown, eight restaurants and bars near Fulton St and Stone Street, from pizza to steak, and how to book a table for a big group.
 main_keyword: group dinner
 occasion: group-dinner
 time: after-work

@@ -1,6 +1,6 @@
 ---
 title: Where to celebrate graduation in downtown NYC
-description: Where to celebrate graduation in Lower Manhattan, with eight restaurants and rooftops near the subway, plus booking tips for families and the late trains.
+description: Plan two stops after the ceremony, a family meal in Tribeca and a rooftop for the graduates. Eight picks show where to celebrate graduation downtown.
 main_keyword: where to celebrate graduation
 occasion: graduation-celebration
 time: null

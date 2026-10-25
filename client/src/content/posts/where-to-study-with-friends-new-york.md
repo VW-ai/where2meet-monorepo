@@ -1,6 +1,6 @@
 ---
 title: Where to study with friends in New York
-description: Where to study with friends in New York, with seven Manhattan cafes good for laptops near the subway, plus their Wi-Fi, hours and late options.
+description: Seven Manhattan cafes good for laptops and near the subway, with their Wi-Fi, group tables and hours, to settle where to study with friends.
 main_keyword: where to study with friends
 occasion: study-session
 time: null

@@ -1,6 +1,6 @@
 ---
 title: Where to go on a date near Union Square
-description: Where to go on a date near Union Square, with eight cafes, bars and restaurants a short walk from eight subway lines, plus the trains that run late.
+description: Pick a first coffee, a cocktail bar or a booked dinner by the 14 St-Union Sq station. Eight places show where to go on a date, plus a backup nearby.
 main_keyword: where to go on a date
 occasion: date-night
 time: null

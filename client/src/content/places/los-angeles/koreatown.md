@@ -3,10 +3,10 @@ name: Koreatown
 center:
   lat: 34.0618
   lng: -118.3005
-updated_at: 2026-10-23
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in Koreatown
-  description: Where to meet up in Koreatown, LA, near the Wiltern and Wilshire Boulevard, with the D Line stations, the all-night Line 20 bus and parking tips.
+  description: Plan Korean barbecue, karaoke or coffee near the three D Line stations on Wilshire Boulevard. There's no station parking, but Line 20 runs there all night.
 image:
   file_name: koreatown-aerial-view-los-angeles.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Los-Angeles-Koreatown-Aerial-view-from-south-August-2014.jpg/1280px-Los-Angeles-Koreatown-Aerial-view-from-south-August-2014.jpg

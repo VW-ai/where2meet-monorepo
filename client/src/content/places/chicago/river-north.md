@@ -3,10 +3,10 @@ name: River North
 center:
   lat: 41.8925
   lng: -87.6340
-updated_at: 2026-10-23
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in River North
-  description: Where to meet up in River North, near the Merchandise Mart and Marina City, with the Red, Brown and Purple Line stations and their late-night hours.
+  description: Restaurants, bars and galleries north of the river suit a group dinner. Meet at the Merchandise Mart or Marina City, near the Red, Brown and Purple lines.
 image:
   file_name: merchandise-mart-chicago-river-north.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Chicago_%28ILL%29%2C_Near_North_Side%2C_Merchandise_Mart%2C_1930_%284824759645%29.jpg/1280px-Chicago_%28ILL%29%2C_Near_North_Side%2C_Merchandise_Mart%2C_1930_%284824759645%29.jpg

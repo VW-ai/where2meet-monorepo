@@ -1,6 +1,6 @@
 ---
 title: Free indoor basketball courts near me in NYC
-description: Find free indoor basketball courts near me in Manhattan, with six NYC Parks gyms that are free under 25, their hours, stations and how to join.
+description: Six NYC Parks gyms in Manhattan have an indoor court, free for players under 25. See their hours, nearest stations, adult prices and how to sign up.
 main_keyword: basketball courts near me
 occasion: pickup-basketball
 time: null

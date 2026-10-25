@@ -3,10 +3,10 @@ name: Midtown
 center:
   lat: 40.7547
   lng: -73.9842
-updated_at: 2026-10-13
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in Midtown Manhattan
-  description: Where to meet up in Midtown Manhattan near Times Square, Bryant Park or Grand Central, with the trains that still run late at night and on weekends.
+  description: Three stations serve 18 subway lines on weekdays. Pick a landmark like Bryant Park or the TKTS steps, and check which lines stop running on weekends.
 image:
   file_name: times-square-tkts-red-steps-midtown.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/TKTS_red_stairs_jeh.JPG/1280px-TKTS_red_stairs_jeh.JPG

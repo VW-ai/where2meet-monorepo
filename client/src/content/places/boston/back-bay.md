@@ -3,10 +3,10 @@ name: Back Bay
 center:
   lat: 42.3503
   lng: -71.0790
-updated_at: 2026-10-23
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in Back Bay
-  description: Where to meet up in Back Bay, around Copley Square, Newbury Street and the Prudential Center, with the Green and Orange Line stops and late trains.
+  description: Trinity Church's plaza at Copley Square and Newbury Street are easy to find, a short Green Line ride from Park Street, with the Orange Line nearby.
 image:
   file_name: copley-square-trinity-church-back-bay.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Copley_Square_Park_August_2026_1.jpg/1280px-Copley_Square_Park_August_2026_1.jpg

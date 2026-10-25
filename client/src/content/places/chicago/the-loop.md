@@ -3,10 +3,10 @@ name: The Loop
 center:
   lat: 41.8826
   lng: -87.6278
-updated_at: 2026-10-23
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in the Loop
-  description: Where to meet up in Chicago's Loop, from the Chicago Theatre to Millennium Park, with the 'L' stations, the all-night lines and the Metra terminals.
+  description: Cloud Gate, the Picasso and the Chicago Theatre marquee are easy to name in a plan. Clark/Lake has six lines, and the Red and Blue lines run all night.
 image:
   file_name: chicago-theatre-marquee-state-street-loop.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/State_Street_and_Chicago_Theater_Marquee.jpg/1280px-State_Street_and_Chicago_Theater_Marquee.jpg

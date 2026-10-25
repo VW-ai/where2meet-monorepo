@@ -1,6 +1,6 @@
 ---
 title: Weekend hangout spots on the Upper West Side
-description: Weekend hangout spots on the Upper West Side, with eight places to eat, drink and spend a rainy afternoon, plus the trains that change on weekends.
+description: Brunch, a museum if it rains and a bar to end on. Eight places near the 1, 2, 3 and C make a full weekend hangout for a small group of friends.
 main_keyword: weekend hangout
 occasion: weekend-hangout
 time: weekend-afternoon

@@ -1,6 +1,6 @@
 ---
 title: Date night bars in Manhattan
-description: Date night bars in Manhattan a few minutes from the subway, including a 64th-floor cocktail bar and two jazz clubs, with hours and the late trains home.
+description: Eight date night bars near the subway in Midtown, downtown and uptown, including two jazz clubs, with which ones take bookings and when each closes.
 main_keyword: date night bars
 occasion: date-night
 time: null

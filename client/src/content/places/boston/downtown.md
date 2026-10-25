@@ -3,10 +3,10 @@ name: Downtown Boston
 center:
   lat: 42.3572
   lng: -71.0593
-updated_at: 2026-10-23
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in Downtown Boston
-  description: Where to meet up in Downtown Boston, from Downtown Crossing and the Common to Faneuil Hall, with the T stations to use and when the last trains leave.
+  description: Park Street, Downtown Crossing, State and Government Center each have a different mix of T lines. Pick the one your group rides and a corner to name.
 image:
   file_name: downtown-crossing-franklin-street-entrance-boston.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Downtown_Crossing_%22Franklin_Steps%22_entrance_April_2025.jpg/1280px-Downtown_Crossing_%22Franklin_Steps%22_entrance_April_2025.jpg

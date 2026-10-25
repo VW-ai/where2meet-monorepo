@@ -5,10 +5,10 @@ country: US
 center:
   lat: 41.8811
   lng: -87.6297
-updated_at: 2026-10-23
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in Chicago
-  description: Where to meet up in Chicago, with the Loop and nearby areas on the 'L', the two lines that run all night, and the Metra stations downtown.
+  description: Most 'L' lines run through the Loop, so one downtown station often serves a whole group. Compare four areas, the all-night Red and Blue lines and Metra.
 image:
   file_name: millennium-park-michigan-avenue-chicago-loop.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Millennium_Park%2C_Chicago%2C_United_States_%28Unsplash%29.jpg/1280px-Millennium_Park%2C_Chicago%2C_United_States_%28Unsplash%29.jpg

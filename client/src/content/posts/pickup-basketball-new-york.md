@@ -1,6 +1,6 @@
 ---
 title: Where to play pickup basketball in New York
-description: Where to play pickup basketball in New York, with seven outdoor courts near the subway in Lower Manhattan, plus a rain backup and the trains home.
+description: Seven outdoor courts on the Lower East Side and by the Hudson for pickup basketball, matched to the lines players ride, with a backup when it rains.
 main_keyword: pickup basketball
 occasion: pickup-basketball
 time: null

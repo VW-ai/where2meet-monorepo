@@ -5,10 +5,10 @@ country: US
 center:
   lat: 40.7128
   lng: -74.0061
-updated_at: 2026-10-13
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in New York City
-  description: Where to meet up in New York City, with the Manhattan areas and stations where many subway lines stop, and the trains that change late at night.
+  description: Four Manhattan areas where many subway lines stop, plus the PATH, LIRR and ferry links and what changes after 11 p.m., with guides for each area.
 image:
   file_name: brooklyn-bridge-lower-manhattan-skyline.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Brooklyn_Bridge_and_Manhattan%2C_New_York_City%2C_20231005_1101_2190.jpg/1280px-Brooklyn_Bridge_and_Manhattan%2C_New_York_City%2C_20231005_1101_2190.jpg

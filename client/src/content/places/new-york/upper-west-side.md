@@ -3,10 +3,10 @@ name: Upper West Side
 center:
   lat: 40.787
   lng: -73.975
-updated_at: 2026-10-13
+updated_at: 2026-10-25
 seo:
   title: Where to meet up on the Upper West Side
-  description: Where to meet up on the Upper West Side, from Lincoln Center to the Museum of Natural History, with the Broadway and Central Park West trains and buses.
+  description: Lincoln Center, the Museum of Natural History and Columbus Circle make good meeting points, with the Broadway and Central Park West lines and buses.
 image:
   file_name: west-72nd-street-subway-control-house.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/W72_IRT_old_control_house_jeh.JPG/1280px-W72_IRT_old_control_house_jeh.JPG

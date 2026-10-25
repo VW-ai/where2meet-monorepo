@@ -3,10 +3,10 @@ name: Financial District
 center:
   lat: 37.7946
   lng: -122.3985
-updated_at: 2026-10-23
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in the Financial District
-  description: Where to meet up in San Francisco's Financial District, near the Ferry Building and the Embarcadero, with the BART, Muni and cable car lines there.
+  description: The Ferry Building, Embarcadero Center and the Salesforce Transit Center park make easy meeting points, each near a BART and Muni station on Market Street.
 image:
   file_name: ferry-building-tower-commercial-street-financial-district.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/San_Francisco_Commercial_Street_and_Ferry_Building_2021-11-17.jpg/1280px-San_Francisco_Commercial_Street_and_Ferry_Building_2021-11-17.jpg

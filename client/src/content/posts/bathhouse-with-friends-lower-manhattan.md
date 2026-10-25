@@ -1,6 +1,6 @@
 ---
 title: Bathhouse with friends in Lower Manhattan
-description: Plan a bathhouse with friends in Lower Manhattan, with six saunas, baths and spas near the subway, plus booking tips for groups and the late trains home.
+description: Six saunas, thermal baths and spas from Fulton Street to Canal Street for a bathhouse with friends, with walk-in rules, group rooms and what to book.
 main_keyword: bathhouse with friends
 occasion: bathhouse-visit
 time: null

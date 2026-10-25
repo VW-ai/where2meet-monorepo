@@ -3,10 +3,10 @@ name: Wicker Park
 center:
   lat: 41.9085
   lng: -87.6775
-updated_at: 2026-10-23
+updated_at: 2026-10-25
 seo:
   title: Where to meet up in Wicker Park
-  description: Where to meet up in Wicker Park, around the corner of North, Damen and Milwaukee, with the Blue Line stops at Damen and Division that run all night.
+  description: Meet at the six-way corner of North, Damen and Milwaukee, by the park or at the 606. Two Blue Line stations here run all night, to downtown or O'Hare.
 image:
   file_name: milwaukee-damen-corner-wicker-park-chicago.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Wicker_Park%2C_Chicago.jpg/1280px-Wicker_Park%2C_Chicago.jpg
