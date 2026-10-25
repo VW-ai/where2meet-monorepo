@@ -31,8 +31,17 @@ export async function loadPostHog() {
     defaults: '2026-08-30',
     disable_surveys: true,
     capture_dead_clicks: false,
+    // scopeReplayTo() turns replay on for meeting pages.
+    disable_session_recording: true,
   });
   const { calls } = state;
   state = { status: 'ready', posthog };
   calls.forEach((call) => call(posthog));
+}
+
+export function scopeReplayTo(pathname: string) {
+  withPostHog((posthog) => {
+    if (pathname.startsWith('/meet/')) posthog.startSessionRecording();
+    else posthog.stopSessionRecording();
+  });
 }
