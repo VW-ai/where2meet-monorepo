@@ -45,7 +45,14 @@ export function captureEvent(event: string, properties?: Properties) {
 
 export async function loadPostHog() {
   if (state.status !== 'queued') return;
-  const { default: posthog } = await import('posthog-js');
+  let posthog: PostHog;
+  try {
+    ({ default: posthog } = await import('posthog-js'));
+  } catch {
+    // An ad blocker or a failed chunk load. Drop the queue and stay off for this page view.
+    state = { status: 'off' };
+    return;
+  }
   if (state.status !== 'queued') return;
   posthog.init(state.key, {
     // Same-origin proxy (rewrites in next.config.js) so ad blockers don't drop events.
