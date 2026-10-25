@@ -135,12 +135,12 @@ describe('repo places', () => {
 });
 
 describe('More from the blog', () => {
-  it('links every post from at least 2 others, or from every other post when there are fewer than 3', () => {
+  it('links every post from at least one other, through the slot relatedPosts keeps for the next slug', () => {
     const inbound = new Map(catalog.posts.map(({ slug }) => [slug, 0]));
     for (const post of catalog.posts) {
       for (const { slug } of relatedPosts(catalog, post)) inbound.set(slug, inbound.get(slug)! + 1);
     }
-    const floor = Math.min(2, catalog.posts.length - 1);
+    const floor = Math.min(1, catalog.posts.length - 1);
     const below = [...inbound].filter(([, links]) => links < floor);
     expect(below, JSON.stringify(Object.fromEntries(inbound))).toEqual([]);
   });

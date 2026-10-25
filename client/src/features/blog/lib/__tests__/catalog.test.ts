@@ -137,6 +137,25 @@ describe('blog catalog', () => {
     ]);
   });
 
+  it('gives the last slot to the next slug after the post, skipping one already chosen, so every post gets a link', () => {
+    const lunch = post('new-york/midtown/a-team-welcome-lunch-in-bryant-park');
+    const dinner = post('new-york/group-dinner-spots-near-herald-square');
+    const posts = [
+      { ...lunch, slug: 'a-lunch' },
+      { ...lunch, slug: 'b-lunch' },
+      { ...dinner, slug: 'c-dinner' },
+      { ...lunch, slug: 'd-lunch' },
+      { ...lunch, slug: 'e-lunch' },
+      { ...lunch, slug: 'f-lunch' },
+    ];
+    const lunches = { ...catalog, posts };
+    const slugs = (from: (typeof posts)[number]) =>
+      relatedPosts(lunches, from).map(({ slug }) => slug);
+    expect(slugs(posts[0])).toEqual(['b-lunch', 'd-lunch', 'e-lunch', 'c-dinner']);
+    expect(slugs(posts[1])).toEqual(['d-lunch', 'e-lunch', 'f-lunch', 'c-dinner']);
+    expect(slugs(posts[5])).toEqual(['a-lunch', 'b-lunch', 'd-lunch', 'c-dinner']);
+  });
+
   it('counts a place as shared only from the city down', () => {
     const midtownLunch = post('new-york/midtown/a-team-welcome-lunch-in-bryant-park');
     const [city, town] = midtownLunch.areas;

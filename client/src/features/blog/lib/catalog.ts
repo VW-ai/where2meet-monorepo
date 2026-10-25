@@ -254,6 +254,7 @@ export function areaPosts(catalog: Catalog, { city, town }: AreaPage): Post[] {
 
 /** What a related post scores for each thing it shares with the post. An area scores once per shared level. */
 const RELATED_POINTS = { occasion: 4, venueType: 2, areaLevel: 1 } as const;
+const RELATED_POSTS = 4;
 
 function relatedness(post: Post, other: Post): number {
   // Areas match from the city down, so two cities' "downtown" towns don't count as the same place.
@@ -272,18 +273,23 @@ function relatedness(post: Post, other: Post): number {
 }
 
 /**
- * The posts that share the most with `post`. A tie goes to the next slug in alphabetical order after
- * `post`'s, wrapping around, so each post fills its spare slots with different posts and a new post
- * doesn't take every page's spare slot.
+ * The posts that share the most with `post`, ties going to the next slug in alphabetical order after
+ * `post`'s, wrapping around. The last slot always goes to the first post in that order that isn't
+ * already chosen. So each post's alphabetical predecessor links it, and every post gets at least one link
+ * however many posts share more with the others.
  */
-export function relatedPosts(catalog: Catalog, post: Post, limit = 4): Post[] {
+export function relatedPosts(catalog: Catalog, post: Post): Post[] {
   const ring = catalog.posts.map(({ slug }) => slug).toSorted();
   const start = ring.indexOf(post.slug);
   const after = (other: Post) => (ring.indexOf(other.slug) - start + ring.length) % ring.length;
-  return catalog.posts
+  const inRingOrder = catalog.posts
     .filter((other) => other !== post)
-    .map((other) => ({ other, points: relatedness(post, other), after: after(other) }))
-    .toSorted((a, b) => b.points - a.points || a.after - b.after)
-    .slice(0, limit)
+    .toSorted((a, b) => after(a) - after(b));
+  const best = inRingOrder
+    .map((other) => ({ other, points: relatedness(post, other) }))
+    .toSorted((a, b) => b.points - a.points)
+    .slice(0, RELATED_POSTS - 1)
     .map(({ other }) => other);
+  const next = inRingOrder.find((other) => !best.includes(other));
+  return next ? [...best, next] : best;
 }

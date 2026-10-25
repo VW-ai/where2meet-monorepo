@@ -66,7 +66,7 @@ Places claim before posts because a dropped place takes its towns and posts with
 
 ## Posts
 
-A post is one file, `src/content/posts/<slug>.md`. The site builds every post with one template: the title, the byline with the published and updated dates, the cover with its credit, the body, the place cards, the call to action, and up to 4 related posts. A related post scores 4 points for a shared occasion, 2 for a shared venue type and 1 for each level of place it shares, the city and then the town. The 4 highest show. A tie goes to the next slug in alphabetical order after the post's own, wrapping around, so the newest post doesn't take every page's spare slot.
+A post is one file, `src/content/posts/<slug>.md`. The site builds every post with one template: the title, the byline with the published and updated dates, the cover with its credit, the body, the place cards, the call to action, and up to 4 related posts. A related post scores 4 points for a shared occasion, 2 for a shared venue type and 1 for each level of place it shares, the city and then the town. The 3 highest show first, and a tie goes to the next slug in alphabetical order after the post's own, wrapping around. The fourth slot always goes to the first post in that order that isn't already shown. So every post is linked from the post just before it in alphabetical order, whatever the other posts share.
 
 ### Name the file
 
