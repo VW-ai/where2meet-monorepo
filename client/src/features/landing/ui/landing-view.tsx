@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,7 +20,7 @@ import { browserTimeZone } from '@/shared/lib/meeting-times';
 import { missingDetailsMessage } from '@/features/landing/lib/meeting-draft';
 import { HOME_OCCASIONS } from '@/features/landing/lib/occasions';
 
-export function LandingView() {
+export function LandingView({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const [title, setTitle] = useState('');
@@ -218,8 +218,9 @@ export function LandingView() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-8 lg:max-w-5xl lg:justify-center lg:px-8 lg:py-10">
-        <div className="lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-10">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-8 lg:max-w-5xl lg:px-8 lg:py-10">
+        {/* On wide screens the form fills the first view, so the sections below it start under the fold. */}
+        <div className="lg:grid lg:min-h-[calc(100svh-10rem)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:content-center lg:items-stretch lg:gap-10">
           <div className="flex flex-col">
             <h1
               data-leave="140"
@@ -292,6 +293,8 @@ export function LandingView() {
             <StoryPreview />
           </div>
         </div>
+
+        {children}
       </main>
 
       <footer className="mx-auto w-full max-w-xl px-4 py-6 lg:max-w-5xl lg:px-8" data-leave="0">
