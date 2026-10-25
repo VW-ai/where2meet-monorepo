@@ -499,6 +499,19 @@ describe('checkContent on a post', () => {
       ]);
       expect(check([example, withHowTo(other, DOWNTOWN_STEPS)])).toEqual([]);
     });
+
+    it('compares a post saved with CRLF line endings too', () => {
+      const crlf = withHowTo(other, DOWNTOWN_STEPS);
+      expect(
+        check([
+          withHowTo(example, MIDTOWN_STEPS),
+          { ...crlf, text: crlf.text.replaceAll('\n', '\r\n') },
+        ]).filter((line) => line.includes('how-to-similarity'))
+      ).toEqual([
+        `${FILE}: how-to-similarity: the "How to do it in Where2Meet" section is 95 percent the same as the one in ${OTHER}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
+        `${OTHER}: how-to-similarity: the "How to do it in Where2Meet" section is 95 percent the same as the one in ${FILE}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
+      ]);
+    });
   });
 
   it('needs updated_at on or after published_at', () => {

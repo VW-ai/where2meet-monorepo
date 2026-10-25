@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { titleEcho, wordSimilarity } from '../repetition';
+import { howToWords, titleEcho, wordSimilarity } from '../repetition';
 
 /** Each sitemap page's title and description in the 2026-10-22 SEO audit's `parsed.json`. */
 const AUDITED_PAGES: [path: string, title: string, description: string][] = [
@@ -145,6 +145,26 @@ describe('titleEcho', () => {
     expect(
       titleEcho('How to plan a team welcome lunch', 'Sample post: pick a team welcome lunch spot.')
     ).toBeNull();
+  });
+});
+
+describe('titleEcho on a title under 4 words', () => {
+  it('flags only a description that starts with the whole title', () => {
+    expect(titleEcho('Pickleball', 'Pickleball at six courts near the subway.')).toBe('pickleball');
+    expect(titleEcho('Pickleball', 'Play pickleball at six courts near the subway.')).toBeNull();
+    expect(titleEcho('Date night bars', 'Date night bars near the subway.')).toBe(
+      'date night bars'
+    );
+    expect(titleEcho('Date night bars', 'Eight date night bars near the subway.')).toBeNull();
+  });
+});
+
+describe('howToWords', () => {
+  it('reads the section the same with CRLF or LF line endings', () => {
+    const post =
+      'Intro.\n\n## How to do it in Where2Meet\n\nShare the [link](/) today.\n\n## Common questions\n\nA question.\n';
+    expect(howToWords(post)).toEqual(['share', 'the', 'link', 'today.']);
+    expect(howToWords(post.replaceAll('\n', '\r\n'))).toEqual(['share', 'the', 'link', 'today.']);
   });
 });
 
