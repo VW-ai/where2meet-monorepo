@@ -299,6 +299,8 @@ describe('checkContent on a post', () => {
       expect(check([example, other])).toEqual([
         'src/content/posts/group-dinner-in-brooklyn.md: fields: images[0]: file_name "west-32nd-street-koreatown-manhattan.jpg" is already used',
         'src/content/posts/group-dinner-in-brooklyn.md: images: the post has 2 usable images; it needs at least 3, a cover and two for the body',
+        `${FILE}: how-to-similarity: the "How to do it in Where2Meet" section is 100 percent the same as the one in src/content/posts/group-dinner-in-brooklyn.md, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
+        `src/content/posts/group-dinner-in-brooklyn.md: how-to-similarity: the "How to do it in Where2Meet" section is 100 percent the same as the one in ${FILE}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
       ]);
     });
   });

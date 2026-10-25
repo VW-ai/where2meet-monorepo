@@ -10,6 +10,7 @@ Owner decisions:
 - 2026-10-13. The 4 original posts are Markdown local posts under New York towns, without their widgets. Each kept its slug and moved to `/blog/new-york/<town>/<slug>`, and its old URL redirects there permanently so search engines keep its ranking. The same day the owner asked that every local post suggest 6 to 8 real places, mostly restaurants, cafes and bars that fit the occasion.
 - 2026-10-14. This replaces the 2026-10-13 rule of mostly restaurants, cafes and bars. A local post's place cards are its list of picks, and the body doesn't repeat them. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks.
 - 2026-10-16. A place note says why the place fits the occasion and gives a planning detail, in plain facts. It never names Google. The post names its source once, in one sentence on the line after `:::places`. At most 2 notes in a post start with the same word.
+- 2026-10-25. A description opens with what the reader gets, never with its title's words. A post's "How to do it in Where2Meet" section is two or three sentences written for that post, not steps shared with other posts.
 
 ## Make a change
 
@@ -78,7 +79,7 @@ The file starts with YAML front matter between two `---` lines. The Markdown bod
 ```markdown
 ---
 title: How to pick a coffee meeting spot across town
-description: Pick a coffee meeting spot that is quick for both of you to reach, has room to sit and talk, and stays open late enough for a weekday catch-up.
+description: A cafe that is quick for both of you to reach, with room to sit and talk and open late on weekdays, makes a good coffee meeting spot.
 main_keyword: coffee meeting spot
 occasion: coffee-catch-up
 time: weekday-lunch
@@ -112,7 +113,7 @@ A coffee meeting spot works when both of you can reach it in about the same time
 | Field                                        | Value                                                                                                                                                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `title`                                      | The h1 and the SEO title. With " \| Where2Meet" it is at most 60 characters.                                                                                                                                          |
-| `description`                                | 120 to 155 characters.                                                                                                                                                                                                |
+| `description`                                | 120 to 155 characters, not opening with the title's words.                                                                                                                                                            |
 | `main_keyword`                               | A phrase from `src/content/keywords.yaml` that no other post targets. It appears in the title and in the first two sentences of the body.                                                                             |
 | `occasion`                                   | A key from `occasions` in `src/content/taxonomy.yaml`.                                                                                                                                                                |
 | `time`, `venue_type`, `group_size`, `budget` | A key from that file's `times`, `venue_types`, `group_sizes` or `budgets`, or `null`.                                                                                                                                 |
@@ -230,21 +231,22 @@ Every file gets the `fields` rule. It fails when the file doesn't parse, when a 
 
 A post gets these rules:
 
-| Rule            | What it wants                                                                                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `word-count`    | 700 to 1,000 words for a general post, or 400 to 800 for a local post. A link counts its text, not its URL.                                                               |
-| `places`        | At least 6 places, and each note has at least 12 words.                                                                                                                   |
-| `note-source`   | No place note names Google, as in "per Google" or "Google lists". The body may name the source once.                                                                      |
-| `note-openings` | At most 2 place notes start with the same word, with "A" and "An" counted as one.                                                                                         |
-| `images`        | At least 3 usable images, and every `![](<file_name>)` line names a listed image.                                                                                         |
-| `image-size`    | Each `source_url` answers a HEAD request with 200, `image/jpeg` and a size of at most 2,000,000 bytes.                                                                    |
-| `title`         | The title with " \| Where2Meet" is at most 60 characters.                                                                                                                 |
-| `description`   | The description is 120 to 155 characters.                                                                                                                                 |
-| `main-keyword`  | `main_keyword` is a phrase in `keywords.yaml`, and the title and the body's first two sentences say it as whole words. Headings, photo lines and `:::places` are skipped. |
-| `headings`      | The body has `## How to do it in Where2Meet` and `## Common questions`.                                                                                                   |
-| `wording`       | No word starting with "fair" and no "meet in the middle", in the title, description, body, place notes, alt text or captions.                                             |
-| `style`         | No em dash, en dash or curly quote in the same fields.                                                                                                                    |
-| `dates`         | `updated_at` is on or after `published_at`.                                                                                                                               |
+| Rule                | What it wants                                                                                                                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `word-count`        | 700 to 1,000 words for a general post, or 400 to 800 for a local post. A link counts its text, not its URL.                                                                              |
+| `places`            | At least 6 places, and each note has at least 12 words.                                                                                                                                  |
+| `note-source`       | No place note names Google, as in "per Google" or "Google lists". The body may name the source once.                                                                                     |
+| `note-openings`     | At most 2 place notes start with the same word, with "A" and "An" counted as one.                                                                                                        |
+| `images`            | At least 3 usable images, and every `![](<file_name>)` line names a listed image.                                                                                                        |
+| `image-size`        | Each `source_url` answers a HEAD request with 200, `image/jpeg` and a size of at most 2,000,000 bytes.                                                                                   |
+| `title`             | The title with " \| Where2Meet" is at most 60 characters.                                                                                                                                |
+| `description`       | The description is 120 to 155 characters, and no 4 words in a row from the title start within its first 3 words. Words follow the 2026-10-22 SEO audit's pattern.                        |
+| `main-keyword`      | `main_keyword` is a phrase in `keywords.yaml`, and the title and the body's first two sentences say it as whole words. Headings, photo lines and `:::places` are skipped.                |
+| `headings`          | The body has `## How to do it in Where2Meet` and `## Common questions`.                                                                                                                  |
+| `how-to-similarity` | No other post's How-to section is more than 60 percent the same, word by word, by Python's `difflib.SequenceMatcher` ratio as the audit scored it. Both posts of a pair get the problem. |
+| `wording`           | No word starting with "fair" and no "meet in the middle", in the title, description, body, place notes, alt text or captions.                                                            |
+| `style`             | No em dash, en dash or curly quote in the same fields.                                                                                                                                   |
+| `dates`             | `updated_at` is on or after `published_at`.                                                                                                                                              |
 
 A city or a town gets these rules:
 
@@ -255,7 +257,7 @@ A city or a town gets these rules:
 | `image`          | The page has an image.                                                                                              |
 | `image-size`     | As for posts.                                                                                                       |
 | `title`          | The SEO title with " \| Where2Meet" is at most 60 characters.                                                       |
-| `description`    | The SEO description is 120 to 155 characters.                                                                       |
+| `description`    | As for posts, with the SEO title and description.                                                                   |
 | `wording`        | As for posts, in the SEO title and description, the intro, the transit notes, and the image's alt text and caption. |
 | `style`          | As for posts, in the same fields.                                                                                   |
 
