@@ -29,7 +29,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               'w-full px-4 py-3.5 rounded-2xl',
               'border-2 border-gray-200',
               'transition-all duration-200',
-              'placeholder:text-gray-400',
+              'placeholder:text-gray-500',
               'disabled:bg-gray-50 disabled:cursor-not-allowed',
               'text-gray-900 font-medium',
 

@@ -3,15 +3,14 @@
 interface ActionButtonsProps {
   onCreateEvent: () => void;
   isLoading: boolean;
-  disabled: boolean;
 }
 
-export function ActionButtons({ onCreateEvent, isLoading, disabled }: ActionButtonsProps) {
+export function ActionButtons({ onCreateEvent, isLoading }: ActionButtonsProps) {
   return (
     <div className="mt-5">
       <button
         onClick={onCreateEvent}
-        disabled={disabled || isLoading}
+        disabled={isLoading}
         className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-[#c83f49] px-4 text-[15px] font-semibold text-white transition-colors hover:bg-[#b73540] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b73540] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isLoading ? (
