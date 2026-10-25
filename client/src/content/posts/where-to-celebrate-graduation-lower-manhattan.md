@@ -1,6 +1,6 @@
 ---
 title: Where to celebrate graduation in downtown NYC
-description: Plan two stops after the ceremony, a family meal in Tribeca and a rooftop for the graduates. Eight picks show where to celebrate graduation downtown.
+description: Families and graduates want different things after the ceremony. Book lunch in Tribeca, then rooftop drinks, with tips on where to celebrate graduation.
 main_keyword: where to celebrate graduation
 occasion: graduation-celebration
 time: null
@@ -118,7 +118,7 @@ Check the trains home before the night ends. Late at night, the 3, 5 and C don't
 
 ## How to do it in Where2Meet
 
-Name the plan **Graduation celebration** on [Where2Meet](/), send the link to the family chat, and add the grandparents' starting point yourself. Compare routes to Paros, Skinos and Il Brigante for relatives who can't walk far, then vote on lunch. The organizer picks the restaurant and books a table for about two hours after the ceremony ends.
+Name the plan **Graduation celebration** on [Where2Meet](/), send the link to the family chat, and add the grandparents' starting point yourself. For relatives who can't walk far, compare routes to Paros and Osteria Carlina, each about a 1-minute walk from Franklin St, then vote on the meal. The organizer picks the restaurant and books a table for about two hours after the ceremony ends.
 
 ## Common questions
 

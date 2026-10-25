@@ -1,6 +1,6 @@
 ---
 title: Where to hold a team meeting in Midtown
-description: A room with a door, a client lunch or one big table. Eight Midtown picks by Grand Central and Times Square show where to hold a team meeting.
+description: Book a room with a door, a client lunch or one big table near Grand Central, and let the stations your team rides decide where to hold a team meeting.
 main_keyword: where to hold a team meeting
 occasion: team-meeting
 time: null

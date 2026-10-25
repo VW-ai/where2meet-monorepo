@@ -1,6 +1,6 @@
 ---
 title: Where to go on a date near Union Square
-description: Pick a first coffee, a cocktail bar or a booked dinner by the 14 St-Union Sq station. Eight places show where to go on a date, plus a backup nearby.
+description: Whether it's a first coffee or an anniversary dinner, eight places near the 14 St-Union Sq station cover where to go on a date, with a backup nearby.
 main_keyword: where to go on a date
 occasion: date-night
 time: null
