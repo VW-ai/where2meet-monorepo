@@ -5,7 +5,7 @@ country: US
 center:
   lat: 41.8811
   lng: -87.6297
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Chicago
   description: Most 'L' lines run through the Loop, so one downtown station often serves a whole group. Compare four areas, the all-night Red and Blue lines and Metra.

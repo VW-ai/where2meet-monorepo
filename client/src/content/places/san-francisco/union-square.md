@@ -3,7 +3,7 @@ name: Union Square
 center:
   lat: 37.7879
   lng: -122.4074
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Union Square
   description: Meet on the plaza's Powell Street steps or at the cable car turnaround. Powell St has BART and Muni Metro below, and the 38 Geary runs around the clock.

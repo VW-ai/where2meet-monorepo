@@ -3,7 +3,7 @@ name: Downtown Boston
 center:
   lat: 42.3572
   lng: -71.0593
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Downtown Boston
   description: Park Street, Downtown Crossing, State and Government Center each have a different mix of T lines. Pick the one your group rides and a corner to name.

@@ -5,7 +5,7 @@ country: US
 center:
   lat: 34.05
   lng: -118.25
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Los Angeles
   description: The drive often decides a Los Angeles plan. Pick a spot on Metro Rail with parking nearby, in Downtown, Koreatown, Hollywood, Pasadena or Santa Monica.

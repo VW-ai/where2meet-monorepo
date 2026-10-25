@@ -5,7 +5,7 @@ country: US
 center:
   lat: 40.7128
   lng: -74.0061
-updated_at: 2026-10-25
+updated_at: 2026-10-13
 seo:
   title: Where to meet up in New York City
   description: Four Manhattan areas where many subway lines stop, plus the PATH, LIRR and ferry links and what changes after 11 p.m., with guides for each area.

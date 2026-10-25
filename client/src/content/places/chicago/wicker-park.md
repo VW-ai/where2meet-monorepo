@@ -3,7 +3,7 @@ name: Wicker Park
 center:
   lat: 41.9085
   lng: -87.6775
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Wicker Park
   description: Meet at the six-way corner of North, Damen and Milwaukee, by the park or at the 606. Two Blue Line stations here run all night, to downtown or O'Hare.

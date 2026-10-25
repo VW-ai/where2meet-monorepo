@@ -5,7 +5,7 @@ country: US
 center:
   lat: 42.3555
   lng: -71.0602
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Boston
   description: Groups from Cambridge, Somerville and the South Shore meet downtown. See the five areas people pick, the T transfer stations and when the subway stops.

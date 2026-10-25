@@ -3,7 +3,7 @@ name: River North
 center:
   lat: 41.8925
   lng: -87.6340
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in River North
   description: Restaurants, bars and galleries north of the river suit a group dinner. Meet at the Merchandise Mart or Marina City, near the Red, Brown and Purple lines.

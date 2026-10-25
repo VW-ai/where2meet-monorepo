@@ -3,7 +3,7 @@ name: Lower Manhattan
 center:
   lat: 40.7075
   lng: -74.0119
-updated_at: 2026-10-25
+updated_at: 2026-10-13
 seo:
   title: Where to meet up in Lower Manhattan
   description: Name Fulton St, the Oculus or Stone Street in your plan. This page lists the subway lines, PATH trains and free ferry that reach the island's tip.

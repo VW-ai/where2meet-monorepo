@@ -3,7 +3,7 @@ name: Mission District
 center:
   lat: 37.7599
   lng: -122.4148
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in the Mission District
   description: Dolores Park on a sunny weekend or dinner on Valencia Street. Pick the nearer of two BART stations, eight blocks apart, and the buses that run all night.

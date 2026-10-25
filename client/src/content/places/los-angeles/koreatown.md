@@ -3,7 +3,7 @@ name: Koreatown
 center:
   lat: 34.0618
   lng: -118.3005
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Koreatown
   description: Plan Korean barbecue, karaoke or coffee near the three D Line stations on Wilshire Boulevard. There's no station parking, but Line 20 runs there all night.

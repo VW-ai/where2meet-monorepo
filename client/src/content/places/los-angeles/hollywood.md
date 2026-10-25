@@ -3,7 +3,7 @@ name: Hollywood
 center:
   lat: 34.1016
   lng: -118.3310
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Hollywood
   description: Groups meet here for dinner before the Pantages, a movie at the Chinese Theatre or a night at the Bowl, near three B Line stops and parking a stop north.

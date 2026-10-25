@@ -3,7 +3,7 @@ name: Midtown
 center:
   lat: 40.7547
   lng: -73.9842
-updated_at: 2026-10-25
+updated_at: 2026-10-13
 seo:
   title: Where to meet up in Midtown Manhattan
   description: Three stations serve 18 subway lines on weekdays. Pick a landmark like Bryant Park or the TKTS steps, and check which lines stop running on weekends.

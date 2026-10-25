@@ -3,7 +3,7 @@ name: SoMa
 center:
   lat: 37.7785
   lng: -122.3990
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in SoMa
   description: Dinner before a Giants game, coffee near Moscone or a museum by Yerba Buena Gardens. Caltrain, BART and the T Third bring a group to either end of SoMa.

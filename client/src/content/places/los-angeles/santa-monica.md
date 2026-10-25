@@ -3,7 +3,7 @@ name: Santa Monica
 center:
   lat: 34.0150
   lng: -118.4935
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Santa Monica
   description: Plan a beach day or dinner on the Third Street Promenade, and check the E Line first. It's about 45 minutes from Downtown LA, with parking one stop east.

@@ -3,7 +3,7 @@ name: Financial District
 center:
   lat: 37.7946
   lng: -122.3985
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in the Financial District
   description: The Ferry Building, Embarcadero Center and the Salesforce Transit Center park make easy meeting points, each near a BART and Muni station on Market Street.

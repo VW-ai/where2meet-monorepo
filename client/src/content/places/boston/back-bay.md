@@ -3,7 +3,7 @@ name: Back Bay
 center:
   lat: 42.3503
   lng: -71.0790
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Back Bay
   description: Trinity Church's plaza at Copley Square and Newbury Street are easy to find, a short Green Line ride from Park Street, with the Orange Line nearby.

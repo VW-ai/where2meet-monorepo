@@ -3,7 +3,7 @@ name: Seaport
 center:
   lat: 42.3505
   lng: -71.0435
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Boston's Seaport
   description: No subway reaches the Seaport, so this page shows the Silver Line buses from South Station, where to meet by the harbor and when the last SL2 leaves.

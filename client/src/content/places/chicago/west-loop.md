@@ -3,7 +3,7 @@ name: West Loop
 center:
   lat: 41.8835
   lng: -87.6480
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in the West Loop
   description: Fulton Market and Randolph Street suit a group dinner, and Union Station and Ogilvie suit anyone on Metra. The Green, Pink and Blue lines stop nearby.

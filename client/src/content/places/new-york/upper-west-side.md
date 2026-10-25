@@ -3,7 +3,7 @@ name: Upper West Side
 center:
   lat: 40.787
   lng: -73.975
-updated_at: 2026-10-25
+updated_at: 2026-10-13
 seo:
   title: Where to meet up on the Upper West Side
   description: Lincoln Center, the Museum of Natural History and Columbus Circle make good meeting points, with the Broadway and Central Park West lines and buses.

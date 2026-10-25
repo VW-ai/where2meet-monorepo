@@ -5,7 +5,7 @@ country: US
 center:
   lat: 37.7881
   lng: -122.4075
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in San Francisco
   description: Four Market Street stations share BART and Muni Metro, so most groups meet near one. Compare five areas, BART's hours and the Owl buses after midnight.

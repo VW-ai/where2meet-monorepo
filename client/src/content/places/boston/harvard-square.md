@@ -3,7 +3,7 @@ name: Harvard Square
 center:
   lat: 42.3733
   lng: -71.1190
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Harvard Square
   description: Meet at the station entrance, the Harvard Yard gates or Brattle Street in Cambridge. This page covers the Red Line and the buses that stop at Harvard.

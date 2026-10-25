@@ -3,7 +3,7 @@ name: Downtown LA
 center:
   lat: 34.0485
   lng: -118.2510
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in Downtown LA
   description: Grand Central Market, Union Station and Little Tokyo are easy to find. Most Metro Rail lines cross here, and this page gives each line's last train out.

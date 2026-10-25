@@ -3,7 +3,7 @@ name: The Loop
 center:
   lat: 41.8826
   lng: -87.6278
-updated_at: 2026-10-25
+updated_at: 2026-10-23
 seo:
   title: Where to meet up in the Loop
   description: Cloud Gate, the Picasso and the Chicago Theatre marquee are easy to name in a plan. Clark/Lake has six lines, and the Red and Blue lines run all night.
