@@ -102,6 +102,9 @@
 - phrase: indoor basketball courts near me free
   occasion: pickup-basketball
   note: Rising on Google Trends in US-NY on 2026-10-20
+- phrase: free indoor basketball courts
+  occasion: pickup-basketball
+  note: Reads naturally in a title, unlike the near-me form above, added 2026-10-25
 - phrase: where to play badminton
   occasion: badminton
 - phrase: badminton courts near me
