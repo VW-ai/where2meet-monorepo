@@ -4,7 +4,7 @@
  */
 
 /** Supported venue categories mapped to Google Place types */
-export const CATEGORY_TO_PLACE_TYPE: Record<string, string> = {
+export const CATEGORY_TO_PLACE_TYPE = {
   cafe: "cafe",
   restaurant: "restaurant",
   bar: "bar",
@@ -14,7 +14,7 @@ export const CATEGORY_TO_PLACE_TYPE: Record<string, string> = {
   museum: "museum",
   shopping: "shopping_mall",
   things_to_do: "tourist_attraction",
-};
+} as const satisfies Record<string, string>;
 
 /** Supported category names */
 export type VenueCategory = keyof typeof CATEGORY_TO_PLACE_TYPE;

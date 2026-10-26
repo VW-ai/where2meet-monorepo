@@ -6,7 +6,7 @@
  */
 
 import type { PlaceResult, PlaceDetails, GeoPoint } from "../lib/places/index.js";
-import { buildPhotoUrl } from "../lib/places/index.js";
+import { providerForVenueId } from "../lib/providers/index.js";
 import {
   VenueResponseSchema,
   VenueDetailsResponseSchema,
@@ -15,6 +15,13 @@ import {
   type VenueDetailsResponse,
   type VenueSearchResponse,
 } from "../dto/venue.dto.js";
+
+/** Resolves a place's photo with the provider that issued it. */
+function photoUrlOf(place: PlaceResult): string | null {
+  return place.photoReference
+    ? providerForVenueId(place.placeId).photoUrl(place.photoReference)
+    : null;
+}
 
 /**
  * Transforms a PlaceResult to VenueResponse DTO.
@@ -34,7 +41,7 @@ export function toVenueResponse(place: PlaceResult): VenueResponse {
     userRatingsTotal: place.userRatingsTotal,
     priceLevel: place.priceLevel,
     openNow: place.openNow,
-    photoUrl: place.photoReference ? buildPhotoUrl(place.photoReference) : null,
+    photoUrl: photoUrlOf(place),
   };
 
   return VenueResponseSchema.parse(response);
@@ -58,7 +65,7 @@ export function toVenueDetailsResponse(details: PlaceDetails): VenueDetailsRespo
     userRatingsTotal: details.userRatingsTotal,
     priceLevel: details.priceLevel,
     openNow: details.openNow,
-    photoUrl: details.photoReference ? buildPhotoUrl(details.photoReference) : null,
+    photoUrl: photoUrlOf(details),
     formattedPhoneNumber: details.formattedPhoneNumber,
     website: details.website,
     openingHours: details.openingHours,

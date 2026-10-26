@@ -6,7 +6,7 @@
  * @module services/participant
  */
 
-import type { PrismaClient, Participant } from "@prisma/client";
+import type { MapProvider, PrismaClient, Participant } from "@prisma/client";
 import {
   createParticipantRepository,
   type ParticipantRepository,
@@ -23,7 +23,8 @@ import {
   ForbiddenError,
   ValidationError,
 } from "../types/errors.js";
-import { geocode, AddressNotFoundError, GeocodingApiError } from "../lib/maps.js";
+import { AddressNotFoundError, GeocodingApiError } from "../lib/maps.js";
+import { providerFor } from "../lib/providers/index.js";
 import { assignColor } from "../utils/colors.js";
 import { createLogger } from "../lib/logger.js";
 import { generateParticipantToken, verifyToken, hashToken } from "../utils/token.js";
@@ -43,23 +44,26 @@ const HIDE_ADDRESS_UNAVAILABLE =
 
 /**
  * Geocodes an address and converts errors to business errors.
+ * @param mapProvider - Provider of the participant's event
  * @param address - Address to geocode
  * @returns Geocode result
  * @throws BusinessAddressNotFoundError if address not found
  * @throws ExternalServiceError on API failures
  */
 async function geocodeWithBusinessErrors(
+  mapProvider: MapProvider,
   address: string
 ): Promise<{ lat: number; lng: number; formattedAddress: string }> {
+  const provider = providerFor(mapProvider);
   try {
-    return await geocode(address);
+    return await provider.geocode(address);
   } catch (error) {
     if (error instanceof AddressNotFoundError) {
       throw new BusinessAddressNotFoundError();
     }
     if (error instanceof GeocodingApiError) {
       logger.error({ err: error }, "Geocoding API error");
-      throw new ExternalServiceError("Google Maps", error.message);
+      throw new ExternalServiceError(provider.displayName, error.message);
     }
     throw error;
   }
@@ -78,30 +82,21 @@ export class ParticipantService {
   }
 
   /**
-   * Checks if an event is published.
-   * Uses lightweight query that only fetches publishedAt field.
-   * @param eventId - Event ID
-   * @returns True if event is published
-   * @throws EventNotFoundError if event doesn't exist
-   */
-  private async isEventPublished(eventId: string): Promise<boolean> {
-    const status = await this.eventRepo.getPublishStatus(eventId);
-    if (!status) {
-      throw new EventNotFoundError(eventId);
-    }
-    return status.publishedAt !== null;
-  }
-
-  /**
    * Ensures an event exists and is not published.
    * @param eventId - Event ID
+   * @returns The event's map provider, which geocodes participant addresses
    * @throws EventNotFoundError if event doesn't exist
    * @throws EventAlreadyPublishedError if event is published
    */
-  private async ensureEventModifiable(eventId: string): Promise<void> {
-    if (await this.isEventPublished(eventId)) {
+  private async ensureEventModifiable(eventId: string): Promise<MapProvider> {
+    const status = await this.eventRepo.getStatus(eventId);
+    if (!status) {
+      throw new EventNotFoundError(eventId);
+    }
+    if (status.publishedAt !== null) {
       throw new EventAlreadyPublishedError();
     }
+    return status.mapProvider;
   }
 
   /**
@@ -122,13 +117,16 @@ export class ParticipantService {
     options: { generateToken?: boolean } = {}
   ): Promise<AddParticipantResult> {
     // Check event exists and is not published
-    await this.ensureEventModifiable(eventId);
+    const mapProvider = await this.ensureEventModifiable(eventId);
 
     if (input.fuzzyLocation) {
       throw new ValidationError(HIDE_ADDRESS_UNAVAILABLE);
     }
 
-    const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(input.address);
+    const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(
+      mapProvider,
+      input.address
+    );
 
     // Assign color
     const usedColors = await this.participantRepo.getUsedColors(eventId);
@@ -181,7 +179,7 @@ export class ParticipantService {
     input: UpdateParticipantInput
   ): Promise<Participant> {
     // Check event exists and is not published
-    await this.ensureEventModifiable(eventId);
+    const mapProvider = await this.ensureEventModifiable(eventId);
 
     if (input.fuzzyLocation) {
       throw new ValidationError(HIDE_ADDRESS_UNAVAILABLE);
@@ -202,7 +200,10 @@ export class ParticipantService {
       input.address !== undefined && input.address !== current.address ? input.address : undefined;
     const updateData: UpdateParticipantData = { name: input.name };
     if (newAddress !== undefined) {
-      const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(newAddress);
+      const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(
+        mapProvider,
+        newAddress
+      );
       updateData.startingPoint = { address: newAddress, formattedAddress, lat, lng };
     }
 

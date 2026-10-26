@@ -29,6 +29,7 @@ import { directionsRoutes } from "./routes/directions.js";
 import { sseRoutes } from "./routes/sse.js";
 import { authRoutes } from "./routes/auth.js";
 import { userRoutes } from "./routes/users.js";
+import { amapRoutes } from "./routes/amap.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -154,6 +155,7 @@ export async function buildServer() {
   await server.register(sseRoutes);
   await server.register(authRoutes);
   await server.register(userRoutes);
+  await server.register(amapRoutes);
 
   return server;
 }

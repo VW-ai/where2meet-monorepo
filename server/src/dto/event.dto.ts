@@ -47,6 +47,7 @@ export const EventResponseSchema = z.object({
   title: z.string(),
   meetingTime: z.string().nullable(),
   meetingTimeZone: z.string().nullable(),
+  mapProvider: z.enum(["google", "amap"]),
   participants: z.array(ParticipantResponseSchema),
   mec: MECResponseSchema.nullable(),
   publishedVenueId: z.string().nullable(),

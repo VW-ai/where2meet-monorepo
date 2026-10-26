@@ -6,12 +6,13 @@
  * @module schemas/venue
  */
 
+import { MapProvider } from "@prisma/client";
 import { z } from "zod";
-import { CATEGORY_TO_PLACE_TYPE } from "../lib/places/index.js";
+import { CATEGORY_TO_PLACE_TYPE, type VenueCategory } from "../lib/places/index.js";
 import { EVENT_ID_PATTERN } from "../utils/id.js";
 
 /** Valid venue category values */
-const validCategories = Object.keys(CATEGORY_TO_PLACE_TYPE) as [string, ...string[]];
+const validCategories = Object.keys(CATEGORY_TO_PLACE_TYPE) as [VenueCategory, ...VenueCategory[]];
 
 /**
  * Schema for geographic center point.
@@ -50,6 +51,8 @@ export const SearchVenuesSchema = z
       .array(z.enum(validCategories))
       .min(1, "At least one category required")
       .optional(),
+    // The event's provider. Older clients omit it and only have Google events.
+    mapProvider: z.enum(MapProvider).default("google"),
     // Only attributes the search for usage recording, so a bad value is dropped, never a 400.
     eventId: z.string().regex(EVENT_ID_PATTERN).optional().catch(undefined),
   })

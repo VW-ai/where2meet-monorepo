@@ -10,19 +10,15 @@
 import type { PrismaClient } from "@prisma/client";
 import { createEventRepository, type EventRepository } from "../repositories/event.js";
 import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
-import {
-  calculateBatchRoutes,
-  DirectionsApiError,
-  type TravelMode,
-  type RouteResult,
-} from "../lib/directions/index.js";
+import { DirectionsApiError, type TravelMode, type RouteResult } from "../lib/directions/index.js";
 import {
   EventNotFoundError,
   ParticipantNotFoundError,
   ValidationError,
   ExternalServiceError,
 } from "../types/errors.js";
-import { getPlaceDetails, PlacesApiError } from "../lib/places/index.js";
+import { PlacesApiError } from "../lib/places/index.js";
+import { providerFor, providerForVenueId } from "../lib/providers/index.js";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("DirectionsService");
@@ -76,17 +72,18 @@ export class DirectionsService {
         lng: Number(venue.lng),
       };
     } else {
-      // Fallback: fetch from Google Places API for candidate venues not yet persisted
+      // Fallback: fetch from the venue's provider for candidate venues not yet persisted
+      const venueProvider = providerForVenueId(venueId);
       try {
         logger.debug({ venueId }, "Venue not in database, fetching from Places API");
-        const details = await getPlaceDetails(venueId);
+        const details = await venueProvider.getDetails(venueId);
         venueCoords = details.location;
       } catch (error) {
         if (error instanceof PlacesApiError) {
           if (error.status === "NOT_FOUND" || error.status === "INVALID_REQUEST") {
             throw new ValidationError(`Invalid venue ID: ${venueId}`);
           }
-          throw new ExternalServiceError("Google Places", error.message);
+          throw new ExternalServiceError(venueProvider.displayName, error.message);
         }
         throw error;
       }
@@ -129,6 +126,7 @@ export class DirectionsService {
       return nullRoutes;
     }
 
+    const routeProvider = providerFor(event.mapProvider);
     try {
       // Calculate routes for participants with valid locations
       const participantData = participantsWithLocation.map((p) => ({
@@ -137,7 +135,11 @@ export class DirectionsService {
         lng: Number(p.lng),
       }));
 
-      const calculatedRoutes = await calculateBatchRoutes(participantData, venueCoords, travelMode);
+      const calculatedRoutes = await routeProvider.calculateBatchRoutes(
+        participantData,
+        venueCoords,
+        travelMode
+      );
 
       logger.info(
         {
@@ -156,7 +158,7 @@ export class DirectionsService {
     } catch (error) {
       if (error instanceof DirectionsApiError) {
         logger.error({ err: error, eventId, venueId }, "Directions API error");
-        throw new ExternalServiceError("Google Directions", error.message);
+        throw new ExternalServiceError(routeProvider.displayName, error.message);
       }
       throw error;
     }

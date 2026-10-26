@@ -49,12 +49,13 @@ export function venueRoutes(fastify: FastifyInstance): void {
       throw parseResult.error;
     }
 
-    const { center, searchRadius, query, categories, eventId } = parseResult.data;
+    const { center, searchRadius, query, categories, mapProvider, eventId } = parseResult.data;
     const token = extractBearerToken(request.headers.authorization);
 
     const { places, searchCenter } = await venueService.searchVenues(center, searchRadius, {
       query,
       categories,
+      mapProvider,
     });
 
     const response = toVenueSearchResponse(places, searchCenter);

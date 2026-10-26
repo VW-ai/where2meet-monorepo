@@ -6,6 +6,7 @@
  * @module schemas/event
  */
 
+import { MapProvider } from "@prisma/client";
 import { z } from "zod";
 
 import { EVENT_ID_PATTERN } from "../utils/id.js";
@@ -36,6 +37,8 @@ export const CreateEventSchema = z
       .datetime({ message: "Meeting time must be a valid ISO 8601 datetime" })
       .optional(),
     meetingTimeZone: MeetingTimeZoneSchema.optional(),
+    // Not updatable later: venue IDs and votes belong to the provider that found them.
+    mapProvider: z.enum(MapProvider).optional(),
   })
   .refine(zoneHasTime, ZONE_WITHOUT_TIME);
 

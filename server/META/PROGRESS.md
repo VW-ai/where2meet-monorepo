@@ -899,3 +899,41 @@ The owner's internal usage panel needs to see how people use a meeting page: whe
 #### Test Summary
 - New: `tests/migrations/record-meeting-usage.test.ts` (4), `tests/meeting-visits.test.ts` (6), `tests/venue-searches.test.ts` (7)
 - All tests passing (32 files, 500 tests)
+
+---
+
+## 2026-10-26
+
+### China Map Provider (AMap / Gaode)
+
+#### Problem Statement
+Google Maps is blocked in mainland China and has little venue data there, so meetings in China could not geocode addresses, search venues or show routes.
+
+#### Solution
+- `Event.mapProvider` (`google` | `amap`, default `google`), set at creation and fixed afterwards because venue IDs and votes belong to one provider (migration `20261026120000_add_event_map_provider`).
+- `src/lib/providers/` picks a provider per event (`providerFor`) or per venue ID (`providerForVenueId`; AMap IDs are `amap:<POI id>`). The venue, participant, event-publish and directions services call providers instead of the Google modules.
+- `src/lib/amap/` wraps AMap Web Service APIs: geocode (with a POI-name fallback when the geocoder only matches a district), reverse geocode, input tips, POI 2.0 nearby/keyword/detail search, and route planning 2.0 for driving, walking, cycling and transit (transit looks up both city codes by reverse geocoding).
+- Coordinates stay WGS-84 everywhere. `src/lib/geo/coords.ts` converts to and from GCJ-02 at the AMap boundary. AMap polylines are re-encoded in Google's polyline format, so route responses keep one format.
+- AMap infocodes map to the Google-style statuses services already handle. Rate limits retry; quota, key and parameter errors fail at once.
+- New endpoints `GET /api/amap/suggest` and `GET /api/amap/reverse-geocode` let China events do autocomplete and "use my location" without Google in the browser. Suggest is limited to 60 requests per minute per client in production, because AMap's search quota is small.
+- AMap routes use metric distance text. AMap types are mapped to Google place types so the client's categories and icons keep working.
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `prisma/schema.prisma`, `prisma/migrations/20261026120000_add_event_map_provider/` | `MapProvider` enum and `event.map_provider` |
+| `src/lib/amap/` | AMap client, errors, parsing, cache, geocode, suggest, places, routes |
+| `src/lib/geo/coords.ts`, `src/lib/geo/polyline.ts` | WGS-84/GCJ-02 conversion, polyline encoder |
+| `src/lib/providers/` | Provider interface, Google and AMap implementations, selection |
+| `src/lib/directions/format.ts` | `formatDistanceMetric` |
+| `src/lib/config.ts`, `.env.example` | `AMAP_WEB_SERVICE_KEY`, `AMAP_TIMEOUT_MS` |
+| `src/services/{venue,participant,event,directions}.ts`, `src/mappers/venue.mapper.ts` | Provider selection |
+| `src/repositories/event.ts` | `getStatus` returns publish state and provider in one query (replaces `getPublishStatus`) |
+| `src/schemas/{event,venue,amap}.ts`, `src/dto/{event,amap}.dto.ts`, `src/routes/{venues,amap}.ts`, `src/services/amap.ts`, `src/mappers/amap.mapper.ts`, `src/server.ts` | `mapProvider` in requests and responses, AMap lookup endpoints |
+| `META/ARCHITECTURE/API_SPECIFICATION.md`, `META/ARCHITECTURE/DATABASE_SCHEMA.md` | New field and endpoints |
+
+#### Test Summary
+- New: `tests/unit/amap.test.ts` (27), `tests/unit/geo-coords.test.ts` (5), `tests/unit/geo-polyline.test.ts` (2), `tests/services/map-provider.test.ts` (7), `tests/amap-routes.test.ts` (9), metric formatting (2) and `mapProvider` schema cases (3)
+- Tests that need no database pass. The database-backed integration tests were not run: no Postgres or Redis was available in this environment
+- AMap responses in tests follow AMap's documented field tables; nothing was run against the live AMap API because no key exists yet

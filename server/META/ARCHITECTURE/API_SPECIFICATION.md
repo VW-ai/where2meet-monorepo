@@ -85,6 +85,7 @@ POST /api/events
 | title | string | ✓ | 活动标题，max 100 |
 | meetingTime | string | - | 预计见面时间（ISO 8601），可选 |
 | meetingTimeZone | string | - | 组织者填写时间时所在的 IANA 时区（如 `America/New_York`），max 64，只能与 meetingTime 一起发送 |
+| mapProvider | `"google"` \| `"amap"` | - | 地图数据来源，默认 `google`。中国大陆的活动用 `amap`（高德）。创建后不能修改 |
 
 **后端输出（成功 201）：**
 | 字段 | 类型 | 说明 |
@@ -93,6 +94,7 @@ POST /api/events
 | title | string | 活动标题 |
 | meetingTime | string \| null | 预计见面时间 |
 | meetingTimeZone | string \| null | 见面时间所在的 IANA 时区，旧活动为 null |
+| mapProvider | `"google"` \| `"amap"` | 地图数据来源，决定参与者地址解析、场所搜索和路线用哪家地图 |
 | participantToken | string | 参与者令牌（仅创建时返回，用于组织者身份验证） |
 | organizerParticipantId | string | 组织者参与者 ID（用于投票） |
 | participants | array | 参与者列表（包含组织者，isOrganizer=true） |
@@ -131,6 +133,7 @@ GET /api/events/:id
 | title | string | 活动标题 |
 | meetingTime | string \| null | 预计见面时间 |
 | meetingTimeZone | string \| null | 见面时间所在的 IANA 时区，旧活动为 null |
+| mapProvider | `"google"` \| `"amap"` | 地图数据来源，决定参与者地址解析、场所搜索和路线用哪家地图 |
 | participants | Participant[] | 参与者列表 |
 | mec | object \| null | 最小外接圆（MEC） |
 | publishedVenueId | string \| null | 已发布场所 ID |
@@ -439,6 +442,7 @@ POST /api/venues/search
 | searchRadius | number | ✓ | 搜索半径（米），100~50000 |
 | categories | string[] | - | 类别过滤 ["cafe", "restaurant", "bar", "park", "library", "gym", "museum", "shopping", "things_to_do"] |
 | query | string | - | 文本搜索关键词（1-100 字符） |
+| mapProvider | `"google"` \| `"amap"` | - | 活动的地图数据来源，默认 `google`。高德结果的场所 ID 为 `amap:<POI id>` |
 | eventId | string | - | 发起搜索的活动 ID（`evt_<timestamp>_<random16>`），只用于使用记录 |
 
 **注意**：`query` 和 `categories` 至少需要提供一个。
@@ -451,7 +455,7 @@ Authorization: Bearer {participantToken}
 
 **后端处理**：
 1. 验证 center 坐标范围、searchRadius 范围
-2. 调用 Google Places API Nearby Search（categories）或 Text Search（query）
+2. 按 `mapProvider` 调用 Google Places API Nearby Search（categories）/ Text Search（query），或高德 POI 2.0 周边搜索（categories 用 POI 类型码，query 用关键字，都限制在半径内）
 3. 按评分排序（高到低，null 评分排最后）
 4. `eventId`、`query` 和令牌都存在时在后台记录这次搜索（见下方“使用记录”），不等待写入完成
 5. 返回结果
@@ -473,22 +477,24 @@ Authorization: Bearer {participantToken}
 **Venue 对象结构：**
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | string | Google Place ID |
+| id | string | Google Place ID，或 `amap:<POI id>` |
 | name | string | 场所名称 |
 | address | string | 地址 |
 | location | Location | { lat, lng } |
-| types | string[] | Google Place Types |
+| types | string[] | Google Place Types（高德场所由 POI 类型码换算，如 `cafe`、`restaurant`） |
 | rating | number \| null | 评分（0-5） |
 | userRatingsTotal | number \| null | 评分总数 |
 | priceLevel | number \| null | 价格等级（0-4） |
 | openNow | boolean \| null | 是否营业中 |
 | photoUrl | string \| null | 照片 URL |
 
+高德场所没有 `userRatingsTotal` 和 `openNow`（恒为 null）；`priceLevel` 由人均消费换算（<¥50 为 1，<¥120 为 2，<¥300 为 3，其余为 4）。
+
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
 | 400 | VALIDATION_ERROR | 缺少必填字段 |
-| 500 | EXTERNAL_SERVICE_ERROR | Google API 调用失败 |
+| 502 | EXTERNAL_SERVICE_ERROR | Google / 高德 API 调用失败 |
 
 ---
 
@@ -501,16 +507,69 @@ GET /api/venues/:id
 **前端输入：**
 | 参数 | 位置 | 说明 |
 |------|------|------|
-| id | URL Path | Google Place ID |
+| id | URL Path | Google Place ID，或 `amap:<POI id>` |
 
 **后端输出（成功 200）：**
 
-返回 Venue 对象（调用 Google Place Details API/ 缓存）
+返回 Venue 对象（按 ID 前缀调用 Google Place Details API 或高德 POI 详情 / 缓存）
 
 **错误响应：**
 | 状态码 | code | 说明 |
 |--------|------|------|
 | 404 | NOT_FOUND | 场所不存在 |
+
+---
+
+### 4.3 高德输入提示（中国活动）
+
+```
+GET /api/amap/suggest?q=<关键字>&lat=<纬度>&lng=<经度>
+```
+
+**说明**：`mapProvider` 为 `amap` 的活动在浏览器里不能用 Google，地址和场所自动补全改由服务器调高德输入提示。高德 Web 服务 Key 只留在服务器。
+
+**前端输入：**
+| 参数 | 位置 | 必填 | 说明 |
+|------|------|------|------|
+| q | Query | ✓ | 已输入的文字，2-80 字符 |
+| lat, lng | Query | - | WGS-84 坐标，优先返回附近结果（需同时提供） |
+
+**后端输出（成功 200）：**
+```json
+{ "suggestions": [{ "placeId": "amap:B000A9KXWR", "name": "三里屯太古里", "district": "北京市朝阳区", "address": "三里屯路19号", "location": { "lat": 39.93, "lng": 116.44 } }] }
+```
+只返回有 POI ID 和坐标的提示（去掉公交线路和纯关键字）。`placeId` 可直接用于 `GET /api/venues/:id`。坐标为 WGS-84。
+
+**限流**：生产环境每个客户端每分钟 60 次。高德搜索类配额很小（个人认证每月 5,000 次，包括输入提示和 POI 搜索），结果缓存 1 小时。
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 400 | VALIDATION_ERROR | q 太短/太长，或 lat、lng 只给了一个 |
+| 502 | EXTERNAL_SERVICE_ERROR | 高德调用失败或未配置 `AMAP_WEB_SERVICE_KEY` |
+
+---
+
+### 4.4 高德逆地理编码（中国活动）
+
+```
+GET /api/amap/reverse-geocode?lat=<纬度>&lng=<经度>
+```
+
+**说明**：「使用我的位置」在中国活动里用它把坐标换成地址。
+
+**后端输出（成功 200）：**
+```json
+{ "formattedAddress": "北京市朝阳区三里屯街道三里屯路19号", "location": { "lat": 39.9334, "lng": 116.4479 } }
+```
+`location` 原样返回请求的 WGS-84 坐标。
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 400 | VALIDATION_ERROR | 缺少或超出范围的 lat/lng |
+| 400 | ADDRESS_NOT_FOUND | 高德没有这个位置的地址 |
+| 502 | EXTERNAL_SERVICE_ERROR | 高德调用失败 |
 
 ---
 
@@ -700,7 +759,7 @@ GET /api/events/:id/venues/:venueId/directions
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | participantId | string | 参与者 ID（UUID） |
-| distance | Distance \| null | { value: 米, text: 文本 }，无位置时为 null |
+| distance | Distance \| null | { value: 米, text: 文本（Google 活动英制，高德活动公制） }，无位置时为 null |
 | duration | Duration \| null | { value: 秒, text: 文本 }，无位置时为 null |
 | polyline | string \| null | 路线编码（用于地图显示），无位置时为 null |
 
@@ -714,6 +773,8 @@ GET /api/events/:id/venues/:venueId/directions
 | 500 | EXTERNAL_SERVICE_ERROR | Google API 调用失败 |
 
 **说明**：返回活动内所有参与者（包括组织者）的路线信息。没有位置信息的参与者，其 distance/duration/polyline 字段为 null。
+
+**高德活动**：`mapProvider` 为 `amap` 时用高德路径规划 2.0 计算路线。`distance.text` 用公制（`850 m`、`3.2 km`），Google 活动仍为英制。`polyline` 仍是 Google 编码格式的 WGS-84 坐标，前端不需要区分。公交需要两端的高德城市编码，由服务器逆地理编码得到；高德只规划中国大陆内的路线，境外的参与者没有路线。
 
 ---
 

@@ -21,7 +21,8 @@ import {
   ValidationError,
   ExternalServiceError,
 } from "../types/errors.js";
-import { getPlaceDetails, buildPhotoUrl, PlacesApiError } from "../lib/places/index.js";
+import { PlacesApiError } from "../lib/places/index.js";
+import { providerForVenueId } from "../lib/providers/index.js";
 import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
 import { createLogger } from "../lib/logger.js";
 import { generateParticipantToken } from "../utils/token.js";
@@ -73,6 +74,7 @@ export class EventService {
         title: input.title,
         meetingTime: input.meetingTime,
         meetingTimeZone: input.meetingTimeZone,
+        mapProvider: input.mapProvider,
       },
       {
         name: "Organizer",
@@ -195,9 +197,10 @@ export class EventService {
       throw new EventAlreadyPublishedError();
     }
 
-    // Validate venue via Google Places API
+    // Validate venue with the provider that issued its ID
+    const provider = providerForVenueId(venueId);
     try {
-      const details = await getPlaceDetails(venueId);
+      const details = await provider.getDetails(venueId);
 
       // Upsert venue to database for caching (non-blocking)
       this.venueRepository
@@ -210,7 +213,7 @@ export class EventService {
           category: details.types.length > 0 ? (details.types[0] ?? null) : null,
           rating: details.rating,
           priceLevel: details.priceLevel,
-          photoUrl: details.photoReference ? buildPhotoUrl(details.photoReference) : null,
+          photoUrl: details.photoReference ? provider.photoUrl(details.photoReference) : null,
         })
         .catch((error: unknown) => {
           logger.error({ err: error, venueId }, "Failed to upsert venue to database");
@@ -221,7 +224,7 @@ export class EventService {
         if (error.status === "INVALID_REQUEST" || error.status === "NOT_FOUND") {
           throw new ValidationError(`Invalid venue ID: ${venueId}`);
         }
-        throw new ExternalServiceError("Google Places", error.message);
+        throw new ExternalServiceError(provider.displayName, error.message);
       }
       throw error;
     }

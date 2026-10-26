@@ -7,23 +7,20 @@
  * @module services/venue
  */
 
-import type { PrismaClient } from "@prisma/client";
+import type { MapProvider, PrismaClient } from "@prisma/client";
 import {
   createVenueRepository,
   type VenueRepository,
   type VenueData,
 } from "../repositories/venue.js";
 import {
-  searchNearbyPlaces,
-  textSearchPlaces,
-  getPlaceDetails,
-  buildPhotoUrl,
   PlacesApiError,
   type PlaceResult,
   type PlaceDetails,
   type GeoPoint,
-  CATEGORY_TO_PLACE_TYPE,
+  type VenueCategory,
 } from "../lib/places/index.js";
+import { providerFor, providerForVenueId } from "../lib/providers/index.js";
 import { ExternalServiceError } from "../types/errors.js";
 import { createLogger } from "../lib/logger.js";
 
@@ -42,7 +39,9 @@ export interface VenueSearchResult {
  */
 export interface SearchVenuesOptions {
   query?: string;
-  categories?: string[];
+  categories?: VenueCategory[];
+  /** Provider of the event the search is made for. Defaults to Google. */
+  mapProvider?: MapProvider;
 }
 
 /**
@@ -71,25 +70,21 @@ export class VenueService {
     searchRadius: number,
     options: SearchVenuesOptions
   ): Promise<VenueSearchResult> {
+    const provider = providerFor(options.mapProvider ?? "google");
     try {
       let places: PlaceResult[] = [];
 
       // Search by query (text search)
       if (options.query) {
-        const textResults = await textSearchPlaces(options.query, center, searchRadius);
+        const textResults = await provider.textSearch(options.query, center, searchRadius);
         places = [...places, ...textResults];
       }
 
       // Search by categories (nearby search)
       if (options.categories && options.categories.length > 0) {
         for (const category of options.categories) {
-          const placeType = CATEGORY_TO_PLACE_TYPE[category];
-          if (placeType) {
-            const categoryResults = await searchNearbyPlaces(center, searchRadius, {
-              type: placeType,
-            });
-            places = [...places, ...categoryResults];
-          }
+          const categoryResults = await provider.searchNearby(center, searchRadius, category);
+          places = [...places, ...categoryResults];
         }
       }
 
@@ -105,6 +100,7 @@ export class VenueService {
           searchRadius,
           query: options.query,
           categories: options.categories,
+          mapProvider: provider.name,
           resultCount: sortedPlaces.length,
         },
         "Venue search completed"
@@ -114,7 +110,7 @@ export class VenueService {
     } catch (error) {
       if (error instanceof PlacesApiError) {
         logger.error({ err: error, center }, "Places API error during search");
-        throw new ExternalServiceError("Google Places", error.message);
+        throw new ExternalServiceError(provider.displayName, error.message);
       }
       throw error;
     }
@@ -133,10 +129,11 @@ export class VenueService {
    * @throws ExternalServiceError if Places API fails
    */
   async getVenueDetails(placeId: string): Promise<PlaceDetails> {
+    const provider = providerForVenueId(placeId);
     try {
-      // Always use Redis → Google API for full field coverage
+      // Always use Redis → provider API for full field coverage
       // PostgreSQL only stores a subset of fields for voting operations
-      const details = await getPlaceDetails(placeId);
+      const details = await provider.getDetails(placeId);
 
       // Background upsert to PostgreSQL for voting cache (non-blocking)
       this.venueRepository.upsert(this.placeDetailsToVenueData(details)).catch((error: unknown) => {
@@ -148,7 +145,7 @@ export class VenueService {
     } catch (error) {
       if (error instanceof PlacesApiError) {
         logger.error({ err: error, placeId }, "Places API error fetching details");
-        throw new ExternalServiceError("Google Places", error.message);
+        throw new ExternalServiceError(provider.displayName, error.message);
       }
       throw error;
     }
@@ -168,7 +165,9 @@ export class VenueService {
       category: details.types[0] ?? null,
       rating: details.rating,
       priceLevel: details.priceLevel,
-      photoUrl: details.photoReference ? buildPhotoUrl(details.photoReference) : null,
+      photoUrl: details.photoReference
+        ? providerForVenueId(details.placeId).photoUrl(details.photoReference)
+        : null,
     };
   }
 
