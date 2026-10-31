@@ -8,7 +8,7 @@ center:
 updated_at: 2026-10-23
 seo:
   title: Where to meet up in Los Angeles
-  description: Where to meet up in Los Angeles, from Downtown to Koreatown, Hollywood and Santa Monica, with the Metro Rail lines and parking that matter.
+  description: The drive often decides a Los Angeles plan. Compare five areas on Metro Rail and the stations, like Union Station, where a driver can park once and ride.
 image:
   file_name: santa-monica-pier-los-angeles.jpg
   source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Santa_Monica_Pier_%28June_2026%29.jpg/1280px-Santa_Monica_Pier_%28June_2026%29.jpg

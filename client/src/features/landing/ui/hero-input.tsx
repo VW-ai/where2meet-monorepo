@@ -76,7 +76,7 @@ export function HeroInput({
           provider={mapProvider}
           className={cn(
             'py-3.5 rounded-2xl border-2 border-gray-200 bg-white shadow-none text-[15px] font-normal text-gray-900',
-            'placeholder:text-gray-400 hover:border-gray-300',
+            'placeholder:text-gray-500 hover:border-gray-300',
             'focus:shadow-none focus:border-coral-500 focus:ring-4 focus:ring-coral-100',
             locationError && 'border-red-400'
           )}

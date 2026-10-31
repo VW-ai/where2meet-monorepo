@@ -8,6 +8,7 @@ import {
   listPages,
   pagePath,
   pageTrail,
+  pageUpdatedAt,
   postPath,
   relatedPosts,
   type BlogPage,
@@ -96,7 +97,7 @@ describe('blog catalog', () => {
     ]);
   });
 
-  it('relates posts on the same occasion first, then posts in the same place, then the newest', () => {
+  it('relates posts by a shared occasion, then a shared town, then a shared city', () => {
     expect(
       relatedPosts(catalog, post('new-york/midtown/a-team-welcome-lunch-in-bryant-park')).map(
         postPath
@@ -106,11 +107,53 @@ describe('blog catalog', () => {
       '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
       '/blog/new-york/group-dinner-spots-near-herald-square',
     ]);
+  });
+
+  it('breaks a tie by the next slug in alphabetical order, wrapping around, not by date', () => {
     expect(relatedPosts(catalog, post('how-to-plan-a-team-welcome-lunch')).map(postPath)).toEqual([
       '/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park',
-      '/blog/new-york/group-dinner-spots-near-herald-square',
       '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting',
+      '/blog/new-york/group-dinner-spots-near-herald-square',
     ]);
+  });
+
+  it('ranks a shared venue type above a shared city', () => {
+    const groupDinner = post('new-york/group-dinner-spots-near-herald-square');
+    const quiet = post('new-york/midtown/quiet-places-for-a-small-team-meeting');
+    const [newYork] = groupDinner.areas;
+    const barbecue = {
+      ...quiet,
+      slug: 'korean-barbecue-in-testville',
+      title: 'Korean barbecue in Testville',
+      parameters: { ...quiet.parameters, venue_type: groupDinner.parameters.venue_type },
+      areas: [{ ...newYork, slug: 'testville', name: 'Testville' }],
+    } as typeof quiet;
+    const withBarbecue = { ...catalog, posts: [...catalog.posts, barbecue] };
+    expect(relatedPosts(withBarbecue, groupDinner).map((other) => other.title)).toEqual([
+      'Korean barbecue in Testville',
+      'Quiet places for a small team meeting in Midtown',
+      'A team welcome lunch in Bryant Park',
+      'How to plan a team welcome lunch',
+    ]);
+  });
+
+  it('gives the last slot to the next slug after the post, skipping one already chosen, so every post gets a link', () => {
+    const lunch = post('new-york/midtown/a-team-welcome-lunch-in-bryant-park');
+    const dinner = post('new-york/group-dinner-spots-near-herald-square');
+    const posts = [
+      { ...lunch, slug: 'a-lunch' },
+      { ...lunch, slug: 'b-lunch' },
+      { ...dinner, slug: 'c-dinner' },
+      { ...lunch, slug: 'd-lunch' },
+      { ...lunch, slug: 'e-lunch' },
+      { ...lunch, slug: 'f-lunch' },
+    ];
+    const lunches = { ...catalog, posts };
+    const slugs = (from: (typeof posts)[number]) =>
+      relatedPosts(lunches, from).map(({ slug }) => slug);
+    expect(slugs(posts[0])).toEqual(['b-lunch', 'd-lunch', 'e-lunch', 'c-dinner']);
+    expect(slugs(posts[1])).toEqual(['d-lunch', 'e-lunch', 'f-lunch', 'c-dinner']);
+    expect(slugs(posts[5])).toEqual(['a-lunch', 'b-lunch', 'd-lunch', 'c-dinner']);
   });
 
   it('counts a place as shared only from the city down', () => {
@@ -161,6 +204,28 @@ describe('blog catalog', () => {
       'seventh-avenue-times-square-north.jpg',
       'times-square-crowds-new-york.jpg',
     ]);
+  });
+
+  it('dates a city or town page by its own file or the newest post it lists, by published date', () => {
+    const city = catalog.cities.get('new-york')!;
+    const midtown = city.towns.get('midtown')!;
+    const lunch = post('new-york/midtown/a-team-welcome-lunch-in-bryant-park');
+    const updated = { ...lunch, updatedAt: '2026-10-20' as const };
+    const edited = {
+      ...catalog,
+      posts: catalog.posts.map((other) => (other === lunch ? updated : other)),
+    };
+    expect([city.updatedAt, midtown.updatedAt, lunch.publishedAt]).toEqual([
+      '2026-10-07',
+      '2026-10-07',
+      '2026-10-08',
+    ]);
+    expect(pageUpdatedAt(edited, { kind: 'area', city, town: null })).toBe('2026-10-08');
+    expect(pageUpdatedAt(edited, { kind: 'area', city, town: midtown })).toBe('2026-10-08');
+    expect(
+      pageUpdatedAt(edited, { kind: 'area', city, town: { ...midtown, updatedAt: '2026-10-09' } })
+    ).toBe('2026-10-09');
+    expect(pageUpdatedAt(edited, { kind: 'post', post: updated })).toBe('2026-10-20');
   });
 
   it('dates the catalog by its newest page', () => {

@@ -1,6 +1,6 @@
 ---
 title: Bathhouse with friends in Lower Manhattan
-description: Plan a bathhouse with friends in Lower Manhattan, with six saunas, baths and spas near the subway, plus booking tips for groups and the late trains home.
+description: Six saunas, thermal baths and spas from Fulton Street to Canal Street for a bathhouse with friends, with walk-in rules, group rooms and what to book.
 main_keyword: bathhouse with friends
 occasion: bathhouse-visit
 time: null
@@ -109,13 +109,7 @@ If the group wants dinner after, see our [group dinner spots in Lower Manhattan]
 
 ## How to do it in Where2Meet
 
-Where2Meet lets the group choose the bathhouse together from one shared link.
-
-1. Open [Where2Meet](/), type **Bathhouse visit** in the first box, and set the day and the time.
-2. Send the link to your friends. Nobody needs an account.
-3. Each friend adds where they're coming from. A cross street is enough.
-4. Search for places around the group, or look one up by name. Compare each friend's travel time by transit, walking, car or bike, and see the routes on the map.
-5. Vote on the places you like. The organizer picks the final one, and everyone sees it without a refresh.
+Plan the soak together on [Where2Meet](/) as a **Bathhouse visit**, and share the link with the friends who want to go. Once each friend adds a cross street, open Spa 88, AIRE and Clean Market to compare their routes and transit times. After the vote, the organizer chooses the place, and the group books one start time there.
 
 ## Common questions
 
