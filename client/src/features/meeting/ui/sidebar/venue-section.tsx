@@ -7,6 +7,7 @@ import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
+import { venueSearchFilters } from '@/features/meeting/lib/venue-search-filters';
 import type { Venue } from '@/entities';
 import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
 import { VenueCard } from './venue-card';
@@ -172,8 +173,9 @@ export function VenueSection() {
           {
             center: searchCircle.center,
             searchRadius,
-            query: executedSearchQuery,
+            ...venueSearchFilters(currentEvent.mapProvider ?? 'google', executedSearchQuery),
             eventId: currentEvent.id,
+            mapProvider: currentEvent.mapProvider,
           },
           organizerToken || participantToken || undefined
         );

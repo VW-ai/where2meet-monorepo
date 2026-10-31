@@ -6,6 +6,7 @@ import { cn } from '@/shared/lib/cn';
 import { generateRandomName } from '@/features/meeting/lib/name-generator';
 import { LocationField } from '@/shared/ui/location-field';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 
 interface AddParticipantProps {
   onSubmit: (data: ParticipantFormData) => void;
@@ -35,6 +36,7 @@ export function AddParticipant({
   notice,
 }: AddParticipantProps) {
   const { user } = useAuthStore();
+  const mapProvider = useMeetingStore((state) => state.currentEvent?.mapProvider);
   const hasDefaultAddress = !!(user?.defaultAddress && user?.defaultPlaceId);
 
   const [name, setName] = useState(initialData?.name || '');
@@ -223,6 +225,7 @@ export function AddParticipant({
         <LocationField
           id="participant-address"
           value={address}
+          provider={mapProvider}
           onChange={handleLocationChange}
           onError={(message) => setErrors((prev) => ({ ...prev, address: message }))}
           disabled={isSubmitting}

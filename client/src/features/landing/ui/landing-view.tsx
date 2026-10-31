@@ -19,6 +19,8 @@ import { usePortalStore } from '@/features/portal/model/portal-store';
 import { browserTimeZone } from '@/shared/lib/meeting-times';
 import { missingDetailsMessage } from '@/features/landing/lib/meeting-draft';
 import { HOME_OCCASIONS } from '@/features/landing/lib/occasions';
+import { isMainlandChinaTimeZone } from '@/shared/lib/map-provider';
+import type { MapProvider } from '@/shared/types/map';
 
 export function LandingView({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -29,6 +31,7 @@ export function LandingView({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState('');
   const [placeId, setPlaceId] = useState('');
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [mapProvider, setMapProvider] = useState<MapProvider>('google');
   const [createError, setCreateError] = useState<string | null>(null);
   const [triedToCreate, setTriedToCreate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +49,20 @@ export function LandingView({ children }: { children: ReactNode }) {
       setPlaceId((current) => current || user.defaultPlaceId || '');
     }
   }, [user]);
+
+  // Browsers in mainland China start on Amap, where Google Maps doesn't load.
+  // Read after mount: the server render can't know the visitor's time zone.
+  useEffect(() => {
+    if (isMainlandChinaTimeZone(browserTimeZone())) setMapProvider('amap');
+  }, []);
+
+  // A picked address came from the other provider's suggestions, so pick again
+  const handleMapProviderChange = (nextProvider: MapProvider) => {
+    setMapProvider(nextProvider);
+    setAddress('');
+    setPlaceId('');
+    setLocationError(null);
+  };
 
   const handleLocationChange = (nextAddress: string, nextPlaceId: string) => {
     setAddress(nextAddress);
@@ -109,6 +126,7 @@ export function LandingView({ children }: { children: ReactNode }) {
         title,
         meetingTime: new Date(meetingTime).toISOString(),
         meetingTimeZone: browserTimeZone(),
+        mapProvider,
       });
 
       console.warn('[LandingPage] Event created:', {
@@ -266,11 +284,13 @@ export function LandingView({ children }: { children: ReactNode }) {
                 organizerName={organizerName}
                 address={address}
                 locationError={locationError}
+                mapProvider={mapProvider}
                 onTitleChange={setTitle}
                 onMeetingTimeChange={setMeetingTime}
                 onOrganizerNameChange={setOrganizerName}
                 onLocationChange={handleLocationChange}
                 onLocationError={setLocationError}
+                onMapProviderChange={handleMapProviderChange}
               />
 
               <ActionButtons onCreateEvent={handleCreateEvent} isLoading={isLoading} />

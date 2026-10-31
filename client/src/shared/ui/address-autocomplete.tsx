@@ -3,10 +3,9 @@
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { MapPin, Loader2, Locate } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
-import {
-  searchPlacesAutocomplete,
-  type PlacePrediction,
-} from '@/shared/lib/google-maps/places-autocomplete';
+import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
+import { searchPlaceSuggestions } from '@/shared/lib/map-provider';
+import type { MapProvider } from '@/shared/types/map';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -19,6 +18,8 @@ interface AddressAutocompleteProps {
   disabled?: boolean;
   id?: string;
   invalid?: boolean;
+  /** Where suggestions come from; the meeting's map provider */
+  provider?: MapProvider;
 }
 
 export function AddressAutocomplete({
@@ -32,6 +33,7 @@ export function AddressAutocomplete({
   disabled = false,
   id,
   invalid = false,
+  provider = 'google',
 }: AddressAutocompleteProps) {
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +56,7 @@ export function AddressAutocomplete({
     const timeoutId = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const results = await searchPlacesAutocomplete(value);
+        const results = await searchPlaceSuggestions(provider, value);
         setPredictions(results);
         // Only pop the list open while the user is still in the field
         setIsOpen(results.length > 0 && document.activeElement === inputRef.current);
@@ -68,7 +70,7 @@ export function AddressAutocomplete({
     }, 300); // 300ms debounce
 
     return () => clearTimeout(timeoutId);
-  }, [value]);
+  }, [value, provider]);
 
   // Click outside to close
   useEffect(() => {

@@ -3,6 +3,7 @@
  * Aligned with backend API (Milestone 2)
  */
 
+import type { MapProvider } from '@/shared/types/map';
 import { Participant } from '../participant/types';
 
 export interface Event {
@@ -10,6 +11,7 @@ export interface Event {
   title: string;
   meetingTime: string | null; // ISO 8601 format, null if not set
   meetingTimeZone: string | null;
+  mapProvider: MapProvider;
   participantToken?: string; // Only returned on creation (POST), save it!
   organizerParticipantId?: string; // Organizer's participant ID (only on creation), save it!
   createdAt: string;
@@ -38,6 +40,7 @@ export interface CreateEventDTO {
   title: string;
   meetingTime?: string; // Optional ISO 8601 datetime
   meetingTimeZone?: string;
+  mapProvider?: MapProvider; // Defaults to google on the server; cannot change later
 }
 
 export interface UpdateEventDTO {

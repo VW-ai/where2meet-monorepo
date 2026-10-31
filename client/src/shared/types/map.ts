@@ -15,6 +15,12 @@ export interface GeocodeResult {
 
 export type TravelMode = 'driving' | 'walking' | 'transit' | 'bicycling';
 
+/**
+ * Where an event's map data comes from. Mainland China events use AMap (Gaode),
+ * because Google Maps is blocked there. Fixed when the event is created.
+ */
+export type MapProvider = 'google' | 'amap';
+
 export interface Route {
   participantId: string;
   distance: Distance;

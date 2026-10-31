@@ -157,3 +157,20 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [x] Record venue searches made by people in a meeting, in the background
 - [x] Send `eventId` and the token with venue searches from the web client
 - [ ] Record people who open a meeting link without joining. Today they are not recorded: the client opens no stream without a token, and the server refuses a stream without one
+
+---
+
+## 2026-10-26
+
+### China Map Provider (AMap / Gaode)
+- [x] `Event.mapProvider` and migration
+- [x] AMap geocoding, venue search, details, autocomplete, reverse geocoding and routes behind a provider interface
+- [x] WGS-84 / GCJ-02 conversion at the AMap boundary
+- [ ] Run the database-backed integration tests against Postgres and Redis
+- [ ] Get AMap keys (Web服务 key for the server; Web端 JS API key and security code for the client) and set `AMAP_WEB_SERVICE_KEY` on Railway
+- [ ] Verify against the live API: response shapes marked unverified in the research (v5 transit polyline wrapper, path-level `cost.duration`, `formatted_address` on regeo, photo URLs over HTTPS)
+- [ ] Check whether AMap returns GCJ-02 or WGS-84 for Hong Kong and Macau; `isOutsideChina` currently treats them as mainland
+- [ ] Watch AMap search quota (5,000/month on a personal key); consider an enterprise key before launch
+- [ ] Commercial use needs an AMap 技术服务许可 (technical service licence)
+- [x] Client: AMap map, autocomplete and reverse geocoding for `amap` events (Phase 2)
+- [ ] Set `NEXT_PUBLIC_AMAP_JS_KEY` and `AMAP_JS_SECURITY_CODE` on Vercel, then check the China map in a browser against the live API

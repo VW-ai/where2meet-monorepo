@@ -55,6 +55,11 @@ const envSchema = z.object({
   DIRECTIONS_CACHE_TTL_SECONDS: stringToNumber(3600).pipe(z.number().min(0)), // 1 hour
   DIRECTIONS_TIMEOUT_MS: stringToNumber(10000).pipe(z.number().min(100).max(30000)), // 10 seconds
 
+  // AMap (Gaode) Web Service API, used by events whose mapProvider is "amap".
+  // Caching reuses the Google TTLs above for the matching operations.
+  AMAP_WEB_SERVICE_KEY: z.string().default(""),
+  AMAP_TIMEOUT_MS: stringToNumber(5000).pipe(z.number().min(100).max(30000)),
+
   // SSE (Server-Sent Events)
   SSE_HEARTBEAT_INTERVAL_MS: stringToNumber(30000).pipe(z.number().min(1000)), // 30 seconds
   SSE_CONNECTION_TIMEOUT_MS: stringToNumber(3600000).pipe(z.number().min(60000)), // 1 hour

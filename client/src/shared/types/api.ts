@@ -2,7 +2,7 @@
  * API-related type definitions
  */
 
-import { Location, TravelMode, Route } from './map';
+import { Location, MapProvider, TravelMode, Route } from './map';
 import { Venue, VenueCategory } from '@/entities/venue/types';
 
 // ============================================================================
@@ -18,6 +18,7 @@ export interface VenueSearchRequest {
   query?: string; // text search
   categories?: VenueCategory[]; // category filter
   eventId?: string; // the meeting the search is made from
+  mapProvider?: MapProvider; // the meeting's map provider, google when omitted
 }
 
 /**

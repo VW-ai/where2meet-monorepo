@@ -1,6 +1,6 @@
 /**
  * Distance and duration formatting utilities.
- * Imperial units by default (miles, feet, minutes, hours).
+ * Imperial units by default (miles, feet, minutes, hours); metric for AMap events in China.
  * @module lib/directions/format
  */
 
@@ -27,6 +27,22 @@ export function formatDistanceImperial(meters: number): string {
   // Round to 1 decimal place
   const roundedMiles = Math.round(miles * 10) / 10;
   return `${String(roundedMiles)} mi`;
+}
+
+/**
+ * Formats distance in metric units (kilometers/meters).
+ * @param meters - Distance in meters
+ * @returns Formatted string ("3.2 km" or "850 m")
+ * @example
+ * formatDistanceMetric(850)  // "850 m"
+ * formatDistanceMetric(5149) // "5.1 km"
+ */
+export function formatDistanceMetric(meters: number): string {
+  if (meters < 1000) {
+    return `${String(Math.round(meters))} m`;
+  }
+  const roundedKm = Math.round(meters / 100) / 10;
+  return `${String(roundedKm)} km`;
 }
 
 /**

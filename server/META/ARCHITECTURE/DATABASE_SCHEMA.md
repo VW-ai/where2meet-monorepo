@@ -28,6 +28,7 @@
 │  id                     VARCHAR(64)  PK (semantic ID)   │
 │  title                  VARCHAR(100)    NOT NULL        │
 │  meeting_time           TIMESTAMP       NULL            │
+│  map_provider           MapProvider     NOT NULL        │
 │  organizer_participant_id UUID         FK -> Participant│
 │  published_venue_id     VARCHAR(255)    NULL            │
 │  published_at           TIMESTAMP       NULL            │
@@ -42,14 +43,17 @@
 | `title` | VARCHAR(100) | 活动标题 |
 | `meeting_time` | TIMESTAMP | 预计见面时间（可为空） |
 | `meeting_time_zone` | VARCHAR(64) | 组织者设定见面时间时所在的 IANA 时区（可为空，旧活动为空） |
+| `map_provider` | MapProvider (`google` \| `amap`) | 地图数据来源，默认 `google`。中国大陆的活动用 `amap`（高德），因为 Google 地图在中国被屏蔽。创建后不可修改 |
 | `organizer_participant_id` | UUID | 组织者参与者 ID（用于投票和权限验证） |
-| `published_venue_id` | VARCHAR(255) | 已发布的场所 ID（Google Place ID） |
+| `published_venue_id` | VARCHAR(255) | 已发布的场所 ID（Google Place ID，或高德的 `amap:<POI id>`） |
 | `published_at` | TIMESTAMP | 发布时间 |
 | `created_at` | TIMESTAMP | 创建时间 |
 | `updated_at` | TIMESTAMP | 更新时间 |
 
 **说明**：
-- `published_venue_id` 存 Google Place ID，不存完整 venue 信息
+- `published_venue_id` 存场所 ID，不存完整 venue 信息
+- `map_provider` 决定地理编码、场所搜索和路线用哪家地图。场所 ID 和投票属于发现它们的地图服务，所以创建后不能修改
+- 所有坐标（participant、venue）一律存 WGS-84。高德用 GCJ-02，只在调用高德时转换（`src/lib/geo/coords.ts`）
 - 不存 MEC（从 participants 实时计算）
 - `organizer_participant_id` 指向自动创建的组织者参与者，用于投票
 - 创建活动时自动创建组织者参与者（isOrganizer=true，拥有 tokenHash）
@@ -123,7 +127,7 @@
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `id` | VARCHAR(255) | Google Place ID（主键） |
+| `id` | VARCHAR(255) | Google Place ID，或高德的 `amap:<POI id>`（主键） |
 | `name` | VARCHAR(255) | 场所名称 |
 | `address` | VARCHAR(255) | 地址 |
 | `lat` | DECIMAL(10,7) | 纬度 |

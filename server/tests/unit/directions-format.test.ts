@@ -8,6 +8,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatDistanceImperial,
+  formatDistanceMetric,
   formatDuration,
 } from "../../src/lib/directions/format.js";
 
@@ -119,6 +120,17 @@ describe("Directions Formatting", () => {
     it("handles hours with rounding", () => {
       // 3660 seconds = 61 minutes = 1 hour 1 min
       expect(formatDuration(3660)).toBe("1 hour 1 min");
+    });
+  });
+
+  describe("formatDistanceMetric", () => {
+    it("formats distances under a kilometer in meters", () => {
+      expect(formatDistanceMetric(850.4)).toBe("850 m");
+    });
+
+    it("formats longer distances in kilometers with one decimal", () => {
+      expect(formatDistanceMetric(5149)).toBe("5.1 km");
+      expect(formatDistanceMetric(1000)).toBe("1 km");
     });
   });
 });

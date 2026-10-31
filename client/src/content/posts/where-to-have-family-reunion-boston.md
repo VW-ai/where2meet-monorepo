@@ -31,7 +31,7 @@ places:
     label: The Saunders Castle at Park Plaza
     note: Big families who want one room for everyone can book this event venue in a castle-style former armory on Columbus Avenue. It has no public hours, so contact it for a date. Arlington on the Green Line is about a 5-minute walk.
   - place_id: ChIJH9CZLYRw44kRB96v85hlWMo
-    label: "State Room: A Longwood Venue"
+    label: 'State Room: A Longwood Venue'
     note: Relatives who ride the Orange or Blue Line reach this event space on the 33rd floor of 60 State Street in about 2 minutes on foot from State station. It holds private events only, so reserve a date before you send invitations.
 images:
   - file_name: boston-tea-party-ships-museum-fort-point-channel.jpg

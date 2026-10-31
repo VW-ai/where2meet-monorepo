@@ -12,6 +12,26 @@ import {
 } from "../../src/schemas/event.js";
 
 describe("Event Schemas", () => {
+  describe("CreateEventSchema mapProvider", () => {
+    it("accepts amap and google", () => {
+      for (const mapProvider of ["amap", "google"]) {
+        const result = CreateEventSchema.safeParse({ title: "Dinner", mapProvider });
+        expect(result.success).toBe(true);
+      }
+    });
+
+    it("leaves mapProvider unset when omitted so the database default applies", () => {
+      const result = CreateEventSchema.safeParse({ title: "Dinner" });
+      expect(result.success && result.data.mapProvider).toBeUndefined();
+    });
+
+    it("rejects unknown providers", () => {
+      expect(CreateEventSchema.safeParse({ title: "Dinner", mapProvider: "baidu" }).success).toBe(
+        false
+      );
+    });
+  });
+
   describe("CreateEventSchema", () => {
     it("accepts valid input with all fields", () => {
       const input = {

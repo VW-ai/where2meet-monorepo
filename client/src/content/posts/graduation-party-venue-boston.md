@@ -28,7 +28,7 @@ places:
     label: Hampshire House
     note: Book this event venue on Beacon Street, across from the Public Garden, when grandparents, cousins and the graduate's friends all need one room. Ask for its open dates before you send invitations. Arlington on the Green Line is about an 8-minute walk.
   - place_id: ChIJH9CZLYRw44kRB96v85hlWMo
-    label: "State Room: A Longwood Venue"
+    label: 'State Room: A Longwood Venue'
     note: Reserve this event space on the 33rd floor of 60 State Street for a full guest list that needs its own room. It keeps no regular opening hours, so contact the venue for a date. State station, on the Orange and Blue lines, is about a 2-minute walk.
   - place_id: ChIJqXorrjx344kReViQcZKKldc
     label: Upstairs at Bow

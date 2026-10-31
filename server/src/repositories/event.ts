@@ -5,7 +5,7 @@
  * @module repositories/event
  */
 
-import type { PrismaClient, Event, Participant } from "@prisma/client";
+import type { PrismaClient, Event, MapProvider, Participant } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import type { CreateEventInput, UpdateEventInput } from "../schemas/event.js";
 import { generateEventId } from "../utils/id.js";
@@ -70,6 +70,7 @@ export class EventRepository {
             title: data.title,
             meetingTime: data.meetingTime ? new Date(data.meetingTime) : null,
             meetingTimeZone: data.meetingTimeZone ?? null,
+            mapProvider: data.mapProvider,
           },
           include: {
             participants: true,
@@ -170,15 +171,17 @@ export class EventRepository {
   }
 
   /**
-   * Gets the publish status of an event.
-   * Lightweight query that only fetches publishedAt field.
+   * Gets the publish status and map provider of an event.
+   * Lightweight query for participant changes, which need both.
    * @param id - Event ID (semantic format: evt_timestamp_random)
-   * @returns publishedAt timestamp or null, or undefined if event doesn't exist
+   * @returns publishedAt and mapProvider, or null if event doesn't exist
    */
-  async getPublishStatus(id: string): Promise<{ publishedAt: Date | null } | null> {
+  async getStatus(
+    id: string
+  ): Promise<{ publishedAt: Date | null; mapProvider: MapProvider } | null> {
     return this.db.event.findUnique({
       where: { id },
-      select: { publishedAt: true },
+      select: { publishedAt: true, mapProvider: true },
     });
   }
 
@@ -255,6 +258,7 @@ export class EventRepository {
               title: eventData.title,
               meetingTime: eventData.meetingTime ? new Date(eventData.meetingTime) : null,
               meetingTimeZone: eventData.meetingTimeZone ?? null,
+              mapProvider: eventData.mapProvider,
             },
           });
 

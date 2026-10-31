@@ -160,14 +160,20 @@ describe(`migration ${MIGRATION}`, () => {
     });
   });
 
-  it("leaves the database matching schema.prisma", () => {
+  it("leaves a database that the later migrations bring to schema.prisma", () => {
+    const url = databaseUrl(databases[0] ?? "");
+    const later = readdirSync(MIGRATIONS_DIR)
+      .filter((entry) => /^\d{14}_/.test(entry) && entry > MIGRATION)
+      .sort();
+    if (later.length > 0) runSql(url, later.map(migrationSql).join("\n"));
+
     const diff = execFileSync(
       PRISMA_CLI,
       [
         "migrate",
         "diff",
         "--from-url",
-        databaseUrl(databases[0] ?? ""),
+        url,
         "--to-schema-datamodel",
         SCHEMA,
         "--script",

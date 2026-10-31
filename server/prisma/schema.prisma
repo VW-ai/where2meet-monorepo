@@ -10,18 +10,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Map data provider. Google everywhere except mainland China, where AMap (Gaode)
+// replaces it because Google Maps is blocked there.
+enum MapProvider {
+  google
+  amap
+}
+
 // Event - Core entity for organizing a meeting
 // Event ID format: evt_<timestamp>_<random16> (semantic ID, not UUID)
 // Note: Organizer is identified via Participant.isOrganizer, not a separate token
 model Event {
-  id               String    @id @db.VarChar(64)
-  title            String    @db.VarChar(100)
-  meetingTime      DateTime? @map("meeting_time")
-  meetingTimeZone  String?   @map("meeting_time_zone") @db.VarChar(64)
-  publishedVenueId String?   @map("published_venue_id") @db.VarChar(255)
-  publishedAt      DateTime? @map("published_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id               String      @id @db.VarChar(64)
+  title            String      @db.VarChar(100)
+  meetingTime      DateTime?   @map("meeting_time")
+  meetingTimeZone  String?     @map("meeting_time_zone") @db.VarChar(64)
+  // Which map provider serves this event's geocoding, venues and routes. Fixed at
+  // creation because venue IDs and votes belong to one provider.
+  mapProvider      MapProvider @default(google) @map("map_provider")
+  publishedVenueId String?     @map("published_venue_id") @db.VarChar(255)
+  publishedAt      DateTime?   @map("published_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
 
   participants  Participant[]
   votes         Vote[]
@@ -62,7 +72,7 @@ model Participant {
 // Design: Single source of truth for venue data, shared across all events
 // The Vote table tracks which venues are voted on in which events
 model Venue {
-  id         String   @id @db.VarChar(255) // Google Place ID
+  id         String   @id @db.VarChar(255) // Google Place ID, or "amap:<POI id>" for AMap
   name       String   @db.VarChar(255)
   address    String?  @db.VarChar(255)
   lat        Decimal  @db.Decimal(10, 7)
