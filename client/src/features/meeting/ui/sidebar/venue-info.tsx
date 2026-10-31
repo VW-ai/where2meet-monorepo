@@ -25,6 +25,7 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
 import { getVenueCategoryDisplay } from '@/entities';
 import type { Venue } from '@/entities';
+import { mapProviderName, venueMapsUrl } from '@/shared/lib/map-provider';
 import { cn } from '@/shared/lib/cn';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { VoteButton } from '@/features/voting/ui/vote-button';
@@ -57,6 +58,7 @@ const TravelModeIcon = ({ mode }: { mode: string }) => {
 export function VenueInfo() {
   const { isVenueInfoOpen, selectedVenueId, closeVenueInfo } = useUIStore();
   const { selectedVenue, currentEvent, setSelectedVenue } = useMeetingStore();
+  const mapProvider = currentEvent?.mapProvider ?? 'google';
   const { voteForVenue, unvoteForVenue, hasVotedFor } = useVotingStore();
   const { routes, isCalculatingRoutes, travelMode } = useMapStore();
   const { organizerParticipantId, currentParticipantId } = useAuthStore();
@@ -133,9 +135,7 @@ export function VenueInfo() {
   const handleOpenInMaps = () => {
     if (!venue) return;
 
-    // Open Google Maps with venue location
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}&query_place_id=${venue.id}`;
-    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+    window.open(venueMapsUrl(mapProvider, venue), '_blank', 'noopener,noreferrer');
   };
 
   const handleToggleSave = async () => {
@@ -443,13 +443,13 @@ export function VenueInfo() {
               </div>
             )}
 
-            {/* Open in Google Maps Button */}
+            {/* Open in the event's map provider */}
             <button
               onClick={handleOpenInMaps}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2"
             >
               <MapPin className="w-5 h-5" />
-              <span className="font-medium">Open in Google Maps</span>
+              <span className="font-medium">Open in {mapProviderName(mapProvider)}</span>
             </button>
           </div>
         </>

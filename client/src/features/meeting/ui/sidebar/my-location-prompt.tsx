@@ -5,6 +5,7 @@ import { MapPin } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { LocationField } from '@/shared/ui/location-field';
 import { participantErrorMessage } from '@/features/meeting/lib/participant-error-message';
+import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 
 export const MY_LOCATION_INPUT_ID = 'my-starting-location';
 
@@ -24,6 +25,7 @@ export function MyLocationPrompt({ askName, onSubmit }: MyLocationPromptProps) {
   const [placeId, setPlaceId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const mapProvider = useMeetingStore((state) => state.currentEvent?.mapProvider);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -90,6 +92,7 @@ export function MyLocationPrompt({ askName, onSubmit }: MyLocationPromptProps) {
       <LocationField
         id={MY_LOCATION_INPUT_ID}
         value={address}
+        provider={mapProvider}
         onChange={(nextAddress, nextPlaceId) => {
           setAddress(nextAddress);
           setPlaceId(nextPlaceId);

@@ -18,6 +18,8 @@ import { analyticsEvents } from '@/lib/analytics/events';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { browserTimeZone } from '@/shared/lib/meeting-times';
+import { isMainlandChinaTimeZone } from '@/shared/lib/map-provider';
+import type { MapProvider } from '@/shared/types/map';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -28,6 +30,7 @@ export default function LandingPage() {
   const [address, setAddress] = useState('');
   const [placeId, setPlaceId] = useState('');
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [mapProvider, setMapProvider] = useState<MapProvider>('google');
   const [createError, setCreateError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const logoRef = useRef<HTMLImageElement>(null);
@@ -43,6 +46,20 @@ export default function LandingPage() {
       setPlaceId((current) => current || user.defaultPlaceId || '');
     }
   }, [user]);
+
+  // Browsers in mainland China start on Amap, where Google Maps doesn't load.
+  // Read after mount: the server render can't know the visitor's time zone.
+  useEffect(() => {
+    if (isMainlandChinaTimeZone(browserTimeZone())) setMapProvider('amap');
+  }, []);
+
+  // A picked address came from the other provider's suggestions, so pick again
+  const handleMapProviderChange = (nextProvider: MapProvider) => {
+    setMapProvider(nextProvider);
+    setAddress('');
+    setPlaceId('');
+    setLocationError(null);
+  };
 
   const handleLocationChange = (nextAddress: string, nextPlaceId: string) => {
     setAddress(nextAddress);
@@ -105,6 +122,7 @@ export default function LandingPage() {
         title,
         meetingTime: new Date(meetingTime).toISOString(),
         meetingTimeZone: browserTimeZone(),
+        mapProvider,
       });
 
       console.warn('[LandingPage] Event created:', {
@@ -270,11 +288,13 @@ export default function LandingPage() {
                 organizerName={organizerName}
                 address={address}
                 locationError={locationError}
+                mapProvider={mapProvider}
                 onTitleChange={setTitle}
                 onMeetingTimeChange={setMeetingTime}
                 onOrganizerNameChange={setOrganizerName}
                 onLocationChange={handleLocationChange}
                 onLocationError={setLocationError}
+                onMapProviderChange={handleMapProviderChange}
               />
 
               <ActionButtons

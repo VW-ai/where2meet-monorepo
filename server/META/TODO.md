@@ -172,4 +172,5 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [ ] Check whether AMap returns GCJ-02 or WGS-84 for Hong Kong and Macau; `isOutsideChina` currently treats them as mainland
 - [ ] Watch AMap search quota (5,000/month on a personal key); consider an enterprise key before launch
 - [ ] Commercial use needs an AMap 技术服务许可 (technical service licence)
-- [ ] Client: AMap map, autocomplete and reverse geocoding for `amap` events (Phase 2)
+- [x] Client: AMap map, autocomplete and reverse geocoding for `amap` events (Phase 2)
+- [ ] Set `NEXT_PUBLIC_AMAP_JS_KEY` and `AMAP_JS_SECURITY_CODE` on Vercel, then check the China map in a browser against the live API

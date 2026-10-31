@@ -5,10 +5,9 @@ import { Search, X, Loader2, MapPin } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
-import {
-  searchPlacesAutocomplete,
-  type PlacePrediction,
-} from '@/shared/lib/google-maps/places-autocomplete';
+import { useMeetingStore } from '@/features/meeting/model/meeting-store';
+import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
+import { searchPlaceSuggestions } from '@/shared/lib/map-provider';
 
 interface SearchPillBarProps {
   onSearchExecute?: (query: string) => void; // Callback for search execution (Phase 2)
@@ -19,6 +18,7 @@ interface SearchPillBarProps {
 export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: SearchPillBarProps) {
   const { setSearchQuery } = useUIStore();
   const { searchCircle } = useMapStore();
+  const mapProvider = useMeetingStore((state) => state.currentEvent?.mapProvider ?? 'google');
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlacePrediction[]>([]);
@@ -30,7 +30,7 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Debounced autocomplete function - uses Google Places Autocomplete API
+  // Debounced autocomplete function - uses the meeting's map provider
   const performAutocomplete = useCallback(
     async (searchQueryText: string) => {
       if (!searchQueryText.trim()) {
@@ -41,11 +41,10 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
 
       setIsLoading(true);
       try {
-        // Use Google Places Autocomplete with search circle center as bias
-        const predictions = await searchPlacesAutocomplete(searchQueryText, {
-          types: ['establishment'], // Only show businesses/venues
-          location: searchCircle?.center,
-          radius: 50000, // 50km radius for autocomplete suggestions
+        // Businesses/venues near the search circle first
+        const predictions = await searchPlaceSuggestions(mapProvider, searchQueryText, {
+          establishmentsOnly: true,
+          near: searchCircle?.center,
         });
         setResults(predictions);
       } catch (error) {
@@ -55,7 +54,7 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
         setIsLoading(false);
       }
     },
-    [searchCircle]
+    [searchCircle, mapProvider]
   );
 
   // Handle input change with debounce

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { AddressAutocomplete } from '@/shared/ui/address-autocomplete';
-import { reverseGeocode } from '@/shared/lib/google-maps/geocoding';
+import { reverseGeocodePoint } from '@/shared/lib/map-provider';
+import type { MapProvider } from '@/shared/types/map';
 
 const LOCATE_ERRORS: Record<number, string> = {
   1: 'Location access is blocked. Allow it in your browser settings, or type an address.',
@@ -20,6 +21,8 @@ interface LocationFieldProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  /** The meeting's map provider; AMap for meetings in mainland China */
+  provider?: MapProvider;
 }
 
 /**
@@ -36,6 +39,7 @@ export function LocationField({
   disabled = false,
   placeholder = 'Search an address or place…',
   className,
+  provider = 'google',
 }: LocationFieldProps) {
   const [isLocating, setIsLocating] = useState(false);
 
@@ -55,7 +59,7 @@ export function LocationField({
         });
       });
       const { latitude, longitude } = position.coords;
-      const result = await reverseGeocode({ lat: latitude, lng: longitude });
+      const result = await reverseGeocodePoint(provider, { lat: latitude, lng: longitude });
       onChange(result.address, result.placeId);
     } catch (error) {
       console.error('Error getting location:', error);
@@ -81,6 +85,7 @@ export function LocationField({
       disabled={disabled}
       invalid={invalid}
       className={className}
+      provider={provider}
     />
   );
 }
