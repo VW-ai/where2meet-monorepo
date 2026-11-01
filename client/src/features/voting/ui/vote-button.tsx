@@ -6,6 +6,22 @@ import { cn } from '@/shared/lib/cn';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import type { Venue } from '@/entities';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    disabledLabel: 'Voting disabled after publish',
+    removeVote: 'Remove vote',
+    vote: 'Vote for venue',
+    disabledTitle: 'Voting is disabled after event is published',
+  },
+  zh: {
+    disabledLabel: '发布后不能再投票',
+    removeVote: '取消投票',
+    vote: '给这个地点投票',
+    disabledTitle: '见面发布后不能再投票',
+  },
+});
 
 interface VoteButtonProps {
   venueId: string;
@@ -14,6 +30,7 @@ interface VoteButtonProps {
 }
 
 export function VoteButton({ venueId, voteCount = 0, venue }: VoteButtonProps) {
+  const t = useMessages(messages);
   const { currentEvent } = useMeetingStore();
   const { hasVotedFor, voteForVenue, unvoteForVenue, voteStatsByVenueId } = useVotingStore();
   const [isAnimating, setIsAnimating] = useState(false);
@@ -76,12 +93,10 @@ export function VoteButton({ venueId, voteCount = 0, venue }: VoteButtonProps) {
         isAnimating && 'scale-110',
         isLoading && 'opacity-50 cursor-not-allowed'
       )}
-      aria-label={
-        isPublished ? 'Voting disabled after publish' : hasVoted ? 'Remove vote' : 'Vote for venue'
-      }
+      aria-label={isPublished ? t.disabledLabel : hasVoted ? t.removeVote : t.vote}
       aria-pressed={hasVoted}
       aria-busy={isLoading}
-      title={isPublished ? 'Voting is disabled after event is published' : undefined}
+      title={isPublished ? t.disabledTitle : undefined}
     >
       <Heart
         className={cn(

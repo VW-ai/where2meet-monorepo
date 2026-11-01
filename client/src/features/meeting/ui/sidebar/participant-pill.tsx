@@ -5,6 +5,28 @@ import { cn } from '@/shared/lib/cn';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { TravelTimeBubble } from './travel-time-bubble';
 import type { Participant } from '@/entities';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    you: 'You',
+    addLocation: 'Add starting location',
+    noLocation: 'No starting location yet',
+    editLabel: (name: string) => `Edit ${name}`,
+    editTitle: 'Edit participant',
+    removeLabel: (name: string) => `Remove ${name}`,
+    removeTitle: 'Delete participant',
+  },
+  zh: {
+    you: '我',
+    addLocation: '添加出发地点',
+    noLocation: '还没有出发地点',
+    editLabel: (name: string) => `编辑${name}`,
+    editTitle: '编辑参与者',
+    removeLabel: (name: string) => `移除${name}`,
+    removeTitle: '删除参与者',
+  },
+});
 
 interface ParticipantPillProps {
   participant: Participant;
@@ -38,6 +60,7 @@ export function ParticipantPill({
 }: ParticipantPillProps) {
   const initials = getInitials(participant.name);
   const addLocation = onAddLocation ?? onEdit;
+  const t = useMessages(messages);
 
   return (
     <div className="relative w-full py-2 pl-6 pr-1 group overflow-visible">
@@ -98,7 +121,7 @@ export function ParticipantPill({
                 </span>
                 {isYou && (
                   <span className="flex-shrink-0 px-1.5 py-0.5 rounded-full bg-coral-100 text-[10px] font-semibold uppercase tracking-wide text-coral-700">
-                    You
+                    {t.you}
                   </span>
                 )}
               </div>
@@ -116,12 +139,12 @@ export function ParticipantPill({
                   className="flex items-center gap-1.5 text-xs font-medium text-coral-600 hover:text-coral-700 hover:underline min-w-0 text-left"
                 >
                   <MapPin className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">Add starting location</span>
+                  <span className="truncate">{t.addLocation}</span>
                 </button>
               ) : (
                 <div className="flex items-center gap-1.5 text-xs italic text-muted-foreground min-w-0">
                   <MapPin className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">No starting location yet</span>
+                  <span className="truncate">{t.noLocation}</span>
                 </div>
               )}
             </div>
@@ -147,8 +170,8 @@ export function ParticipantPill({
                         onEdit();
                       }}
                       className="p-2 [@media(hover:hover)]:p-1.5 rounded-lg hover:bg-coral-50 text-muted-foreground hover:text-coral-600 transition-colors bg-white shadow-sm"
-                      aria-label={`Edit ${participant.name}`}
-                      title="Edit participant"
+                      aria-label={t.editLabel(participant.name)}
+                      title={t.editTitle}
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -160,8 +183,8 @@ export function ParticipantPill({
                         onDelete();
                       }}
                       className="p-2 [@media(hover:hover)]:p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors bg-white shadow-sm"
-                      aria-label={`Remove ${participant.name}`}
-                      title="Delete participant"
+                      aria-label={t.removeLabel(participant.name)}
+                      title={t.removeTitle}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

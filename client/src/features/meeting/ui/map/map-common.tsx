@@ -6,6 +6,32 @@
 import { Layers, Loader2, LocateFixed } from 'lucide-react';
 import type { UITravelMode } from '@/features/meeting/model/map-store';
 import type { Location, TravelMode } from '@/shared/types/map';
+import { defineMessages, useMessages, type Locale } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    unavailableTitle: 'Map temporarily unavailable',
+    unavailableBody: 'You can still manage your group below. Try the map again later.',
+    loadErrorTitle: 'Failed to Load Map',
+    loadErrorBody: (message: string) => message,
+    loading: 'Loading map...',
+    showStreet: 'Show street map',
+    showSatellite: 'Show satellite map',
+    recenter: 'Center map on meeting area',
+    calculatingRoutes: 'Calculating routes...',
+  },
+  zh: {
+    unavailableTitle: '地图暂时无法使用',
+    unavailableBody: '你仍可以在下方管理参与者，稍后再试试地图。',
+    loadErrorTitle: '地图加载失败',
+    loadErrorBody: (_message: string) => '请检查网络后刷新页面。',
+    loading: '地图加载中…',
+    showStreet: '显示街道地图',
+    showSatellite: '显示卫星地图',
+    recenter: '将地图移回见面区域',
+    calculatingRoutes: '正在计算路线…',
+  },
+});
 
 // Convert UI travel mode to the directions API travel mode
 export const UI_TO_TRAVEL_MODE: Record<UITravelMode, TravelMode> = {
@@ -88,38 +114,49 @@ export function likedVenueMarkerStyle(
   };
 }
 
+/** Hover title of a liked venue star or the published venue crown */
+export function likedVenueMarkerTitle(
+  venueName: string,
+  isPublished: boolean,
+  locale: Locale = 'en'
+): string {
+  if (locale === 'zh') return `${venueName}（${isPublished ? '已发布' : '已喜欢'}）`;
+  return isPublished ? `${venueName} (Published)` : `${venueName} (Liked)`;
+}
+
 export function MapUnavailable() {
+  const t = useMessages(messages);
   return (
     <main className="w-full h-full bg-stone-100 flex items-center justify-center">
       <div className="text-center px-8 pt-28 max-w-sm" role="status">
         <Layers className="mx-auto mb-3 text-stone-400" size={32} />
-        <h3 className="font-semibold text-foreground">Map temporarily unavailable</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          You can still manage your group below. Try the map again later.
-        </p>
+        <h3 className="font-semibold text-foreground">{t.unavailableTitle}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{t.unavailableBody}</p>
       </div>
     </main>
   );
 }
 
 export function MapLoadError({ message }: { message: string }) {
+  const t = useMessages(messages);
   return (
     <main className="w-full h-full bg-gradient-to-br from-sky-50 via-coral-50/30 to-mint-50/30 relative overflow-hidden flex items-center justify-center">
       <div className="text-center space-y-4 p-8 max-w-md">
         <div className="text-6xl">⚠️</div>
-        <h3 className="text-xl font-semibold text-foreground">Failed to Load Map</h3>
-        <p className="text-sm text-muted-foreground">{message}</p>
+        <h3 className="text-xl font-semibold text-foreground">{t.loadErrorTitle}</h3>
+        <p className="text-sm text-muted-foreground">{t.loadErrorBody(message)}</p>
       </div>
     </main>
   );
 }
 
 export function MapLoading() {
+  const t = useMessages(messages);
   return (
     <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-gray-50 z-10">
       <div className="text-center space-y-4">
         <Loader2 className="w-12 h-12 text-coral-500 animate-spin mx-auto" />
-        <p className="text-sm text-muted-foreground">Loading map...</p>
+        <p className="text-sm text-muted-foreground">{t.loading}</p>
       </div>
     </div>
   );
@@ -134,15 +171,13 @@ export function PhoneMapControls({
   onToggleSatellite: () => void;
   onRecenter: () => void;
 }) {
+  const t = useMessages(messages);
   return (
     <div className="phone-map-controls hidden max-md:flex">
-      <button
-        aria-label={satellite ? 'Show street map' : 'Show satellite map'}
-        onClick={onToggleSatellite}
-      >
+      <button aria-label={satellite ? t.showStreet : t.showSatellite} onClick={onToggleSatellite}>
         <Layers size={22} />
       </button>
-      <button aria-label="Center map on meeting area" onClick={onRecenter}>
+      <button aria-label={t.recenter} onClick={onRecenter}>
         <LocateFixed size={22} />
       </button>
     </div>
@@ -150,10 +185,11 @@ export function PhoneMapControls({
 }
 
 export function RoutesCalculating() {
+  const t = useMessages(messages);
   return (
     <div className="absolute top-4 right-4 z-20 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg flex items-center gap-2">
       <Loader2 className="w-4 h-4 text-coral-500 animate-spin" />
-      <span className="text-sm text-muted-foreground">Calculating routes...</span>
+      <span className="text-sm text-muted-foreground">{t.calculatingRoutes}</span>
     </div>
   );
 }

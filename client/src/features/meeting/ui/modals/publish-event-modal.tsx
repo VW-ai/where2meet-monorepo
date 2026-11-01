@@ -8,8 +8,40 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { eventClient } from '@/features/meeting/api';
 import { APIError } from '@/lib/api/client';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    alreadyPublished: 'This event has already been published.',
+    unverifiedVenue: 'The selected venue could not be verified. Please try another venue.',
+    unexpected: 'An unexpected error occurred. Please try again.',
+    published: 'Event Published!',
+    notified: 'Participants have been notified of the final venue.',
+    title: 'Publish Event',
+    close: 'Close',
+    description:
+      'Publishing this event will finalize the meeting location and notify all participants.',
+    noVenue: 'No venue selected. Select a venue before publishing to include a location.',
+    cancel: 'Cancel',
+    publishing: 'Publishing...',
+  },
+  zh: {
+    alreadyPublished: '这个见面已经确定地点了。',
+    unverifiedVenue: '无法核实所选地点，请换一个地点试试。',
+    unexpected: '出了点问题，请重试。',
+    published: '地点已确定！',
+    notified: '已通知所有参与者最终地点。',
+    title: '确定地点',
+    close: '关闭',
+    description: '确定后，见面地点将定下来，并通知所有参与者。',
+    noVenue: '还没有选择地点。请先选一个地点再确定。',
+    cancel: '取消',
+    publishing: '正在确定…',
+  },
+});
 
 export function PublishEventModal() {
+  const t = useMessages(messages);
   const { isPublishModalOpen, closePublishModal, setActiveView } = useUIStore();
   const { organizerToken } = useAuthStore();
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
@@ -114,15 +146,15 @@ export function PublishEventModal() {
     } catch (err) {
       if (err instanceof APIError) {
         if (err.code === 'EVENT_ALREADY_PUBLISHED') {
-          setError('This event has already been published.');
+          setError(t.alreadyPublished);
         } else if (err.code === 'VALIDATION_ERROR') {
           // The backend rejects a venue it can't verify with Google Places as invalid input
-          setError('The selected venue could not be verified. Please try another venue.');
+          setError(t.unverifiedVenue);
         } else {
           setError(err.message);
         }
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        setError(t.unexpected);
       }
     } finally {
       setIsPublishing(false);
@@ -146,20 +178,18 @@ export function PublishEventModal() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-mint-100 flex items-center justify-center">
               <CheckCircle className="w-8 h-8 text-mint-600" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">Event Published!</h2>
-            <p className="text-sm text-muted-foreground">
-              Participants have been notified of the final venue.
-            </p>
+            <h2 className="text-xl font-semibold text-foreground mb-2">{t.published}</h2>
+            <p className="text-sm text-muted-foreground">{t.notified}</p>
           </div>
         ) : (
           <>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Publish Event</h2>
+              <h2 className="text-xl font-semibold text-foreground">{t.title}</h2>
               <button
                 onClick={closePublishModal}
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                aria-label="Close"
+                aria-label={t.close}
               >
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
@@ -167,10 +197,7 @@ export function PublishEventModal() {
 
             {/* Content */}
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Publishing this event will finalize the meeting location and notify all
-                participants.
-              </p>
+              <p className="text-sm text-muted-foreground">{t.description}</p>
 
               {error && (
                 <div className="p-4 bg-red-50 rounded-xl border border-red-200">
@@ -195,9 +222,7 @@ export function PublishEventModal() {
                 </div>
               ) : (
                 <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                  <p className="text-sm text-yellow-700">
-                    No venue selected. Select a venue before publishing to include a location.
-                  </p>
+                  <p className="text-sm text-yellow-700">{t.noVenue}</p>
                 </div>
               )}
             </div>
@@ -209,14 +234,14 @@ export function PublishEventModal() {
                 onClick={closePublishModal}
                 className="flex-1 px-4 py-3 text-sm font-medium bg-white border-2 border-border text-foreground rounded-full hover:bg-gray-50 transition-all duration-200"
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 onClick={handlePublish}
                 disabled={isPublishing || !selectedVenue}
                 className="flex-1 px-4 py-3 text-sm font-medium bg-mint-500 text-white rounded-full hover:bg-mint-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                {isPublishing ? 'Publishing...' : 'Publish Event'}
+                {isPublishing ? t.publishing : t.title}
               </button>
             </div>
           </>

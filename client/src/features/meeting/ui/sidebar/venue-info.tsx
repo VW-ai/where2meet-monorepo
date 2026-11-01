@@ -29,6 +29,59 @@ import { mapProviderName, venueMapsUrl } from '@/shared/lib/map-provider';
 import { cn } from '@/shared/lib/cn';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { VoteButton } from '@/features/voting/ui/vote-button';
+import type { MapProvider } from '@/shared/types/map';
+import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    loading: 'Loading venue details...',
+    close: 'Close venue details',
+    unsave: 'Remove from saved',
+    save: 'Save venue',
+    address: 'Address',
+    travelTimes: 'Travel Times',
+    // Shown lowercase with CSS capitalize, as before
+    modes: { car: 'car', transit: 'transit', walk: 'walk', bike: 'bike' } as Record<string, string>,
+    statsLabel: 'View travel statistics',
+    statsTitle: 'Travel Statistics',
+    calculating: 'Calculating routes...',
+    you: '(You)',
+    noRoute: 'No route',
+    more: (n: number) => `+${n} more participants...`,
+    hours: 'Hours',
+    openNow: 'Open now',
+    closed: 'Closed',
+    phone: 'Phone',
+    website: 'Website',
+    visitWebsite: 'Visit website',
+    openIn: (provider: MapProvider) => `Open in ${mapProviderName(provider)}`,
+    noVenue: 'No venue selected',
+  },
+  zh: {
+    loading: '正在加载地点详情…',
+    close: '关闭地点详情',
+    unsave: '取消喜欢',
+    save: '喜欢这个地点',
+    address: '地址',
+    travelTimes: '路程时间',
+    modes: { car: '驾车', transit: '公交', walk: '步行', bike: '骑行' },
+    statsLabel: '查看路程统计',
+    statsTitle: '路程统计',
+    calculating: '正在计算路线…',
+    you: '（我）',
+    noRoute: '暂无路线',
+    more: (n: number) => `还有 ${n} 位参与者…`,
+    hours: '营业时间',
+    openNow: '营业中',
+    closed: '已打烊',
+    phone: '电话',
+    website: '网站',
+    visitWebsite: '访问网站',
+    openIn: (provider: MapProvider) =>
+      provider === 'amap' ? '在高德地图中打开' : '在 Google 地图中打开',
+    noVenue: '还没有选择地点',
+  },
+});
 
 // Helper to get initials from name
 const getInitials = (name: string): string => {
@@ -62,6 +115,8 @@ export function VenueInfo() {
   const { voteForVenue, unvoteForVenue, hasVotedFor } = useVotingStore();
   const { routes, isCalculatingRoutes, travelMode } = useMapStore();
   const { organizerParticipantId, currentParticipantId } = useAuthStore();
+  const t = useMessages(messages);
+  const locale = useLocale();
   const [loading, setLoading] = useState(false);
   const [venueDetails, setVenueDetails] = useState<Partial<Venue> | null>(null);
 
@@ -192,7 +247,7 @@ export function VenueInfo() {
         <div className="flex items-center justify-center h-full">
           <div className="text-center space-y-4">
             <Loader2 className="w-12 h-12 text-coral-500 animate-spin mx-auto" />
-            <p className="text-sm text-muted-foreground">Loading venue details...</p>
+            <p className="text-sm text-muted-foreground">{t.loading}</p>
           </div>
         </div>
       )}
@@ -217,7 +272,7 @@ export function VenueInfo() {
             <button
               onClick={handleClose}
               className="absolute top-4 right-4 p-2 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-coral-500 z-10"
-              aria-label="Close venue details"
+              aria-label={t.close}
             >
               <X className="w-5 h-5 text-foreground" />
             </button>
@@ -231,7 +286,7 @@ export function VenueInfo() {
                   ? 'bg-coral-500 text-white hover:bg-coral-600'
                   : 'bg-white/90 hover:bg-white text-foreground'
               )}
-              aria-label={isSaved ? 'Remove from saved' : 'Save venue'}
+              aria-label={isSaved ? t.unsave : t.save}
             >
               <Heart className={cn('w-5 h-5', isSaved && 'fill-current')} />
             </button>
@@ -263,14 +318,14 @@ export function VenueInfo() {
           <div className="p-6 space-y-6">
             {/* Category Badge */}
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-coral-50 text-coral-700 text-sm font-medium capitalize">
-              {getVenueCategoryDisplay(venue)}
+              {getVenueCategoryDisplay(venue, locale)}
             </div>
 
             {/* Address */}
             <div className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-coral-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Address</p>
+                <p className="text-sm font-medium text-foreground">{t.address}</p>
                 <p className="text-sm text-muted-foreground">{venue.address}</p>
               </div>
             </div>
@@ -280,16 +335,16 @@ export function VenueInfo() {
               <div className="border-t border-border pt-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">Travel Times</h3>
+                    <h3 className="text-sm font-semibold text-foreground">{t.travelTimes}</h3>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
                       <TravelModeIcon mode={travelMode} />
-                      <span className="capitalize">{travelMode}</span>
+                      <span className="capitalize">{t.modes[travelMode] ?? travelMode}</span>
                     </div>
                   </div>
                   <button
                     className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500"
-                    aria-label="View travel statistics"
-                    title="Travel Statistics"
+                    aria-label={t.statsLabel}
+                    title={t.statsTitle}
                   >
                     <BarChart3 className="w-4 h-4 text-muted-foreground" />
                   </button>
@@ -299,9 +354,7 @@ export function VenueInfo() {
                   {isCalculatingRoutes ? (
                     <div className="flex items-center justify-center py-4">
                       <Loader2 className="w-5 h-5 text-coral-500 animate-spin" />
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        Calculating routes...
-                      </span>
+                      <span className="ml-2 text-sm text-muted-foreground">{t.calculating}</span>
                     </div>
                   ) : (
                     <>
@@ -332,7 +385,7 @@ export function VenueInfo() {
                                 {participant.name}
                                 {isCurrentUser && (
                                   <span className="ml-1.5 text-xs text-coral-600 font-semibold">
-                                    (You)
+                                    {t.you}
                                   </span>
                                 )}
                               </span>
@@ -361,7 +414,7 @@ export function VenueInfo() {
                                 </>
                               ) : (
                                 <span className="text-xs text-muted-foreground italic">
-                                  No route
+                                  {t.noRoute}
                                 </span>
                               )}
                             </div>
@@ -371,7 +424,7 @@ export function VenueInfo() {
                       {sortedParticipants.length > 5 && (
                         <div className="flex items-center justify-center p-2">
                           <span className="text-xs text-muted-foreground italic">
-                            +{sortedParticipants.length - 5} more participants...
+                            {t.more(sortedParticipants.length - 5)}
                           </span>
                         </div>
                       )}
@@ -386,7 +439,7 @@ export function VenueInfo() {
               <div className="flex items-start gap-3">
                 <Clock className="w-5 h-5 text-coral-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground mb-2">Hours</p>
+                  <p className="text-sm font-medium text-foreground mb-2">{t.hours}</p>
                   <div className="space-y-1">
                     {venue.openingHours.map((hours, index) => (
                       <p key={index} className="text-sm text-muted-foreground">
@@ -401,7 +454,7 @@ export function VenueInfo() {
                         venue.openNow ? 'text-mint-600' : 'text-red-600'
                       )}
                     >
-                      {venue.openNow ? 'Open now' : 'Closed'}
+                      {venue.openNow ? t.openNow : t.closed}
                     </p>
                   )}
                 </div>
@@ -413,7 +466,7 @@ export function VenueInfo() {
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-coral-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Phone</p>
+                  <p className="text-sm font-medium text-foreground">{t.phone}</p>
                   <a
                     href={`tel:${venue.formattedPhoneNumber}`}
                     className="text-sm text-coral-600 hover:text-coral-700 hover:underline"
@@ -429,14 +482,14 @@ export function VenueInfo() {
               <div className="flex items-start gap-3">
                 <Globe className="w-5 h-5 text-coral-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Website</p>
+                  <p className="text-sm font-medium text-foreground">{t.website}</p>
                   <a
                     href={venue.website}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-coral-600 hover:text-coral-700 hover:underline inline-flex items-center gap-1"
                   >
-                    Visit website
+                    {t.visitWebsite}
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
@@ -449,7 +502,7 @@ export function VenueInfo() {
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2"
             >
               <MapPin className="w-5 h-5" />
-              <span className="font-medium">Open in {mapProviderName(mapProvider)}</span>
+              <span className="font-medium">{t.openIn(mapProvider)}</span>
             </button>
           </div>
         </>
@@ -460,7 +513,7 @@ export function VenueInfo() {
         <div className="flex items-center justify-center h-full p-8">
           <div className="text-center space-y-4">
             <MapPin className="w-16 h-16 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No venue selected</p>
+            <p className="text-sm text-muted-foreground">{t.noVenue}</p>
           </div>
         </div>
       )}

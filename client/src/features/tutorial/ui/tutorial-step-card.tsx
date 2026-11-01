@@ -6,6 +6,28 @@ import { TUTORIAL_STEPS } from '../config/steps';
 import { PopoverPosition, getArrowStyles } from '../lib/positioning';
 import { cn } from '@/shared/lib/cn';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { defineMessages, useLocale } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    stepOf: (step: number, total: number) => `Step ${step} of ${total}`,
+    skip: 'Skip tutorial',
+    currentStep: (step: number) => `Current step ${step}`,
+    completedStep: (step: number) => `Completed step ${step}`,
+    upcomingStep: (step: number) => `Upcoming step ${step}`,
+    done: 'Got it!',
+    next: 'Next',
+  },
+  zh: {
+    stepOf: (step: number, total: number) => `第 ${step} 步，共 ${total} 步`,
+    skip: '跳过',
+    currentStep: (step: number) => `当前第 ${step} 步`,
+    completedStep: (step: number) => `已完成第 ${step} 步`,
+    upcomingStep: (step: number) => `第 ${step} 步`,
+    done: '完成',
+    next: '下一步',
+  },
+});
 
 interface TutorialStepCardProps {
   step: number;
@@ -14,6 +36,8 @@ interface TutorialStepCardProps {
 }
 
 export function TutorialStepCard({ step, position, eventId }: TutorialStepCardProps) {
+  const locale = useLocale();
+  const t = messages[locale];
   const { nextStep, skipTutorial, markTutorialComplete } = useTutorialStore();
   const stepConfig = TUTORIAL_STEPS[step];
   const isLastStep = step === 3;
@@ -40,6 +64,7 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
   };
 
   if (!stepConfig) return null;
+  const text = stepConfig.text[locale];
 
   // Use the actual placement (after any flips) for arrow direction
   // and the calculated offset to point directly at the target
@@ -82,14 +107,14 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
         {/* Step indicator and skip button */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-coral-500 uppercase tracking-wide">
-            Step {step + 1} of 4
+            {t.stepOf(step + 1, 4)}
           </span>
           <button
             onClick={handleSkip}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Skip tutorial"
+            aria-label={t.skip}
           >
-            Skip tutorial
+            {t.skip}
           </button>
         </div>
 
@@ -98,7 +123,7 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
           id="tutorial-title"
           className="text-base sm:text-lg font-bold text-foreground break-words"
         >
-          {stepConfig.title}
+          {text.title}
         </h3>
 
         {/* Description */}
@@ -106,7 +131,7 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
           id="tutorial-description"
           className="text-xs sm:text-sm text-muted-foreground leading-relaxed break-words"
         >
-          {stepConfig.description}
+          {text.description}
         </p>
 
         {/* Progress dots */}
@@ -124,10 +149,10 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
               )}
               aria-label={
                 i === step
-                  ? `Current step ${i + 1}`
+                  ? t.currentStep(i + 1)
                   : i < step
-                    ? `Completed step ${i + 1}`
-                    : `Upcoming step ${i + 1}`
+                    ? t.completedStep(i + 1)
+                    : t.upcomingStep(i + 1)
               }
             />
           ))}
@@ -139,7 +164,7 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
           onClick={handleNext}
           className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-coral-500 text-white rounded-full text-sm font-medium hover:bg-coral-600 active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2"
         >
-          {isLastStep ? 'Got it!' : 'Next'}
+          {isLastStep ? t.done : t.next}
         </button>
       </div>
     </div>

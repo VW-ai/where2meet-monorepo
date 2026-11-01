@@ -5,8 +5,31 @@ import { X, Copy, Check, Link } from 'lucide-react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    title: 'Share Event',
+    close: 'Close',
+    description: 'Share this link with participants so they can join and vote on venues.',
+    copied: 'Copied!',
+    copyLink: 'Copy link',
+    linkCopied: 'Link copied to clipboard!',
+    done: 'Done',
+  },
+  zh: {
+    title: '分享见面',
+    close: '关闭',
+    description: '把链接发给朋友，大家就能加入并给地点投票。',
+    copied: '已复制！',
+    copyLink: '复制链接',
+    linkCopied: '链接已复制！',
+    done: '完成',
+  },
+});
 
 export function ShareModal() {
+  const t = useMessages(messages);
   const { isShareModalOpen, closeShareModal } = useUIStore();
   const { currentEvent } = useMeetingStore();
 
@@ -80,11 +103,11 @@ export function ShareModal() {
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-foreground">Share Event</h2>
+          <h2 className="text-xl font-semibold text-foreground">{t.title}</h2>
           <button
             onClick={closeShareModal}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Close"
+            aria-label={t.close}
           >
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -92,9 +115,7 @@ export function ShareModal() {
 
         {/* Content */}
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Share this link with participants so they can join and vote on venues.
-          </p>
+          <p className="text-sm text-muted-foreground">{t.description}</p>
 
           {/* Event Title */}
           {currentEvent?.title && (
@@ -114,7 +135,7 @@ export function ShareModal() {
               className={`p-3 rounded-xl transition-all duration-200 flex-shrink-0 ${
                 copied ? 'bg-mint-500 text-white' : 'bg-coral-500 text-white hover:bg-coral-600'
               }`}
-              aria-label={copied ? 'Copied!' : 'Copy link'}
+              aria-label={copied ? t.copied : t.copyLink}
             >
               {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
             </button>
@@ -123,7 +144,7 @@ export function ShareModal() {
           {/* Success message */}
           {copied && (
             <p className="text-sm text-mint-600 text-center animate-in fade-in duration-200">
-              Link copied to clipboard!
+              {t.linkCopied}
             </p>
           )}
         </div>
@@ -134,7 +155,7 @@ export function ShareModal() {
             onClick={closeShareModal}
             className="w-full px-4 py-3 text-sm font-medium bg-white border-2 border-border text-foreground rounded-full hover:bg-gray-50 transition-all duration-200"
           >
-            Done
+            {t.done}
           </button>
         </div>
       </div>

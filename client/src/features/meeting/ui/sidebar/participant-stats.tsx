@@ -8,6 +8,50 @@ import { useMapStore } from '@/features/meeting/model/map-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { cn } from '@/shared/lib/cn';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    title: 'Travel Time Stats',
+    close: 'Close stats panel',
+    to: (venue: string) => `To: ${venue}`,
+    selectVenue: 'Select a venue to see travel times',
+    addParticipants: 'Add participants to see travel times',
+    calculating: 'Calculating travel times...',
+    byParticipant: 'Travel Time by Participant',
+    modes: {
+      car: 'Driving',
+      transit: 'Transit',
+      walk: 'Walking',
+      bike: 'Cycling',
+    } as Record<string, string>,
+    you: '(You)',
+    shortest: 'Shortest',
+    longest: 'Longest',
+    average: 'Average',
+    minutes: (n: number) => `${n} mins`,
+  },
+  zh: {
+    title: '路程时间统计',
+    close: '关闭统计面板',
+    to: (venue: string) => `前往：${venue}`,
+    selectVenue: '选一个地点，看看大家的路程时间',
+    addParticipants: '添加参与者后即可查看路程时间',
+    calculating: '正在计算路程时间…',
+    byParticipant: '每位参与者的路程时间',
+    modes: {
+      car: '驾车',
+      transit: '公交',
+      walk: '步行',
+      bike: '骑行',
+    },
+    you: '（我）',
+    shortest: '最短',
+    longest: '最长',
+    average: '平均',
+    minutes: (n: number) => `${n} 分钟`,
+  },
+});
 
 // Helper to get initials from name
 const getInitials = (name: string): string => {
@@ -50,6 +94,7 @@ export function ParticipantStats() {
   const { currentEvent, selectedVenue } = useMeetingStore();
   const { routes, travelMode } = useMapStore();
   const { organizerParticipantId, currentParticipantId } = useAuthStore();
+  const t = useMessages(messages);
 
   // Get current user's participant ID (organizer takes precedence)
   const myParticipantId = organizerParticipantId || currentParticipantId;
@@ -94,14 +139,6 @@ export function ParticipantStats() {
 
   const maxMinutes = Math.max(...participantsWithTimes.map((p) => p.travelMinutes), 1);
 
-  // Travel mode labels
-  const travelModeLabel: Record<string, string> = {
-    car: 'Driving',
-    transit: 'Transit',
-    walk: 'Walking',
-    bike: 'Cycling',
-  };
-
   return (
     <aside
       className={cn(
@@ -129,18 +166,18 @@ export function ParticipantStats() {
       <div className="sticky top-0 bg-white/95 backdrop-blur-md z-10 p-4 border-b border-border/50">
         <div className="flex items-center justify-between">
           <h2 id="participant-stats-title" className="text-lg font-semibold text-foreground">
-            Travel Time Stats
+            {t.title}
           </h2>
           <button
             onClick={closeParticipantStats}
             className="p-2 rounded-full hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500"
-            aria-label="Close stats panel"
+            aria-label={t.close}
           >
             <X className="w-5 h-5 text-foreground" />
           </button>
         </div>
         {selectedVenue && (
-          <p className="text-sm text-muted-foreground mt-1 truncate">To: {selectedVenue.name}</p>
+          <p className="text-sm text-muted-foreground mt-1 truncate">{t.to(selectedVenue.name)}</p>
         )}
       </div>
 
@@ -149,21 +186,21 @@ export function ParticipantStats() {
         {/* No venue selected state */}
         {!selectedVenue && (
           <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">Select a venue to see travel times</p>
+            <p className="text-sm text-muted-foreground">{t.selectVenue}</p>
           </div>
         )}
 
         {/* No participants state */}
         {selectedVenue && participants.length === 0 && (
           <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">Add participants to see travel times</p>
+            <p className="text-sm text-muted-foreground">{t.addParticipants}</p>
           </div>
         )}
 
         {/* No routes calculated state */}
         {selectedVenue && participants.length > 0 && participantsWithTimes.length === 0 && (
           <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">Calculating travel times...</p>
+            <p className="text-sm text-muted-foreground">{t.calculating}</p>
           </div>
         )}
 
@@ -172,11 +209,9 @@ export function ParticipantStats() {
           <div className="space-y-4">
             {/* Travel mode badge */}
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">
-                Travel Time by Participant
-              </span>
+              <span className="text-sm font-medium text-foreground">{t.byParticipant}</span>
               <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full capitalize">
-                {travelModeLabel[travelMode] || travelMode}
+                {t.modes[travelMode] || travelMode}
               </span>
             </div>
 
@@ -206,7 +241,7 @@ export function ParticipantStats() {
                           {participant.name}
                           {isCurrentUser && (
                             <span className="ml-1.5 text-xs text-coral-600 font-semibold">
-                              (You)
+                              {t.you}
                             </span>
                           )}
                         </span>
@@ -238,14 +273,14 @@ export function ParticipantStats() {
             {/* Summary stats */}
             <div className="pt-4 border-t border-border/50 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Shortest</span>
+                <span className="text-muted-foreground">{t.shortest}</span>
                 <span className="font-medium text-mint-600">
                   {participantsWithTimes.sort((a, b) => a.travelMinutes - b.travelMinutes)[0]
                     ?.travelTime || '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Longest</span>
+                <span className="text-muted-foreground">{t.longest}</span>
                 <span className="font-medium text-coral-600">
                   {participantsWithTimes.sort((a, b) => b.travelMinutes - a.travelMinutes)[0]
                     ?.travelTime || '-'}
@@ -253,13 +288,14 @@ export function ParticipantStats() {
               </div>
               {participantsWithTimes.length > 1 && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Average</span>
+                  <span className="text-muted-foreground">{t.average}</span>
                   <span className="font-medium text-foreground">
-                    {Math.round(
-                      participantsWithTimes.reduce((sum, p) => sum + p.travelMinutes, 0) /
-                        participantsWithTimes.length
-                    )}{' '}
-                    mins
+                    {t.minutes(
+                      Math.round(
+                        participantsWithTimes.reduce((sum, p) => sum + p.travelMinutes, 0) /
+                          participantsWithTimes.length
+                      )
+                    )}
                   </span>
                 </div>
               )}

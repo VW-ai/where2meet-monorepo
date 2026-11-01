@@ -9,8 +9,39 @@ import { eventClient } from '@/features/meeting/api';
 import { APIError } from '@/lib/api/client';
 import { eventEdits } from '@/features/meeting/lib/event-edits';
 import { browserTimeZone, toLocalFields, type LocalFields } from '@/shared/lib/meeting-times';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    noPermission: "You don't have permission to edit this event",
+    failed: 'Failed to update event',
+    title: 'Edit Event',
+    close: 'Close',
+    eventTitle: 'Event Title',
+    titlePlaceholder: 'Enter event title',
+    date: 'Date',
+    time: 'Time',
+    cancel: 'Cancel',
+    saving: 'Saving...',
+    save: 'Save Changes',
+  },
+  zh: {
+    noPermission: '你没有编辑这个见面的权限',
+    failed: '更新失败',
+    title: '编辑见面',
+    close: '关闭',
+    eventTitle: '见面名称',
+    titlePlaceholder: '输入见面名称',
+    date: '日期',
+    time: '时间',
+    cancel: '取消',
+    saving: '正在保存…',
+    save: '保存修改',
+  },
+});
 
 export function EditEventModal() {
+  const t = useMessages(messages);
   const { isEditEventModalOpen, closeEditEventModal } = useUIStore();
   const { organizerToken, clearOrganizerToken } = useAuthStore();
   const { currentEvent, setCurrentEvent } = useMeetingStore();
@@ -75,13 +106,13 @@ export function EditEventModal() {
     } catch (err) {
       if (err instanceof APIError) {
         if (err.status === 401 || err.status === 403) {
-          setError("You don't have permission to edit this event");
+          setError(t.noPermission);
           clearOrganizerToken();
         } else {
           setError(err.message);
         }
       } else {
-        setError('Failed to update event');
+        setError(t.failed);
       }
     } finally {
       setIsSubmitting(false);
@@ -101,11 +132,11 @@ export function EditEventModal() {
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-foreground">Edit Event</h2>
+          <h2 className="text-xl font-semibold text-foreground">{t.title}</h2>
           <button
             onClick={closeEditEventModal}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Close"
+            aria-label={t.close}
           >
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -119,14 +150,14 @@ export function EditEventModal() {
               htmlFor="event-title"
               className="block text-sm font-medium text-foreground mb-1.5"
             >
-              Event Title
+              {t.eventTitle}
             </label>
             <input
               id="event-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter event title"
+              placeholder={t.titlePlaceholder}
               className="w-full px-4 py-3 rounded-xl border-2 border-border bg-white text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-coral-500 transition-colors"
               required
             />
@@ -138,7 +169,7 @@ export function EditEventModal() {
               htmlFor="event-date"
               className="block text-sm font-medium text-foreground mb-1.5"
             >
-              Date
+              {t.date}
             </label>
             <input
               id="event-date"
@@ -155,7 +186,7 @@ export function EditEventModal() {
               htmlFor="event-time"
               className="block text-sm font-medium text-foreground mb-1.5"
             >
-              Time
+              {t.time}
             </label>
             <input
               id="event-time"
@@ -180,14 +211,14 @@ export function EditEventModal() {
               onClick={closeEditEventModal}
               className="flex-1 px-4 py-3 text-sm font-medium bg-white border-2 border-border text-foreground rounded-full hover:bg-gray-50 transition-all duration-200"
             >
-              Cancel
+              {t.cancel}
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !title.trim() || !organizerToken}
               className="flex-1 px-4 py-3 text-sm font-medium bg-coral-500 text-white rounded-full hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isSubmitting ? t.saving : t.save}
             </button>
           </div>
         </form>

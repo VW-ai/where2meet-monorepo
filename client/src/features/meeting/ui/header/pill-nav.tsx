@@ -8,6 +8,17 @@ import { useUIStore, type ActiveView } from '@/features/meeting/model/ui-store';
 import { cn } from '@/shared/lib/cn';
 import catLogo from '@/components/cat/logo.svg';
 import { ParticipantIconFlash } from './participant-icon-flash';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    home: 'Home',
+    logoAlt: 'Where2Meet Cat Logo',
+    venues: 'Venues',
+    participants: 'Participants',
+  },
+  zh: { home: '首页', logoAlt: 'Where2Meet 猫咪标志', venues: '地点', participants: '参与者' },
+});
 
 // Shared NavButton component
 interface NavButtonProps {
@@ -57,6 +68,7 @@ function NavButton({
 }
 
 export function PillNav() {
+  const t = useMessages(messages);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -100,11 +112,11 @@ export function PillNav() {
       <button
         onClick={() => router.push('/')}
         className="p-2 rounded-full bg-white border-2 border-border hover:border-coral-500 hover:bg-coral-50 transition-all duration-200 touch-target focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2"
-        aria-label="Home"
+        aria-label={t.home}
       >
         <Image
           src={catLogo}
-          alt="Where2Meet Cat Logo"
+          alt={t.logoAlt}
           width={32}
           height={32}
           className="w-6 h-6 md:w-8 md:h-8"
@@ -118,7 +130,7 @@ export function PillNav() {
         isActive={activeView === 'venue'}
         isSidebarVisible={isSidebarVisible}
         icon={Building2}
-        label="Venues"
+        label={t.venues}
       />
 
       {/* Participants Button */}
@@ -127,7 +139,7 @@ export function PillNav() {
         isActive={activeView === 'participant'}
         isSidebarVisible={isSidebarVisible}
         icon={Users}
-        label="Participants"
+        label={t.participants}
         shouldFlash={shouldFlashParticipantIcon}
         onFlashComplete={resetParticipantFlash}
       />

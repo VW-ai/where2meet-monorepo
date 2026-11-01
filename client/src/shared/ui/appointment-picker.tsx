@@ -9,6 +9,22 @@ import { format } from 'date-fns';
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { MEETING_TIMES } from '@/shared/lib/meeting-times';
+import { DATE_FNS_LOCALES, defineMessages, useLocale } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    placeholder: 'Pick a date and time',
+    dialog: 'Choose a date and time',
+    chosen: "PPP 'at' p",
+    dayHeading: 'EEEE, d',
+  },
+  zh: {
+    placeholder: '选择日期和时间',
+    dialog: '选择日期和时间',
+    chosen: 'PPP p',
+    dayHeading: 'M月d日 EEEE',
+  },
+});
 
 interface AppointmentPickerProps {
   date: Date | undefined;
@@ -22,9 +38,12 @@ export function AppointmentPicker({
   date,
   onDateTimeChange,
   label,
-  placeholder = 'Pick a date and time',
+  placeholder,
   className,
 }: AppointmentPickerProps) {
+  const locale = useLocale();
+  const t = messages[locale];
+  const dateLocale = DATE_FNS_LOCALES[locale];
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date>(date || today);
   const [selectedTime, setSelectedTime] = useState<string | null>(
@@ -81,10 +100,14 @@ export function AppointmentPicker({
             )}
           >
             <CalendarIcon className="mr-2 h-5 w-5 text-coral-500" />
-            {date ? format(date, "PPP 'at' p") : <span>{placeholder}</span>}
+            {date ? (
+              format(date, t.chosen, { locale: dateLocale })
+            ) : (
+              <span>{placeholder ?? t.placeholder}</span>
+            )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start" aria-label="Choose a date and time">
+        <PopoverContent className="w-auto p-0" align="start" aria-label={t.dialog}>
           <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
             <div className="flex max-sm:flex-col">
               <Calendar
@@ -100,7 +123,7 @@ export function AppointmentPicker({
                     <div className="space-y-3">
                       <div className="flex h-5 shrink-0 items-center px-5">
                         <p className="text-sm font-medium text-gray-700">
-                          {format(selectedDate, 'EEEE, d')}
+                          {format(selectedDate, t.dayHeading, { locale: dateLocale })}
                         </p>
                       </div>
                       <div className="grid gap-2 px-5 max-sm:grid-cols-2">

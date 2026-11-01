@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { LANGUAGE_TAGS, type Locale } from '@/shared/lib/i18n';
 
 /** Start times the meeting picker offers, as "HH:mm": every half hour from 6:00 to 23:30, so evening plans fit. */
 export const MEETING_TIMES: readonly string[] = everyStep(6 * 60, 23 * 60 + 30, 30);
@@ -30,10 +31,14 @@ export function fromLocalFields(date: string, time: string): string {
   return new Date(`${date}T${time || '00:00'}`).toISOString();
 }
 
-export function meetingWhen(meetingTime: string, timeZone: string | null): string | null {
+export function meetingWhen(
+  meetingTime: string,
+  timeZone: string | null,
+  locale: Locale = 'en'
+): string | null {
   if (!timeZone) return null;
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(LANGUAGE_TAGS[locale], {
       weekday: 'long',
       month: 'long',
       day: 'numeric',

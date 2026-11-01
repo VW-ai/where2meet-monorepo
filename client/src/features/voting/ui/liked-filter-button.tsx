@@ -4,6 +4,20 @@ import { useMemo } from 'react';
 import { Heart } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { useVotingStore } from '@/features/voting/model/voting-store';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    toggleLabel: (isExpanded: boolean, count: number) =>
+      `${isExpanded ? 'Collapse' : 'Expand'} liked venues filter${count > 0 ? ` (${count})` : ''}`,
+    liked: 'Liked',
+  },
+  zh: {
+    toggleLabel: (isExpanded: boolean, count: number) =>
+      `${isExpanded ? '收起' : '展开'}已喜欢的地点${count > 0 ? `（${count}）` : ''}`,
+    liked: '已喜欢',
+  },
+});
 
 interface LikedFilterButtonProps {
   isExpanded: boolean;
@@ -16,6 +30,7 @@ export function LikedFilterButton({
   onToggle,
   disabled = false,
 }: LikedFilterButtonProps) {
+  const t = useMessages(messages);
   const { getAllVotedVenueIds, voteStatsByVenueId } = useVotingStore();
 
   // Subscribe to vote changes to re-render when votes update
@@ -37,7 +52,7 @@ export function LikedFilterButton({
         disabled &&
           'cursor-not-allowed opacity-80 hover:shadow-md hover:border-border hover:bg-white/90'
       )}
-      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} liked venues filter${savedVenues.length > 0 ? ` (${savedVenues.length})` : ''}`}
+      aria-label={t.toggleLabel(isExpanded, savedVenues.length)}
     >
       <Heart className={cn('w-4 h-4 flex-shrink-0', isExpanded && 'fill-white')} />
       {/* Show count badge when collapsed */}
@@ -49,7 +64,7 @@ export function LikedFilterButton({
       {/* Show text when expanded */}
       {isExpanded && (
         <>
-          <span className="whitespace-nowrap">Liked</span>
+          <span className="whitespace-nowrap">{t.liked}</span>
           {savedVenues.length > 0 && (
             <span className="px-1.5 py-0.5 text-xs rounded-full bg-white text-coral-700 whitespace-nowrap">
               {savedVenues.length}

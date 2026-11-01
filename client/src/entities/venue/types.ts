@@ -128,7 +128,19 @@ export function getVenueCategory(types: string[]): VenueCategory {
 /**
  * Get display name for a venue's category
  */
-export function getVenueCategoryDisplay(venue: Venue): string {
+export function getVenueCategoryDisplay(venue: Venue, locale: 'en' | 'zh' = 'en'): string {
   const category = getVenueCategory(venue.types);
-  return category.replace(/_/g, ' ');
+  return locale === 'zh' ? VENUE_CATEGORY_ZH[category] : category.replace(/_/g, ' ');
 }
+
+const VENUE_CATEGORY_ZH: Record<VenueCategory, string> = {
+  cafe: '咖啡馆',
+  restaurant: '餐厅',
+  bar: '酒吧',
+  gym: '健身房',
+  park: '公园',
+  museum: '博物馆',
+  library: '图书馆',
+  shopping: '购物',
+  things_to_do: '休闲娱乐',
+};

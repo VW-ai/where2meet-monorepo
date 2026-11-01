@@ -4,12 +4,30 @@ import { useState } from 'react';
 import { AddressAutocomplete } from '@/shared/ui/address-autocomplete';
 import { reverseGeocodePoint } from '@/shared/lib/map-provider';
 import type { MapProvider } from '@/shared/types/map';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
 
-const LOCATE_ERRORS: Record<number, string> = {
-  1: 'Location access is blocked. Allow it in your browser settings, or type an address.',
-  2: 'Your location is unavailable right now. Type an address instead.',
-  3: 'Finding your location took too long. Try again or type an address.',
-};
+const messages = defineMessages({
+  en: {
+    placeholder: 'Search an address or place…',
+    noGeolocation: 'Your browser can’t share its location. Type an address instead.',
+    locateFailed: 'We couldn’t find your current location. Type an address instead.',
+    locateErrors: {
+      1: 'Location access is blocked. Allow it in your browser settings, or type an address.',
+      2: 'Your location is unavailable right now. Type an address instead.',
+      3: 'Finding your location took too long. Try again or type an address.',
+    } as Record<number, string>,
+  },
+  zh: {
+    placeholder: '搜索地址或地点…',
+    noGeolocation: '你的浏览器无法获取位置，请直接输入地址。',
+    locateFailed: '没能找到你的当前位置，请直接输入地址。',
+    locateErrors: {
+      1: '位置权限被关闭了。请在浏览器设置里允许，或直接输入地址。',
+      2: '暂时获取不到你的位置，请直接输入地址。',
+      3: '获取位置超时了。请重试，或直接输入地址。',
+    },
+  },
+});
 
 interface LocationFieldProps {
   id: string;
@@ -37,15 +55,16 @@ export function LocationField({
   onError,
   invalid = false,
   disabled = false,
-  placeholder = 'Search an address or place…',
+  placeholder,
   className,
   provider = 'google',
 }: LocationFieldProps) {
+  const t = useMessages(messages);
   const [isLocating, setIsLocating] = useState(false);
 
   const handleLocate = async () => {
     if (!navigator.geolocation) {
-      onError('Your browser can’t share its location. Type an address instead.');
+      onError(t.noGeolocation);
       return;
     }
 
@@ -64,9 +83,7 @@ export function LocationField({
     } catch (error) {
       console.error('Error getting location:', error);
       onError(
-        error instanceof GeolocationPositionError
-          ? LOCATE_ERRORS[error.code]
-          : 'We couldn’t find your current location. Type an address instead.'
+        error instanceof GeolocationPositionError ? t.locateErrors[error.code] : t.locateFailed
       );
     } finally {
       setIsLocating(false);
@@ -81,7 +98,7 @@ export function LocationField({
       onSelect={(prediction) => onChange(prediction.full_address, prediction.place_id)}
       onLocate={handleLocate}
       isLocating={isLocating}
-      placeholder={placeholder}
+      placeholder={placeholder ?? t.placeholder}
       disabled={disabled}
       invalid={invalid}
       className={className}

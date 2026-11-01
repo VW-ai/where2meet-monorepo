@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
@@ -15,6 +15,65 @@ import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { participantErrorMessage } from '@/features/meeting/lib/participant-error-message';
+import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    noToken: 'No authorization token available',
+    saveFailed: 'Unable to save participant. Please check the address and try again.',
+    deleteFailed: 'Failed to delete participant',
+    title: 'Participants',
+    count: (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`,
+    statsLabel: 'View travel time statistics',
+    statsTitle: 'Travel time stats',
+    addDisabled: 'Cannot add participants after event is published',
+    addParticipant: 'Add Participant',
+    joinDisabled: 'Cannot join after event is published',
+    joinEvent: 'Join Event',
+    added: (name: string) => `${name} added. Add the next person, or tap Done.`,
+    done: 'Done',
+    cancel: 'Cancel',
+    error: 'Error',
+    dismissError: 'Dismiss error',
+    emptyTitle: 'No participants yet',
+    emptyHint: 'Add participants to find the perfect meeting spot',
+    leaveTitle: 'Leave Event',
+    deleteTitle: 'Delete Participant',
+    leaveConfirm:
+      'Are you sure you want to leave this event? You can rejoin later with a new registration.',
+    removeConfirm: (name: ReactNode) => (
+      <>Are you sure you want to remove {name}? This action cannot be undone.</>
+    ),
+    leave: 'Leave',
+    delete: 'Delete',
+  },
+  zh: {
+    noToken: '缺少授权信息',
+    saveFailed: '参与者没能保存，请检查地址后重试。',
+    deleteFailed: '参与者删除失败',
+    title: '参与者',
+    count: (n: number) => `${n} 人`,
+    statsLabel: '查看路程时间统计',
+    statsTitle: '路程时间统计',
+    addDisabled: '地点已确定，不能再添加参与者',
+    addParticipant: '添加参与者',
+    joinDisabled: '地点已确定，不能再加入',
+    joinEvent: '加入见面',
+    added: (name: string) => `已添加${name}。继续添加下一位，或点“完成”。`,
+    done: '完成',
+    cancel: '取消',
+    error: '出错了',
+    dismissError: '关闭错误提示',
+    emptyTitle: '还没有参与者',
+    emptyHint: '添加参与者，一起找到最合适的见面地点',
+    leaveTitle: '退出见面',
+    deleteTitle: '删除参与者',
+    leaveConfirm: '确定要退出这次见面吗？之后可以重新加入。',
+    removeConfirm: (name: ReactNode) => <>确定要移除{name}吗？此操作无法撤销。</>,
+    leave: '退出',
+    delete: '删除',
+  },
+});
 
 export function ParticipantSection() {
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
@@ -31,6 +90,8 @@ export function ParticipantSection() {
     clearParticipantInfo,
   } = useAuthStore();
   const { toggleParticipantStats } = useUIStore();
+  const t = useMessages(messages);
+  const locale = useLocale();
 
   // Helper to get travel time for a participant from calculated routes
   const getTravelTime = (participantId: string): string | undefined => {
@@ -59,7 +120,7 @@ export function ParticipantSection() {
   const handleSaveMyLocation = async (data: { name?: string; address: string }) => {
     if (!currentEvent || !me) return;
     const token = isOrganizerMode ? organizerToken : participantToken;
-    if (!token) throw new Error('No authorization token available');
+    if (!token) throw new Error(t.noToken);
 
     const updated = await participantClient.update(currentEvent.id, me.id, data, token);
     updateParticipant(me.id, updated);
@@ -120,7 +181,7 @@ export function ParticipantSection() {
         // Update existing participant via API
         const token = isOrganizerMode ? organizerToken : participantToken;
         if (!token) {
-          throw new Error('No authorization token available');
+          throw new Error(t.noToken);
         }
 
         const updatedParticipant = await participantClient.update(
@@ -221,12 +282,7 @@ export function ParticipantSection() {
       setShowAddForm(false);
     } catch (error) {
       console.error('Error saving participant:', error);
-      setErrorMessage(
-        participantErrorMessage(
-          error,
-          'Unable to save participant. Please check the address and try again.'
-        )
-      );
+      setErrorMessage(participantErrorMessage(error, t.saveFailed, locale));
     } finally {
       setIsSubmitting(false);
     }
@@ -280,7 +336,7 @@ export function ParticipantSection() {
       setDeletingParticipantId(null);
     } catch (error) {
       console.error('Error deleting participant:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete participant');
+      setErrorMessage(error instanceof Error ? error.message : t.deleteFailed);
       setDeletingParticipantId(null);
     }
   };
@@ -291,21 +347,19 @@ export function ParticipantSection() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <Users className="w-5 h-5" />
-          Participants
+          {t.title}
         </h2>
         <div className="flex items-center gap-2">
           {participantCount > 0 && (
-            <span className="text-sm text-muted-foreground">
-              {participantCount} {participantCount === 1 ? 'person' : 'people'}
-            </span>
+            <span className="text-sm text-muted-foreground">{t.count(participantCount)}</span>
           )}
           {/* Stats button */}
           <button
             data-tutorial="stats-button"
             onClick={toggleParticipantStats}
             className="p-1.5 rounded-lg hover:bg-coral-50 text-muted-foreground hover:text-coral-600 transition-colors focus:outline-none focus:ring-2 focus:ring-coral-500/20"
-            aria-label="View travel time statistics"
-            title="Travel time stats"
+            aria-label={t.statsLabel}
+            title={t.statsTitle}
           >
             <BarChart3 className="w-4 h-4" />
           </button>
@@ -331,10 +385,10 @@ export function ParticipantSection() {
               ? 'opacity-50 cursor-not-allowed text-muted-foreground'
               : 'hover:shadow-xl hover:bg-coral-50/90 hover:border-coral-500 text-muted-foreground hover:text-coral-600'
           )}
-          title={isPublished ? 'Cannot add participants after event is published' : undefined}
+          title={isPublished ? t.addDisabled : undefined}
         >
           <Plus className="w-4 h-4" />
-          Add Participant
+          {t.addParticipant}
         </button>
       )}
 
@@ -349,10 +403,10 @@ export function ParticipantSection() {
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-coral-500 text-white hover:shadow-xl hover:bg-coral-600'
           )}
-          title={isPublished ? 'Cannot join after event is published' : undefined}
+          title={isPublished ? t.joinDisabled : undefined}
         >
           <UserPlus className="w-4 h-4" />
-          Join Event
+          {t.joinEvent}
         </button>
       )}
 
@@ -365,10 +419,8 @@ export function ParticipantSection() {
               onSubmit={handleSubmitParticipant}
               onCancel={handleCancelForm}
               isSubmitting={isSubmitting}
-              notice={
-                lastAddedName ? `${lastAddedName} added. Add the next person, or tap Done.` : null
-              }
-              cancelLabel={lastAddedName ? 'Done' : 'Cancel'}
+              notice={lastAddedName ? t.added(lastAddedName) : null}
+              cancelLabel={lastAddedName ? t.done : t.cancel}
               mode={editingParticipant ? 'edit' : 'add'}
               initialData={
                 editingParticipant
@@ -389,13 +441,13 @@ export function ParticipantSection() {
                 <span className="text-white text-xs font-bold">!</span>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-red-900">Error</p>
+                <p className="text-sm font-medium text-red-900">{t.error}</p>
                 <p className="text-xs text-red-700 mt-0.5">{errorMessage}</p>
               </div>
               <button
                 onClick={() => setErrorMessage(null)}
                 className="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
-                aria-label="Dismiss error"
+                aria-label={t.dismissError}
               >
                 <Plus className="w-4 h-4 rotate-45" />
               </button>
@@ -447,10 +499,8 @@ export function ParticipantSection() {
             <Users className="w-8 h-8 text-coral-500" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground mb-1">No participants yet</p>
-            <p className="text-xs text-muted-foreground">
-              Add participants to find the perfect meeting spot
-            </p>
+            <p className="text-sm font-medium text-foreground mb-1">{t.emptyTitle}</p>
+            <p className="text-xs text-muted-foreground">{t.emptyHint}</p>
           </div>
         </div>
       )}
@@ -468,25 +518,19 @@ export function ParticipantSection() {
             {/* Header */}
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-foreground">
-                {deletingParticipantId === currentParticipantId
-                  ? 'Leave Event'
-                  : 'Delete Participant'}
+                {deletingParticipantId === currentParticipantId ? t.leaveTitle : t.deleteTitle}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {deletingParticipantId === currentParticipantId ? (
-                  'Are you sure you want to leave this event? You can rejoin later with a new registration.'
-                ) : (
-                  <>
-                    Are you sure you want to remove{' '}
-                    <span className="font-medium text-foreground">
-                      {
-                        currentEvent?.participants?.find((p) => p.id === deletingParticipantId)
-                          ?.name
-                      }
-                    </span>
-                    ? This action cannot be undone.
-                  </>
-                )}
+                {deletingParticipantId === currentParticipantId
+                  ? t.leaveConfirm
+                  : t.removeConfirm(
+                      <span className="font-medium text-foreground">
+                        {
+                          currentEvent?.participants?.find((p) => p.id === deletingParticipantId)
+                            ?.name
+                        }
+                      </span>
+                    )}
               </p>
             </div>
 
@@ -496,13 +540,13 @@ export function ParticipantSection() {
                 onClick={cancelDelete}
                 className="flex-1 px-4 py-2.5 text-sm font-medium bg-white border-2 border-border text-foreground rounded-full hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
               >
-                Cancel
+                {t.cancel}
               </button>
               <button
                 onClick={confirmDelete}
                 className="flex-1 px-4 py-2.5 text-sm font-medium bg-red-500 text-white rounded-full hover:bg-red-600 active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
-                {deletingParticipantId === currentParticipantId ? 'Leave' : 'Delete'}
+                {deletingParticipantId === currentParticipantId ? t.leave : t.delete}
               </button>
             </div>
           </div>
