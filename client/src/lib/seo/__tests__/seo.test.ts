@@ -280,6 +280,9 @@ describe('structured data', () => {
   it('links the Organization to its official profiles', () => {
     expect(generateOrganizationSchema().sameAs).toEqual([
       'https://www.producthunt.com/products/where2meet-2',
+      'https://www.indiehackers.com/product/where2meet',
+      'https://www.saashub.com/where2meet',
+      'https://alternativeto.net/software/where2meet/about/',
     ]);
   });
 

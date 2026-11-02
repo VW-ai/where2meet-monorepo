@@ -23,7 +23,12 @@ export const SITE_CONFIG = {
   tagline: 'Plan where to meet, together',
   pitch: "Share a link, compare everyone's travel time, and vote on a convenient spot.",
   // Official profiles only; the owner confirmed each one. Organization.sameAs lists them.
-  profiles: ['https://www.producthunt.com/products/where2meet-2'],
+  profiles: [
+    'https://www.producthunt.com/products/where2meet-2',
+    'https://www.indiehackers.com/product/where2meet',
+    'https://www.saashub.com/where2meet',
+    'https://alternativeto.net/software/where2meet/about/',
+  ],
 } as const;
 
 /**
