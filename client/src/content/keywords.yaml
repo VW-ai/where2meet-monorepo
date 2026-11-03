@@ -95,6 +95,9 @@
   occasion: bathhouse-visit
 - phrase: korean spa
   occasion: bathhouse-visit
+- phrase: sauna with friends
+  occasion: bathhouse-visit
+  note: For cities whose bathhouse picks are saunas, steam baths and spa lounges, not Korean spas, added 2026-11-03
 - phrase: pickup basketball
   occasion: pickup-basketball
 - phrase: basketball courts near me
