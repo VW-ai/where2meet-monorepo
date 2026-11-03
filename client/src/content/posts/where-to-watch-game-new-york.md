@@ -1,6 +1,6 @@
 ---
 title: Where to watch the game in New York
-description: Where to watch the game in New York, with six sports bars near the subway, when to book a table, and which trains still run after a late game.
+description: Six New York sports bars near the subway for watching the game with friends, plus when to book a table and which trains still run after a late game.
 main_keyword: where to watch the game
 occasion: watch-party
 time: null
