@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { LANGUAGE_TAGS, type Locale } from '@/shared/lib/i18n';
+import { LANGUAGE_TAGS, type Locale } from '@/shared/lib/locale';
 
 /** Start times the meeting picker offers, as "HH:mm": every half hour from 6:00 to 23:30, so evening plans fit. */
 export const MEETING_TIMES: readonly string[] = everyStep(6 * 60, 23 * 60 + 30, 30);
