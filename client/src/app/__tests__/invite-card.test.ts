@@ -78,7 +78,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('GET /meet/[id]/invite.png', () => {
+// Each test renders full PNGs with embedded fonts, which takes over 5s on CI runners.
+describe('GET /meet/[id]/invite.png', { timeout: 30_000 }, () => {
   it('draws a 1200x630 PNG from the venue photo, cached a minute at the edge', async () => {
     const response = await invite();
     expect(response.status).toBe(200);
