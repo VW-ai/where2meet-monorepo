@@ -60,7 +60,8 @@ export default function RootLayout({
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
   return (
-    <html lang="en">
+    // The home page's opening sets data-intro on <html> before React hydrates.
+    <html lang="en" suppressHydrationWarning>
       <body>
         {gaId && <GoogleAnalytics gaId={gaId} />}
         <SessionReplayScope />

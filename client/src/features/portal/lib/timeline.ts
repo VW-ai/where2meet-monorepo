@@ -57,10 +57,11 @@ export const CURVES = {
   grow: [0.45, 0, 0.6, 0.6],
   mapZoom: [0.16, 1, 0.3, 1],
   slide: [0.22, 1, 0.36, 1],
+  pop: [0.34, 1.56, 0.64, 1],
 } as const;
 
 type CurveName = keyof typeof CURVES;
-const ease = Object.fromEntries(
+export const ease = Object.fromEntries(
   Object.entries(CURVES).map(([name, [x1, y1, x2, y2]]) => [name, cubicBezier(x1, y1, x2, y2)])
 ) as Record<CurveName, (p: number) => number>;
 

@@ -1,0 +1,34 @@
+/* Home page opening. The inline script in opening-intro.tsx sets html[data-intro] and runs the animation. */
+
+.opening-intro {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  pointer-events: none;
+}
+html[data-intro] .opening-intro {
+  display: block;
+}
+.opening-intro__cover {
+  position: absolute;
+  inset: 0;
+  background: #eef1f4;
+  mask-image: url('./cat-hole.svg'), linear-gradient(#000 0 0);
+  mask-repeat: no-repeat;
+  mask-size:
+    0 0,
+    100% 100%;
+  mask-composite: exclude;
+}
+.opening-intro__cat {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  width: 1024px;
+  height: 1024px;
+  transform-origin: 0 0;
+  opacity: 0;
+}
