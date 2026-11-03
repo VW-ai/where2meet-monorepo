@@ -31,6 +31,8 @@ const published: Event = {
   id: 'evt_1_abc',
   title: 'Coffee test',
   meetingTime: '2026-10-17T15:00:00Z',
+  meetingTimeZone: 'America/New_York',
+  mapProvider: 'google',
   createdAt: '2026-10-10T09:00:00Z',
   updatedAt: '2026-10-10T09:00:00Z',
   participants: [
@@ -52,8 +54,8 @@ const published: Event = {
 
 const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(GREY_PIXEL_JPEG));
 
-function invite(id = published.id) {
-  return GET(new Request(`http://localhost/meet/${id}/invite.png`), {
+function invite(id = published.id, query = '') {
+  return GET(new Request(`http://localhost/meet/${id}/invite.png${query}`), {
     params: Promise.resolve({ id }),
   });
 }
@@ -85,6 +87,28 @@ describe('GET /meet/[id]/invite.png', () => {
     );
     expect(await pngSize(response)).toEqual([1200, 630]);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([coffee.photoUrl]);
+  });
+
+  it('draws the 1080x1350 portrait for ?format=portrait', async () => {
+    expect(await pngSize(await invite(published.id, '?format=portrait'))).toEqual([1080, 1350]);
+    expect(await pngSize(await invite(published.id, '?format=square'))).toEqual([1200, 630]);
+  });
+
+  it('asks Google Fonts for the Chinese characters, and still draws when that fails', async () => {
+    vi.mocked(eventClient.get).mockResolvedValue({
+      ...published,
+      title: '周末咖啡',
+      mapProvider: 'amap',
+      meetingTimeZone: 'Asia/Shanghai',
+    });
+    expect(await pngSize(await invite(published.id, '?format=portrait'))).toEqual([1080, 1350]);
+    const fontRequest = fetchMock.mock.calls
+      .map(([url]) => new URL(url))
+      .find((url) => url.hostname === 'fonts.googleapis.com');
+    expect(fontRequest?.searchParams.get('family')).toBe('Noto Sans SC:wght@400;700');
+    expect([...(fontRequest?.searchParams.get('text') ?? '')].sort().join('')).toBe(
+      [...new Set('周末咖啡邀请你来时间参加已确定发起月日周六')].sort().join('')
+    );
   });
 
   it('still draws the card when the photo or the venue cannot be loaded', async () => {

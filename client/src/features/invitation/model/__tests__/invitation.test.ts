@@ -97,12 +97,12 @@ describe('invitationFor', () => {
     expect(invitation).toMatchObject({
       locale: 'zh',
       kind: 'food',
-      when: { date: '10月17日周六', time: '23:00 GMT+8' },
+      when: { date: '10月17日', time: '周六 23:00 GMT+8' },
       going: [{ initial: '小', color: '#FF7F50' }],
       issued: '2026.10.15 09:41',
     });
     expect(shareText(invitation)).toBe(
-      '邀请你来：周末火锅 · 10月17日周六, 23:00 GMT+8 · 787 Coffee, 159 2nd Ave, New York'
+      '邀请你来：周末火锅 · 10月17日, 周六 23:00 GMT+8 · 787 Coffee, 159 2nd Ave, New York'
     );
   });
 

@@ -92,22 +92,29 @@ function parts(iso: string, timeZone: string, locale: Locale, options: Intl.Date
   ) as Parts;
 }
 
-/** en `Sat, Oct 17` + `11:00 AM EDT`; zh `10月17日周六` + `23:00 GMT+8`. */
+/**
+ * en `Sat, Oct 17` + `11:00 AM EDT`; zh `10月17日` + `周六 23:00 GMT+8`, since Chinese
+ * glyphs are too wide for the weekday to fit on the date line.
+ */
 function dateAndTime(iso: string, timeZone: string, locale: Locale) {
-  const date = new Intl.DateTimeFormat(LANGUAGE_TAGS[locale], {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    timeZone,
-  }).format(new Date(iso));
   const p = parts(iso, timeZone, locale, {
+    weekday: 'short',
+    month: locale === 'zh' ? 'numeric' : 'short',
+    day: 'numeric',
     hour: locale === 'zh' ? '2-digit' : 'numeric',
     minute: '2-digit',
     hourCycle: locale === 'zh' ? 'h23' : 'h12',
     timeZoneName: 'short',
   });
-  const clock = locale === 'zh' ? `${p.hour}:${p.minute}` : `${p.hour}:${p.minute} ${p.dayPeriod}`;
-  return { date, time: `${clock} ${p.timeZoneName}` };
+  return locale === 'zh'
+    ? {
+        date: `${p.month}月${p.day}日`,
+        time: `${p.weekday} ${p.hour}:${p.minute} ${p.timeZoneName}`,
+      }
+    : {
+        date: `${p.weekday}, ${p.month} ${p.day}`,
+        time: `${p.hour}:${p.minute} ${p.dayPeriod} ${p.timeZoneName}`,
+      };
 }
 
 /** en `10.14.26 8:00 AM`; zh `2026.10.14 20:00`. */

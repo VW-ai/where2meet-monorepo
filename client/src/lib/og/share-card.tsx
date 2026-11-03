@@ -1,8 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { ImageResponse } from 'next/og';
-import { Calendar, Check, MapPin, PartyPopper, UserRound, type IconNode } from 'lucide';
+import { Check, UserRound, type IconNode } from 'lucide';
+import { BigWord, Ticket, TicketBackdrop, ticketMessages } from '@/features/invitation/ui/ticket';
+import { VENUE_KINDS, type Invitation } from '@/features/invitation/model/invitation';
 import { SHARE_IMAGE } from '@/lib/seo/metadata';
 
 export const INK = '#21252b';
@@ -272,88 +274,6 @@ function Pill({ icon, label }: { icon: IconNode; label: string }) {
   );
 }
 
-/** One fact about the event, under its icon. */
-function Detail({ icon, children }: { icon: IconNode; children: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', marginTop: 16, fontSize: 26 }}>
-      <img
-        src={iconDataUri(icon, MUTED, 2.2)}
-        width={30}
-        height={30}
-        style={{ marginTop: 2, flexShrink: 0 }}
-        alt=""
-      />
-      <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 12, lineHeight: 1.3 }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-/**
- * An invitation to a published event: who is invited where and when, and who hosts it.
- * On the right, the venue's `photo` when given, else the map with `icon` on the venue pin.
- */
-export async function renderInvitationCard({
-  title,
-  when,
-  venue,
-  host,
-  icon,
-  photo,
-}: {
-  title: string;
-  when: string | null;
-  venue: { name: string; address: string } | null;
-  host: string | null;
-  icon: IconNode;
-  photo?: CardPhoto;
-}) {
-  return renderShareCard({
-    card: photo ? (
-      <PhotoCard jpeg={photo.jpeg} credit={photo.credit} />
-    ) : (
-      <MapCard pin={{ icon }} />
-    ),
-    text: (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-        <Pill icon={PartyPopper} label="You're invited" />
-        <div
-          style={{
-            marginTop: 24,
-            fontSize: 50,
-            fontWeight: 700,
-            lineHeight: 1.08,
-            letterSpacing: -1.5,
-            display: 'block',
-            lineClamp: 2,
-          }}
-        >
-          {title}
-        </div>
-        {when && (
-          <Detail icon={Calendar}>
-            <div>{when}</div>
-          </Detail>
-        )}
-        {venue && (
-          <Detail icon={MapPin}>
-            <div style={{ fontWeight: 600 }}>{venue.name}</div>
-            <div style={{ display: 'block', color: MUTED, fontSize: 22, lineClamp: 2 }}>
-              {venue.address}
-            </div>
-          </Detail>
-        )}
-        {host && (
-          <div style={{ marginTop: 24, fontSize: 26, fontWeight: 600, color: ACCENT }}>
-            {`Hosted by ${host}`}
-          </div>
-        )}
-      </div>
-    ),
-  });
-}
-
 /**
  * An article's cover: a pill badge, the title and a site address under the logo, with
  * `icon` on the badge. On the right, `photo` when given, else the map with `icon` at its
@@ -462,4 +382,168 @@ export async function renderShareCard({ text, card }: { text: ReactElement; card
       ],
     }
   );
+}
+
+/** The link preview, and the image people copy, save and share. */
+export const INVITATION_FORMATS = {
+  landscape: { width: SHARE_IMAGE.width, height: SHARE_IMAGE.height },
+  portrait: { width: 1080, height: 1350 },
+} as const;
+
+export type InvitationFormat = keyof typeof INVITATION_FORMATS;
+
+/**
+ * The invitation ticket over its backdrop: landscape puts the venue kind's word on the
+ * left and the ticket on the right; portrait stacks the word above the ticket.
+ */
+export async function renderInvitation({
+  invitation,
+  format,
+  photo,
+}: {
+  invitation: Invitation;
+  format: InvitationFormat;
+  photo: Buffer | null;
+}) {
+  const size = INVITATION_FORMATS[format];
+  const photoSrc = photo && `data:image/jpeg;base64,${photo.toString('base64')}`;
+  const [logo, fonts] = await Promise.all([
+    readClientFile('src/components/cat/logo.svg'),
+    invitationFonts(invitation),
+  ]);
+  const portrait = format === 'portrait';
+  return new ImageResponse(
+    <div
+      lang={invitation.locale === 'zh' ? 'zh-CN' : 'en-US'}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: portrait ? 'column' : 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: size.width,
+        height: size.height,
+        padding: portrait ? '0 115px' : '0 48px 0 56px',
+      }}
+    >
+      <TicketBackdrop photo={photoSrc} size={size} />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          ...(portrait ? { marginBottom: 44 } : { flex: 1, minWidth: 0, paddingRight: 40 }),
+        }}
+      >
+        <BigWord invitation={invitation} size={portrait ? 210 : 150} />
+      </div>
+      <div style={{ display: 'flex', flexShrink: 0 }}>
+        <Ticket
+          invitation={invitation}
+          u={portrait ? 2.3 : 1.45}
+          photo={photoSrc}
+          cat={svgDataUri(logo)}
+        />
+      </div>
+    </div>,
+    { ...size, fonts }
+  );
+}
+
+type Font = NonNullable<ConstructorParameters<typeof ImageResponse>[1]>['fonts'] extends
+  | (infer F)[]
+  | undefined
+  ? F
+  : never;
+
+async function invitationFonts(invitation: Invitation): Promise<Font[]> {
+  const file = (name: string) => readClientFile(`node_modules/@fontsource/${name}.woff`);
+  const [inter400, inter600, inter700, inter800, anton, mono, cjk] = await Promise.all([
+    file('inter/files/inter-latin-400-normal'),
+    file('inter/files/inter-latin-600-normal'),
+    file('inter/files/inter-latin-700-normal'),
+    file('inter/files/inter-latin-800-normal'),
+    file('anton/files/anton-latin-400-normal'),
+    file('jetbrains-mono/files/jetbrains-mono-latin-400-normal'),
+    cjkFonts(invitationText(invitation)),
+  ]);
+  return [
+    { name: 'Inter', data: inter400, weight: 400, style: 'normal' },
+    { name: 'Inter', data: inter600, weight: 600, style: 'normal' },
+    { name: 'Inter', data: inter700, weight: 700, style: 'normal' },
+    { name: 'Inter', data: inter800, weight: 800, style: 'normal' },
+    { name: 'Anton', data: anton, weight: 400, style: 'normal' },
+    { name: 'JetBrains Mono', data: mono, weight: 400, style: 'normal' },
+    ...cjk,
+  ];
+}
+
+/** Every string the ticket can print for this invitation. */
+function invitationText(invitation: Invitation): string {
+  const t = ticketMessages[invitation.locale];
+  const kind = VENUE_KINDS[invitation.kind];
+  return [
+    invitation.title,
+    invitation.host && t.hostedBy(invitation.host),
+    invitation.venue?.name,
+    invitation.venue?.address,
+    invitation.when?.date,
+    invitation.when?.time,
+    invitation.issued,
+    t.invited,
+    t.when,
+    t.going,
+    t.confirmed,
+    kind.label[invitation.locale],
+    kind.word[invitation.locale],
+  ].join('');
+}
+
+/** Characters the Latin subsets of Inter and Anton draw. */
+const LATIN = /[\u0000-\u024f\u2000-\u206f\u20ac\u2122]/u;
+
+/** Old Safari gets TrueType from Google Fonts; satori cannot read WOFF2. */
+const TTF_USER_AGENT =
+  'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1';
+
+/**
+ * Noto Sans SC cut down to exactly the non-Latin characters on the ticket, so Chinese
+ * titles draw in any event: regular for body text and bold, registered as the display
+ * family, for the title and the big word. Without the network the ticket still renders
+ * (satori then tries its own fallback, or draws boxes).
+ */
+async function cjkFonts(text: string): Promise<Font[]> {
+  const chars = [...new Set(Array.from(text))].filter((c) => !LATIN.test(c)).join('');
+  if (!chars) return [];
+  try {
+    const css = await fetchOk(
+      `https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&text=${encodeURIComponent(chars)}`
+    ).then((r) => r.text());
+    const urls = Object.fromEntries(
+      [...css.matchAll(/font-weight:\s*(\d+);[^}]*?src:\s*url\(([^)]+)\)/g)].map((m) => [
+        m[1],
+        m[2],
+      ])
+    );
+    if (!urls['400'] || !urls['700']) return [];
+    const [regular, bold] = await Promise.all(
+      [urls['400'], urls['700']].map((url) => fetchOk(url).then((r) => r.arrayBuffer()))
+    );
+    return [
+      { name: 'NotoSansSC', data: regular, weight: 400, style: 'normal' },
+      { name: 'NotoSansSC', data: bold, weight: 700, style: 'normal' },
+      { name: 'NotoSansSCDisplay', data: bold, weight: 400, style: 'normal' },
+    ];
+  } catch (error) {
+    console.warn('[invitation] CJK font unavailable:', error);
+    return [];
+  }
+}
+
+async function fetchOk(url: string): Promise<Response> {
+  const response = await fetch(url, {
+    headers: { 'User-Agent': TTF_USER_AGENT },
+    signal: AbortSignal.timeout(4000),
+  });
+  if (!response.ok) throw new Error(`${response.status} for ${url}`);
+  return response;
 }
