@@ -5,6 +5,7 @@ import * as React from 'react';
 import { DayPicker } from 'react-day-picker';
 
 import { cn } from '@/shared/lib/cn';
+import { DATE_FNS_LOCALES, useLocale } from '@/shared/lib/i18n';
 import { buttonVariants } from '@/shared/ui/button';
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
@@ -16,6 +17,7 @@ function Calendar({
   components: userComponents,
   ...props
 }: CalendarProps) {
+  const locale = useLocale();
   const defaultClassNames = {
     months: 'relative flex flex-col sm:flex-row gap-4',
     month: 'w-full',
@@ -73,6 +75,7 @@ function Calendar({
 
   return (
     <DayPicker
+      locale={DATE_FNS_LOCALES[locale]}
       showOutsideDays={showOutsideDays}
       className={cn('w-fit', className)}
       classNames={mergedClassNames}

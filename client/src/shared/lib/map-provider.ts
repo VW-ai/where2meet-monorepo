@@ -13,6 +13,7 @@ import {
   type PlacePrediction,
 } from '@/shared/lib/google-maps/places-autocomplete';
 import type { Location, MapProvider } from '@/shared/types/map';
+import type { Locale } from '@/shared/lib/i18n';
 
 /** AMap's input tips accept at most 80 characters. */
 const AMAP_MAX_QUERY_LENGTH = 80;
@@ -104,6 +105,7 @@ export function venueMapsUrl(
 }
 
 /** Display name for buttons such as "Open in Google Maps". */
-export function mapProviderName(provider: MapProvider): string {
-  return provider === 'amap' ? 'Amap' : 'Google Maps';
+export function mapProviderName(provider: MapProvider, locale: Locale = 'en'): string {
+  if (provider === 'google') return 'Google Maps';
+  return locale === 'zh' ? '高德地图' : 'Amap';
 }

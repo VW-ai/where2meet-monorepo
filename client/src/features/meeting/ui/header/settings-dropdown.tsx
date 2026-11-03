@@ -7,12 +7,33 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { eventClient } from '@/features/meeting/api';
 import { cn } from '@/shared/lib/cn';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    settings: 'Settings',
+    edit: 'Edit Event',
+    unpublishing: 'Unpublishing...',
+    unpublish: 'Unpublish Event',
+    publish: 'Publish Event',
+    delete: 'Delete Event',
+  },
+  zh: {
+    settings: '设置',
+    edit: '编辑见面',
+    unpublishing: '正在撤销…',
+    unpublish: '撤销确定地点',
+    publish: '确定地点',
+    delete: '删除见面',
+  },
+});
 
 interface SettingsDropdownProps {
   eventId: string;
 }
 
 export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
+  const t = useMessages(messages);
   const [isOpen, setIsOpen] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -84,7 +105,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
             ? 'bg-coral-500 text-white'
             : 'bg-white text-muted-foreground border border-border hover:border-coral-500 hover:text-coral-500'
         )}
-        aria-label="Settings"
+        aria-label={t.settings}
         aria-expanded={isOpen}
       >
         <Settings className="w-5 h-5 md:w-4 md:h-4" />
@@ -99,7 +120,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors"
           >
             <Edit2 className="w-4 h-4 text-muted-foreground" />
-            <span>Edit Event</span>
+            <span>{t.edit}</span>
           </button>
 
           {/* Publish/Unpublish Event */}
@@ -114,7 +135,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
               ) : (
                 <XCircle className="w-4 h-4 text-orange-500" />
               )}
-              <span>{isUnpublishing ? 'Unpublishing...' : 'Unpublish Event'}</span>
+              <span>{isUnpublishing ? t.unpublishing : t.unpublish}</span>
             </button>
           ) : (
             <button
@@ -122,7 +143,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors border-t border-border"
             >
               <CheckCircle className="w-4 h-4 text-mint-500" />
-              <span>Publish Event</span>
+              <span>{t.publish}</span>
             </button>
           )}
 
@@ -132,7 +153,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-border"
           >
             <Trash2 className="w-4 h-4" />
-            <span>Delete Event</span>
+            <span>{t.delete}</span>
           </button>
         </div>
       )}

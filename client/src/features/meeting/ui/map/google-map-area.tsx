@@ -12,6 +12,7 @@ import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { directionsClient } from '@/features/meeting/api';
 import { MapBlurOverlay } from './map-blur-overlay';
 import { usePortalStore } from '@/features/portal/model/portal-store';
+import { useLocale } from '@/shared/lib/i18n';
 import {
   DEFAULT_SEARCH_RADIUS,
   MapLoadError,
@@ -25,6 +26,7 @@ import {
   clampSearchRadius,
   leftPanelsWidth,
   likedVenueMarkerStyle,
+  likedVenueMarkerTitle,
   participantMarkerStyle,
   venueMarkerStyle,
 } from './map-common';
@@ -54,6 +56,7 @@ const mapOptions: google.maps.MapOptions = {
 };
 
 export function GoogleMapArea() {
+  const locale = useLocale();
   const { currentEvent, selectedVenue, searchedVenues, setSelectedVenue, venueById } =
     useMeetingStore();
   const { getAllVotedVenueIds, voteStatsByVenueId } = useVotingStore();
@@ -583,7 +586,7 @@ export function GoogleMapArea() {
           },
           map,
           icon,
-          title: isPublished ? `${venue.name} (Published)` : `${venue.name} (Liked)`,
+          title: likedVenueMarkerTitle(venue.name, isPublished, locale),
           zIndex,
         });
 
@@ -606,6 +609,7 @@ export function GoogleMapArea() {
     voteStatsByVenueId,
     setSelectedVenue,
     openVenueInfo,
+    locale,
   ]);
 
   // Pan to selected participant when selection changes (from sidebar or map marker click)

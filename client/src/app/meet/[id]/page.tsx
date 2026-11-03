@@ -23,6 +23,7 @@ import { eventClient } from '@/features/meeting/api';
 import { useEventStream } from '@/features/meeting/hooks/useEventStream';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { usePortalStore } from '@/features/portal/model/portal-store';
+import { LANGUAGE_TAGS, LocaleProvider, localeFor } from '@/shared/lib/i18n';
 
 export default function MeetPage() {
   const [sheetExpanded, setSheetExpanded] = useState(false);
@@ -216,52 +217,58 @@ export default function MeetPage() {
     );
   }
 
+  // Meetings in mainland China show Chinese to everyone who opens them
+  const locale = localeFor(currentEvent?.mapProvider);
+
   return (
-    <TutorialProvider>
-      <div
-        className="meeting-screen relative h-screen w-screen overflow-hidden"
-        data-expanded={sheetExpanded}
-      >
-        {/* Map - Full Screen Background */}
-        <div className="meeting-map absolute inset-0">
-          <MapArea />
-        </div>
-
-        {/* Floating UI Components */}
-        <div className="relative z-10 h-full w-full pointer-events-none">
-          {/* Header - Floating at top */}
-          <div className="meeting-header pointer-events-auto hidden md:block">
-            <Header eventId={eventId} />
+    <LocaleProvider locale={locale}>
+      <TutorialProvider>
+        <div
+          className="meeting-screen relative h-screen w-screen overflow-hidden"
+          data-expanded={sheetExpanded}
+          lang={LANGUAGE_TAGS[locale]}
+        >
+          {/* Map - Full Screen Background */}
+          <div className="meeting-map absolute inset-0">
+            <MapArea />
           </div>
 
-          <PhoneHeader eventId={eventId} />
-
-          {/* Sidebar - Floating overlay (bottom on mobile, left on desktop) */}
-          <div className="meeting-sheet pointer-events-auto md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
-            <PhoneSheetHeading
-              expanded={sheetExpanded}
-              onToggle={() => setSheetExpanded(!sheetExpanded)}
-            />
-            <div id="meeting-sheet-content" className="meeting-sheet-content md:h-full">
-              <Sidebar />
+          {/* Floating UI Components */}
+          <div className="relative z-10 h-full w-full pointer-events-none">
+            {/* Header - Floating at top */}
+            <div className="meeting-header pointer-events-auto hidden md:block">
+              <Header eventId={eventId} />
             </div>
-            <PhoneShareButton />
+
+            <PhoneHeader eventId={eventId} />
+
+            {/* Sidebar - Floating overlay (bottom on mobile, left on desktop) */}
+            <div className="meeting-sheet pointer-events-auto md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
+              <PhoneSheetHeading
+                expanded={sheetExpanded}
+                onToggle={() => setSheetExpanded(!sheetExpanded)}
+              />
+              <div id="meeting-sheet-content" className="meeting-sheet-content md:h-full">
+                <Sidebar />
+              </div>
+              <PhoneShareButton />
+            </div>
+
+            {/* Venue Info Slide-out - Global overlay */}
+            <div className="pointer-events-auto">
+              <VenueInfo />
+            </div>
+
+            {/* Participant Stats Slide-out */}
+            <div className="pointer-events-auto">
+              <ParticipantStats />
+            </div>
           </div>
 
-          {/* Venue Info Slide-out - Global overlay */}
-          <div className="pointer-events-auto">
-            <VenueInfo />
-          </div>
-
-          {/* Participant Stats Slide-out */}
-          <div className="pointer-events-auto">
-            <ParticipantStats />
-          </div>
+          {/* Modals */}
+          <ModalProvider />
         </div>
-
-        {/* Modals */}
-        <ModalProvider />
-      </div>
-    </TutorialProvider>
+      </TutorialProvider>
+    </LocaleProvider>
   );
 }

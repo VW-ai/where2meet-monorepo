@@ -15,6 +15,52 @@ import { TravelTypeFilter } from './travel-type-filter';
 import { SearchPillBar } from './search-pill-bar';
 import { LikedFilterButton } from '@/features/voting/ui/liked-filter-button';
 import { cn } from '@/shared/lib/cn';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    placeLoadFailed: (name: string) => `Couldn’t load “${name}”. Try searching for it instead.`,
+    noEvent: 'No event selected',
+    noCenter: 'No search center available. Add participants with locations first.',
+    searchFailed: 'Failed to load venues',
+    likedTitle: 'Liked Venues',
+    title: 'Venues',
+    likedCount: (n: number) => `${n} liked`,
+    foundCount: (n: number) => `${n} found`,
+    searching: 'Searching venues...',
+    findPlaces: 'Find places to meet',
+    findPlacesHint:
+      'Search a type of place like "ramen" or "coffee", or a specific spot by name. Tap the heart to add it to the group\'s shortlist.',
+    joinToSearch: 'Join the event to search for venues',
+    noResults: (query: string) => `No venues found for "${query}"`,
+    tryDifferent: 'Try a different search term',
+    noVotes: 'No venues were voted for in this event',
+    noLiked: 'No liked venues yet',
+    publishedNoVotes: 'The event was published without any votes',
+    likeHint: 'Like venues to see them here',
+  },
+  zh: {
+    placeLoadFailed: (name: string) => `没能加载“${name}”，试试直接搜索它。`,
+    noEvent: '没有选中的见面',
+    noCenter: '还没有搜索中心。请先添加带出发地点的参与者。',
+    searchFailed: '地点加载失败',
+    likedTitle: '已喜欢的地点',
+    title: '地点',
+    likedCount: (n: number) => `已喜欢 ${n} 个`,
+    foundCount: (n: number) => `找到 ${n} 个`,
+    searching: '正在搜索地点…',
+    findPlaces: '找个地方见面',
+    findPlacesHint:
+      '搜索地点类型，比如“火锅”或“咖啡”，也可以直接搜店名。点爱心就能加入大家的候选清单。',
+    joinToSearch: '加入见面后即可搜索地点',
+    noResults: (query: string) => `没有找到“${query}”相关的地点`,
+    tryDifferent: '换个关键词试试',
+    noVotes: '这次见面没有地点获得投票',
+    noLiked: '还没有喜欢的地点',
+    publishedNoVotes: '地点确定时还没有任何投票',
+    likeHint: '喜欢的地点会显示在这里',
+  },
+});
 
 export function VenueSection() {
   const { currentEvent, searchedVenues, setSearchedVenues, venueById, setSelectedVenue } =
@@ -24,6 +70,7 @@ export function VenueSection() {
     useUIStore();
   const { searchRadius, searchCircle } = useMapStore();
   const { isOrganizerMode, isParticipantMode } = useAuthStore();
+  const t = useMessages(messages);
 
   // Check if user has joined (organizer or participant)
   const hasJoined = isOrganizerMode || isParticipantMode;
@@ -103,7 +150,7 @@ export function VenueSection() {
       setSelectedVenue(venue);
     } catch (err) {
       console.error('Failed to load place:', err);
-      setError(`Couldn’t load “${prediction.main_text}”. Try searching for it instead.`);
+      setError(t.placeLoadFailed(prediction.main_text));
     } finally {
       setLoading(false);
     }
@@ -133,7 +180,7 @@ export function VenueSection() {
       }
 
       if (!currentEvent?.id) {
-        setError('No event selected');
+        setError(t.noEvent);
         return;
       }
 
@@ -163,7 +210,7 @@ export function VenueSection() {
 
         // Phase 2: Execute search via backend API using the search circle center
         if (!searchCircle?.center) {
-          setError('No search center available. Add participants with locations first.');
+          setError(t.noCenter);
           setLoading(false);
           return;
         }
@@ -185,7 +232,7 @@ export function VenueSection() {
         lastSearchParamsRef.current = currentParams;
       } catch (err) {
         console.error('Failed to search venues:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load venues');
+        setError(err instanceof Error ? err.message : t.searchFailed);
       } finally {
         setLoading(false);
       }
@@ -199,6 +246,7 @@ export function VenueSection() {
     searchCircle,
     setSearchedVenues,
     searchedVenues.length,
+    t,
   ]);
 
   // Force liked mode when published, restore on unpublish
@@ -246,7 +294,7 @@ export function VenueSection() {
         {/* Header - Title + Count + Search Query */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">
-            {showLikedOnly ? 'Liked Venues' : 'Venues'}
+            {showLikedOnly ? t.likedTitle : t.title}
             {executedSearchQuery && !showLikedOnly && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
                 • &quot;{executedSearchQuery}&quot;
@@ -263,7 +311,7 @@ export function VenueSection() {
                     showLikedOnly ? 'text-coral-700' : 'text-muted-foreground'
                   )}
                 >
-                  {count} {showLikedOnly ? 'liked' : 'found'}
+                  {showLikedOnly ? t.likedCount(count) : t.foundCount(count)}
                 </span>
               )
             );
@@ -328,7 +376,7 @@ export function VenueSection() {
               className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-coral-500"
               aria-hidden="true"
             ></div>
-            <p className="mt-2 text-sm text-muted-foreground">Searching venues...</p>
+            <p className="mt-2 text-sm text-muted-foreground">{t.searching}</p>
           </div>
         )}
 
@@ -347,41 +395,32 @@ export function VenueSection() {
           hasJoined &&
           venues.length === 0 && (
             <div className="py-8 text-center">
-              <p className="text-sm text-muted-foreground">Find places to meet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Search a type of place like &quot;ramen&quot; or &quot;coffee&quot;, or a specific
-                spot by name. Tap the heart to add it to the group&apos;s shortlist.
-              </p>
+              <p className="text-sm text-muted-foreground">{t.findPlaces}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t.findPlacesHint}</p>
             </div>
           )}
 
         {/* Empty state for non-participants */}
         {!loading && !error && !executedSearchQuery && !hasJoined && (
           <div className="py-8 text-center">
-            <p className="text-sm text-gray-500">Join the event to search for venues</p>
+            <p className="text-sm text-gray-500">{t.joinToSearch}</p>
           </div>
         )}
 
         {/* Venue List - No results from search */}
         {!loading && !error && executedSearchQuery && venues.length === 0 && !showLikedOnly && (
           <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              No venues found for &quot;{executedSearchQuery}&quot;
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Try a different search term</p>
+            <p className="text-sm text-muted-foreground">{t.noResults(executedSearchQuery)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t.tryDifferent}</p>
           </div>
         )}
 
         {/* No liked venues */}
         {!loading && !error && showLikedOnly && savedVenues.length === 0 && (
           <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isPublished ? 'No venues were voted for in this event' : 'No liked venues yet'}
-            </p>
+            <p className="text-sm text-muted-foreground">{isPublished ? t.noVotes : t.noLiked}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {isPublished
-                ? 'The event was published without any votes'
-                : 'Like venues to see them here'}
+              {isPublished ? t.publishedNoVotes : t.likeHint}
             </p>
           </div>
         )}

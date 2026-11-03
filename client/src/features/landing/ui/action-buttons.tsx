@@ -1,11 +1,19 @@
 'use client';
 
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: { creating: 'Creating Meeting...', create: 'Create Meeting' },
+  zh: { creating: '正在创建…', create: '创建见面' },
+});
+
 interface ActionButtonsProps {
   onCreateEvent: () => void;
   isLoading: boolean;
 }
 
 export function ActionButtons({ onCreateEvent, isLoading }: ActionButtonsProps) {
+  const t = useMessages(messages);
   return (
     <div className="mt-5">
       <button
@@ -35,7 +43,7 @@ export function ActionButtons({ onCreateEvent, isLoading }: ActionButtonsProps) 
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
               />
             </svg>
-            Creating Meeting...
+            {t.creating}
           </>
         ) : (
           <>
@@ -50,7 +58,7 @@ export function ActionButtons({ onCreateEvent, isLoading }: ActionButtonsProps) 
             >
               <path d="M12 4v16m8-8H4" />
             </svg>
-            Create Meeting
+            {t.create}
           </>
         )}
       </button>

@@ -74,3 +74,21 @@ export function formatDuration(seconds: number): string {
   const minText = minutes === 1 ? "1 min" : `${String(minutes)} mins`;
   return `${hourText} ${minText}`;
 }
+
+/**
+ * Formats duration in Chinese, for AMap events in China.
+ * @param seconds - Duration in seconds
+ * @returns Formatted string ("12 分钟", "1 小时", "1 小时 30 分钟")
+ */
+export function formatDurationChinese(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.round((seconds % 3600) / 60);
+
+  if (hours === 0) {
+    return `${String(Math.max(minutes, 1))} 分钟`;
+  }
+  if (minutes === 0) {
+    return `${String(hours)} 小时`;
+  }
+  return `${String(hours)} 小时 ${String(minutes)} 分钟`;
+}

@@ -5,12 +5,27 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Car, Bus, PersonStanding, Bike } from 'lucide-react';
 import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-store';
 import { cn } from '@/shared/lib/cn';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    modes: { car: 'Car', transit: 'Transit', walk: 'Walk', bike: 'Bike' } as Record<
+      UITravelMode,
+      string
+    >,
+    travelBy: (label: string) => `Travel by ${label}`,
+  },
+  zh: {
+    modes: { car: '驾车', transit: '公交', walk: '步行', bike: '骑行' },
+    travelBy: (label: string) => `${label}出行`,
+  },
+});
 
 const travelModes = [
-  { value: 'car' as const, label: 'Car', icon: Car },
-  { value: 'transit' as const, label: 'Transit', icon: Bus },
-  { value: 'walk' as const, label: 'Walk', icon: PersonStanding },
-  { value: 'bike' as const, label: 'Bike', icon: Bike },
+  { value: 'car' as const, icon: Car },
+  { value: 'transit' as const, icon: Bus },
+  { value: 'walk' as const, icon: PersonStanding },
+  { value: 'bike' as const, icon: Bike },
 ];
 
 export function TravelTypeFilter() {
@@ -18,6 +33,7 @@ export function TravelTypeFilter() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { travelMode, setTravelMode } = useMapStore();
+  const t = useMessages(messages);
 
   // Sync URL params with store on mount
   useEffect(() => {
@@ -39,7 +55,8 @@ export function TravelTypeFilter() {
 
   return (
     <div className="flex items-center gap-1.5 md:gap-2">
-      {travelModes.map(({ value, label, icon: Icon }) => {
+      {travelModes.map(({ value, icon: Icon }) => {
+        const label = t.modes[value];
         const isActive = travelMode === value;
         return (
           <button
@@ -54,7 +71,7 @@ export function TravelTypeFilter() {
                 : 'bg-white/90 backdrop-blur-sm text-foreground border-2 border-border hover:border-coral-500 hover:bg-coral-50 shadow-md hover:shadow-lg'
             )}
             aria-pressed={isActive}
-            aria-label={`Travel by ${label}`}
+            aria-label={t.travelBy(label)}
           >
             <Icon className="w-4 h-4 flex-shrink-0" />
             <span className="hidden xl:inline text-sm whitespace-nowrap">{label}</span>

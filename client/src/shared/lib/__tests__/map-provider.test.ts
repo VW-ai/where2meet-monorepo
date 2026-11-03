@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { isMainlandChinaTimeZone, toPlacePrediction, venueMapsUrl } from '../map-provider';
+import {
+  isMainlandChinaTimeZone,
+  mapProviderName,
+  toPlacePrediction,
+  venueMapsUrl,
+} from '../map-provider';
+
+describe('mapProviderName', () => {
+  it('names Amap in Chinese for Chinese meetings and keeps Google Maps as is', () => {
+    expect(mapProviderName('amap')).toBe('Amap');
+    expect(mapProviderName('amap', 'zh')).toBe('高德地图');
+    expect(mapProviderName('google', 'zh')).toBe('Google Maps');
+  });
+});
 
 describe('isMainlandChinaTimeZone', () => {
   it('matches mainland zones only', () => {

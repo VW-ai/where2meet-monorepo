@@ -23,6 +23,12 @@ describe('meetingWhen on a UTC server', () => {
     );
   });
 
+  it('reads the meeting in Chinese for a meeting in Shanghai', () => {
+    expect(meetingWhen(FRIDAY_EVENING_IN_NEW_YORK, 'Asia/Shanghai', 'zh')).toBe(
+      '2026年10月17日星期六 GMT+8 09:30'
+    );
+  });
+
   it('has no answer without a zone', () => {
     expect(meetingWhen(FRIDAY_EVENING_IN_NEW_YORK, null)).toBeNull();
   });

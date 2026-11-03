@@ -15,7 +15,7 @@ import {
   type CachedRouteData,
 } from "../directions/cache.js";
 import { DirectionsApiError, RouteNotFoundError } from "../directions/errors.js";
-import { formatDistanceMetric, formatDuration } from "../directions/format.js";
+import { formatDistanceMetric, formatDurationChinese } from "../directions/format.js";
 import type { GeoPoint, RouteResult, TravelMode } from "../directions/types.js";
 import type { ParticipantLocation } from "../directions/routes.js";
 import type { LatLng } from "../geo/coords.js";
@@ -66,7 +66,7 @@ function toCachedRoute(
     distanceValue: distanceMeters,
     distanceText: formatDistanceMetric(distanceMeters),
     durationValue: durationSeconds,
-    durationText: formatDuration(durationSeconds),
+    durationText: formatDurationChinese(durationSeconds),
     polyline: encodePolyline(path),
   };
 }

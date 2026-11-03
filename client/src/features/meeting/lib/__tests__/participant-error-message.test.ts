@@ -29,4 +29,22 @@ describe('participantErrorMessage', () => {
     );
     expect(participantErrorMessage('weird', FALLBACK)).toBe(FALLBACK);
   });
+
+  it('explains in Chinese for meetings in mainland China', () => {
+    const notFound = new APIError(400, 'ADDRESS_NOT_FOUND', 'Could not geocode address: nowhere');
+    const published = new APIError(
+      409,
+      'EVENT_ALREADY_PUBLISHED',
+      'Event has already been published'
+    );
+    expect(participantErrorMessage(notFound, FALLBACK, 'zh')).toBe(
+      '找不到这个地址。请从建议中选择，或试试附近的地标。'
+    );
+    expect(participantErrorMessage(published, FALLBACK, 'zh')).toBe(
+      '这个见面已经确定，不能再更改参与者。'
+    );
+    expect(participantErrorMessage(new APIError(502, 'NETWORK_ERROR', 'x'), FALLBACK, 'zh')).toBe(
+      '无法连接地图服务，请检查网络后重试。'
+    );
+  });
 });

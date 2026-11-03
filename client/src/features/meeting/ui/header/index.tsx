@@ -5,12 +5,19 @@ import { FilterPills } from './filter-pills';
 import { TopRightActions } from './top-right-actions';
 import { ModeToggle } from './mode-toggle';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: { fallbackTitle: 'Meeting Event' },
+  zh: { fallbackTitle: '见面' },
+});
 
 interface HeaderProps {
   eventId: string;
 }
 
 export function Header({ eventId }: HeaderProps) {
+  const t = useMessages(messages);
   const { currentEvent } = useMeetingStore();
 
   return (
@@ -18,7 +25,7 @@ export function Header({ eventId }: HeaderProps) {
        but you can add p-3 md:p-4 back if you want spacing from the window edge */
     <header className="h-[10vh] min-h-[60px] w-full z-50">
       {/* SEO: Hidden h1 with event title for search engines */}
-      <h1 className="sr-only">{currentEvent?.title || 'Meeting Event'}</h1>
+      <h1 className="sr-only">{currentEvent?.title || t.fallbackTitle}</h1>
 
       <div className="h-full w-full bg-transparent flex items-center px-3 sm:px-4 md:px-5 lg:px-6 gap-2 sm:gap-3 md:gap-4">
         {/* Left: PillNav (Logo + View Toggles) */}

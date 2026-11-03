@@ -21,6 +21,18 @@ import { missingDetailsMessage } from '@/features/landing/lib/meeting-draft';
 import { HOME_OCCASIONS } from '@/features/landing/lib/occasions';
 import { isMainlandChinaTimeZone } from '@/shared/lib/map-provider';
 import type { MapProvider } from '@/shared/types/map';
+import { LANGUAGE_TAGS, LocaleProvider, defineMessages, localeFor } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    pickAddress: 'Pick an address from the suggestions, or clear it to add it later.',
+    createFailed: "We couldn't create your meeting. Check your connection and try again.",
+  },
+  zh: {
+    pickAddress: '请从建议里选一个地址，或者先清空，之后再添加。',
+    createFailed: '没能创建见面。请检查网络后重试。',
+  },
+});
 
 export function LandingView({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -35,7 +47,10 @@ export function LandingView({ children }: { children: ReactNode }) {
   const [createError, setCreateError] = useState<string | null>(null);
   const [triedToCreate, setTriedToCreate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const missingDetails = missingDetailsMessage({ title, meetingTime, organizerName });
+  // The China toggle also switches the form, and the meeting it creates, to Chinese
+  const locale = localeFor(mapProvider);
+  const t = messages[locale];
+  const missingDetails = missingDetailsMessage({ title, meetingTime, organizerName }, locale);
   const logoRef = useRef<HTMLImageElement>(null);
   // While the create-meeting transition runs, the page steps aside for the cat.
   const leaving = usePortalStore((state) => state.status === 'running');
@@ -62,6 +77,7 @@ export function LandingView({ children }: { children: ReactNode }) {
     setAddress('');
     setPlaceId('');
     setLocationError(null);
+    setCreateError(null);
   };
 
   const handleLocationChange = (nextAddress: string, nextPlaceId: string) => {
@@ -106,7 +122,7 @@ export function LandingView({ children }: { children: ReactNode }) {
     }
 
     if (address.trim() && !placeId) {
-      setLocationError('Pick an address from the suggestions, or clear it to add it later.');
+      setLocationError(t.pickAddress);
       return;
     }
 
@@ -201,7 +217,7 @@ export function LandingView({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error creating event:', error);
       usePortalStore.getState().fail();
-      setCreateError("We couldn't create your meeting. Check your connection and try again.");
+      setCreateError(t.createFailed);
     } finally {
       setIsLoading(false);
     }
@@ -253,7 +269,8 @@ export function LandingView({ children }: { children: ReactNode }) {
               role="group"
               data-leave="100"
             >
-              {HOME_OCCASIONS.map(({ label, icon: Icon }) => {
+              {HOME_OCCASIONS.map(({ label: en, zh, icon: Icon }) => {
+                const label = locale === 'zh' ? zh : en;
                 const selected = title === label;
                 return (
                   <button
@@ -277,35 +294,38 @@ export function LandingView({ children }: { children: ReactNode }) {
             <div
               className="rounded-[28px] bg-white p-5 shadow-[0_4px_24px_rgba(23,37,45,0.1)] sm:p-6 lg:p-7"
               data-leave="40"
+              lang={LANGUAGE_TAGS[locale]}
             >
-              <HeroInput
-                title={title}
-                meetingTime={meetingTime}
-                organizerName={organizerName}
-                address={address}
-                locationError={locationError}
-                mapProvider={mapProvider}
-                onTitleChange={setTitle}
-                onMeetingTimeChange={setMeetingTime}
-                onOrganizerNameChange={setOrganizerName}
-                onLocationChange={handleLocationChange}
-                onLocationError={setLocationError}
-                onMapProviderChange={handleMapProviderChange}
-              />
+              <LocaleProvider locale={locale}>
+                <HeroInput
+                  title={title}
+                  meetingTime={meetingTime}
+                  organizerName={organizerName}
+                  address={address}
+                  locationError={locationError}
+                  mapProvider={mapProvider}
+                  onTitleChange={setTitle}
+                  onMeetingTimeChange={setMeetingTime}
+                  onOrganizerNameChange={setOrganizerName}
+                  onLocationChange={handleLocationChange}
+                  onLocationError={setLocationError}
+                  onMapProviderChange={handleMapProviderChange}
+                />
 
-              <ActionButtons onCreateEvent={handleCreateEvent} isLoading={isLoading} />
+                <ActionButtons onCreateEvent={handleCreateEvent} isLoading={isLoading} />
 
-              {triedToCreate && missingDetails && (
-                <p role="alert" className="mt-3 text-sm text-red-600">
-                  {missingDetails}
-                </p>
-              )}
+                {triedToCreate && missingDetails && (
+                  <p role="alert" className="mt-3 text-sm text-red-600">
+                    {missingDetails}
+                  </p>
+                )}
 
-              {createError && (
-                <p role="alert" className="mt-3 text-sm text-red-600">
-                  {createError}
-                </p>
-              )}
+                {createError && (
+                  <p role="alert" className="mt-3 text-sm text-red-600">
+                    {createError}
+                  </p>
+                )}
+              </LocaleProvider>
             </div>
           </div>
 

@@ -435,7 +435,7 @@ describe("AMap", () => {
 
       expect(route.participantId).toBe("p1");
       expect(route.distance).toEqual({ value: 3200, text: "3.2 km" });
-      expect(route.duration).toEqual({ value: 720, text: "12 mins" });
+      expect(route.duration).toEqual({ value: 720, text: "12 分钟" });
       const expectedPath = [SANLITUN, midpoint, midpoint, GUOMAO].map((p) =>
         gcj02ToWgs84(wgs84ToGcj02(p))
       );

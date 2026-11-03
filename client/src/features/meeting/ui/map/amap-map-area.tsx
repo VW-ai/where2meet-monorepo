@@ -15,6 +15,7 @@ import { directionsClient } from '@/features/meeting/api';
 import type { Location } from '@/shared/types/map';
 import { MapBlurOverlay } from './map-blur-overlay';
 import { usePortalStore } from '@/features/portal/model/portal-store';
+import { useLocale } from '@/shared/lib/i18n';
 import {
   DEFAULT_SEARCH_RADIUS,
   MapLoadError,
@@ -28,6 +29,7 @@ import {
   clampSearchRadius,
   leftPanelsWidth,
   likedVenueMarkerStyle,
+  likedVenueMarkerTitle,
   participantMarkerStyle,
   venueMarkerStyle,
 } from './map-common';
@@ -72,6 +74,7 @@ function shapeContent(style: ReturnType<typeof likedVenueMarkerStyle>): string {
 }
 
 export function AmapMapArea() {
+  const locale = useLocale();
   const { currentEvent, selectedVenue, searchedVenues, setSelectedVenue, venueById } =
     useMeetingStore();
   const { getAllVotedVenueIds, voteStatsByVenueId } = useVotingStore();
@@ -489,7 +492,7 @@ export function AmapMapArea() {
           position: toAmap(venue.location),
           content: shapeContent(style),
           anchor: 'center',
-          title: isPublished ? `${venue.name} (Published)` : `${venue.name} (Liked)`,
+          title: likedVenueMarkerTitle(venue.name, isPublished, locale),
           zIndex: style.zIndex,
         });
 
@@ -513,6 +516,7 @@ export function AmapMapArea() {
     currentEvent?.publishedVenueId,
     setSelectedVenue,
     openVenueInfo,
+    locale,
   ]);
 
   // Pan to selected participant when selection changes (from sidebar or map marker click)

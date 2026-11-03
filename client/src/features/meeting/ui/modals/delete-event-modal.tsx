@@ -8,8 +8,41 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { eventClient } from '@/features/meeting/api';
 import { APIError } from '@/lib/api/client';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    noPermission: "You don't have permission to delete this event",
+    failed: 'Failed to delete event',
+    fallbackTitle: 'this event',
+    title: 'Delete Event',
+    close: 'Close',
+    confirmBefore: 'Are you sure you want to delete',
+    confirmAfter: '? This action cannot be undone and all participants will lose access.',
+    typePrefix: 'Type ',
+    typeSuffix: ' to confirm:',
+    placeholder: 'Type DELETE',
+    cancel: 'Cancel',
+    deleting: 'Deleting...',
+  },
+  zh: {
+    noPermission: '你没有删除这个见面的权限',
+    failed: '删除失败',
+    fallbackTitle: '这个见面',
+    title: '删除见面',
+    close: '关闭',
+    confirmBefore: '确定要删除',
+    confirmAfter: '吗？删除后无法恢复，所有参与者都将无法再访问。',
+    typePrefix: '输入 ',
+    typeSuffix: ' 以确认：',
+    placeholder: '输入 DELETE',
+    cancel: '取消',
+    deleting: '正在删除…',
+  },
+});
 
 export function DeleteEventModal() {
+  const t = useMessages(messages);
   const router = useRouter();
   const { isDeleteConfirmationOpen, closeDeleteConfirmation } = useUIStore();
   const { organizerToken, clearOrganizerToken } = useAuthStore();
@@ -67,13 +100,13 @@ export function DeleteEventModal() {
     } catch (err) {
       if (err instanceof APIError) {
         if (err.status === 401 || err.status === 403) {
-          setError("You don't have permission to delete this event");
+          setError(t.noPermission);
           clearOrganizerToken();
         } else {
           setError(err.message);
         }
       } else {
-        setError('Failed to delete event');
+        setError(t.failed);
       }
     } finally {
       setIsDeleting(false);
@@ -82,7 +115,7 @@ export function DeleteEventModal() {
 
   if (!isDeleteConfirmationOpen) return null;
 
-  const eventTitle = currentEvent?.title || 'this event';
+  const eventTitle = currentEvent?.title || t.fallbackTitle;
 
   return (
     <div
@@ -99,12 +132,12 @@ export function DeleteEventModal() {
             <div className="p-2 rounded-full bg-red-100">
               <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">Delete Event</h2>
+            <h2 className="text-xl font-semibold text-foreground">{t.title}</h2>
           </div>
           <button
             onClick={closeDeleteConfirmation}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Close"
+            aria-label={t.close}
           >
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -113,20 +146,21 @@ export function DeleteEventModal() {
         {/* Content */}
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete{' '}
-            <span className="font-medium text-foreground">{eventTitle}</span>? This action cannot be
-            undone and all participants will lose access.
+            {t.confirmBefore} <span className="font-medium text-foreground">{eventTitle}</span>
+            {t.confirmAfter}
           </p>
 
           <div className="p-4 bg-red-50 rounded-xl border border-red-200">
             <p className="text-sm text-red-700 mb-3">
-              Type <span className="font-mono font-bold">DELETE</span> to confirm:
+              {t.typePrefix}
+              <span className="font-mono font-bold">DELETE</span>
+              {t.typeSuffix}
             </p>
             <input
               type="text"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="Type DELETE"
+              placeholder={t.placeholder}
               className="w-full px-4 py-2.5 rounded-lg border-2 border-red-200 bg-white text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-red-500 transition-colors font-mono"
               autoComplete="off"
             />
@@ -147,14 +181,14 @@ export function DeleteEventModal() {
             onClick={closeDeleteConfirmation}
             className="flex-1 px-4 py-3 text-sm font-medium bg-white border-2 border-border text-foreground rounded-full hover:bg-gray-50 transition-all duration-200"
           >
-            Cancel
+            {t.cancel}
           </button>
           <button
             onClick={handleDelete}
             disabled={isDeleting || confirmText !== 'DELETE' || !organizerToken}
             className="flex-1 px-4 py-3 text-sm font-medium bg-red-500 text-white rounded-full hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
-            {isDeleting ? 'Deleting...' : 'Delete Event'}
+            {isDeleting ? t.deleting : t.title}
           </button>
         </div>
       </div>

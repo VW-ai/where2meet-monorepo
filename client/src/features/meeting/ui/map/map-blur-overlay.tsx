@@ -1,12 +1,30 @@
 'use client';
 
 import { Lock } from 'lucide-react';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    publishedTitle: 'Event Published',
+    publishedBody:
+      'This event is published and no longer accepts new participants. Only existing participants can view details.',
+    joinBelow: 'Click "Join Event" in sidebar below',
+    joinLeft: 'Click "Join Event" in sidebar',
+  },
+  zh: {
+    publishedTitle: '见面已发布',
+    publishedBody: '这个见面已发布，不再接受新的参与者。只有已加入的参与者可以查看详情。',
+    joinBelow: '点击下方侧栏的“加入见面”',
+    joinLeft: '点击侧栏中的“加入见面”',
+  },
+});
 
 interface Props {
   isPublished: boolean;
 }
 
 export function MapBlurOverlay({ isPublished }: Props) {
+  const t = useMessages(messages);
   if (isPublished) {
     // Show locked message for published events
     return (
@@ -16,11 +34,8 @@ export function MapBlurOverlay({ isPublished }: Props) {
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
               <Lock className="w-8 h-8 text-gray-600" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900">Event Published</h2>
-            <p className="text-gray-600">
-              This event is published and no longer accepts new participants. Only existing
-              participants can view details.
-            </p>
+            <h2 className="text-2xl font-semibold text-gray-900">{t.publishedTitle}</h2>
+            <p className="text-gray-600">{t.publishedBody}</p>
           </div>
         </div>
       </div>
@@ -34,7 +49,7 @@ export function MapBlurOverlay({ isPublished }: Props) {
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:hidden">
         <div className="flex flex-col items-center gap-2 animate-bounce">
           <span className="text-sm font-semibold text-gray-900 drop-shadow-lg bg-coral-100 px-4 py-2 rounded-full border-2 border-coral-500">
-            Click "Join Event" in sidebar below
+            {t.joinBelow}
           </span>
           <svg
             className="w-10 h-10 text-coral-500 drop-shadow-lg"
@@ -57,7 +72,7 @@ export function MapBlurOverlay({ isPublished }: Props) {
             <path d="M20 12l-8-8v5H4v6h8v5z" transform="rotate(180 12 12)" />
           </svg>
           <span className="text-sm font-semibold text-gray-900 drop-shadow-lg bg-coral-100 px-4 py-2 rounded-full border-2 border-coral-500">
-            Click "Join Event" in sidebar
+            {t.joinLeft}
           </span>
         </div>
       </div>

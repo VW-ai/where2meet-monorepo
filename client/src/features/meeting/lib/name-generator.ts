@@ -1,3 +1,5 @@
+import type { Locale } from '@/shared/lib/i18n';
+
 /**
  * Name Generator Utility
  * Generates random participant names in format: {adjective}_{animal}
@@ -61,10 +63,25 @@ const ANIMALS = [
  * Generates a random name in format: {adjective}_{animal}
  * @returns A random name string (e.g., "happy_cat", "sleepy_fox")
  */
-export function generateRandomName(): string {
-  const randomAdjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const randomAnimal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
-  return `${randomAdjective}_${randomAnimal}`;
+export function generateRandomName(locale: Locale = 'en'): string {
+  if (locale === 'zh') return `${pick(ADJECTIVES_ZH)}${pick(ANIMALS_ZH)}`;
+  return `${pick(ADJECTIVES)}_${pick(ANIMALS)}`;
+}
+
+const ADJECTIVES_ZH = [
+  '开心的',
+  '困困的',
+  '毛茸茸的',
+  '机灵的',
+  '温柔的',
+  '勇敢的',
+  '淡定的',
+  '好奇的',
+];
+const ANIMALS_ZH = ['熊猫', '小猫', '狐狸', '兔子', '企鹅', '柴犬', '松鼠', '考拉'];
+
+function pick(words: readonly string[]): string {
+  return words[Math.floor(Math.random() * words.length)];
 }
 
 /**

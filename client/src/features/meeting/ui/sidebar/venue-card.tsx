@@ -7,6 +7,12 @@ import { useMapStore } from '@/features/meeting/model/map-store';
 import type { Venue } from '@/entities';
 import { MapPin, Star, Clock, Crown, Store, Coffee, Utensils, Wine } from 'lucide-react';
 import { VoteButton } from '@/features/voting/ui/vote-button';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: { published: 'Published', open: 'Open', closed: 'Closed' },
+  zh: { published: '已确定', open: '营业中', closed: '已打烊' },
+});
 
 interface VenueCardProps {
   venue: Venue;
@@ -17,8 +23,15 @@ export function VenueCard({ venue, isPublishedVenue = false }: VenueCardProps) {
   const { selectedVenue, setSelectedVenue } = useMeetingStore();
   const { openVenueInfo } = useUIStore();
   const { setHoveredVenueId } = useMapStore();
+  const t = useMessages(messages);
   const isSelected = selectedVenue?.id === venue.id;
-  const VenueIcon = venue.types.includes('cafe') ? Coffee : venue.types.includes('restaurant') ? Utensils : venue.types.includes('bar') ? Wine : Store;
+  const VenueIcon = venue.types.includes('cafe')
+    ? Coffee
+    : venue.types.includes('restaurant')
+      ? Utensils
+      : venue.types.includes('bar')
+        ? Wine
+        : Store;
 
   // Ref for scroll-to-view behavior
   const cardRef = useRef<HTMLDivElement>(null);
@@ -82,7 +95,12 @@ export function VenueCard({ venue, isPublishedVenue = false }: VenueCardProps) {
         </div>
       )}
 
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-coral-50 text-coral-600 md:hidden" aria-hidden="true"><VenueIcon size={22} /></div>
+      <div
+        className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-coral-50 text-coral-600 md:hidden"
+        aria-hidden="true"
+      >
+        <VenueIcon size={22} />
+      </div>
       {/* Venue Name */}
       <h3
         className={`font-semibold transition-colors ${
@@ -92,7 +110,7 @@ export function VenueCard({ venue, isPublishedVenue = false }: VenueCardProps) {
         {venue.name}
         {isPublishedVenue && (
           <span className="ml-2 text-xs font-medium text-amber-700 bg-yellow-100 px-2 py-0.5 rounded-full">
-            Published
+            {t.published}
           </span>
         )}
       </h3>
@@ -126,7 +144,7 @@ export function VenueCard({ venue, isPublishedVenue = false }: VenueCardProps) {
               <span
                 className={`text-xs font-medium ${venue.openNow ? 'text-mint-600' : 'text-red-600'}`}
               >
-                {venue.openNow ? 'Open' : 'Closed'}
+                {venue.openNow ? t.open : t.closed}
               </span>
             </div>
           )}

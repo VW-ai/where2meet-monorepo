@@ -8,6 +8,24 @@ import { useMapStore } from '@/features/meeting/model/map-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
 import { searchPlaceSuggestions } from '@/shared/lib/map-provider';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    searchVenues: 'Search venues',
+    expandedPlaceholder: 'Search a type of place or a name…',
+    clear: 'Clear search',
+    searchNearby: (query: string) => `Search “${query}” near your group`,
+    searchNearbyHint: 'Show every match inside the search circle',
+  },
+  zh: {
+    searchVenues: '搜索地点',
+    expandedPlaceholder: '搜索地点类型或名称…',
+    clear: '清除搜索',
+    searchNearby: (query: string) => `在大家附近搜索“${query}”`,
+    searchNearbyHint: '显示搜索范围内的所有结果',
+  },
+});
 
 interface SearchPillBarProps {
   onSearchExecute?: (query: string) => void; // Callback for search execution (Phase 2)
@@ -19,6 +37,7 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
   const { setSearchQuery } = useUIStore();
   const { searchCircle } = useMapStore();
   const mapProvider = useMeetingStore((state) => state.currentEvent?.mapProvider ?? 'google');
+  const t = useMessages(messages);
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlacePrediction[]>([]);
@@ -206,7 +225,7 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
           ref={inputRef}
           type="text"
           role="combobox"
-          aria-label="Search venues"
+          aria-label={t.searchVenues}
           aria-autocomplete="list"
           aria-expanded={showDropdown}
           aria-controls="venue-search-suggestions"
@@ -221,7 +240,7 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={handleFocus}
           onKeyDown={handleKeyDown}
-          placeholder={isExpanded ? 'Search a type of place or a name…' : 'Search venues'}
+          placeholder={isExpanded ? t.expandedPlaceholder : t.searchVenues}
           className={cn(
             'flex-1 min-w-0 bg-transparent outline-none text-sm',
             'placeholder:text-muted-foreground'
@@ -242,7 +261,7 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
               handleClear();
             }}
             className="flex-shrink-0 p-1 rounded-lg hover:bg-coral-50 text-muted-foreground hover:text-coral-600 transition-colors"
-            aria-label="Clear search"
+            aria-label={t.clear}
           >
             <X className="w-4 h-4" />
           </button>
@@ -272,11 +291,9 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
               <Search className="w-4 h-4 text-coral-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm text-foreground truncate">
-                  Search “{query.trim()}” near your group
+                  {t.searchNearby(query.trim())}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Show every match inside the search circle
-                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t.searchNearbyHint}</p>
               </div>
             </div>
           </li>

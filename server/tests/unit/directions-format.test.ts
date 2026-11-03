@@ -10,6 +10,7 @@ import {
   formatDistanceImperial,
   formatDistanceMetric,
   formatDuration,
+  formatDurationChinese,
 } from "../../src/lib/directions/format.js";
 
 describe("Directions Formatting", () => {
@@ -120,6 +121,15 @@ describe("Directions Formatting", () => {
     it("handles hours with rounding", () => {
       // 3660 seconds = 61 minutes = 1 hour 1 min
       expect(formatDuration(3660)).toBe("1 hour 1 min");
+    });
+  });
+
+  describe("formatDurationChinese", () => {
+    it("formats minutes, hours, and both in Chinese", () => {
+      expect(formatDurationChinese(30)).toBe("1 分钟");
+      expect(formatDurationChinese(720)).toBe("12 分钟");
+      expect(formatDurationChinese(3600)).toBe("1 小时");
+      expect(formatDurationChinese(5400)).toBe("1 小时 30 分钟");
     });
   });
 

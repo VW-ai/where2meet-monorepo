@@ -6,6 +6,20 @@ import { cn } from '@/shared/lib/cn';
 import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
 import { searchPlaceSuggestions } from '@/shared/lib/map-provider';
 import type { MapProvider } from '@/shared/types/map';
+import { defineMessages, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    placeholder: 'Enter address...',
+    locate: 'Use my current location',
+    noResults: 'No addresses found',
+  },
+  zh: {
+    placeholder: '输入地址…',
+    locate: '使用我的当前位置',
+    noResults: '没有找到地址',
+  },
+});
 
 interface AddressAutocompleteProps {
   value: string;
@@ -28,13 +42,14 @@ export function AddressAutocomplete({
   onSelect,
   onLocate,
   isLocating = false,
-  placeholder = 'Enter address...',
+  placeholder,
   className,
   disabled = false,
   id,
   invalid = false,
   provider = 'google',
 }: AddressAutocompleteProps) {
+  const t = useMessages(messages);
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -156,7 +171,7 @@ export function AddressAutocomplete({
               setIsOpen(true);
             }
           }}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t.placeholder}
           disabled={disabled}
           className={cn(
             'w-full px-4 py-2.5 pl-10 text-sm',
@@ -190,8 +205,8 @@ export function AddressAutocomplete({
                 'focus:outline-none focus:ring-2 focus:ring-coral-500/20',
                 disabled && 'opacity-50 cursor-not-allowed'
               )}
-              aria-label="Use my current location"
-              title="Use my current location"
+              aria-label={t.locate}
+              title={t.locate}
             >
               <Locate className="w-4 h-4" />
             </button>
@@ -237,9 +252,7 @@ export function AddressAutocomplete({
               ))}
             </ul>
           ) : (
-            <div className="py-4 px-4 text-center text-sm text-muted-foreground">
-              No addresses found
-            </div>
+            <div className="py-4 px-4 text-center text-sm text-muted-foreground">{t.noResults}</div>
           )}
         </div>
       )}

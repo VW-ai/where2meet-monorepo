@@ -41,7 +41,12 @@ export type {
 export { RouteNotFoundError, DirectionsApiError } from "./errors.js";
 
 // Formatting utilities
-export { formatDistanceImperial, formatDistanceMetric, formatDuration } from "./format.js";
+export {
+  formatDistanceImperial,
+  formatDistanceMetric,
+  formatDuration,
+  formatDurationChinese,
+} from "./format.js";
 
 // Route calculation operations
 export { calculateRoute, calculateBatchRoutes, type ParticipantLocation } from "./routes.js";

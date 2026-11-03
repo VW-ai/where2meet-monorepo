@@ -7,6 +7,46 @@ import { generateRandomName } from '@/features/meeting/lib/name-generator';
 import { LocationField } from '@/shared/ui/location-field';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
+import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
+
+const messages = defineMessages({
+  en: {
+    cancel: 'Cancel',
+    nameRequired: 'Name is required',
+    addressRequired: 'Address is required',
+    pickSuggestion: 'Pick an address from the suggestions',
+    addTitle: 'Add Participant',
+    editTitle: 'Edit Participant',
+    close: 'Close',
+    name: 'Name',
+    namePlaceholder: 'Enter name or use the dice',
+    randomName: 'Generate random name',
+    startingLocation: 'Starting location',
+    useDefaultAddress: 'Use Default Address',
+    locationHint: 'Pick a suggestion, or tap the target icon to use where you are now.',
+    adding: 'Adding...',
+    saving: 'Saving...',
+    saveChanges: 'Save Changes',
+  },
+  zh: {
+    cancel: '取消',
+    nameRequired: '请填写名字',
+    addressRequired: '请填写地址',
+    pickSuggestion: '请从建议列表中选择一个地址',
+    addTitle: '添加参与者',
+    editTitle: '编辑参与者',
+    close: '关闭',
+    name: '名字',
+    namePlaceholder: '输入名字，或掷个骰子',
+    randomName: '随机生成名字',
+    startingLocation: '出发地点',
+    useDefaultAddress: '使用默认地址',
+    locationHint: '从建议中选择，或点击定位图标使用当前位置。',
+    adding: '添加中…',
+    saving: '保存中…',
+    saveChanges: '保存修改',
+  },
+});
 
 interface AddParticipantProps {
   onSubmit: (data: ParticipantFormData) => void;
@@ -32,10 +72,12 @@ export function AddParticipant({
   isSubmitting = false,
   mode = 'add',
   initialData,
-  cancelLabel = 'Cancel',
+  cancelLabel,
   notice,
 }: AddParticipantProps) {
   const { user } = useAuthStore();
+  const t = useMessages(messages);
+  const locale = useLocale();
   const mapProvider = useMeetingStore((state) => state.currentEvent?.mapProvider);
   const hasDefaultAddress = !!(user?.defaultAddress && user?.defaultPlaceId);
 
@@ -57,7 +99,7 @@ export function AddParticipant({
 
   // Handle dice randomizer click
   const handleRandomizeName = () => {
-    setName(generateRandomName());
+    setName(generateRandomName(locale));
     clearError('name');
   };
 
@@ -82,13 +124,13 @@ export function AddParticipant({
     const newErrors: { name?: string; address?: string } = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = t.nameRequired;
     }
 
     if (!address.trim()) {
-      newErrors.address = 'Address is required';
+      newErrors.address = t.addressRequired;
     } else if (!placeId && !addressIsSaved) {
-      newErrors.address = 'Pick an address from the suggestions';
+      newErrors.address = t.pickSuggestion;
     }
 
     setErrors(newErrors);
@@ -116,14 +158,14 @@ export function AddParticipant({
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
           <UserPlus className="w-4 h-4" />
-          {mode === 'add' ? 'Add Participant' : 'Edit Participant'}
+          {mode === 'add' ? t.addTitle : t.editTitle}
         </h3>
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
             className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Close"
+            aria-label={t.close}
           >
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
@@ -143,7 +185,7 @@ export function AddParticipant({
       {/* Name Input with Dice Randomizer */}
       <div className="space-y-1.5">
         <label htmlFor="participant-name" className="block text-sm font-medium text-foreground">
-          Name
+          {t.name}
         </label>
         <div className="relative">
           <input
@@ -154,7 +196,7 @@ export function AddParticipant({
               setName(e.target.value);
               clearError('name');
             }}
-            placeholder="Enter name or use the dice"
+            placeholder={t.namePlaceholder}
             disabled={isSubmitting}
             autoFocus
             autoComplete="off"
@@ -184,8 +226,8 @@ export function AddParticipant({
               'focus:outline-none focus:ring-2 focus:ring-coral-500/20',
               isSubmitting && 'opacity-50 cursor-not-allowed'
             )}
-            aria-label="Generate random name"
-            title="Generate random name"
+            aria-label={t.randomName}
+            title={t.randomName}
           >
             <Dices className="w-4 h-4" />
           </button>
@@ -204,7 +246,7 @@ export function AddParticipant({
             htmlFor="participant-address"
             className="block text-sm font-medium text-foreground"
           >
-            Starting location
+            {t.startingLocation}
           </label>
           {hasDefaultAddress && (
             <button
@@ -218,7 +260,7 @@ export function AddParticipant({
                 isSubmitting && 'opacity-50 cursor-not-allowed'
               )}
             >
-              Use Default Address
+              {t.useDefaultAddress}
             </button>
           )}
         </div>
@@ -235,9 +277,7 @@ export function AddParticipant({
         {errors.address ? (
           <p className="text-xs text-red-500">{errors.address}</p>
         ) : (
-          <p className="text-xs text-muted-foreground">
-            Pick a suggestion, or tap the target icon to use where you are now.
-          </p>
+          <p className="text-xs text-muted-foreground">{t.locationHint}</p>
         )}
       </div>
 
@@ -258,12 +298,12 @@ export function AddParticipant({
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              {mode === 'add' ? 'Adding...' : 'Saving...'}
+              {mode === 'add' ? t.adding : t.saving}
             </span>
           ) : mode === 'add' ? (
-            'Add Participant'
+            t.addTitle
           ) : (
-            'Save Changes'
+            t.saveChanges
           )}
         </button>
 
@@ -281,7 +321,7 @@ export function AddParticipant({
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >
-            {cancelLabel}
+            {cancelLabel ?? t.cancel}
           </button>
         )}
       </div>
