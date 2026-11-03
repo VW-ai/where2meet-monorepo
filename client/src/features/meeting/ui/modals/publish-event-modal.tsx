@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, CheckCircle, MapPin, AlertCircle } from 'lucide-react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
@@ -24,6 +24,7 @@ const messages = defineMessages({
     noVenue: 'No venue selected. Select a venue before publishing to include a location.',
     cancel: 'Cancel',
     publishing: 'Publishing...',
+    shareInvitation: 'Share the invitation',
   },
   zh: {
     alreadyPublished: '这个见面已经确定地点了。',
@@ -37,12 +38,13 @@ const messages = defineMessages({
     noVenue: '还没有选择地点。请先选一个地点再确定。',
     cancel: '取消',
     publishing: '正在确定…',
+    shareInvitation: '分享邀请',
   },
 });
 
 export function PublishEventModal() {
   const t = useMessages(messages);
-  const { isPublishModalOpen, closePublishModal, setActiveView } = useUIStore();
+  const { isPublishModalOpen, closePublishModal, openShareModal, setActiveView } = useUIStore();
   const { organizerToken } = useAuthStore();
   const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
   const { voteForVenue, hasVotedFor } = useVotingStore();
@@ -50,6 +52,7 @@ export function PublishEventModal() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoClose = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -139,10 +142,7 @@ export function PublishEventModal() {
 
       setIsPublished(true);
 
-      // Auto close after 2 seconds
-      setTimeout(() => {
-        closePublishModal();
-      }, 2000);
+      autoClose.current = setTimeout(closePublishModal, 2000);
     } catch (err) {
       if (err instanceof APIError) {
         if (err.code === 'EVENT_ALREADY_PUBLISHED') {
@@ -180,6 +180,16 @@ export function PublishEventModal() {
             </div>
             <h2 className="text-xl font-semibold text-foreground mb-2">{t.published}</h2>
             <p className="text-sm text-muted-foreground">{t.notified}</p>
+            <button
+              onClick={() => {
+                if (autoClose.current) clearTimeout(autoClose.current);
+                closePublishModal();
+                openShareModal();
+              }}
+              className="mt-6 w-full px-4 py-3 text-sm font-medium bg-coral-500 text-white rounded-full hover:bg-coral-600 transition-all duration-200"
+            >
+              {t.shareInvitation}
+            </button>
           </div>
         ) : (
           <>
