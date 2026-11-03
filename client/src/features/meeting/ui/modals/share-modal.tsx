@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, Copy, Check, Link } from 'lucide-react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
+import { invitationFor, isPublished } from '@/features/invitation/model/invitation';
+import { InvitationScreen } from '@/features/invitation/ui/invitation-screen';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
 
@@ -28,7 +30,33 @@ const messages = defineMessages({
   },
 });
 
+/** A published event shares its invitation ticket; a draft shares its link. */
 export function ShareModal() {
+  const { isShareModalOpen, closeShareModal } = useUIStore();
+  const { currentEvent, venueById, hydrateVenue } = useMeetingStore();
+  const published = currentEvent && isPublished(currentEvent) ? currentEvent : null;
+  const publishedVenueId = published?.publishedVenueId ?? null;
+
+  useEffect(() => {
+    if (isShareModalOpen && publishedVenueId) hydrateVenue(publishedVenueId);
+  }, [isShareModalOpen, publishedVenueId, hydrateVenue]);
+
+  if (!isShareModalOpen) return null;
+  if (!published) return <LinkShareModal />;
+  return (
+    <InvitationScreen
+      invitation={invitationFor(
+        published,
+        (publishedVenueId && venueById[publishedVenueId]) || null,
+        window.location.origin
+      )}
+      eventId={published.id}
+      onClose={closeShareModal}
+    />
+  );
+}
+
+function LinkShareModal() {
   const t = useMessages(messages);
   const { isShareModalOpen, closeShareModal } = useUIStore();
   const { currentEvent } = useMeetingStore();

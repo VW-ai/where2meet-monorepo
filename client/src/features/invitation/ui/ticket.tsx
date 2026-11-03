@@ -464,6 +464,8 @@ export function BigWord({ invitation, size }: { invitation: Invitation; size: nu
     <div
       style={{
         fontFamily: DISPLAY_FONT,
+        // Anton has no CJK; the browser's fallback is regular weight unless asked for bold.
+        fontWeight: invitation.locale === 'zh' ? 700 : 400,
         fontSize: size,
         lineHeight: 0.95,
         letterSpacing: size / 96,
