@@ -7,7 +7,6 @@ import {
   introKeyframes,
   type IntroKeyframe,
 } from '../lib/intro';
-import './opening-intro.css';
 
 export interface IntroConfig {
   storageKey: string;
