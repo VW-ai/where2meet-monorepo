@@ -1,47 +1,138 @@
-import tzLookup from 'tz-lookup';
-import type { Event, Venue } from '@/entities';
+import { Coffee, MapPin, Utensils, Wine, type IconNode } from 'lucide';
+import { getVenueCategory, type Event, type Venue, type VenueCategory } from '@/entities';
+import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { LANGUAGE_TAGS, localeFor, type Locale } from '@/shared/lib/locale';
 
-/** What the host sends everyone once the event is published: the card's text and its link. */
-export interface Invitation {
-  title: string;
-  /** Spelled out in the meeting place's time zone, or null when no time is set. */
-  when: string | null;
-  host: string | null;
-  venue: { name: string; address: string; photoUrl: string | null } | null;
-  url: string;
+export type PublishedEvent = Event & { publishedAt: string; publishedVenueId: string };
+
+/** Only a published event has a venue to invite people to. */
+export function isPublished(event: Event): event is PublishedEvent {
+  return Boolean(event.publishedAt && event.publishedVenueId);
 }
 
-export function invitationFor(event: Event, venue: Venue | null, origin: string): Invitation {
+export type VenueKind = 'coffee' | 'food' | 'drinks' | 'place';
+
+export interface VenueKindInfo {
+  icon: IconNode;
+  /** On the ticket's tag. */
+  label: Record<Locale, string>;
+  /** The big word above the ticket. */
+  word: Record<Locale, string>;
+}
+
+export const VENUE_KINDS: Record<VenueKind, VenueKindInfo> = {
+  coffee: { icon: Coffee, label: { en: 'COFFEE', zh: '咖啡' }, word: { en: 'COFFEE', zh: '咖啡' } },
+  food: { icon: Utensils, label: { en: 'FOOD', zh: '美食' }, word: { en: 'FOOD', zh: '吃饭' } },
+  drinks: { icon: Wine, label: { en: 'DRINKS', zh: '酒吧' }, word: { en: 'DRINKS', zh: '小酌' } },
+  place: { icon: MapPin, label: { en: 'PLACE', zh: '地点' }, word: { en: 'MEET UP', zh: '见面' } },
+};
+
+const KIND_BY_CATEGORY: Partial<Record<VenueCategory, VenueKind>> = {
+  cafe: 'coffee',
+  restaurant: 'food',
+  bar: 'drinks',
+};
+
+/** What the ticket shows once the event is published, in the meeting's locale. */
+export interface Invitation {
+  locale: Locale;
+  title: string;
+  host: string | null;
+  url: string;
+  /** Printed on the ticket's strip, like `W2M-A8K3-MX2P`. */
+  code: string;
+  kind: VenueKind;
+  /** In the meeting's own time zone; null without a time or a zone. */
+  when: { startsAt: string; date: string; time: string } | null;
+  venue: { name: string; address: string; photoUrl: string | null } | null;
+  going: { initial: string; color: string }[];
+  /** The publish moment as the ticket's foot prints it; null without a zone. */
+  issued: string | null;
+}
+
+export function invitationFor(
+  event: PublishedEvent,
+  venue: Venue | null,
+  origin: string
+): Invitation {
+  const locale = localeFor(event.mapProvider);
+  const zone = event.meetingTimeZone;
   return {
+    locale,
     title: event.title,
-    when: event.meetingTime ? formatWhen(event.meetingTime, timeZoneFor(event, venue)) : null,
     host: event.participants.find((p) => p.isOrganizer)?.name ?? null,
-    venue: venue && { name: venue.name, address: venue.address, photoUrl: venue.photoUrl },
     url: `${origin}/meet/${event.id}`,
+    code: invitationCode(event.id),
+    kind: (venue && KIND_BY_CATEGORY[getVenueCategory(venue.types)]) ?? 'place',
+    when:
+      event.meetingTime && zone
+        ? { startsAt: event.meetingTime, ...dateAndTime(event.meetingTime, zone, locale) }
+        : null,
+    venue: venue && { name: venue.name, address: venue.address, photoUrl: venue.photoUrl },
+    going: event.participants.map((p) => ({
+      initial: Array.from(p.name.trim())[0]?.toUpperCase() ?? '?',
+      color: getHexColor(p.color),
+    })),
+    issued: zone ? stamp(event.publishedAt, zone, locale) : null,
   };
 }
 
-/** `Saturday, October 17 at 11:00 AM EDT` for an ISO instant read in `timeZone`. */
-export function formatWhen(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    month: 'long',
+/** `evt_1702000000000_a8K3mX2pQrS7nBvW` → `W2M-A8K3-MX2P`: the id's random part, in fours. */
+export function invitationCode(eventId: string): string {
+  const random = (eventId.split('_').at(-1) ?? '').replace(/[^a-z0-9]/gi, '').toUpperCase();
+  return ['W2M', ...(random.slice(0, 8).match(/.{1,4}/g) ?? [])].join('-');
+}
+
+type Parts = Partial<Record<Intl.DateTimeFormatPartTypes, string>>;
+
+function parts(iso: string, timeZone: string, locale: Locale, options: Intl.DateTimeFormatOptions) {
+  const formatted = new Intl.DateTimeFormat(LANGUAGE_TAGS[locale], { ...options, timeZone });
+  return Object.fromEntries(
+    formatted.formatToParts(new Date(iso)).map((part) => [part.type, part.value])
+  ) as Parts;
+}
+
+/** en `Sat, Oct 17` + `11:00 AM EDT`; zh `10月17日周六` + `23:00 GMT+8`. */
+function dateAndTime(iso: string, timeZone: string, locale: Locale) {
+  const date = new Intl.DateTimeFormat(LANGUAGE_TAGS[locale], {
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short',
     timeZone,
   }).format(new Date(iso));
+  const p = parts(iso, timeZone, locale, {
+    hour: locale === 'zh' ? '2-digit' : 'numeric',
+    minute: '2-digit',
+    hourCycle: locale === 'zh' ? 'h23' : 'h12',
+    timeZoneName: 'short',
+  });
+  const clock = locale === 'zh' ? `${p.hour}:${p.minute}` : `${p.hour}:${p.minute} ${p.dayPeriod}`;
+  return { date, time: `${clock} ${p.timeZoneName}` };
 }
 
-/** The meeting place sets the clock, not the reader's browser. */
-export function timeZoneFor(event: Event, venue: Venue | null): string {
-  const place = venue?.location ?? event.mec?.center;
-  return place ? tzLookup(place.lat, place.lng) : 'UTC';
+/** en `10.14.26 8:00 AM`; zh `2026.10.14 20:00`. */
+function stamp(iso: string, timeZone: string, locale: Locale): string {
+  const p = parts(iso, timeZone, locale, {
+    year: locale === 'zh' ? 'numeric' : '2-digit',
+    month: '2-digit',
+    day: '2-digit',
+    hour: locale === 'zh' ? '2-digit' : 'numeric',
+    minute: '2-digit',
+    hourCycle: locale === 'zh' ? 'h23' : 'h12',
+  });
+  return locale === 'zh'
+    ? `${p.year}.${p.month}.${p.day} ${p.hour}:${p.minute}`
+    : `${p.month}.${p.day}.${p.year} ${p.hour}:${p.minute} ${p.dayPeriod}`;
 }
 
-export function shareText({ title, when, venue }: Invitation): string {
-  return [`You're invited: ${title}`, when, venue && `${venue.name}, ${venue.address}`]
+const INVITED: Record<Locale, string> = { en: "You're invited: ", zh: '邀请你来：' };
+
+export function shareText({ locale, title, when, venue }: Invitation): string {
+  return [
+    `${INVITED[locale]}${title}`,
+    when && `${when.date}, ${when.time}`,
+    venue && `${venue.name}, ${venue.address}`,
+  ]
     .filter(Boolean)
     .join(' · ');
 }

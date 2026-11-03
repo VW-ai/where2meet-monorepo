@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import type { Event, Venue } from '@/entities';
 import { createMeetingPageMetadata, SITE_CONFIG } from '@/lib/seo/metadata';
-import { invitationFor, shareText } from '@/features/invitation/model/invitation';
+import { invitationFor, isPublished, shareText } from '@/features/invitation/model/invitation';
 import { eventClient, venueClient } from '@/features/meeting/api';
 import { isMissingEvent } from '@/features/meeting/lib/is-missing-event';
 import { meetingWhen } from '@/shared/lib/meeting-times';
@@ -67,10 +67,9 @@ export async function generateMetadata({
 
   const { event } = lookup;
   const when = event.meetingTime ? meetingWhen(event.meetingTime, event.meetingTimeZone) : null;
-  const invitation =
-    event.publishedAt && event.publishedVenueId
-      ? invitationFor(event, await lookupVenue(event.publishedVenueId), SITE_CONFIG.url)
-      : null;
+  const invitation = isPublished(event)
+    ? invitationFor(event, await lookupVenue(event.publishedVenueId), SITE_CONFIG.url)
+    : null;
 
   return createMeetingPageMetadata({
     title: `${event.title} - Meeting Planner`,
