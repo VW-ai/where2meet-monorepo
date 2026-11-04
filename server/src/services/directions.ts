@@ -7,10 +7,15 @@
  * @module services/directions
  */
 
-import type { PrismaClient } from "@prisma/client";
+import type { Participant, PrismaClient } from "@prisma/client";
 import { createEventRepository, type EventRepository } from "../repositories/event.js";
 import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
-import { DirectionsApiError, type TravelMode, type RouteResult } from "../lib/directions/index.js";
+import {
+  DirectionsApiError,
+  type ModeRouteResult,
+  type ParticipantLocation,
+  type TravelMode,
+} from "../lib/directions/index.js";
 import {
   EventNotFoundError,
   ParticipantNotFoundError,
@@ -22,6 +27,15 @@ import { providerFor, providerForVenueId } from "../lib/providers/index.js";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("DirectionsService");
+
+/**
+ * @param participant - Participant being routed
+ * @param override - Mode sent with the request, if any
+ * @returns The mode this participant's route uses
+ */
+function effectiveTravelMode(participant: Participant, override?: TravelMode): TravelMode {
+  return override ?? participant.travelMode;
+}
 
 /**
  * Service for directions business logic.
@@ -42,7 +56,7 @@ export class DirectionsService {
    * Calculates routes for participants to a venue.
    * @param eventId - Event ID to get participants from
    * @param venueId - Google Place ID of the destination venue
-   * @param travelMode - Travel mode (driving, walking, transit, bicycling)
+   * @param travelModeOverride - Mode for everyone returned; omit to use each participant's own
    * @param participantId - Optional: Calculate route for single participant
    * @returns Array of route results (one per participant)
    * @throws EventNotFoundError if event doesn't exist
@@ -53,9 +67,9 @@ export class DirectionsService {
   async getDirections(
     eventId: string,
     venueId: string,
-    travelMode: TravelMode,
+    travelModeOverride?: TravelMode,
     participantId?: string
-  ): Promise<RouteResult[]> {
+  ): Promise<ModeRouteResult[]> {
     // Verify event exists
     const event = await this.eventRepository.findById(eventId);
     if (!event) {
@@ -113,11 +127,12 @@ export class DirectionsService {
     );
 
     // Build results for participants without location (null values)
-    const nullRoutes: RouteResult[] = participantsWithoutLocation.map((p) => ({
+    const nullRoutes: ModeRouteResult[] = participantsWithoutLocation.map((p) => ({
       participantId: p.id,
       distance: null,
       duration: null,
       polyline: null,
+      travelMode: effectiveTravelMode(p, travelModeOverride),
     }));
 
     // If no participants have locations, return all null routes
@@ -126,26 +141,32 @@ export class DirectionsService {
       return nullRoutes;
     }
 
+    const locationsByMode = new Map<TravelMode, ParticipantLocation[]>();
+    for (const p of participantsWithLocation) {
+      const mode = effectiveTravelMode(p, travelModeOverride);
+      const locations = locationsByMode.get(mode) ?? [];
+      locations.push({ id: p.id, lat: Number(p.lat), lng: Number(p.lng) });
+      locationsByMode.set(mode, locations);
+    }
+
     const routeProvider = providerFor(event.mapProvider);
     try {
-      // Calculate routes for participants with valid locations
-      const participantData = participantsWithLocation.map((p) => ({
-        id: p.id,
-        lat: Number(p.lat),
-        lng: Number(p.lng),
-      }));
-
-      const calculatedRoutes = await routeProvider.calculateBatchRoutes(
-        participantData,
-        venueCoords,
-        travelMode
+      const calculatedRoutes = await Promise.all(
+        [...locationsByMode].map(async ([travelMode, locations]) => {
+          const routes = await routeProvider.calculateBatchRoutes(
+            locations,
+            venueCoords,
+            travelMode
+          );
+          return routes.map((route) => ({ ...route, travelMode }));
+        })
       );
 
       logger.info(
         {
           eventId,
           venueId,
-          travelMode,
+          travelModes: [...locationsByMode.keys()],
           participantCount: allParticipants.length,
           withLocation: participantsWithLocation.length,
           withoutLocation: participantsWithoutLocation.length,
@@ -154,7 +175,7 @@ export class DirectionsService {
       );
 
       // Combine calculated routes with null routes
-      return [...calculatedRoutes, ...nullRoutes];
+      return [...calculatedRoutes.flat(), ...nullRoutes];
     } catch (error) {
       if (error instanceof DirectionsApiError) {
         logger.error({ err: error, eventId, venueId }, "Directions API error");

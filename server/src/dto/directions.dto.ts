@@ -36,6 +36,8 @@ export const RouteResponseSchema = z.object({
   duration: FormattedValueSchema.nullable(),
   /** Encoded polyline for Google Maps rendering. Null if participant has no location. */
   polyline: z.string().nullable(),
+  /** Mode this route was calculated for. Present even when the participant has no location. */
+  travelMode: TravelModeSchema,
 });
 
 export type RouteResponse = z.infer<typeof RouteResponseSchema>;
@@ -46,8 +48,8 @@ export type RouteResponse = z.infer<typeof RouteResponseSchema>;
 export const DirectionsResponseSchema = z.object({
   /** Google Place ID of the destination venue */
   venueId: z.string(),
-  /** Travel mode used for calculation */
-  travelMode: TravelModeSchema,
+  /** The override sent with the request. Null when each route used its participant's own mode. */
+  travelMode: TravelModeSchema.nullable(),
   /** Routes for each participant */
   routes: z.array(RouteResponseSchema),
 });
