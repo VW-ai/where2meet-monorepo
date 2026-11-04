@@ -212,7 +212,7 @@ function VenueLikes({ venueId, myId }: { venueId: string; myId: string | null })
   const t = useMessages(messages);
   const participants = useMeetingStore((state) => state.currentEvent?.participants) ?? [];
   const { voteStatsByVenueId } = useVotingStore();
-  const { voters, others } = venueLikes(
+  const { voters, others, total } = venueLikes(
     voteStatsByVenueId[venueId]?.voterIds ?? [],
     participants,
     myId
@@ -230,9 +230,7 @@ function VenueLikes({ venueId, myId }: { venueId: string; myId: string | null })
       </AvatarStack>
       {voters.length > 0 ? (
         <span>
-          <b className="font-semibold text-v2-ink">
-            {t.likeCount(voters.length, participants.length)}
-          </b>
+          <b className="font-semibold text-v2-ink">{t.likeCount(voters.length, total)}</b>
           {' · '}
           {voters.map((p) => (p.id === myId ? t.you : p.name)).join(t.nameSeparator)}
         </span>
