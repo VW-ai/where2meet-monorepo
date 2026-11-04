@@ -572,8 +572,8 @@ export function AmapMapArea() {
       const response = await directionsClient.getDirections(
         currentEvent.id,
         selectedVenue.id,
-        travelMode,
-        authToken
+        authToken,
+        { travelMode }
       );
 
       removeRoutes();

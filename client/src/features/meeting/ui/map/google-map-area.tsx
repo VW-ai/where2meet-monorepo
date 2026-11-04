@@ -793,8 +793,8 @@ export function GoogleMapArea() {
       const response = await directionsClient.getDirections(
         currentEvent.id,
         selectedVenue.id,
-        travelMode,
-        authToken
+        authToken,
+        { travelMode }
       );
 
       // Stepping through venues quickly can land an older response after a newer one

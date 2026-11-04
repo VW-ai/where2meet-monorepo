@@ -15,12 +15,13 @@ import {
 } from '@/shared/types/sse';
 import type { SSEMessage } from '@/shared/lib/sse-parser';
 import type { Participant } from '@/entities';
+import { parseParticipant } from '@/entities/participant/parse';
 
 function participantFields({ lat, lng, ...rest }: SSEParticipant) {
-  return {
+  return parseParticipant({
     ...rest,
     location: lat != null && lng != null ? { lat, lng } : null,
-  };
+  });
 }
 
 export function handleSSEMessage(message: SSEMessage, eventId: string): void {
