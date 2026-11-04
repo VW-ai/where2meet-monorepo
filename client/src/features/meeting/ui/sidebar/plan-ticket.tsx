@@ -2,7 +2,7 @@
 
 import '@fontsource/anton/400.css';
 import '@fontsource/jetbrains-mono/400.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Navigation, Share } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { invitationFor, isPublished } from '@/features/invitation/model/invitation';
@@ -70,10 +70,16 @@ export function PlanTicket() {
   const event = currentEvent && isPublished(currentEvent) ? currentEvent : null;
   const spotId = event?.publishedVenueId ?? null;
   const stamp = usePublishStamp({ eventId: currentEvent?.id, published: !!event });
+  const ticketRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (spotId) hydrateVenue(spotId);
   }, [spotId, hydrateVenue]);
+
+  // The sidebar is usually scrolled to the card that was just picked, far below the ticket
+  useEffect(() => {
+    if (stamp) ticketRef.current?.scrollIntoView({ block: 'start' });
+  }, [stamp]);
 
   if (!event || !spotId) return null;
 
@@ -99,6 +105,7 @@ export function PlanTicket() {
 
   return (
     <div
+      ref={ticketRef}
       className={cn(
         'relative rounded-2xl bg-v2-ticket text-sm text-v2-paper',
         stamp && 'plan-ticket-stamp'

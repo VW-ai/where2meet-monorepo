@@ -579,7 +579,9 @@ export function VenuePanel() {
           <VenuePanelFooter key={venue.id} venue={venue} />
         </>
       ) : (
-        <p className="grid h-full place-items-center p-8 text-sm text-v2-ink-2">{t.noVenue}</p>
+        isVenueInfoOpen && (
+          <p className="grid h-full place-items-center p-8 text-sm text-v2-ink-2">{t.noVenue}</p>
+        )
       )}
     </aside>
   );

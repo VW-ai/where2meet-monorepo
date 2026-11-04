@@ -54,14 +54,14 @@ export function VenueCardV2({ venue, isPublishedVenue = false }: VenueCardProps)
         ? Wine
         : Store;
 
-  // Picked on the map: bring the row into view
+  // Picked on the map: bring the row into view. The published row leaves the scroll to the ticket.
   useEffect(() => {
-    if (!isSelected) return;
+    if (!isSelected || isPublishedVenue) return;
     const timeoutId = setTimeout(() => {
       rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
     }, 100);
     return () => clearTimeout(timeoutId);
-  }, [isSelected]);
+  }, [isSelected, isPublishedVenue]);
 
   return (
     <button
