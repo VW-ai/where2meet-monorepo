@@ -23,6 +23,8 @@ export const BUTTON = {
   ),
 };
 
+export const BUTTON_SMALL = 'h-8 px-[11px] text-[12.5px]';
+
 export function initialOf(name: string): string {
   return Array.from(name.trim())[0]?.toUpperCase() ?? '?';
 }
@@ -31,16 +33,18 @@ export function ParticipantAvatar({
   participant,
   ghost = false,
   small = false,
+  large = false,
 }: {
   participant: Pick<Participant, 'name' | 'color'>;
   ghost?: boolean;
   small?: boolean;
+  large?: boolean;
 }) {
   return (
     <span
       className={cn(
         'grid flex-none place-items-center rounded-full font-bold shadow-[0_0_0_2px_var(--color-v2-paper)]',
-        small ? 'size-[18px] text-[9px]' : 'size-6 text-[10.5px]',
+        small ? 'size-[18px] text-[9px]' : large ? 'size-8 text-[13px]' : 'size-6 text-[10.5px]',
         ghost ? 'bg-[#ebe8e3] text-[#a9a7a2]' : 'text-white'
       )}
       style={ghost ? undefined : { backgroundColor: getHexColor(participant.color) }}

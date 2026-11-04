@@ -41,3 +41,28 @@ describe('AddParticipant in edit mode', () => {
     );
   });
 });
+
+describe('AddParticipant under v2', () => {
+  const textFor = (kind: 'join' | 'add') =>
+    visible(
+      renderToStaticMarkup(
+        <AddParticipant onSubmit={() => {}} transport={{ kind, eventTitle: 'Friday drinks' }} />
+      )
+    ).text;
+
+  it('asks someone joining about themselves, and tells them the mode stays theirs', () => {
+    const text = textFor('join');
+    expect(text).toContain('Join Friday drinks');
+    expect(text).toContain('How are you getting there?');
+    expect(text).toContain('Only you can change this later.');
+    expect(text).toContain('Join plan');
+  });
+
+  it('asks the organizer about the person they are adding', () => {
+    const text = textFor('add');
+    expect(text).toContain('Add a person');
+    expect(text).toContain('How is this person getting there?');
+    expect(text).toContain('You can change this for them any time.');
+    expect(text).toContain('Add person');
+  });
+});

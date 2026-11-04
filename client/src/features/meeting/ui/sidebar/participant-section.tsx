@@ -3,13 +3,19 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
-import { useMapStore } from '@/features/meeting/model/map-store';
+import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-store';
+import { useToastStore } from '@/features/meeting/model/toast-store';
+import { useUiVersion } from '@/features/meeting/model/ui-version-store';
+import { signInAsParticipant } from '@/features/meeting/hooks/useParticipantActions';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { Users, Plus, BarChart3, UserPlus } from 'lucide-react';
 import { AddParticipant, type ParticipantFormData } from './add-participant';
 import { MyLocationPrompt, MY_LOCATION_INPUT_ID } from './my-location-prompt';
 import { ParticipantPill } from './participant-pill';
+import { PersonRow } from './person-row';
+import { ClaimList } from './claim-list';
+import { pickerMode } from './transport-parts';
 import { participantClient } from '@/features/meeting/api';
 import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
@@ -46,6 +52,16 @@ const messages = defineMessages({
     ),
     leave: 'Leave',
     delete: 'Delete',
+    addPerson: 'Add a person',
+    joinPlan: 'Join this plan',
+    going: {
+      car: 'going by car',
+      transit: 'going by transit',
+      bike: 'going by bike',
+      walk: 'walking',
+    } as Record<UITravelMode, string>,
+    joinedGoing: (how: string) => `You're in, ${how}.`,
+    addedGoing: (name: string, how: string) => `${name} added, ${how}.`,
   },
   zh: {
     noToken: '缺少授权信息',
@@ -72,6 +88,16 @@ const messages = defineMessages({
     removeConfirm: (name: ReactNode) => <>确定要移除{name}吗？此操作无法撤销。</>,
     leave: '退出',
     delete: '删除',
+    addPerson: '添加一个人',
+    joinPlan: '加入这个计划',
+    going: {
+      car: '驾车前往',
+      transit: '乘公交前往',
+      bike: '骑行前往',
+      walk: '步行前往',
+    },
+    joinedGoing: (how: string) => `已加入，${how}。`,
+    addedGoing: (name: string, how: string) => `已添加${name}，${how}。`,
   },
 });
 
@@ -86,12 +112,13 @@ export function ParticipantSection() {
     participantToken,
     currentParticipantId,
     organizerParticipantId,
-    setParticipantInfo,
     clearParticipantInfo,
   } = useAuthStore();
   const { toggleParticipantStats } = useUIStore();
   const t = useMessages(messages);
   const locale = useLocale();
+  const version = useUiVersion();
+  const showToast = useToastStore((state) => state.showToast);
 
   // Helper to get travel time for a participant from calculated routes
   const getTravelTime = (participantId: string): string | undefined => {
@@ -228,6 +255,7 @@ export function ParticipantSection() {
             {
               name: data.name,
               address: data.address,
+              travelMode: data.travelMode,
             },
             organizerToken
           );
@@ -249,6 +277,18 @@ export function ParticipantSection() {
           // Track participant added by organizer
           analyticsEvents.addLocation(currentEvent.id, data.address);
 
+          if (version === 'v2') {
+            showToast({
+              message: t.addedGoing(
+                newParticipant.name,
+                t.going[pickerMode(newParticipant.travelMode).ui]
+              ),
+            });
+            setSelectedParticipantId(newParticipant.id);
+            setShowAddForm(false);
+            return;
+          }
+
           // Keep the form open with fresh fields for the next person
           setLastAddedName(newParticipant.name);
           setFormKey((key) => key + 1);
@@ -258,26 +298,29 @@ export function ParticipantSection() {
           const response = await participantClient.join(currentEvent.id, {
             name: data.name,
             address: data.address,
+            travelMode: data.travelMode,
           });
 
-          // Store participant token for self-management
-          if (response.participantToken) {
-            setParticipantInfo(currentEvent.id, response.id, response.participantToken);
-          }
-
-          // Add to local stores (strip the token before storing)
-          const { participantToken: _, ...participant } = response;
-          addParticipant(participant as Participant);
+          // Store participant token for self-management, and keep it out of the stores
+          const participant = signInAsParticipant(currentEvent.id, response);
+          addParticipant(participant);
           if (currentEvent.participants) {
             setCurrentEvent({
               ...currentEvent,
-              participants: [...currentEvent.participants, participant as Participant],
+              participants: [...currentEvent.participants, participant],
             });
           } else {
             setCurrentEvent({
               ...currentEvent,
-              participants: [participant as Participant],
+              participants: [participant],
             });
+          }
+
+          if (version === 'v2') {
+            showToast({
+              message: t.joinedGoing(t.going[pickerMode(participant.travelMode).ui]),
+            });
+            setSelectedParticipantId(participant.id);
           }
 
           // Track participant self-join
@@ -396,7 +439,7 @@ export function ParticipantSection() {
           title={isPublished ? t.addDisabled : undefined}
         >
           <Plus className="w-4 h-4" />
-          {t.addParticipant}
+          {version === 'v2' ? t.addPerson : t.addParticipant}
         </button>
       )}
 
@@ -414,7 +457,7 @@ export function ParticipantSection() {
           title={isPublished ? t.joinDisabled : undefined}
         >
           <UserPlus className="w-4 h-4" />
-          {t.joinEvent}
+          {version === 'v2' ? t.joinPlan : t.joinEvent}
         </button>
       )}
 
@@ -430,6 +473,23 @@ export function ParticipantSection() {
               notice={lastAddedName ? t.added(lastAddedName) : null}
               cancelLabel={lastAddedName ? t.done : t.cancel}
               mode={editingParticipant ? 'edit' : 'add'}
+              transport={
+                version === 'v2' && !editingParticipant
+                  ? {
+                      kind: isOrganizerMode ? 'add' : 'join',
+                      eventTitle: currentEvent?.title ?? '',
+                    }
+                  : undefined
+              }
+              leading={
+                version === 'v2' && !editingParticipant && !isOrganizerMode && !isPublished ? (
+                  <ClaimList
+                    people={currentEvent?.participants.filter((p) => p.claimable) ?? []}
+                    hostName={currentEvent?.participants.find((p) => p.isOrganizer)?.name ?? ''}
+                    onClaimed={handleCancelForm}
+                  />
+                ) : undefined
+              }
               initialData={
                 editingParticipant
                   ? {
@@ -466,37 +526,56 @@ export function ParticipantSection() {
 
       {/* Participant List */}
       {participantCount > 0 && (
-        <div className="space-y-3 overflow-visible">
-          {currentEvent?.participants?.map((participant) => (
-            <ParticipantPill
-              key={participant.id}
-              participant={participant}
-              travelTime={getTravelTime(participant.id)}
-              onClick={() => {
-                // Toggle selection - if already selected, deselect; otherwise select
-                if (selectedParticipantId === participant.id) {
-                  setSelectedParticipantId(null);
-                } else {
-                  setSelectedParticipantId(participant.id);
+        <div className={version === 'v2' ? 'grid gap-0.5' : 'space-y-3 overflow-visible'}>
+          {currentEvent?.participants?.map((participant) =>
+            version === 'v2' ? (
+              <PersonRow
+                key={participant.id}
+                person={participant}
+                onEdit={() => handleEditParticipant(participant)}
+                onRemove={() => handleDeleteParticipant(participant.id)}
+                onAddLocation={
+                  participant.id === myParticipantId && iNeedLocation
+                    ? () => {
+                        handleCancelForm();
+                        setTimeout(focusMyLocationPrompt, 50);
+                      }
+                    : undefined
                 }
-              }}
-              isYou={participant.id === myParticipantId}
-              // Organizer can edit/delete anyone, a participant only themselves (leave).
-              // Disabled when event is published
-              onEdit={canManage(participant) ? () => handleEditParticipant(participant) : undefined}
-              onAddLocation={
-                participant.id === myParticipantId && iNeedLocation
-                  ? () => {
-                      handleCancelForm();
-                      setTimeout(focusMyLocationPrompt, 50);
-                    }
-                  : undefined
-              }
-              onDelete={
-                canManage(participant) ? () => handleDeleteParticipant(participant.id) : undefined
-              }
-            />
-          ))}
+              />
+            ) : (
+              <ParticipantPill
+                key={participant.id}
+                participant={participant}
+                travelTime={getTravelTime(participant.id)}
+                onClick={() => {
+                  // Toggle selection - if already selected, deselect; otherwise select
+                  if (selectedParticipantId === participant.id) {
+                    setSelectedParticipantId(null);
+                  } else {
+                    setSelectedParticipantId(participant.id);
+                  }
+                }}
+                isYou={participant.id === myParticipantId}
+                // Organizer can edit/delete anyone, a participant only themselves (leave).
+                // Disabled when event is published
+                onEdit={
+                  canManage(participant) ? () => handleEditParticipant(participant) : undefined
+                }
+                onAddLocation={
+                  participant.id === myParticipantId && iNeedLocation
+                    ? () => {
+                        handleCancelForm();
+                        setTimeout(focusMyLocationPrompt, 50);
+                      }
+                    : undefined
+                }
+                onDelete={
+                  canManage(participant) ? () => handleDeleteParticipant(participant.id) : undefined
+                }
+              />
+            )
+          )}
         </div>
       )}
 

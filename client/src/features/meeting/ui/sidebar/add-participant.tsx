@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Dices, UserPlus, X, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { generateRandomName } from '@/features/meeting/lib/name-generator';
@@ -8,6 +8,8 @@ import { LocationField } from '@/shared/ui/location-field';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
+import type { TravelMode } from '@/shared/types/map';
+import { ModeSegment } from './mode-segment';
 
 const messages = defineMessages({
   en: {
@@ -27,6 +29,24 @@ const messages = defineMessages({
     adding: 'Adding...',
     saving: 'Saving...',
     saveChanges: 'Save Changes',
+    transport: {
+      join: {
+        title: (event: string) => `Join ${event}`,
+        namePlaceholder: 'Your name',
+        from: 'Where are you coming from?',
+        how: () => 'How are you getting there?',
+        note: 'Only you can change this later.',
+        submit: () => 'Join plan',
+      },
+      add: {
+        title: () => 'Add a person',
+        namePlaceholder: 'Mom, Alex…',
+        from: 'Where are they coming from?',
+        how: (name: string) => `How is ${name || 'this person'} getting there?`,
+        note: 'You can change this for them any time.',
+        submit: (name: string) => `Add ${name || 'person'}`,
+      },
+    },
   },
   zh: {
     cancel: '取消',
@@ -45,6 +65,24 @@ const messages = defineMessages({
     adding: '添加中…',
     saving: '保存中…',
     saveChanges: '保存修改',
+    transport: {
+      join: {
+        title: (event: string) => `加入“${event}”`,
+        namePlaceholder: '你的名字',
+        from: '你从哪里出发？',
+        how: () => '你怎么过去？',
+        note: '之后只有你能修改。',
+        submit: () => '加入计划',
+      },
+      add: {
+        title: () => '添加一个人',
+        namePlaceholder: '妈妈、小明…',
+        from: 'TA 从哪里出发？',
+        how: (name: string) => `${name || 'TA'}怎么过去？`,
+        note: '之后你可以随时替 TA 修改。',
+        submit: (name: string) => `添加${name || '这个人'}`,
+      },
+    },
   },
 });
 
@@ -58,12 +96,17 @@ interface AddParticipantProps {
   cancelLabel?: string;
   /** Confirmation for the previous submission, shown above the fields */
   notice?: string | null;
+  /** v2 only: the new person's own travel mode is part of the form, worded for who is filling it */
+  transport?: { kind: 'join' | 'add'; eventTitle: string };
+  /** Shown above the fields */
+  leading?: ReactNode;
 }
 
 export interface ParticipantFormData {
   name: string;
   address: string;
   placeId: string;
+  travelMode?: TravelMode;
 }
 
 export function AddParticipant({
@@ -74,6 +117,8 @@ export function AddParticipant({
   initialData,
   cancelLabel,
   notice,
+  transport,
+  leading,
 }: AddParticipantProps) {
   const { user } = useAuthStore();
   const t = useMessages(messages);
@@ -84,7 +129,9 @@ export function AddParticipant({
   const [name, setName] = useState(initialData?.name || '');
   const [address, setAddress] = useState(initialData?.address || '');
   const [placeId, setPlaceId] = useState(initialData?.placeId || '');
+  const [travelMode, setTravelMode] = useState<TravelMode>('driving');
   const [errors, setErrors] = useState<{ name?: string; address?: string }>({});
+  const words = transport && t.transport[transport.kind];
 
   // An address that was already saved has been geocoded, so editing only the name
   // must not force the user to re-pick it from the dropdown.
@@ -149,6 +196,7 @@ export function AddParticipant({
       name: name.trim(),
       address: address.trim(),
       placeId,
+      ...(transport && { travelMode }),
     });
   };
 
@@ -158,7 +206,11 @@ export function AddParticipant({
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
           <UserPlus className="w-4 h-4" />
-          {mode === 'add' ? t.addTitle : t.editTitle}
+          {words && transport
+            ? words.title(transport.eventTitle)
+            : mode === 'add'
+              ? t.addTitle
+              : t.editTitle}
         </h3>
         {onCancel && (
           <button
@@ -182,6 +234,8 @@ export function AddParticipant({
         </p>
       )}
 
+      {leading}
+
       {/* Name Input with Dice Randomizer */}
       <div className="space-y-1.5">
         <label htmlFor="participant-name" className="block text-sm font-medium text-foreground">
@@ -196,7 +250,7 @@ export function AddParticipant({
               setName(e.target.value);
               clearError('name');
             }}
-            placeholder={t.namePlaceholder}
+            placeholder={words?.namePlaceholder ?? t.namePlaceholder}
             disabled={isSubmitting}
             autoFocus
             autoComplete="off"
@@ -246,7 +300,7 @@ export function AddParticipant({
             htmlFor="participant-address"
             className="block text-sm font-medium text-foreground"
           >
-            {t.startingLocation}
+            {words?.from ?? t.startingLocation}
           </label>
           {hasDefaultAddress && (
             <button
@@ -281,6 +335,14 @@ export function AddParticipant({
         )}
       </div>
 
+      {words && (
+        <div className="space-y-1.5">
+          <p className="block text-sm font-medium text-foreground">{words.how(name.trim())}</p>
+          <ModeSegment value={travelMode} onChange={setTravelMode} showLabel />
+          <p className="text-xs text-muted-foreground">{words.note}</p>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex items-center gap-3 pt-2">
         <button
@@ -300,6 +362,8 @@ export function AddParticipant({
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               {mode === 'add' ? t.adding : t.saving}
             </span>
+          ) : words ? (
+            words.submit(name.trim())
           ) : mode === 'add' ? (
             t.addTitle
           ) : (
