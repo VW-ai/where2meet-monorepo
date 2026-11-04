@@ -31,6 +31,9 @@
   occasion: team-meeting
 - phrase: where to hold a team meeting
   occasion: team-meeting
+- phrase: team meeting venue
+  occasion: team-meeting
+  note: A room or place to book for a team meeting, as searched with a neighborhood
 - phrase: group dinner
   occasion: group-dinner
 - phrase: restaurant for a big group
