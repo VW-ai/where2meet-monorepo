@@ -582,6 +582,7 @@ export function AmapMapArea() {
         participantId: string;
         distance: string;
         duration: string;
+        durationSeconds: number;
         polyline: string;
       }> = [];
 
@@ -609,6 +610,7 @@ export function AmapMapArea() {
           participantId: route.participantId,
           distance: route.distance.text,
           duration: route.duration.text,
+          durationSeconds: route.duration.value,
           polyline: route.polyline,
         });
       });

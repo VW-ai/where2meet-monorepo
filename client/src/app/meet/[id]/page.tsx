@@ -21,11 +21,13 @@ import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useTutorialStore } from '@/features/tutorial/model/tutorial-store';
 import { eventClient } from '@/features/meeting/api';
 import { useEventStream } from '@/features/meeting/hooks/useEventStream';
+import { useUiVersionSwitch } from '@/features/meeting/hooks/useUiVersionSwitch';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { LANGUAGE_TAGS, LocaleProvider, localeFor } from '@/shared/lib/i18n';
 
 export default function MeetPage() {
+  useUiVersionSwitch();
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const params = useParams();
   const eventId = params.id as string;
