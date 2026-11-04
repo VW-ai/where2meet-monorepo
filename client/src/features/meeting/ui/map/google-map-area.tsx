@@ -13,6 +13,7 @@ import { directionsClient } from '@/features/meeting/api';
 import { MapBlurOverlay } from './map-blur-overlay';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { useLocale } from '@/shared/lib/i18n';
+import { participantPositionsKey } from '@/features/meeting/lib/participant-positions';
 import { pathUpTo } from '@/features/meeting/lib/path-up-to';
 import { formatTripTime } from '@/features/meeting/lib/route-summary';
 import { useUiVersion, useUiVersionStore } from '@/features/meeting/model/ui-version-store';
@@ -141,6 +142,9 @@ export function GoogleMapArea() {
     participantIds: new Set(),
   });
   const routeRequestRef = useRef(0);
+  const positionsKey = participantPositionsKey(currentEvent?.participants ?? []);
+  const pannedPositionsRef = useRef<string | null>(null);
+  const fetchedRoutesRef = useRef<string | null>(null);
   const [markerDrops] = useState(() => ({
     participant: createMarkerDrops(),
     venue: createMarkerDrops(),
@@ -430,8 +434,12 @@ export function GoogleMapArea() {
       });
     }
 
+    // Publishing refreshes the event without moving anyone, and must not pull the map off the venue
+    const positionsMoved = pannedPositionsRef.current !== positionsKey;
+    pannedPositionsRef.current = positionsKey;
+
     // Smoothly pan to MEC center with offset for sidebar
-    if (map) {
+    if (map && (positionsMoved || !isV2())) {
       // Get or set zoom level
       const targetZoom = validParticipants.length === 1 ? 14 : 13;
       const currentZoom = map.getZoom() || targetZoom;
@@ -449,7 +457,14 @@ export function GoogleMapArea() {
         }, 100);
       }
     }
-  }, [currentEvent?.participants, map, setMecCircle, setSearchCircle, setSearchRadius]);
+  }, [
+    currentEvent?.participants,
+    positionsKey,
+    map,
+    setMecCircle,
+    setSearchCircle,
+    setSearchRadius,
+  ]);
 
   // Update participant markers
   useEffect(() => {
@@ -764,6 +779,11 @@ export function GoogleMapArea() {
       return;
     }
 
+    // A refreshed event with the same people in the same places has the same trips
+    const routeInputs = `${selectedVenue.id}|${travelMode}|${positionsKey}`;
+    if (isV2() && fetchedRoutesRef.current === routeInputs) return;
+    fetchedRoutesRef.current = routeInputs;
+
     setCalculatingRoutes(true);
     const request = ++routeRequestRef.current;
     const isCurrentRequest = () => !isV2() || request === routeRequestRef.current;
@@ -836,6 +856,7 @@ export function GoogleMapArea() {
       if (isV2()) revealRoutes(`${selectedVenue.id}|${travelMode}`);
     } catch (error) {
       console.error('[Map] Error calculating routes:', error);
+      fetchedRoutesRef.current = null;
       clearRoutes();
     } finally {
       if (isCurrentRequest()) setCalculatingRoutes(false);
@@ -845,6 +866,7 @@ export function GoogleMapArea() {
     selectedVenue,
     currentEvent,
     travelMode,
+    positionsKey,
     refetchOnSelection,
     organizerToken,
     participantToken,
@@ -864,6 +886,7 @@ export function GoogleMapArea() {
       clearRouteDrawings();
       clearRoutes();
       revealedRoutesRef.current = { key: null, participantIds: new Set() };
+      fetchedRoutesRef.current = null;
       if (isV2()) {
         // An answer still on its way is for a venue that's no longer selected
         routeRequestRef.current++;
