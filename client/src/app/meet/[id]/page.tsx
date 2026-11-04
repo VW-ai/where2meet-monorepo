@@ -13,6 +13,7 @@ import { MapArea } from '@/features/meeting/ui/map';
 import { VersionedVenuePanel } from '@/features/meeting/ui/sidebar/versioned-venue-panel';
 import { ParticipantStats } from '@/features/meeting/ui/sidebar/participant-stats';
 import { ModalProvider } from '@/features/meeting/ui/modals';
+import { ToastHost } from '@/features/meeting/ui/toast-host';
 import { TutorialProvider } from '@/features/tutorial/ui';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
@@ -66,11 +67,8 @@ export default function MeetPage() {
 
   // Set participant ID for voting (organizer's participant ID takes precedence)
   useEffect(() => {
-    const participantId = organizerParticipantId || currentParticipantId;
-    if (participantId) {
-      console.log('[MeetPage] Setting myParticipantId for voting:', participantId);
-      setMyParticipantId(participantId);
-    }
+    // Null too: undoing a claim makes the viewer nobody again
+    setMyParticipantId(organizerParticipantId || currentParticipantId || null);
   }, [organizerParticipantId, currentParticipantId, setMyParticipantId]);
 
   // Restore user identity using /me endpoint after page refresh
@@ -269,6 +267,7 @@ export default function MeetPage() {
 
           {/* Modals */}
           <ModalProvider />
+          <ToastHost />
         </div>
       </TutorialProvider>
     </LocaleProvider>

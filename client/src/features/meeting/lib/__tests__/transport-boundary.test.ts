@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseEventParticipants, parseParticipant } from '@/entities/participant/parse';
-import { parseDirections } from '@/lib/api/directions';
+import { directionsApi, parseDirections } from '@/lib/api/directions';
+import { participantsApi } from '@/lib/api/participants';
 
 describe('parseParticipant', () => {
   it('fills what an older server leaves out', () => {
@@ -46,7 +47,13 @@ describe('parseDirections', () => {
       travelMode: null,
       routes: [
         { ...real, travelMode: 'walking' },
-        { participantId: 'b', distance: null, duration: null, polyline: null, travelMode: 'walking' },
+        {
+          participantId: 'b',
+          distance: null,
+          duration: null,
+          polyline: null,
+          travelMode: 'walking',
+        },
       ],
     });
     expect(routes.map((route) => route.participantId)).toEqual(['a']);
@@ -62,5 +69,36 @@ describe('parseDirections', () => {
     expect(modeOf('transit', 'walking')).toBe('walking');
     expect(modeOf('transit', undefined)).toBe('transit');
     expect(modeOf(undefined, undefined)).toBe('driving');
+  });
+});
+
+describe('requests', () => {
+  const stubFetch = (body: unknown) => {
+    const fetch = vi.fn(async (..._: unknown[]) => new Response(JSON.stringify(body)));
+    vi.stubGlobal('fetch', fetch);
+    return fetch;
+  };
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('claims with no body and no Content-Type, which the server rejects when empty', async () => {
+    const fetch = stubFetch({ id: 'a', participantToken: 'pt_x' });
+    const claimed = await participantsApi.claim('e', 'a');
+    const init = fetch.mock.calls[0][1] as RequestInit;
+    expect(init.body).toBeUndefined();
+    expect(init.headers).not.toHaveProperty('Content-Type');
+    expect(claimed).toMatchObject({ participantToken: 'pt_x', claimable: false });
+  });
+
+  it.each([
+    [{}, ''],
+    [{ participantId: 'a' }, '?participantId=a'],
+    [{ participantId: 'a', travelMode: 'transit' as const }, '?travelMode=transit&participantId=a'],
+  ])('asks for directions with %j', async (options, query) => {
+    const fetch = stubFetch({ venueId: 'v', travelMode: null, routes: [] });
+    await directionsApi.getDirections('e', 'v', 'token', options);
+    expect(String(fetch.mock.calls[0][0])).toMatch(
+      new RegExp(`/api/events/e/venues/v/directions${query.replace('?', '\\?')}$`)
+    );
   });
 });

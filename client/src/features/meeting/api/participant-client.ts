@@ -10,4 +10,6 @@ export const participantClient = {
   add: participantsApi.add,
   update: participantsApi.update,
   remove: participantsApi.remove,
+  claim: participantsApi.claim,
+  unclaim: participantsApi.unclaim,
 };
