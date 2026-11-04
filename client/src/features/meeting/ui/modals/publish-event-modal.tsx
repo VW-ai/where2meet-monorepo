@@ -6,30 +6,58 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { publishErrorMessage, publishVenue } from '@/features/meeting/model/publish-venue';
+import { useUiVersion, type UiVersion } from '@/features/meeting/model/ui-version-store';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
 
 const messages = defineMessages({
   en: {
-    published: 'Event Published!',
-    notified: 'Participants have been notified of the final venue.',
-    title: 'Publish Event',
+    copy: {
+      classic: {
+        published: 'Event Published!',
+        notified: 'Participants have been notified of the final venue.',
+        title: 'Publish Event',
+        description:
+          'Publishing this event will finalize the meeting location and notify all participants.',
+        noVenue: 'No venue selected. Select a venue before publishing to include a location.',
+        publishing: 'Publishing...',
+      },
+      v2: {
+        published: "It's set!",
+        notified: 'Everyone in the plan can see the spot now.',
+        title: 'Pick the spot',
+        description: "Everyone in the plan sees it right away, and new people can't join.",
+        noVenue: 'No spot selected. Open a spot first, then pick it.',
+        publishing: 'Picking...',
+      },
+    } as Record<
+      UiVersion,
+      Record<'published' | 'notified' | 'title' | 'description' | 'noVenue' | 'publishing', string>
+    >,
     close: 'Close',
-    description:
-      'Publishing this event will finalize the meeting location and notify all participants.',
-    noVenue: 'No venue selected. Select a venue before publishing to include a location.',
     cancel: 'Cancel',
-    publishing: 'Publishing...',
     shareInvitation: 'Share the invitation',
   },
   zh: {
-    published: '地点已确定！',
-    notified: '已通知所有参与者最终地点。',
-    title: '确定地点',
+    copy: {
+      classic: {
+        published: '地点已确定！',
+        notified: '已通知所有参与者最终地点。',
+        title: '确定地点',
+        description: '确定后，见面地点将定下来，并通知所有参与者。',
+        noVenue: '还没有选择地点。请先选一个地点再确定。',
+        publishing: '正在确定…',
+      },
+      v2: {
+        published: '已定！',
+        notified: '已通知所有参与者最终地点。',
+        title: '就定这里',
+        description: '确定后，见面地点将定下来，并通知所有参与者。',
+        noVenue: '还没有选择地点。请先选一个地点再确定。',
+        publishing: '正在确定…',
+      },
+    },
     close: '关闭',
-    description: '确定后，见面地点将定下来，并通知所有参与者。',
-    noVenue: '还没有选择地点。请先选一个地点再确定。',
     cancel: '取消',
-    publishing: '正在确定…',
     shareInvitation: '分享邀请',
   },
 });
@@ -37,6 +65,7 @@ const messages = defineMessages({
 export function PublishEventModal() {
   const t = useMessages(messages);
   const locale = useLocale();
+  const copy = t.copy[useUiVersion()];
   const { isPublishModalOpen, closePublishModal, openShareModal } = useUIStore();
   const { organizerToken } = useAuthStore();
   const { currentEvent, selectedVenue } = useMeetingStore();
@@ -107,8 +136,8 @@ export function PublishEventModal() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-mint-100 flex items-center justify-center">
               <CheckCircle className="w-8 h-8 text-mint-600" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">{t.published}</h2>
-            <p className="text-sm text-muted-foreground">{t.notified}</p>
+            <h2 className="text-xl font-semibold text-foreground mb-2">{copy.published}</h2>
+            <p className="text-sm text-muted-foreground">{copy.notified}</p>
             <button
               onClick={() => {
                 if (autoClose.current) clearTimeout(autoClose.current);
@@ -124,7 +153,7 @@ export function PublishEventModal() {
           <>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-foreground">{t.title}</h2>
+              <h2 className="text-xl font-semibold text-foreground">{copy.title}</h2>
               <button
                 onClick={closePublishModal}
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -136,7 +165,7 @@ export function PublishEventModal() {
 
             {/* Content */}
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">{t.description}</p>
+              <p className="text-sm text-muted-foreground">{copy.description}</p>
 
               {error && (
                 <div className="p-4 bg-red-50 rounded-xl border border-red-200">
@@ -161,7 +190,7 @@ export function PublishEventModal() {
                 </div>
               ) : (
                 <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                  <p className="text-sm text-yellow-700">{t.noVenue}</p>
+                  <p className="text-sm text-yellow-700">{copy.noVenue}</p>
                 </div>
               )}
             </div>
@@ -180,7 +209,7 @@ export function PublishEventModal() {
                 disabled={isPublishing || !selectedVenue}
                 className="flex-1 px-4 py-3 text-sm font-medium bg-mint-500 text-white rounded-full hover:bg-mint-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                {isPublishing ? t.publishing : t.title}
+                {isPublishing ? copy.publishing : copy.title}
               </button>
             </div>
           </>

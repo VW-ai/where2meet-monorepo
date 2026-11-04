@@ -5,6 +5,7 @@ import { Settings, Edit2, CheckCircle, XCircle, Trash2, Loader2 } from 'lucide-r
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
+import { useUiVersion, type UiVersion } from '@/features/meeting/model/ui-version-store';
 import { unpublishVenue } from '@/features/meeting/model/publish-venue';
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
@@ -13,17 +14,27 @@ const messages = defineMessages({
   en: {
     settings: 'Settings',
     edit: 'Edit Event',
-    unpublishing: 'Unpublishing...',
-    unpublish: 'Unpublish Event',
-    publish: 'Publish Event',
+    publishing: {
+      classic: {
+        unpublishing: 'Unpublishing...',
+        unpublish: 'Unpublish Event',
+        publish: 'Publish Event',
+      },
+      v2: {
+        unpublishing: 'Changing...',
+        unpublish: 'Change the spot',
+        publish: 'Pick the spot',
+      },
+    } as Record<UiVersion, { unpublishing: string; unpublish: string; publish: string }>,
     delete: 'Delete Event',
   },
   zh: {
     settings: '设置',
     edit: '编辑见面',
-    unpublishing: '正在撤销…',
-    unpublish: '撤销确定地点',
-    publish: '确定地点',
+    publishing: {
+      classic: { unpublishing: '正在撤销…', unpublish: '撤销确定地点', publish: '确定地点' },
+      v2: { unpublishing: '正在更换…', unpublish: '更换地点', publish: '就定这里' },
+    },
     delete: '删除见面',
   },
 });
@@ -34,6 +45,7 @@ interface SettingsDropdownProps {
 
 export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
   const t = useMessages(messages);
+  const publishing = t.publishing[useUiVersion()];
   const [isOpen, setIsOpen] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -134,7 +146,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
               ) : (
                 <XCircle className="w-4 h-4 text-orange-500" />
               )}
-              <span>{isUnpublishing ? t.unpublishing : t.unpublish}</span>
+              <span>{isUnpublishing ? publishing.unpublishing : publishing.unpublish}</span>
             </button>
           ) : (
             <button
@@ -142,7 +154,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors border-t border-border"
             >
               <CheckCircle className="w-4 h-4 text-mint-500" />
-              <span>{t.publish}</span>
+              <span>{publishing.publish}</span>
             </button>
           )}
 
