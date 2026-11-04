@@ -285,7 +285,9 @@ export class ParticipantService {
     const participant = await this.participantRepo.claim(participantId, eventId, hash);
     if (!participant) {
       const exists = await this.participantRepo.belongsToEvent(participantId, eventId);
-      throw exists ? new ParticipantNotClaimableError() : new ParticipantNotFoundError(participantId);
+      throw exists
+        ? new ParticipantNotClaimableError()
+        : new ParticipantNotFoundError(participantId);
     }
 
     logger.info({ eventId, participantId }, "Participant claimed");
