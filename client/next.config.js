@@ -119,6 +119,14 @@ const nextConfig = {
   // Only the build reads the blog photos, to prerender the force-static cover.png routes, so no
   // server function needs the JPEGs that tracing public/ would bundle into each one.
   outputFileTracingExcludes: { '/**': ['public/blog/images/**'] },
+  // The invitation image reads its fonts from disk at request time, where the trace can't see them.
+  outputFileTracingIncludes: {
+    '/meet/*/invite.png': [
+      './node_modules/@fontsource/inter/files/inter-latin-{400,600,700,800}-normal.woff',
+      './node_modules/@fontsource/anton/files/anton-latin-400-normal.woff',
+      './node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff',
+    ],
+  },
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: false,
