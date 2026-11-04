@@ -8,6 +8,7 @@
  * @module routes/participants
  */
 
+import type { Participant } from "@prisma/client";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createParticipantService } from "../services/participant.js";
 import { createVoteService } from "../services/vote.js";
@@ -27,6 +28,7 @@ import { toVoteStatisticsPayload } from "../mappers/vote.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { createVerifyToken, createVerifyParticipantAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
+import { validateEventId, validateParticipantId } from "../utils/auth.js";
 import type {
   ParticipantAddedPayload,
   ParticipantUpdatedPayload,
@@ -51,14 +53,39 @@ interface ParticipantParams extends EventParams {
  * - POST /api/events/:id/participants - Add a participant
  * - PATCH /api/events/:id/participants/:participantId - Update a participant
  * - DELETE /api/events/:id/participants/:participantId - Remove a participant
+ * - POST /api/events/:id/participants/:participantId/claim - Claim an added row
+ * - DELETE /api/events/:id/participants/:participantId/claim - Undo a claim
  *
  * Authentication:
  * - POST: Optional token (no auth = self-registration with new participantToken)
  * - PATCH/DELETE: Organizer can access any participant, non-organizer only self
+ * - Claim: No auth to claim, the row's own token to undo
  */
 export function participantRoutes(fastify: FastifyInstance): void {
   const participantService = createParticipantService(fastify.db);
   const voteService = createVoteService(fastify.db);
+
+  const broadcastParticipantUpdated = (eventId: string, participant: Participant): void => {
+    const payload: ParticipantUpdatedPayload = { participant: toPublicParticipant(participant) };
+    fastify.sse.broadcast({ eventId, type: "participant:updated", payload }).catch(() => {
+      /* SSE broadcast failure is non-critical */
+    });
+  };
+
+  const broadcastVoteStatistics = (eventId: string): void => {
+    voteService
+      .getVoteStatistics(eventId)
+      .then((stats) =>
+        fastify.sse.broadcast({
+          eventId,
+          type: "vote:statistics",
+          payload: toVoteStatisticsPayload(eventId, stats),
+        })
+      )
+      .catch(() => {
+        /* SSE broadcast failure is non-critical */
+      });
+  };
 
   /**
    * POST /api/events/:id/participants
@@ -159,19 +186,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
       );
       const response = toParticipantResponse(participant);
 
-      // Broadcast SSE event (non-blocking)
-      const ssePayload: ParticipantUpdatedPayload = {
-        participant: toPublicParticipant(participant),
-      };
-      fastify.sse
-        .broadcast({
-          eventId: request.params.id,
-          type: "participant:updated",
-          payload: ssePayload,
-        })
-        .catch(() => {
-          /* SSE broadcast failure is non-critical */
-        });
+      broadcastParticipantUpdated(request.params.id, participant);
 
       return reply.send(response);
     }
@@ -211,21 +226,61 @@ export function participantRoutes(fastify: FastifyInstance): void {
         });
 
       // The participant's votes went with them (cascade), so other tabs need a fresh snapshot.
-      const eventId = request.params.id;
-      voteService
-        .getVoteStatistics(eventId)
-        .then((stats) =>
-          fastify.sse.broadcast({
-            eventId,
-            type: "vote:statistics",
-            payload: toVoteStatisticsPayload(eventId, stats),
-          })
-        )
-        .catch(() => {
-          /* SSE broadcast failure is non-critical */
-        });
+      broadcastVoteStatistics(request.params.id);
 
       return reply.send(createDeleteSuccessResponse("Participant deleted successfully"));
+    }
+  );
+
+  /**
+   * POST /api/events/:id/participants/:participantId/claim
+   * Takes over a row the organizer added ("That's me") and returns a token for it.
+   *
+   * Authentication: None. Anyone with the event link can claim, by design.
+   *
+   * Fails if event is published, or with 409 if the row is already claimed or is
+   * the organizer's.
+   */
+  fastify.post<{ Params: ParticipantParams }>(
+    "/api/events/:id/participants/:participantId/claim",
+    async (request: FastifyRequest<{ Params: ParticipantParams }>, reply: FastifyReply) => {
+      const { id: eventId, participantId } = request.params;
+      validateEventId(eventId);
+      validateParticipantId(participantId);
+
+      const { participant, participantToken } = await participantService.claimParticipant(
+        eventId,
+        participantId
+      );
+
+      broadcastParticipantUpdated(eventId, participant);
+
+      return reply.send(toCreateParticipantResponse(participant, participantToken));
+    }
+  );
+
+  /**
+   * DELETE /api/events/:id/participants/:participantId/claim
+   * Gives a row back: the token stops working, and the row's votes are removed.
+   *
+   * Authentication: That participant's own token. An organizer token for another
+   * row does not count, and the organizer's own row is refused.
+   *
+   * Fails if event is published.
+   */
+  fastify.delete<{ Params: ParticipantParams }>(
+    "/api/events/:id/participants/:participantId/claim",
+    {
+      preHandler: [createVerifyParticipantAccess({ selfOnly: true })],
+    },
+    async (request: FastifyRequest<{ Params: ParticipantParams }>, reply: FastifyReply) => {
+      const { id: eventId, participantId } = request.params;
+      const participant = await participantService.unclaimParticipant(eventId, participantId);
+
+      broadcastParticipantUpdated(eventId, participant);
+      broadcastVoteStatistics(eventId);
+
+      return reply.send(toParticipantResponse(participant));
     }
   );
 }

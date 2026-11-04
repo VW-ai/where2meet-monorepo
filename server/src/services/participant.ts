@@ -22,6 +22,7 @@ import {
   AddressNotFoundError as BusinessAddressNotFoundError,
   ExternalServiceError,
   ForbiddenError,
+  ParticipantNotClaimableError,
   ValidationError,
 } from "../types/errors.js";
 import { AddressNotFoundError, GeocodingApiError } from "../lib/maps.js";
@@ -262,6 +263,63 @@ export class ParticipantService {
     await this.participantRepo.delete(participantId);
 
     logger.info({ eventId, participantId }, "Participant deleted");
+  }
+
+  /**
+   * Claims a row the organizer added. Open to anyone with the event link, by design.
+   * @param eventId - Event ID
+   * @param participantId - Participant ID
+   * @returns Claimed participant and its new token
+   * @throws EventNotFoundError if event doesn't exist
+   * @throws EventAlreadyPublishedError if event is published
+   * @throws ParticipantNotFoundError if participant isn't in this event
+   * @throws ParticipantNotClaimableError if the row has a token holder or is the organizer's
+   */
+  async claimParticipant(
+    eventId: string,
+    participantId: string
+  ): Promise<Required<AddParticipantResult>> {
+    await this.ensureEventModifiable(eventId);
+
+    const { token, hash } = generateParticipantToken();
+    const participant = await this.participantRepo.claim(participantId, eventId, hash);
+    if (!participant) {
+      const exists = await this.participantRepo.belongsToEvent(participantId, eventId);
+      throw exists ? new ParticipantNotClaimableError() : new ParticipantNotFoundError(participantId);
+    }
+
+    logger.info({ eventId, participantId }, "Participant claimed");
+
+    return { participant, participantToken: token };
+  }
+
+  /**
+   * Undoes a claim. The holder's token stops working and their votes are removed,
+   * so a claimable row never carries votes.
+   * @param eventId - Event ID
+   * @param participantId - Participant ID, already verified as the caller's own row
+   * @returns Updated participant entity
+   * @throws EventNotFoundError if event doesn't exist
+   * @throws EventAlreadyPublishedError if event is published
+   * @throws ParticipantNotFoundError if participant isn't in this event
+   * @throws ForbiddenError if participant is the organizer
+   */
+  async unclaimParticipant(eventId: string, participantId: string): Promise<Participant> {
+    await this.ensureEventModifiable(eventId);
+
+    const participant = await this.participantRepo.findById(participantId);
+    if (participant?.eventId !== eventId) {
+      throw new ParticipantNotFoundError(participantId);
+    }
+    if (participant.isOrganizer) {
+      throw new ForbiddenError("The organizer cannot give up their own row");
+    }
+
+    const unclaimed = await this.participantRepo.unclaim(participantId);
+
+    logger.info({ eventId, participantId }, "Participant unclaimed");
+
+    return unclaimed;
   }
 
   /**

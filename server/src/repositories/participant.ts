@@ -7,6 +7,7 @@
 
 import type { PrismaClient, Participant, TravelMode } from "@prisma/client";
 import { createLogger } from "../lib/logger.js";
+import { CLAIMABLE_WHERE } from "../utils/claimable.js";
 
 const logger = createLogger("ParticipantRepository");
 
@@ -132,6 +133,38 @@ export class ParticipantRepository {
       where: { id },
       data: { name: data.name, travelMode: data.travelMode, ...data.startingPoint },
     });
+  }
+
+  /**
+   * Hands a claimable row to a new token holder. The condition lives in one
+   * UPDATE so concurrent claims produce exactly one winner.
+   * @param id - Participant UUID
+   * @param eventId - Event the row must belong to
+   * @param tokenHash - Hash of the winner's new token
+   * @returns The claimed participant, or null if no claimable row matched
+   */
+  async claim(id: string, eventId: string, tokenHash: string): Promise<Participant | null> {
+    const [claimed] = await this.db.participant.updateManyAndReturn({
+      where: { id, eventId, ...CLAIMABLE_WHERE },
+      data: { tokenHash },
+    });
+    return claimed ?? null;
+  }
+
+  /**
+   * Makes a row claimable again and removes what its holder did with it.
+   * Clearing the account link matters because UserEvent.participantId is unique:
+   * a stale link would stop the next claimer from saving the event to their account.
+   * @param id - Participant UUID
+   * @returns Updated participant
+   */
+  async unclaim(id: string): Promise<Participant> {
+    const [, , participant] = await this.db.$transaction([
+      this.db.vote.deleteMany({ where: { participantId: id } }),
+      this.db.userEvent.updateMany({ where: { participantId: id }, data: { participantId: null } }),
+      this.db.participant.update({ where: { id }, data: { tokenHash: null } }),
+    ]);
+    return participant;
   }
 
   /**
