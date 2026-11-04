@@ -149,6 +149,7 @@ describe("ParticipantService", () => {
               color: "coral",
               tokenHash: undefined,
               isOrganizer: false,
+              travelMode: undefined,
             },
           },
         ],

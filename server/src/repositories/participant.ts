@@ -5,7 +5,7 @@
  * @module repositories/participant
  */
 
-import type { PrismaClient, Participant } from "@prisma/client";
+import type { PrismaClient, Participant, TravelMode } from "@prisma/client";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("ParticipantRepository");
@@ -25,6 +25,7 @@ export interface CreateParticipantData {
   color: string;
   tokenHash?: string;
   isOrganizer?: boolean;
+  travelMode?: TravelMode;
 }
 
 interface StartingPoint {
@@ -36,6 +37,7 @@ interface StartingPoint {
 
 export interface UpdateParticipantData {
   name?: string;
+  travelMode?: TravelMode;
   startingPoint?: StartingPoint;
 }
 
@@ -64,6 +66,7 @@ export class ParticipantRepository {
         color: data.color,
         tokenHash: data.tokenHash,
         isOrganizer: data.isOrganizer ?? false,
+        travelMode: data.travelMode,
       },
     });
   }
@@ -127,7 +130,7 @@ export class ParticipantRepository {
 
     return this.db.participant.update({
       where: { id },
-      data: { name: data.name, ...data.startingPoint },
+      data: { name: data.name, travelMode: data.travelMode, ...data.startingPoint },
     });
   }
 

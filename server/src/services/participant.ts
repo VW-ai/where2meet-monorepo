@@ -151,6 +151,7 @@ export class ParticipantService {
       lng,
       color,
       tokenHash,
+      travelMode: input.travelMode,
     });
 
     logger.info(
@@ -198,7 +199,7 @@ export class ParticipantService {
 
     const newAddress =
       input.address !== undefined && input.address !== current.address ? input.address : undefined;
-    const updateData: UpdateParticipantData = { name: input.name };
+    const updateData: UpdateParticipantData = { name: input.name, travelMode: input.travelMode };
     if (newAddress !== undefined) {
       const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(
         mapProvider,

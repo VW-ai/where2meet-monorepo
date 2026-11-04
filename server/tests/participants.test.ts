@@ -697,4 +697,62 @@ describe("Participant Endpoints", () => {
       });
     });
   });
+
+  describe("travel mode", () => {
+    const join = (payload: Record<string, unknown>, token?: string) =>
+      server.inject({
+        method: "POST",
+        url: `/api/events/${testEventId}/participants`,
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+        payload: { name: "Mom", address: "1 Main St", ...payload },
+      });
+
+    it("defaults to driving", async () => {
+      const response = await join({});
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().travelMode).toBe("driving");
+    });
+
+    it("saves the mode sent on create", async () => {
+      const created = await join({ travelMode: "transit" }, testParticipantToken);
+
+      expect(created.statusCode).toBe(201);
+      expect(created.json().travelMode).toBe("transit");
+
+      const event = await server.inject({ method: "GET", url: `/api/events/${testEventId}` });
+      const row = event
+        .json()
+        .participants.find((p: { id: string }) => p.id === created.json().id);
+      expect(row.travelMode).toBe("transit");
+    });
+
+    it("rejects an unknown mode", async () => {
+      const response = await join({ travelMode: "flying" });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("marks only rows the organizer added as claimable and never exposes a token hash", async () => {
+      const added = await join({ name: "Added" }, testParticipantToken);
+      const joined = await join({ name: "Joined" });
+
+      expect(added.json().claimable).toBe(true);
+      expect(joined.json().claimable).toBe(false);
+
+      const event = await server.inject({ method: "GET", url: `/api/events/${testEventId}` });
+      const claimableByName = Object.fromEntries(
+        event
+          .json()
+          .participants.map((p: { name: string; claimable: boolean }) => [p.name, p.claimable])
+      );
+      expect(claimableByName).toMatchObject({ Added: true, Joined: false });
+      expect(Object.values(claimableByName)).toHaveLength(3);
+      expect(event.json().participants.find((p: { isOrganizer: boolean }) => p.isOrganizer))
+        .toHaveProperty("claimable", false);
+
+      const bodies = added.body + joined.body + event.body;
+      expect(bodies).not.toMatch(/tokenHash|token_hash/);
+    });
+  });
 });
