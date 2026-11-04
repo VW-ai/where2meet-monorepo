@@ -125,7 +125,8 @@ export function participantRoutes(fastify: FastifyInstance): void {
    * Updates a participant's details.
    *
    * Authentication:
-   * - Organizer (isOrganizer=true): Can update any participant
+   * - Organizer (isOrganizer=true): Can update any participant, except the
+   *   travelMode of a row that holds its own token
    * - Non-organizer: Can only update self
    *
    * Fails if event is published.
@@ -145,10 +146,16 @@ export function participantRoutes(fastify: FastifyInstance): void {
         throw bodyResult.error;
       }
 
+      const actor = request.participantAuth;
+      if (!actor) {
+        throw new ValidationError("Authentication required");
+      }
+
       const participant = await participantService.updateParticipant(
         request.params.id,
         request.params.participantId,
-        bodyResult.data
+        bodyResult.data,
+        actor
       );
       const response = toParticipantResponse(participant);
 

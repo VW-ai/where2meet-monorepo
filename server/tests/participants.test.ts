@@ -754,5 +754,78 @@ describe("Participant Endpoints", () => {
       const bodies = added.body + joined.body + event.body;
       expect(bodies).not.toMatch(/tokenHash|token_hash/);
     });
+
+    describe("who can set it", () => {
+      let addedId: string;
+      let joinedId: string;
+      let joinedToken: string;
+      let organizerId: string;
+
+      const patch = (id: string, token: string, payload: Record<string, unknown>) =>
+        server.inject({
+          method: "PATCH",
+          url: `/api/events/${testEventId}/participants/${id}`,
+          headers: { authorization: `Bearer ${token}` },
+          payload,
+        });
+
+      beforeEach(async () => {
+        addedId = (await join({ name: "Added" }, testParticipantToken)).json().id;
+        const joined = (await join({ name: "Joined" })).json();
+        joinedId = joined.id;
+        joinedToken = joined.participantToken;
+        const event = await server.inject({ method: "GET", url: `/api/events/${testEventId}` });
+        organizerId = event
+          .json()
+          .participants.find((p: { isOrganizer: boolean }) => p.isOrganizer).id;
+      });
+
+      it("lets the organizer set the mode on a row they added", async () => {
+        const response = await patch(addedId, testParticipantToken, { travelMode: "bicycling" });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json().travelMode).toBe("bicycling");
+      });
+
+      it("lets the organizer set their own mode", async () => {
+        const response = await patch(organizerId, testParticipantToken, { travelMode: "walking" });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json().travelMode).toBe("walking");
+      });
+
+      it("refuses the organizer on a row that holds its own token and changes nothing", async () => {
+        const response = await patch(joinedId, testParticipantToken, {
+          name: "Renamed",
+          travelMode: "walking",
+        });
+
+        expect(response.statusCode).toBe(403);
+        expect(response.json()).toHaveProperty("error.code", "FORBIDDEN");
+
+        const row = await prisma.participant.findUniqueOrThrow({ where: { id: joinedId } });
+        expect(row).toMatchObject({ name: "Joined", travelMode: "driving" });
+      });
+
+      it("still lets the organizer rename a row that holds its own token", async () => {
+        const response = await patch(joinedId, testParticipantToken, { name: "Renamed" });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json()).toMatchObject({ name: "Renamed", travelMode: "driving" });
+      });
+
+      it("lets a participant set their own mode", async () => {
+        const response = await patch(joinedId, joinedToken, { travelMode: "transit" });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json().travelMode).toBe("transit");
+      });
+
+      it("refuses a participant on someone else's row", async () => {
+        const response = await patch(addedId, joinedToken, { travelMode: "transit" });
+
+        expect(response.statusCode).toBe(403);
+      });
+    });
   });
 });
