@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMarkerDrops, revealStrokes, routePillImage, type RouteStroke } from '../map-motion';
+import {
+  createMarkerDrops,
+  drawStroke,
+  revealStrokes,
+  routePillImage,
+  routeStrokeStyle,
+  type RouteStroke,
+} from '../map-motion';
 
 const PATH = [
   { lat: 0, lng: 0 },
@@ -181,5 +188,49 @@ describe('routePillImage', () => {
     expect(routePillImage('十一分钟', '#000').width).toBeGreaterThan(
       routePillImage('abcd', '#000').width
     );
+  });
+});
+
+describe('routeStrokeStyle', () => {
+  beforeEach(() => {
+    vi.stubGlobal('google', { maps: { SymbolPath: { CIRCLE: 0 } } });
+    vi.stubGlobal('requestAnimationFrame', () => 0);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('draws a car as a plain solid line', () => {
+    expect(routeStrokeStyle('driving', true)).toEqual({
+      strokeOpacity: 0.9,
+      strokeWeight: 5,
+      zIndex: 20,
+      icons: [],
+    });
+  });
+
+  it.each([
+    ['transit', '19px'],
+    ['bicycling', '10px'],
+    ['walking', '8px'],
+  ] as const)('draws %s with its own repeat and no stroke of its own', (mode, repeat) => {
+    const style = routeStrokeStyle(mode, true);
+    expect(style.strokeOpacity).toBe(0);
+    expect(style.icons[0].repeat).toBe(repeat);
+  });
+
+  it('fades a dashed line that is out of focus', () => {
+    expect(routeStrokeStyle('transit', false).icons[0].icon.strokeOpacity).toBe(0.3);
+    expect(routeStrokeStyle('walking', false).icons[0].icon.fillOpacity).toBe(0.3);
+  });
+
+  it('keeps the dashes showing while a line reveals, then after it lands', () => {
+    const stroke = { polyline: { setPath: vi.fn(), setOptions: vi.fn() }, path: [], color: '#000' };
+    const { icons } = routeStrokeStyle('transit', true);
+    revealStrokes([{ ...stroke, icons }], () => {});
+    expect(stroke.polyline.setOptions.mock.lastCall?.[0].icons[0]).toBe(icons[0]);
+    drawStroke({ ...stroke, icons });
+    expect(stroke.polyline.setOptions).toHaveBeenLastCalledWith({ icons });
   });
 });

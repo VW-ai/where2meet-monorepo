@@ -1,4 +1,5 @@
 import { pathUpTo, type PathPoint } from '@/features/meeting/lib/path-up-to';
+import type { TravelMode } from '@/shared/types/map';
 
 const REVEAL_LEAD_MS = 120;
 const REVEAL_STAGGER_MS = 140;
@@ -18,11 +19,52 @@ export interface RouteStroke {
   polyline: Pick<google.maps.Polyline, 'setPath' | 'setOptions'>;
   path: PathPoint[];
   color: string;
+  /** What draws the line when its own stroke is hidden, as a dashed route's is */
+  icons?: google.maps.IconSequence[];
 }
 
 export function drawStroke(stroke: RouteStroke) {
   stroke.polyline.setPath(stroke.path);
-  stroke.polyline.setOptions({ icons: [] });
+  stroke.polyline.setOptions({ icons: stroke.icons ?? [] });
+}
+
+/** Dash and gap in pixels. Walking is a line of dots. */
+const ROUTE_DASH: Record<TravelMode, readonly [dash: number, gap: number] | null> = {
+  driving: null,
+  transit: [11, 8],
+  bicycling: [3, 7],
+  walking: [0, 8],
+};
+
+/** Google polylines have no dash option: a dashed line is a hidden stroke with a repeating symbol. */
+export function routeStrokeStyle(mode: TravelMode, focused: boolean) {
+  const strokeOpacity = focused ? 0.9 : 0.3;
+  const strokeWeight = focused ? 5 : 3;
+  const zIndex = focused ? 20 : 5;
+  const dash = ROUTE_DASH[mode];
+  if (!dash) return { strokeOpacity, strokeWeight, zIndex, icons: [] };
+
+  const [length, gap] = dash;
+  const icon: google.maps.Symbol =
+    length === 0
+      ? {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: strokeWeight / 2,
+          fillOpacity: strokeOpacity,
+          strokeOpacity: 0,
+        }
+      : {
+          path: `M 0,0 0,${length}`,
+          scale: 1,
+          strokeOpacity,
+          strokeWeight,
+        };
+  return {
+    strokeOpacity: 0,
+    strokeWeight,
+    zIndex,
+    icons: [{ icon, offset: '0', repeat: `${length + gap}px` }],
+  };
 }
 
 function headDot(color: string): google.maps.IconSequence[] {
@@ -55,7 +97,7 @@ export function revealStrokes<T extends RouteStroke>(
 
   strokes.forEach((stroke) => {
     stroke.polyline.setPath(pathUpTo(stroke.path, 0));
-    stroke.polyline.setOptions({ icons: headDot(stroke.color) });
+    stroke.polyline.setOptions({ icons: [...(stroke.icons ?? []), ...headDot(stroke.color)] });
   });
 
   const tick = (now: number) => {

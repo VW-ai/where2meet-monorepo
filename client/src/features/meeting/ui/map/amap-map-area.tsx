@@ -5,10 +5,12 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
-import { useMapStore } from '@/features/meeting/model/map-store';
+import { useMapStore, type RouteInfo } from '@/features/meeting/model/map-store';
 import { hasAmapKey, loadAmap } from '@/shared/lib/amap/loader';
 import { gcj02ToWgs84, wgs84ToGcj02 } from '@/shared/lib/geo/coords';
 import { decodePolyline } from '@/shared/lib/geo/polyline';
+import { toRouteInfo } from '@/features/meeting/lib/person-routes';
+import { useUiVersion } from '@/features/meeting/model/ui-version-store';
 import { calculateMEC, calculateSearchRadius } from '@/shared/lib/mec';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { directionsClient } from '@/features/meeting/api';
@@ -107,6 +109,7 @@ export function AmapMapArea() {
   const hasJoined = isOrganizerMode || isParticipantMode;
 
   const travelMode = UI_TO_TRAVEL_MODE[uiTravelMode];
+  const version = useUiVersion();
 
   const [satellite, setSatellite] = useState(true);
   const [map, setMap] = useState<AMap.Map | null>(null);
@@ -573,18 +576,14 @@ export function AmapMapArea() {
         currentEvent.id,
         selectedVenue.id,
         authToken,
-        { travelMode }
+        // Under v2 each person travels by their own mode. Every event update lands here already,
+        // so a changed mode refetches without any per-person bookkeeping.
+        version === 'v2' ? {} : { travelMode }
       );
 
       removeRoutes();
 
-      const routeInfos: Array<{
-        participantId: string;
-        distance: string;
-        duration: string;
-        durationSeconds: number;
-        polyline: string;
-      }> = [];
+      const routeInfos: RouteInfo[] = [];
 
       response.routes.forEach((route) => {
         const participant = validParticipants.find((p) => p.id === route.participantId);
@@ -606,13 +605,7 @@ export function AmapMapArea() {
         map.add(polyline);
         routePolylinesRef.current.push({ participantId: participant.id, polyline });
 
-        routeInfos.push({
-          participantId: route.participantId,
-          distance: route.distance.text,
-          duration: route.duration.text,
-          durationSeconds: route.duration.value,
-          polyline: route.polyline,
-        });
+        routeInfos.push(toRouteInfo(route));
       });
 
       setRoutes(routeInfos);
@@ -627,6 +620,7 @@ export function AmapMapArea() {
     selectedVenue,
     currentEvent,
     travelMode,
+    version,
     selectedParticipantId,
     organizerToken,
     participantToken,
