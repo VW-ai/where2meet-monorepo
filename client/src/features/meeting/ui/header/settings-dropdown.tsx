@@ -5,7 +5,7 @@ import { Settings, Edit2, CheckCircle, XCircle, Trash2, Loader2 } from 'lucide-r
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
-import { eventClient } from '@/features/meeting/api';
+import { unpublishVenue } from '@/features/meeting/model/publish-venue';
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
 
@@ -39,7 +39,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { isOrganizerMode, organizerToken } = useAuthStore();
   const { openEditEventModal, openPublishModal, openDeleteConfirmation } = useUIStore();
-  const { currentEvent, setCurrentEvent } = useMeetingStore();
+  const { currentEvent } = useMeetingStore();
 
   const isPublished = !!currentEvent?.publishedAt;
 
@@ -78,8 +78,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
 
     setIsUnpublishing(true);
     try {
-      const updatedEvent = await eventClient.unpublish(currentEvent.id, organizerToken);
-      setCurrentEvent(updatedEvent);
+      await unpublishVenue(currentEvent.id, organizerToken);
       setIsOpen(false);
     } catch (error) {
       console.error('Failed to unpublish event:', error);

@@ -21,6 +21,7 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
+import { venueVoteData } from '@/features/voting/model/venue-vote-data';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
 import { getVenueCategoryDisplay } from '@/entities';
@@ -202,16 +203,7 @@ export function VenueInfo() {
         await unvoteForVenue(currentEvent.id, venue.id);
       } else {
         // Vote for the venue (which persists it with full data)
-        await voteForVenue(currentEvent.id, venue.id, {
-          name: venue.name,
-          address: venue.address || undefined,
-          lat: venue.location.lat,
-          lng: venue.location.lng,
-          category: venue.types?.[0] || undefined,
-          rating: venue.rating ?? undefined,
-          priceLevel: venue.priceLevel ?? undefined,
-          photoUrl: venue.photoUrl ?? undefined,
-        });
+        await voteForVenue(currentEvent.id, venue.id, venueVoteData(venue));
       }
     } catch (error) {
       console.error('Failed to toggle venue save:', error);

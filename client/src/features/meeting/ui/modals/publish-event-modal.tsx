@@ -5,16 +5,11 @@ import { X, CheckCircle, MapPin, AlertCircle } from 'lucide-react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { useVotingStore } from '@/features/voting/model/voting-store';
-import { eventClient } from '@/features/meeting/api';
-import { APIError } from '@/lib/api/client';
-import { defineMessages, useMessages } from '@/shared/lib/i18n';
+import { publishErrorMessage, publishVenue } from '@/features/meeting/model/publish-venue';
+import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
 
 const messages = defineMessages({
   en: {
-    alreadyPublished: 'This event has already been published.',
-    unverifiedVenue: 'The selected venue could not be verified. Please try another venue.',
-    unexpected: 'An unexpected error occurred. Please try again.',
     published: 'Event Published!',
     notified: 'Participants have been notified of the final venue.',
     title: 'Publish Event',
@@ -27,9 +22,6 @@ const messages = defineMessages({
     shareInvitation: 'Share the invitation',
   },
   zh: {
-    alreadyPublished: '这个见面已经确定地点了。',
-    unverifiedVenue: '无法核实所选地点，请换一个地点试试。',
-    unexpected: '出了点问题，请重试。',
     published: '地点已确定！',
     notified: '已通知所有参与者最终地点。',
     title: '确定地点',
@@ -44,10 +36,10 @@ const messages = defineMessages({
 
 export function PublishEventModal() {
   const t = useMessages(messages);
-  const { isPublishModalOpen, closePublishModal, openShareModal, setActiveView } = useUIStore();
+  const locale = useLocale();
+  const { isPublishModalOpen, closePublishModal, openShareModal } = useUIStore();
   const { organizerToken } = useAuthStore();
-  const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
-  const { voteForVenue, hasVotedFor } = useVotingStore();
+  const { currentEvent, selectedVenue } = useMeetingStore();
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
@@ -86,76 +78,13 @@ export function PublishEventModal() {
     setError(null);
 
     try {
-      // Step 1: Check if organizer has already voted for this venue
-      const alreadyVoted = hasVotedFor(selectedVenue.id);
-
-      // Step 2: If not voted, vote first before publishing
-      if (!alreadyVoted) {
-        try {
-          await voteForVenue(currentEvent.id, selectedVenue.id, {
-            name: selectedVenue.name,
-            address: selectedVenue.address,
-            lat: selectedVenue.location.lat,
-            lng: selectedVenue.location.lng,
-            category: selectedVenue.types?.[0],
-            rating: selectedVenue.rating ?? undefined,
-            priceLevel: selectedVenue.priceLevel ?? undefined,
-            photoUrl: selectedVenue.photoUrl ?? undefined,
-          });
-          console.log(
-            '[PublishEventModal] Organizer voted for venue before publishing:',
-            selectedVenue.id
-          );
-        } catch (voteError) {
-          // 409 Conflict means organizer already voted (race condition with local state)
-          if (voteError instanceof APIError && voteError.status === 409) {
-            console.log(
-              '[PublishEventModal] Organizer already voted (409 - continuing to publish)'
-            );
-          } else {
-            // Other vote errors are logged but don't fail the publish operation
-            console.error(
-              '[PublishEventModal] Failed to vote before publishing (continuing anyway):',
-              voteError
-            );
-          }
-        }
-      } else {
-        console.log(
-          '[PublishEventModal] Organizer already voted, proceeding to publish:',
-          selectedVenue.id
-        );
-      }
-
-      // Step 3: Now publish the event
-      const updatedEvent = await eventClient.publish(
-        currentEvent.id,
-        selectedVenue.id,
-        organizerToken
-      );
-
-      // Update local state with the returned event data
-      setCurrentEvent(updatedEvent);
-
-      // Switch to venue view to show published venue in liked venues section
-      setActiveView('venue');
+      await publishVenue(currentEvent.id, selectedVenue, organizerToken);
 
       setIsPublished(true);
 
       autoClose.current = setTimeout(closePublishModal, 2000);
     } catch (err) {
-      if (err instanceof APIError) {
-        if (err.code === 'EVENT_ALREADY_PUBLISHED') {
-          setError(t.alreadyPublished);
-        } else if (err.code === 'VALIDATION_ERROR') {
-          // The backend rejects a venue it can't verify with Google Places as invalid input
-          setError(t.unverifiedVenue);
-        } else {
-          setError(err.message);
-        }
-      } else {
-        setError(t.unexpected);
-      }
+      setError(publishErrorMessage(err, locale));
     } finally {
       setIsPublishing(false);
     }
