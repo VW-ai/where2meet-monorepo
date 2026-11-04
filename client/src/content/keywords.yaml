@@ -38,6 +38,9 @@
   occasion: group-dinner
 - phrase: restaurant for a big group
   occasion: group-dinner
+- phrase: where to have a group dinner
+  occasion: group-dinner
+  note: A "where to" search that wants places, added 2026-11-04 because every other group dinner phrase already has a post
 - phrase: coffee meeting spot
   occasion: coffee-catch-up
 - phrase: weekend hangout
