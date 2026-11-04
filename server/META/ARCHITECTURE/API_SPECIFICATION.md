@@ -18,6 +18,8 @@
 | Participant | /api/events/:id/participants | POST | 添加参与者（可选认证） |
 | Participant | /api/events/:id/participants/:participantId | PATCH | 更新参与者（统一令牌） |
 | Participant | /api/events/:id/participants/:participantId | DELETE | 移除参与者（统一令牌） |
+| Participant | /api/events/:id/participants/:participantId/claim | POST | 认领组织者添加的参与者（无需认证） |
+| Participant | /api/events/:id/participants/:participantId/claim | DELETE | 撤销认领（仅自己的令牌） |
 | Venue | /api/venues/search | POST | 搜索场所（用户指定中心点） |
 | Venue | /api/venues/:id | GET | 获取场所详情 |
 | Vote | /api/events/:id/participants/:participantId/votes | POST | 投票（仅自己） |
@@ -314,6 +316,7 @@ POST /api/events/:id/participants
 | name | Body | string | ✓ | 参与者姓名，max 50 |
 | address | Body | string | ✓ | 地址（用户输入） |
 | fuzzyLocation | Body | boolean | - | 旧客户端字段。false 或省略：正常加入；true：返回 400 VALIDATION_ERROR，不再支持隐藏精确地址 |
+| travelMode | Body | string | - | driving/walking/transit/bicycling，默认 driving |
 
 **后端处理**：
 1. 验证活动存在且未发布
@@ -334,6 +337,8 @@ POST /api/events/:id/participants
 | location | Location | { lat, lng } 坐标（后端 geocode 结果） |
 | color | string | 分配的颜色 |
 | fuzzyLocation | boolean | 总是 false。已发布的 iOS 应用要求此字段 |
+| travelMode | string | 此人的出行方式 |
+| claimable | boolean | 组织者添加且尚未被认领时为 true。不存储，由 token_hash 和 is_organizer 推导 |
 | participantToken | string | 参与者令牌（**仅无认证时返回**，用于自管理） |
 
 **错误响应：**
@@ -364,12 +369,14 @@ PATCH /api/events/:id/participants/:participantId
 | name | Body | string | - | 新姓名 |
 | address | Body | string \| null | - | 新地址（会触发重新 geocode）；null 等同于省略 |
 | fuzzyLocation | Body | boolean | - | 旧客户端字段。false 或省略：不做改动；true：返回 400 VALIDATION_ERROR |
+| travelMode | Body | string | - | driving/walking/transit/bicycling，见下方权限 |
 
 **认证逻辑**：
 1. 验证 participantToken 属于该活动
 2. 如果 isOrganizer=true → 可更新任何参与者
 3. 如果 isOrganizer=false → 只能更新自己（participantId 必须匹配）
 4. 不匹配 → 403 Forbidden
+5. travelMode 归本人所有：只有本人，或组织者对 claimable 的行可以修改。组织者对持有自己令牌的行发送 travelMode → 403（姓名和地址仍可修改）
 
 **后端输出（成功 200）：**
 
@@ -422,6 +429,47 @@ DELETE /api/events/:id/participants/:participantId
 | 403 | FORBIDDEN | 无效令牌或无权限 |
 | 404 | PARTICIPANT_NOT_FOUND | 参与者不存在 |
 | 409 | EVENT_ALREADY_PUBLISHED | 活动已发布，不能删除 |
+
+---
+
+### 3.4 认领参与者（"That's me"）
+
+```
+POST /api/events/:id/participants/:participantId/claim
+```
+
+**说明**：无需认证，拿到活动链接的任何人都可以认领 claimable 的行。并发认领只有一个成功。
+
+**后端输出（成功 200）：** 与自行加入的响应相同（Participant + participantToken）。广播 `participant:updated`。
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 400 | VALIDATION_ERROR | ID 格式错误 |
+| 404 | EVENT_NOT_FOUND | 活动不存在 |
+| 404 | PARTICIPANT_NOT_FOUND | 参与者不在此活动中 |
+| 409 | PARTICIPANT_NOT_CLAIMABLE | 已被认领、持有自己的令牌，或是组织者 |
+| 409 | EVENT_ALREADY_PUBLISHED | 活动已发布 |
+
+---
+
+### 3.5 撤销认领
+
+```
+DELETE /api/events/:id/participants/:participantId/claim
+```
+
+**说明**：必须使用该行自己的令牌，组织者令牌不能用于其他行，组织者自己的行会被拒绝。在一个事务中清除令牌、删除此人的投票并解除账号关联，travelMode 保留。自行加入的人也可以调用，之后此行变为 claimable。
+
+**后端输出（成功 200）：** 返回更新后的 Participant 对象。广播 `participant:updated` 和 `vote:statistics`。
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 401 | UNAUTHORIZED | 缺少认证头 |
+| 403 | FORBIDDEN | 不是该行的令牌，或该行是组织者 |
+| 404 | EVENT_NOT_FOUND | 活动不存在 |
+| 409 | EVENT_ALREADY_PUBLISHED | 活动已发布 |
 
 ---
 
@@ -743,7 +791,7 @@ GET /api/events/:id/venues/:venueId/directions
 **Query 参数：**
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| travelMode | string | - | driving/walking/transit/bicycling（默认 driving） |
+| travelMode | string | - | driving/walking/transit/bicycling。省略时每人用自己的方式；传入时覆盖返回的所有人 |
 | participantId | string | - | 可选，仅计算某一参与者（UUID） |
 
 **认证**：需要 Authorization: Bearer {participantToken}（需属于该活动）。
@@ -752,7 +800,7 @@ GET /api/events/:id/venues/:venueId/directions
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | venueId | string | 目的地场所 ID |
-| travelMode | string | 出行方式 |
+| travelMode | string \| null | 请求传入的覆盖方式；省略时为 null |
 | routes | Route[] | 路线列表 |
 
 **Route 结构：**
@@ -762,6 +810,7 @@ GET /api/events/:id/venues/:venueId/directions
 | distance | Distance \| null | { value: 米, text: 文本（Google 活动英制，高德活动公制） }，无位置时为 null |
 | duration | Duration \| null | { value: 秒, text: 文本 }，无位置时为 null |
 | polyline | string \| null | 路线编码（用于地图显示），无位置时为 null |
+| travelMode | string | 此路线实际使用的方式，无位置时也有 |
 
 **错误响应：**
 | 状态码 | code | 说明 |
@@ -956,6 +1005,8 @@ GET /api/events/:id/stream
 | POST /api/events/:id/participants | ✅ 已实现 | 可选认证 + participantToken |
 | PATCH /api/events/:id/participants/:participantId | ✅ 已实现 | 双令牌认证 |
 | DELETE /api/events/:id/participants/:participantId | ✅ 已实现 | 双令牌认证 |
+| POST /api/events/:id/participants/:participantId/claim | ✅ 已实现 | 无需认证 |
+| DELETE /api/events/:id/participants/:participantId/claim | ✅ 已实现 | 仅自己的令牌 |
 | POST /api/venues/search | ✅ 已实现 | 用户提供 center 坐标 |
 | GET /api/venues/:id | ✅ 已实现 | |
 | POST /api/events/:id/participants/:participantId/votes | ✅ 已实现 | 仅自己投票 |

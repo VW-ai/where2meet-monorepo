@@ -174,3 +174,13 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [ ] Commercial use needs an AMap 技术服务许可 (technical service licence)
 - [x] Client: AMap map, autocomplete and reverse geocoding for `amap` events (Phase 2)
 - [ ] Set `NEXT_PUBLIC_AMAP_JS_KEY` and `AMAP_JS_SECURITY_CODE` on Vercel, then check the China map in a browser against the live API
+
+---
+
+## 2026-11-04
+
+### Per-Person Transport
+- [x] Server: per-person `travelMode`, derived `claimable`, claim and undo endpoints, per-person directions
+- [ ] Client: per-person mode picker, compare times, "That's me" and undo
+- [ ] iOS: send and show per-person modes (the shipped app keeps working because it always sends `travelMode`)
+- [ ] Decide whether a self-joined person should be able to call undo, which turns their row claimable

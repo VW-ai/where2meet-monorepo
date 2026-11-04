@@ -937,3 +937,32 @@ Google Maps is blocked in mainland China and has little venue data there, so mee
 - New: `tests/unit/amap.test.ts` (27), `tests/unit/geo-coords.test.ts` (5), `tests/unit/geo-polyline.test.ts` (2), `tests/services/map-provider.test.ts` (7), `tests/amap-routes.test.ts` (9), metric formatting (2) and `mapProvider` schema cases (3)
 - Tests that need no database pass. The database-backed integration tests were not run: no Postgres or Redis was available in this environment
 - AMap responses in tests follow AMap's documented field tables; nothing was run against the live AMap API because no key exists yet
+
+---
+
+## 2026-11-04
+
+### Per-Person Transport (server)
+
+Each person now has their own travel mode, and someone the organizer added can claim their row with "That's me". This is the server half. The client follows.
+
+- `Participant.travelMode` with an additive migration. Public participants, DTOs and SSE payloads gain `travelMode` and `claimable`. `claimable` is derived in `src/utils/claimable.ts`, never stored.
+- PATCH with `travelMode` is allowed for self and for an organizer on a claimable row. An organizer gets 403 on a row that holds its own token, and can still edit its name and address.
+- `POST .../participants/:participantId/claim` needs no auth and hands the row a new token through one conditional UPDATE, so concurrent claims produce one winner.
+- `DELETE .../participants/:participantId/claim` needs the row's own token. It clears the token, the votes and the account link in one transaction. The link has to go because `UserEvent.participantId` is unique, and a stale one would block the next claimer from saving the event to their account.
+- Directions without `travelMode` use each person's own mode, with one provider call per mode. An explicit `travelMode` overrides everyone returned. Each route carries `travelMode`, and the top-level `travelMode` is null when none was sent.
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `prisma/schema.prisma`, `prisma/migrations/20261104120000_add_participant_travel_mode/` | `TravelMode` enum and `participant.travel_mode` |
+| `src/utils/claimable.ts` | `isClaimable` and `CLAIMABLE_WHERE` |
+| `src/dto/{participant,directions}.dto.ts`, `src/mappers/{event,directions}.mapper.ts`, `src/schemas/participant.ts` | New response and request fields |
+| `src/repositories/participant.ts`, `src/services/participant.ts`, `src/routes/participants.ts`, `src/types/errors.ts` | Travel mode rights, claim, undo, `ParticipantNotClaimableError` |
+| `src/services/directions.ts`, `src/routes/directions.ts`, `src/lib/directions/{types,index}.ts` | Group routes by effective mode |
+| `META/ARCHITECTURE/API_SPECIFICATION.md`, `META/ARCHITECTURE/DATABASE_SCHEMA.md` | New field and endpoints |
+
+#### Test Summary
+- New: `tests/participant-claim.test.ts` (22), travel mode cases in `tests/participants.test.ts` (10), per-person cases in `tests/directions.test.ts` (6)
+- Updated: exact-match payloads in `tests/participants-sse.test.ts`, the create payload and actor argument in `tests/services/participant.test.ts`, and the default top-level mode in `tests/directions.test.ts`
