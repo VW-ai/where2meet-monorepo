@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import type { Participant, ParticipantResponse } from '@/entities';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { participantClient } from '@/features/meeting/api';
+import { eventClient, participantClient } from '@/features/meeting/api';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
@@ -44,6 +44,15 @@ function patchParticipant(id: string, fields: Partial<Participant>) {
     ...currentEvent,
     participants: currentEvent.participants.map((p) => (p.id === id ? { ...p, ...fields } : p)),
   });
+}
+
+// A visitor has no stream, so their list is as old as the page
+async function refreshEvent(eventId: string) {
+  try {
+    useMeetingStore.getState().setCurrentEvent(await eventClient.get(eventId));
+  } catch (error) {
+    console.error('Error refreshing the event:', error);
+  }
 }
 
 /** What every way of getting a token ends with: the viewer is now this person, with no reload. */
@@ -118,6 +127,7 @@ export function useClaimParticipant() {
           useAuthStore.getState().clearParticipantInfo(eventId);
           patchParticipant(person.id, updated);
           useMapStore.getState().setSelectedParticipantId(null);
+          void refreshEvent(eventId);
         } catch (error) {
           console.error('Error undoing a claim:', error);
           showToast({ message: t.undoFailed });
@@ -128,6 +138,7 @@ export function useClaimParticipant() {
         const response = await participantClient.claim(eventId, person.id);
         patchParticipant(person.id, signInAsParticipant(eventId, response));
         useMapStore.getState().setSelectedParticipantId(person.id);
+        void refreshEvent(eventId);
         analyticsEvents.joinEvent(eventId, person.id);
         showToast({
           message: t.claimed(person.name),
@@ -138,6 +149,7 @@ export function useClaimParticipant() {
         if (error instanceof APIError && error.code === 'PARTICIPANT_NOT_CLAIMABLE') {
           patchParticipant(person.id, { claimable: false });
           showToast({ message: t.taken(person.name) });
+          void refreshEvent(eventId);
         } else {
           showToast({ message: t.claimFailed });
         }
