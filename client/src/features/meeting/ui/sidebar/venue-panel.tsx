@@ -22,6 +22,7 @@ import {
   getVenueCategory,
   getVenueCategoryDisplay,
   type Venue,
+  type Participant,
   type VenueCategory,
 } from '@/entities';
 import { useAuthStore } from '@/features/auth/model/auth-store';
@@ -31,6 +32,8 @@ import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { formatTripTime, slowestRoute } from '@/features/meeting/lib/route-summary';
 import { stepVenue, venueLikes } from '@/features/meeting/lib/venue-list';
 import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-store';
+import { useChangeParticipantMode } from '@/features/meeting/hooks/useParticipantActions';
+import { hasStartingPoint } from '@/features/meeting/lib/person-routes';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
@@ -38,7 +41,9 @@ import { cn } from '@/shared/lib/cn';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
 import { mapProviderName, venueMapsUrl } from '@/shared/lib/map-provider';
 import type { MapProvider } from '@/shared/types/map';
-import { travelModeMessages, travelModes, useChangeTravelMode } from './travel-type-filter';
+import { ModeSegment } from './mode-segment';
+import { FocusBox, pickerMode } from './transport-parts';
+import { travelModeMessages } from './travel-type-filter';
 import { VenuePanelFooter } from './venue-panel-footer';
 import { AvatarStack, ParticipantAvatar } from './venue-v2-parts';
 
@@ -68,7 +73,7 @@ const messages = defineMessages({
       walk: 'You have the longest trip, walking',
       bike: 'You have the longest trip, biking',
     } as Record<UITravelMode, string>,
-    goesBy: 'Everyone goes by',
+    youGoBy: 'You go by',
     travelTimes: 'Travel times',
     calculating: 'Working out everyone’s trip...',
     noRoutesYet: 'Trips show up once people add where they’re coming from.',
@@ -103,7 +108,7 @@ const messages = defineMessages({
       walk: '我的路程最长（步行）',
       bike: '我的路程最长（骑行）',
     },
-    goesBy: '大家的出行方式',
+    youGoBy: '我的出行方式',
     travelTimes: '路程时间',
     calculating: '正在计算路线…',
     noRoutesYet: '大家填好出发地后，这里会显示路程。',
@@ -241,34 +246,13 @@ function VenueLikes({ venueId, myId }: { venueId: string; myId: string | null })
   );
 }
 
-function ModeSelector() {
+function MyModeSelector({ me }: { me: Participant }) {
   const t = useMessages(messages);
-  const modeLabels = useMessages(travelModeMessages).modes;
-  const travelMode = useMapStore((state) => state.travelMode);
-  const changeMode = useChangeTravelMode();
+  const changeMode = useChangeParticipantMode();
   return (
     <div className="grid flex-none justify-items-end gap-[3px] text-[11px] text-v2-ink-3">
-      {t.goesBy}
-      <div role="group" aria-label={t.goesBy} className="flex rounded-full bg-v2-wash p-0.5">
-        {travelModes.map(({ value, icon: Icon }) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={travelMode === value}
-            aria-label={modeLabels[value]}
-            title={modeLabels[value]}
-            onClick={() => changeMode(value)}
-            className={cn(
-              'grid h-[25px] w-[27px] place-items-center rounded-full [&_svg]:size-3.5',
-              travelMode === value
-                ? 'bg-white text-v2-ink shadow-[0_1px_2px_rgba(33,37,43,.14)]'
-                : 'text-v2-ink-3'
-            )}
-          >
-            <Icon aria-hidden="true" />
-          </button>
-        ))}
-      </div>
+      {t.youGoBy}
+      <ModeSegment value={me.travelMode} onChange={(mode) => void changeMode(me, mode)} />
     </div>
   );
 }
@@ -278,6 +262,7 @@ function TripRows({ myId }: { myId: string | null }) {
   const locale = useLocale();
   const participants = useMeetingStore((state) => state.currentEvent?.participants) ?? [];
   const { routes, selectedParticipantId, setSelectedParticipantId } = useMapStore();
+  const modeLabels = useMessages(travelModeMessages).modes;
   const longest = slowestRoute(routes)?.durationSeconds ?? 0;
   const mineFirst = [...participants].sort((a, b) => Number(b.id === myId) - Number(a.id === myId));
 
@@ -285,18 +270,20 @@ function TripRows({ myId }: { myId: string | null }) {
     <div className="mt-2 grid gap-[3px]">
       {mineFirst.map((participant) => {
         const route = routes.find((r) => r.participantId === participant.id);
+        const { ui, icon: ModeIcon } = pickerMode(participant.travelMode);
         return (
           <button
             key={participant.id}
             type="button"
             aria-pressed={selectedParticipantId === participant.id}
+            title={modeLabels[ui]}
             onClick={() =>
               setSelectedParticipantId(
                 selectedParticipantId === participant.id ? null : participant.id
               )
             }
             className={cn(
-              '-mx-1 grid grid-cols-[24px_minmax(0,64px)_minmax(20px,1fr)_auto] items-center gap-[7px] rounded-[10px] px-1 py-[3px] text-left text-[13px] tabular-nums md:grid-cols-[24px_minmax(0,64px)_minmax(20px,1fr)_auto_48px]',
+              '-mx-1 grid grid-cols-[24px_minmax(0,56px)_15px_minmax(20px,1fr)_auto] items-center gap-[7px] rounded-[10px] px-1 py-[3px] text-left text-[13px] tabular-nums md:grid-cols-[24px_minmax(0,56px)_15px_minmax(20px,1fr)_auto_48px]',
               selectedParticipantId === participant.id ? 'bg-v2-coral-wash' : 'hover:bg-v2-wash'
             )}
           >
@@ -304,7 +291,10 @@ function TripRows({ myId }: { myId: string | null }) {
             <span className="truncate text-v2-ink">
               {participant.id === myId ? t.you : participant.name}
             </span>
-            {route ? (
+            <ModeIcon className="size-3.5 text-v2-ink-2" aria-hidden="true" />
+            {route && route.travelMode !== participant.travelMode ? (
+              <span className="col-span-2 text-right text-xs text-v2-ink-3 md:col-span-3">…</span>
+            ) : route ? (
               <>
                 <span className="h-1.5 overflow-hidden rounded-md bg-v2-wash">
                   <i
@@ -337,11 +327,16 @@ function TripRows({ myId }: { myId: string | null }) {
 function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: boolean }) {
   const t = useMessages(messages);
   const locale = useLocale();
-  const { routes, isCalculatingRoutes, travelMode } = useMapStore();
+  const { routes, isCalculatingRoutes, selectedParticipantId } = useMapStore();
+  const isPublished = useMeetingStore((state) => !!state.currentEvent?.publishedAt);
   const participants = useMeetingStore((state) => state.currentEvent?.participants) ?? [];
 
   const slowest = isCalculatingRoutes ? null : slowestRoute(routes);
   const slowestPerson = participants.find((p) => p.id === slowest?.participantId);
+  const me = participants.find((p) => p.id === myId);
+  const focused = participants.find((p) => p.id === selectedParticipantId);
+  // Someone with a starting point but no route gets a row saying so, even if nobody has a route
+  const hasTrips = routes.length > 0 || (hasJoined && participants.some(hasStartingPoint));
 
   return (
     <section>
@@ -357,8 +352,8 @@ function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: bo
             {slowestPerson && (
               <div className="mt-px text-xs text-v2-ink-2">
                 {slowestPerson.id === myId
-                  ? t.myLongestTrip[travelMode]
-                  : t.longestTrip[travelMode](slowestPerson.name)}
+                  ? t.myLongestTrip[pickerMode(slowest.travelMode).ui]
+                  : t.longestTrip[pickerMode(slowest.travelMode).ui](slowestPerson.name)}
               </div>
             )}
           </div>
@@ -367,15 +362,18 @@ function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: bo
             {t.travelTimes}
           </h3>
         )}
-        {hasJoined && <ModeSelector />}
+        {me && !isPublished && <MyModeSelector me={me} />}
       </div>
       {isCalculatingRoutes ? (
         <p role="status" className="mt-2 flex items-center gap-2 text-[13px] text-v2-ink-2">
           <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
           {t.calculating}
         </p>
-      ) : routes.length > 0 ? (
-        <TripRows myId={myId} />
+      ) : hasTrips ? (
+        <>
+          <TripRows myId={myId} />
+          {focused && <FocusBox person={focused} />}
+        </>
       ) : (
         <p className="mt-2 text-[13px] text-v2-ink-2">
           {hasJoined ? t.noRoutesYet : t.joinForTrips}

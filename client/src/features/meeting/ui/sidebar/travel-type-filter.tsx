@@ -21,7 +21,7 @@ export const travelModeMessages = defineMessages({
   },
 });
 
-export const travelModes = [
+const travelModes = [
   { value: 'car' as const, icon: Car },
   { value: 'transit' as const, icon: Bus },
   { value: 'walk' as const, icon: PersonStanding },
@@ -29,7 +29,7 @@ export const travelModes = [
 ];
 
 /** Sets the mode and records it in the URL, which is where a reload reads it back from. */
-export function useChangeTravelMode() {
+function useChangeTravelMode() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

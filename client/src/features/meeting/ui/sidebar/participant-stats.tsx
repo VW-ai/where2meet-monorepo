@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
+import { useUiVersion } from '@/features/meeting/model/ui-version-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { cn } from '@/shared/lib/cn';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
@@ -93,6 +94,7 @@ export function ParticipantStats() {
   const { isParticipantStatsOpen, closeParticipantStats } = useUIStore();
   const { currentEvent, selectedVenue } = useMeetingStore();
   const { routes, travelMode } = useMapStore();
+  const version = useUiVersion();
   const { organizerParticipantId, currentParticipantId } = useAuthStore();
   const t = useMessages(messages);
 
@@ -210,9 +212,11 @@ export function ParticipantStats() {
             {/* Travel mode badge */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-foreground">{t.byParticipant}</span>
-              <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full capitalize">
-                {t.modes[travelMode] || travelMode}
-              </span>
+              {version === 'classic' && (
+                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full capitalize">
+                  {t.modes[travelMode] || travelMode}
+                </span>
+              )}
             </div>
 
             {/* Bar chart */}

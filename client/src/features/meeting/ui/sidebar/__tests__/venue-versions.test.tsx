@@ -7,6 +7,8 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useUiVersionStore, type UiVersion } from '@/features/meeting/model/ui-version-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
+import type { TravelMode } from '@/shared/types/map';
+import { ParticipantSection } from '../participant-section';
 import { PlanTicket, isPublishMoment } from '../plan-ticket';
 import { VenueSection } from '../venue-section';
 import { VersionedVenuePanel } from '../versioned-venue-panel';
@@ -39,6 +41,8 @@ const person = (id: string, name: string, isOrganizer = false): Participant => (
   location: { lat: 40.7, lng: -74 },
   color: 'teal',
   isOrganizer,
+  travelMode: 'driving',
+  claimable: false,
 });
 
 const SAM = person('sam', 'Sam', true);
@@ -119,12 +123,17 @@ function textOf(html: string) {
 }
 
 const panelText = () => textOf(renderToStaticMarkup(<VersionedVenuePanel />));
-const route = (participantId: string, durationSeconds: number) => ({
+const route = (
+  participantId: string,
+  durationSeconds: number,
+  travelMode: TravelMode = 'driving'
+) => ({
   participantId,
   distance: '2 mi',
   duration: 'ignored',
   durationSeconds,
   polyline: '',
+  travelMode,
 });
 
 beforeEach(() => vi.spyOn(console, 'log').mockImplementation(() => {}));
@@ -251,6 +260,127 @@ describe('the venue list by version', () => {
   it('v2 does not tag a single like', () => {
     arrange({ version: 'v2', voters: ['sam'] });
     expect(list()).not.toContain('TOP');
+  });
+});
+
+describe('per-person transport', () => {
+  const MOM: Participant = { ...person('mom', 'Mom'), claimable: true, address: 'Hunters Point' };
+  const withMom = { ...EVENT, participants: [...EVENT.participants, MOM] };
+  const people = () => textOf(renderToStaticMarkup(<ParticipantSection />));
+  const peopleHtml = () => renderToStaticMarkup(<ParticipantSection />);
+  const pickers = (html: string) => html.match(/role="group"/g)?.length ?? 0;
+
+  it('v2 replaces the global choice with your own mode', () => {
+    arrange();
+    const text = panelText();
+    expect(text).not.toContain('Everyone goes by');
+    expect(text).toContain('You go by');
+  });
+
+  it('a visitor has no mode to set in the panel', () => {
+    arrange({ role: 'visitor' });
+    expect(panelText()).not.toContain('You go by');
+  });
+
+  it('nobody sets a mode in the panel once the plan is published', () => {
+    arrange({ event: { ...EVENT, publishedAt: '2026-11-04T00:00:00Z', publishedVenueId: 'k' } });
+    expect(panelText()).not.toContain('You go by');
+  });
+
+  it('only classic lists the global filter above the venues', () => {
+    arrange({ version: 'classic' });
+    expect(renderToStaticMarkup(<VenueSection />)).toContain('Travel by Car');
+    arrange({ version: 'v2' });
+    expect(renderToStaticMarkup(<VenueSection />)).not.toContain('Travel by Car');
+  });
+
+  it('words the longest trip by that person’s own mode', () => {
+    arrange({ routes: [route('maya', 300), route('jun', 1500, 'transit')] });
+    expect(panelText()).toContain('Jun has the longest trip, by transit');
+  });
+
+  it('shows no stale time while a changed mode is on its way', () => {
+    arrange({ routes: [route('maya', 300, 'walking')] });
+    expect(panelText()).not.toContain('You 5 min');
+  });
+
+  it('says a person has no route rather than leaving them out', () => {
+    arrange({ routes: [route('maya', 300)] });
+    expect(panelText()).toContain('Jun No route');
+  });
+
+  it('does not wait on rows nobody has claimed', () => {
+    arrange({ event: withMom, voters: ['maya'] });
+    expect(panelText()).toContain('1 of 4');
+  });
+
+  it('asks a selected editable person how they compare', () => {
+    arrange({ routes: [route('maya', 300)] });
+    useMapStore.setState({ selectedParticipantId: 'maya' });
+    expect(panelText()).toContain('Compare your ways there');
+  });
+
+  it('asks the organizer about someone they added, by name', () => {
+    arrange({ event: withMom, role: 'organizer', routes: [route('sam', 300)] });
+    useMapStore.setState({ selectedParticipantId: 'mom' });
+    expect(panelText()).toContain('How is Mom getting there?');
+  });
+
+  it('tells others who decides', () => {
+    arrange({ event: withMom, routes: [route('sam', 300)] });
+    useMapStore.setState({ selectedParticipantId: 'jun' });
+    expect(panelText()).toContain('Jun chose car. Only Jun can change this.');
+    useMapStore.setState({ selectedParticipantId: 'mom' });
+    expect(panelText()).toContain('Sam set Mom to car.');
+  });
+
+  it('the organizer gets a picker on their row and added rows, and Remove on added rows', () => {
+    arrange({ event: withMom, role: 'organizer' });
+    useMapStore.setState({ selectedParticipantId: null });
+    const text = people();
+    expect(text).toContain('HOST');
+    expect(text).toContain('ADDED BY YOU');
+    expect(text).toContain('Remove');
+    expect(text).not.toContain("That's me");
+    expect(pickers(peopleHtml())).toBe(2);
+  });
+
+  it('a joined person gets one picker and can read the others', () => {
+    arrange({ event: withMom });
+    useMapStore.setState({ selectedParticipantId: null });
+    const text = people();
+    expect(text).toContain('ADDED BY SAM');
+    expect(text).toContain('Car from Hunters Point');
+    expect(peopleHtml()).toContain('title="Only Jun can change this"');
+    expect(text).not.toContain("That's me");
+    expect(pickers(peopleHtml())).toBe(1);
+  });
+
+  it('a visitor can claim an added row, and only that row', () => {
+    arrange({ event: withMom, role: 'visitor' });
+    useMapStore.setState({ selectedParticipantId: null });
+    expect(people().match(/That's me/g)).toHaveLength(1);
+    expect(pickers(peopleHtml())).toBe(0);
+  });
+
+  it('nobody can claim or change anything once published', () => {
+    arrange({
+      event: { ...withMom, publishedAt: '2026-11-04T00:00:00Z', publishedVenueId: 'k' },
+      role: 'visitor',
+    });
+    expect(people()).not.toContain("That's me");
+    arrange({
+      event: { ...withMom, publishedAt: '2026-11-04T00:00:00Z', publishedVenueId: 'k' },
+      role: 'organizer',
+    });
+    expect(pickers(peopleHtml())).toBe(0);
+    expect(people()).not.toContain('Remove');
+  });
+
+  it('classic keeps the pills, with no picker or tag', () => {
+    arrange({ version: 'classic', event: withMom, role: 'organizer' });
+    expect(people()).not.toContain('ADDED BY YOU');
+    expect(pickers(peopleHtml())).toBe(0);
   });
 });
 
