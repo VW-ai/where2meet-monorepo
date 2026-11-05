@@ -28,20 +28,24 @@ export function drawStroke(stroke: RouteStroke) {
   stroke.polyline.setOptions({ icons: stroke.icons ?? [] });
 }
 
+/** Classic's one line for everyone stays solid, so it never reads as anyone's own mode. */
+export type RouteLine = TravelMode | 'solid';
+
 /** Dash and gap in pixels. Walking is a line of dots. */
-const ROUTE_DASH: Record<TravelMode, readonly [dash: number, gap: number] | null> = {
-  driving: null,
+const ROUTE_DASH: Record<RouteLine, readonly [dash: number, gap: number] | null> = {
+  solid: null,
+  driving: [18, 9],
   transit: [11, 8],
   bicycling: [3, 7],
   walking: [0, 8],
 };
 
 /** Google polylines have no dash option: a dashed line is a hidden stroke with a repeating symbol. */
-export function routeStrokeStyle(mode: TravelMode, focused: boolean) {
+export function routeStrokeStyle(line: RouteLine, focused: boolean) {
   const strokeOpacity = focused ? 0.9 : 0.3;
   const strokeWeight = focused ? 5 : 3;
   const zIndex = focused ? 20 : 5;
-  const dash = ROUTE_DASH[mode];
+  const dash = ROUTE_DASH[line];
   if (!dash) return { strokeOpacity, strokeWeight, zIndex, icons: [] };
 
   const [length, gap] = dash;

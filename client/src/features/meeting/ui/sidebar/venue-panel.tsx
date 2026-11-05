@@ -28,7 +28,7 @@ import {
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
 import { useSidebarVenues } from '@/features/meeting/hooks/useSidebarVenues';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { getMutedHexColor } from '@/features/meeting/lib/participant-colors';
 import { formatTripTime, slowestRoute } from '@/features/meeting/lib/route-summary';
 import { stepVenue, venueLikes } from '@/features/meeting/lib/venue-list';
 import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-store';
@@ -301,7 +301,7 @@ function TripRows({ myId }: { myId: string | null }) {
                     className="block h-full rounded-md transition-[width] duration-300"
                     style={{
                       width: `${Math.max(4, (route.durationSeconds / longest) * 100)}%`,
-                      backgroundColor: getHexColor(participant.color),
+                      backgroundColor: getMutedHexColor(participant.color),
                     }}
                   />
                 </span>

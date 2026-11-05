@@ -1,5 +1,6 @@
 import type { Participant } from '@/entities';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
+import { getMutedHexColor } from '@/features/meeting/lib/participant-colors';
 import { cn } from '@/shared/lib/cn';
 
 const BUTTON_BASE =
@@ -43,14 +44,26 @@ export function ParticipantAvatar({
   return (
     <span
       className={cn(
-        'grid flex-none place-items-center rounded-full font-bold shadow-[0_0_0_2px_var(--color-v2-paper)]',
+        'relative grid flex-none place-items-center font-bold',
         small ? 'size-[18px] text-[9px]' : large ? 'size-8 text-[13px]' : 'size-6 text-[10.5px]',
-        ghost ? 'bg-[#ebe8e3] text-[#a9a7a2]' : 'text-white'
+        ghost ? 'text-[#a9a7a2]' : 'text-white'
       )}
-      style={ghost ? undefined : { backgroundColor: getHexColor(participant.color) }}
       title={participant.name}
     >
-      {initialOf(participant.name)}
+      <svg
+        viewBox="0 0 100 100"
+        aria-hidden="true"
+        className="absolute inset-0 size-full overflow-visible"
+      >
+        <path
+          d={CAT_HEAD_PATH}
+          fill={ghost ? '#ebe8e3' : getMutedHexColor(participant.color)}
+          stroke="var(--color-v2-paper)"
+          strokeWidth={small ? 12 : 8}
+          paintOrder="stroke"
+        />
+      </svg>
+      <span className="relative mt-[14%]">{initialOf(participant.name)}</span>
     </span>
   );
 }

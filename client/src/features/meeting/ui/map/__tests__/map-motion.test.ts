@@ -176,8 +176,8 @@ describe('routeStrokeStyle', () => {
     vi.unstubAllGlobals();
   });
 
-  it('draws a car as a plain solid line', () => {
-    expect(routeStrokeStyle('driving', true)).toEqual({
+  it('keeps a solid line for classic', () => {
+    expect(routeStrokeStyle('solid', true)).toEqual({
       strokeOpacity: 0.9,
       strokeWeight: 5,
       zIndex: 20,
@@ -186,6 +186,7 @@ describe('routeStrokeStyle', () => {
   });
 
   it.each([
+    ['driving', '27px'],
     ['transit', '19px'],
     ['bicycling', '10px'],
     ['walking', '8px'],

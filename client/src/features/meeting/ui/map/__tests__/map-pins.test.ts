@@ -7,6 +7,9 @@ import {
   personPinLabel,
   personPinLook,
   personPinZIndex,
+  placeRouteChips,
+  routeChipImage,
+  routeChipLabel,
   searchHandleBearings,
   tripLabel,
   truncatePinName,
@@ -302,5 +305,67 @@ describe('search area handles', () => {
   it('marks only the move handle with arrows', () => {
     expect(svgOf(SEARCH_MOVE_HANDLE)).toContain('<path');
     expect(svgOf(SEARCH_SIZE_HANDLE)).not.toContain('<path');
+  });
+});
+
+describe('routeChipLabel', () => {
+  it('spells the minutes out', () => {
+    expect(routeChipLabel(16 * 60, 'en')).toBe('16 min');
+    expect(routeChipLabel(16 * 60, 'zh')).toBe('16分钟');
+  });
+
+  it('never rounds a real trip down to zero', () => {
+    expect(routeChipLabel(10, 'en')).toBe('1 min');
+  });
+
+  it('switches to hours as soon as the minutes round up to one', () => {
+    expect(routeChipLabel(3590, 'en')).toBe('1h');
+    expect(routeChipLabel(84 * 60, 'zh')).toBe('1时24分');
+  });
+});
+
+describe('routeChipImage', () => {
+  it('outlines the chip in the person color and escapes the label', () => {
+    const svg = svgOf(routeChipImage({ color: '#3f7f7c', mode: 'bicycling', label: '<1 min' }));
+    expect(svg).toContain('stroke="#3f7f7c"');
+    expect(svg).toContain('&lt;1 min');
+  });
+
+  it('anchors on its center, so it sits on the line', () => {
+    const image = routeChipImage({ color: '#3f7f7c', mode: 'driving', label: '4 min' });
+    expect(image.anchorX).toBe(image.width / 2);
+    expect(image.anchorY).toBe(image.height / 2);
+  });
+});
+
+describe('placeRouteChips', () => {
+  const toPixel = ({ lat, lng }: { lat: number; lng: number }) => ({ x: lng, y: lat });
+  const straight = (from: number, to: number) => [
+    { lat: 0, lng: from },
+    { lat: 0, lng: to },
+  ];
+  const chip = (id: string, path = straight(0, 1000)) => ({ id, path, label: '16 min' });
+
+  it('puts a lone chip halfway along its route', () => {
+    expect(placeRouteChips([chip('a')], [], toPixel).get('a')).toEqual({ lat: 0, lng: 500 });
+  });
+
+  it('moves one of two people on the same route further along', () => {
+    const spots = placeRouteChips([chip('a'), chip('b')], [], toPixel);
+    expect(spots.get('a')).toEqual({ lat: 0, lng: 500 });
+    expect(spots.get('b')).toEqual({ lat: 0, lng: 380 });
+  });
+
+  it('keeps a chip off a pin', () => {
+    const spots = placeRouteChips([chip('a')], [{ lat: 0, lng: 500 }], toPixel);
+    expect(spots.get('a')).toEqual({ lat: 0, lng: 380 });
+  });
+
+  it('leaves out a route too short to show one clear of its own pins', () => {
+    const pins = [
+      { lat: 0, lng: 0 },
+      { lat: 0, lng: 30 },
+    ];
+    expect(placeRouteChips([chip('a', straight(0, 30))], pins, toPixel).size).toBe(0);
   });
 });

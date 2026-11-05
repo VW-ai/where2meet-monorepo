@@ -3,6 +3,8 @@
  * Manages color assignment for participants
  */
 
+import { useUiVersionStore } from '../model/ui-version-store';
+
 // 10 distinct colors for participant avatars (from ParticipantComponent.ts reference)
 export const PARTICIPANT_COLORS = [
   'bg-red-500',
@@ -71,6 +73,51 @@ export function nextParticipantColor(participants: ReadonlyArray<{ color: string
  */
 export function getHexColor(color: string | undefined): string {
   return (color && (SERVER_HEX_COLORS[color] ?? PARTICIPANT_HEX_COLORS[color])) || '#6BCB77'; // fallback to mint
+}
+
+/**
+ * The redesign's quieter take on each palette color. Keyed the same way, so a person keeps their
+ * hue and stored color. White initials sit on all of them, so each stays dark enough to read.
+ */
+const MUTED_HEX_COLORS: Record<string, string> = {
+  coral: '#C2704F',
+  teal: '#3F7F7C',
+  gold: '#A9853D',
+  orchid: '#A06F9C',
+  lime: '#6F8C4A',
+  dodgerblue: '#4F80AB',
+  tomato: '#BA5A50',
+  mediumseagreen: '#528A6F',
+  slateblue: '#6C68A0',
+  darkorange: '#B97A3C',
+  hotpink: '#B8678A',
+  steelblue: '#547C98',
+  yellowgreen: '#7F8C48',
+  mediumpurple: '#8573AD',
+  indianred: '#A85D5D',
+  cadetblue: '#568488',
+  'bg-red-500': '#BA5A50',
+  'bg-blue-500': '#4F80AB',
+  'bg-green-500': '#528A6F',
+  'bg-yellow-500': '#A9853D',
+  'bg-purple-500': '#8573AD',
+  'bg-pink-500': '#B8678A',
+  'bg-indigo-500': '#6C68A0',
+  'bg-orange-500': '#B97A3C',
+  'bg-teal-500': '#3F7F7C',
+  'bg-cyan-500': '#568488',
+};
+
+/** A person's color in the redesign. */
+export function getMutedHexColor(color: string | undefined): string {
+  return (color && MUTED_HEX_COLORS[color]) || '#528A6F';
+}
+
+/** A person's color for surfaces both UI versions share. Classic stays as recorded. */
+export function personColor(color: string | undefined): string {
+  return useUiVersionStore.getState().version === 'v2'
+    ? getMutedHexColor(color)
+    : getHexColor(color);
 }
 
 /**

@@ -1,10 +1,14 @@
 import {
+  Bike,
   BookOpen,
+  Bus,
+  Car,
   Coffee,
   Compass,
   Crown,
   Dumbbell,
   Landmark,
+  PersonStanding,
   ShoppingBag,
   Trees,
   Utensils,
@@ -12,8 +16,11 @@ import {
   type IconNode,
 } from 'lucide';
 import { getVenueCategory, type Venue, type VenueCategory } from '@/entities/venue/types';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
+import { getMutedHexColor } from '@/features/meeting/lib/participant-colors';
+import { pathUpTo, type PathPoint } from '@/features/meeting/lib/path-up-to';
 import type { Locale } from '@/shared/lib/i18n';
+import type { TravelMode } from '@/shared/types/map';
 
 const INK = '#21252b';
 const INK_2 = '#5f636b';
@@ -36,6 +43,12 @@ export interface PersonPinLook {
   tripLabel?: string;
   selected: boolean;
   draft?: boolean;
+}
+
+export interface RouteChipLook {
+  color: string;
+  mode: TravelMode;
+  label: string;
 }
 
 /** Sizes are CSS pixels and the anchor is the map location. `hit` is what takes clicks, so a label never blocks a pan. */
@@ -98,6 +111,13 @@ export function tripLabel(seconds: number, locale: Locale): string {
   return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
 }
 
+/** Spelled out, because on a route it has room: `16 min`, `1h 24m`; zh `16分钟`, `1时24分`. */
+export function routeChipLabel(seconds: number, locale: Locale): string {
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes >= 60) return tripLabel(seconds, locale);
+  return locale === 'zh' ? `${minutes}分钟` : `${minutes} min`;
+}
+
 export function personPinLabel(name: string, isSelf: boolean, locale: Locale): string {
   if (isSelf) return locale === 'zh' ? '我' : 'You';
   return Array.from(name.trim()).slice(0, 2).join('').trim();
@@ -116,7 +136,7 @@ export function personPinLook(
   const { isSelf, isSelected, isDraft, tripSeconds, locale } = state;
   return {
     label: personPinLabel(person.name, isSelf, locale),
-    color: getHexColor(person.color),
+    color: getMutedHexColor(person.color),
     selected: isSelected,
     ...(tripSeconds === undefined ? {} : { tripLabel: tripLabel(tripSeconds, locale) }),
     ...(isDraft ? { draft: true } : {}),
@@ -344,15 +364,16 @@ function drawPersonPin(look: PersonPinLook, spin: boolean): PinImage {
   const chipTop = 2;
   const halfWidth = Math.ceil(Math.max(radius + 14, chipWidth / 2 + 2));
   const cx = halfWidth;
-  const cy = chipTop + chipHeight - 8 + radius;
+  const cy = chipTop + chipHeight - 2 + radius;
   const tailTop = cy + radius - 1;
   const tipY = tailTop + 9;
   const fill = escapeXml(color);
+  const headScale = (radius * 2) / 100;
 
   const parts = [
     shadowFilter(3, 10, 0.28),
-    `<g filter="url(#shadow)"><path d="M${cx - 6} ${tailTop} L${cx + 6} ${tailTop} L${cx} ${tipY} Z" fill="${WHITE}"/><circle cx="${cx}" cy="${cy}" r="${radius - 1.5}" fill="${fill}" stroke="${WHITE}" stroke-width="3"/></g>`,
-    textElement(label, { x: cx, y: cy + 4.5, size: 13, fill: WHITE }),
+    `<g filter="url(#shadow)"><path d="M${cx - 6} ${tailTop} L${cx + 6} ${tailTop} L${cx} ${tipY} Z" fill="${WHITE}"/><path transform="translate(${cx - radius} ${cy - radius}) scale(${headScale})" d="${CAT_HEAD_PATH}" fill="${fill}" stroke="${WHITE}" stroke-width="${3 / headScale}" paint-order="stroke"/></g>`,
+    textElement(label, { x: cx, y: cy + 7.5, size: 13, fill: WHITE }),
   ];
   if (draft) {
     // SMIL only keeps running in an image if the marker is drawn with `optimized: false`
@@ -379,6 +400,98 @@ function drawPersonPin(look: PersonPinLook, spin: boolean): PinImage {
   );
 }
 
+const ROUTE_CHIP_ICONS: Record<TravelMode, IconNode> = {
+  driving: Car,
+  transit: Bus,
+  bicycling: Bike,
+  walking: PersonStanding,
+};
+const ROUTE_CHIP_HEIGHT = 26;
+
+function routeChipWidth(label: string): number {
+  return Math.ceil(9 + 14 + 5 + estimateTextWidth(label, 12) + 10);
+}
+
+function drawRouteChip({ color, mode, label }: RouteChipLook): PinImage {
+  const width = routeChipWidth(label);
+  const left = SHADOW_ROOM;
+  const top = SHADOW_ROOM;
+  const fill = escapeXml(color);
+  const middle = top + ROUTE_CHIP_HEIGHT / 2;
+  return toPinImage(
+    width + SHADOW_ROOM * 2,
+    ROUTE_CHIP_HEIGHT + SHADOW_ROOM * 2,
+    left + width / 2,
+    middle,
+    { x: left + width / 2, y: middle, radius: ROUTE_CHIP_HEIGHT / 2 },
+    [
+      shadowFilter(1, 4, 0.18),
+      `<rect x="${left}" y="${top}" width="${width}" height="${ROUTE_CHIP_HEIGHT}" rx="${ROUTE_CHIP_HEIGHT / 2}" fill="${WHITE}" stroke="${fill}" stroke-width="1.5" filter="url(#shadow)"/>`,
+      iconElement(ROUTE_CHIP_ICONS[mode], left + 9 + 7, middle, 14, fill),
+      textElement(label, {
+        x: left + 9 + 14 + 5 + estimateTextWidth(label, 12) / 2,
+        y: middle + 4,
+        size: 12,
+        fill: INK,
+      }),
+    ].join('')
+  );
+}
+
+/** Above the venues nobody is looking at, below the people and the venue being looked at. */
+export const ROUTE_CHIP_Z_INDEX = 50;
+
+/** Where along a route a chip may sit, best first. Starts away from the middle only to make room. */
+const ROUTE_CHIP_SPOTS = [0.5, 0.38, 0.62, 0.28, 0.72];
+const ROUTE_CHIP_MARGIN = 4;
+/** What a pin covers around its location, in pixels: the head above and a little below. */
+const PIN_BOX = { side: 24, above: 56, below: 14 };
+
+export interface RouteChipRequest {
+  id: string;
+  path: readonly PathPoint[];
+  label: string;
+}
+
+/**
+ * Finds each route a spot clear of the pins and of the chips already placed. A route with no
+ * clear spot, too short on screen at this zoom, gets no chip: its time is still on the person's pin.
+ */
+export function placeRouteChips(
+  requests: readonly RouteChipRequest[],
+  pins: readonly PathPoint[],
+  toPixel: (point: PathPoint) => { x: number; y: number }
+): Map<string, PathPoint> {
+  const pinPixels = pins.map(toPixel);
+  const placed: { x: number; y: number; halfWidth: number }[] = [];
+  const halfHeight = ROUTE_CHIP_HEIGHT / 2 + ROUTE_CHIP_MARGIN;
+  const spots = new Map<string, PathPoint>();
+
+  requests.forEach(({ id, path, label }) => {
+    const halfWidth = routeChipWidth(label) / 2 + ROUTE_CHIP_MARGIN;
+    for (const fraction of ROUTE_CHIP_SPOTS) {
+      const spot = pathUpTo(path, fraction).at(-1);
+      if (!spot) return;
+      const { x, y } = toPixel(spot);
+      const onPin = pinPixels.some(
+        (pin) =>
+          Math.abs(x - pin.x) < halfWidth + PIN_BOX.side &&
+          y > pin.y - PIN_BOX.above - halfHeight &&
+          y < pin.y + PIN_BOX.below + halfHeight
+      );
+      const onChip = placed.some(
+        (chip) =>
+          Math.abs(x - chip.x) < halfWidth + chip.halfWidth && Math.abs(y - chip.y) < halfHeight * 2
+      );
+      if (onPin || onChip) continue;
+      placed.push({ x, y, halfWidth });
+      spots.set(id, spot);
+      return;
+    }
+  });
+  return spots;
+}
+
 const drawn = new Map<string, PinImage>();
 
 /** The same look gives the same object, which is how the map knows a marker needs no new icon. */
@@ -397,6 +510,10 @@ export function venuePinImage(look: VenuePinLook): PinImage {
 
 export function personPinImage(look: PersonPinLook, spin = false): PinImage {
   return cached(`person:${spin}:${JSON.stringify(look)}`, () => drawPersonPin(look, spin));
+}
+
+export function routeChipImage(look: RouteChipLook): PinImage {
+  return cached(`route:${JSON.stringify(look)}`, () => drawRouteChip(look));
 }
 
 const HANDLE_BOX = 48;

@@ -12,7 +12,7 @@ import { decodePolyline } from '@/shared/lib/geo/polyline';
 import { toRouteInfo } from '@/features/meeting/lib/person-routes';
 import { useUiVersion } from '@/features/meeting/model/ui-version-store';
 import { calculateMEC, calculateSearchRadius } from '@/shared/lib/mec';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { personColor } from '@/features/meeting/lib/participant-colors';
 import { directionsClient } from '@/features/meeting/api';
 import type { Location } from '@/shared/types/map';
 import { MapBlurOverlay } from './map-blur-overlay';
@@ -394,7 +394,7 @@ export function AmapMapArea() {
 
       const marker = new AMap.Marker({
         position: toAmap({ lat: participant.location.lat, lng: participant.location.lng }),
-        content: dotContent(style.scale, getHexColor(participant.color), style.strokeWeight),
+        content: dotContent(style.scale, personColor(participant.color), style.strokeWeight),
         anchor: 'center',
         title: participant.name,
         zIndex: style.zIndex,
@@ -596,7 +596,7 @@ export function AmapMapArea() {
         // The backend encodes WGS-84 points in Google's polyline format for both providers
         const polyline = new AMap.Polyline({
           path: decodePolyline(route.polyline).map(toAmap),
-          strokeColor: getHexColor(participant.color),
+          strokeColor: personColor(participant.color),
           strokeOpacity: isSelected ? 0.9 : 0.3,
           strokeWeight: isSelected ? 5 : 3,
           zIndex: isSelected ? 20 : 5,

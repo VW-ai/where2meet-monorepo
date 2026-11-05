@@ -10,7 +10,7 @@ import { useDraftPersonStore } from '@/features/meeting/model/draft-person-store
 import { DRAFT_PERSON_ID } from '@/features/meeting/lib/add-person-form';
 import { loadGoogleMaps } from '@/shared/lib/google-maps/loader';
 import { calculateMEC, calculateSearchRadius } from '@/shared/lib/mec';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { getHexColor, personColor } from '@/features/meeting/lib/participant-colors';
 import { directionsClient } from '@/features/meeting/api';
 import { MapBlurOverlay } from './map-blur-overlay';
 import { usePortalStore } from '@/features/portal/model/portal-store';
@@ -52,9 +52,11 @@ import {
   pulseAt,
   revealStrokes,
   routeStrokeStyle,
+  type RouteLine,
   type RouteStroke,
 } from './map-motion';
 import { usePersonPins, useVenuePins } from './use-map-pins';
+import { useRouteChips } from './use-route-chips';
 import { useSearchArea } from './use-search-area';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
@@ -85,7 +87,7 @@ interface DrawnRoute extends RouteStroke {
   participantId: string;
   polyline: google.maps.Polyline;
   durationSeconds: number;
-  lineMode: TravelMode;
+  lineMode: RouteLine;
 }
 
 const isV2 = () => useUiVersionStore.getState().version === 'v2';
@@ -712,6 +714,7 @@ export function GoogleMapArea() {
   useSearchArea(map, searchCircleRef, mecCircleRef, version === 'v2');
   useVenuePins(map, version === 'v2');
   usePersonPins(map, version === 'v2');
+  useRouteChips(map, version === 'v2');
 
   // Under v2 a refreshed event, a changed travel mode above all, must not move the map
   const selectedSpot = currentEvent?.participants?.find((p) => p.id === selectedParticipantId);
@@ -867,18 +870,18 @@ export function GoogleMapArea() {
         const polyline = new google.maps.Polyline({
           path: decodedPath,
           geodesic: true,
-          strokeColor: getHexColor(participant.color),
+          strokeColor: personColor(participant.color),
           map,
-          ...routeStrokeStyle('driving', routeFocused(participant.id, selectedParticipantId)),
+          ...routeStrokeStyle('solid', routeFocused(participant.id, selectedParticipantId)),
         });
 
         routePolylinesRef.current.push({
           participantId: participant.id,
           polyline,
           path: decodedPath.map((point) => point.toJSON()),
-          color: getHexColor(participant.color),
+          color: personColor(participant.color),
           durationSeconds: route.duration.value,
-          lineMode: 'driving',
+          lineMode: 'solid',
         });
 
         routeInfos.push(toRouteInfo(route));
@@ -937,7 +940,7 @@ export function GoogleMapArea() {
       putRoutes(current, fresh);
       revealRoutes(
         fresh.map((route) =>
-          drawRouteLine(route, getHexColor(peopleById.get(route.participantId)?.color ?? ''))
+          drawRouteLine(route, personColor(peopleById.get(route.participantId)?.color ?? ''))
         )
       );
     };
@@ -1062,7 +1065,7 @@ export function GoogleMapArea() {
 
   useEffect(() => {
     if (!map || !window.google || !draftRoute) return;
-    revealRoutes([drawRouteLine(draftRoute, getHexColor(draftColor))]);
+    revealRoutes([drawRouteLine(draftRoute, personColor(draftColor))]);
     return () => removeRouteDrawing(DRAFT_PERSON_ID);
   }, [map, draftRoute, draftColor, drawRouteLine, revealRoutes, removeRouteDrawing]);
 

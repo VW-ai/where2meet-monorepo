@@ -8,7 +8,7 @@ import { useMapStore } from '@/features/meeting/model/map-store';
 import { useUiVersion } from '@/features/meeting/model/ui-version-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { cn } from '@/shared/lib/cn';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { personColor } from '@/features/meeting/lib/participant-colors';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
 
 const messages = defineMessages({
@@ -237,7 +237,7 @@ export function ParticipantStats() {
                       <div className="flex items-center gap-2 min-w-0">
                         <div
                           className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
-                          style={{ backgroundColor: getHexColor(participant.color) }}
+                          style={{ backgroundColor: personColor(participant.color) }}
                         >
                           {getInitials(participant.name)}
                         </div>
@@ -265,7 +265,7 @@ export function ParticipantStats() {
                         className="h-full rounded-full transition-all duration-500 ease-out"
                         style={{
                           width: `${Math.max(percentage, 5)}%`,
-                          backgroundColor: getHexColor(participant.color),
+                          backgroundColor: personColor(participant.color),
                         }}
                       />
                     </div>
