@@ -5,6 +5,7 @@
 
 import { Layers, Loader2, LocateFixed } from 'lucide-react';
 import type { UITravelMode } from '@/features/meeting/model/map-store';
+import { useUIStore } from '@/features/meeting/model/ui-store';
 import type { Location, TravelMode } from '@/shared/types/map';
 import { defineMessages, useMessages, type Locale } from '@/shared/lib/i18n';
 
@@ -69,14 +70,40 @@ export function leftPanelsWidth(includeVenuePanel: boolean): number {
 }
 
 /** What covers the map on each side, so a fitted view lands where it can be seen. */
-export function fitPadding(includeVenuePanel: boolean): google.maps.Padding {
+export function fitPadding(includeVenuePanel: boolean): Required<google.maps.Padding> {
   if (window.innerWidth >= 768) {
     return { top: 96, right: 48, bottom: 48, left: leftPanelsWidth(includeVenuePanel) + 48 };
   }
   const top = 130;
-  const sheet = document.querySelector('.meeting-sheet')?.getBoundingClientRect().height ?? 0;
+  const mapBox = document.querySelector('.meeting-map')?.getBoundingClientRect();
+  const mapBottom = mapBox?.bottom ?? window.innerHeight;
+  // Mirrors --sheet-height: the sheet may still be animating, so measuring it could be stale
+  const sheet = window.innerHeight * (useUIStore.getState().isSheetExpanded ? 0.76 : 0.43);
+  const covered = mapBottom - (window.innerHeight - sheet);
   // An expanded sheet leaves little map, and a view must still fit in what's left
-  return { top, right: 32, bottom: Math.min(sheet + 32, window.innerHeight - top - 120), left: 32 };
+  return { top, right: 32, bottom: Math.min(covered + 32, mapBottom - top - 120), left: 32 };
+}
+
+/** Whether `point` is on the part of the map that `padding` doesn't cover. Unsure means no. */
+export function isInUncoveredMap(
+  point: Location,
+  bounds: google.maps.LatLngBounds | undefined,
+  size: { clientWidth: number; clientHeight: number },
+  padding: Required<google.maps.Padding>
+): boolean {
+  if (!bounds) return false;
+  const north = bounds.getNorthEast().lat();
+  const east = bounds.getNorthEast().lng();
+  const south = bounds.getSouthWest().lat();
+  const west = bounds.getSouthWest().lng();
+  const x = ((point.lng - west) / (east - west)) * size.clientWidth;
+  const y = ((north - point.lat) / (north - south)) * size.clientHeight;
+  return (
+    x >= padding.left &&
+    x <= size.clientWidth - padding.right &&
+    y >= padding.top &&
+    y <= size.clientHeight - padding.bottom
+  );
 }
 
 /**

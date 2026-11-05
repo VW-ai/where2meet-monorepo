@@ -40,6 +40,7 @@ import {
   centerBesidePanels,
   clampSearchRadius,
   fitPadding,
+  isInUncoveredMap,
   leftPanelsWidth,
   likedVenueMarkerStyle,
   likedVenueMarkerTitle,
@@ -90,6 +91,19 @@ interface DrawnRoute extends RouteStroke {
 
 const isV2 = () => useUiVersionStore.getState().version === 'v2';
 const animatesMarkers = () => isV2() && !prefersReducedMotion();
+
+/** Fits everyone with a starting point and the selected venue. False when that's a single point. */
+function frameGroup(map: google.maps.Map, extra?: { lat: number; lng: number }): boolean {
+  const { currentEvent: event, selectedVenue: venue } = useMeetingStore.getState();
+  const points = (event?.participants ?? []).filter(hasStartingPoint).map((p) => p.location!);
+  if (venue) points.push(venue.location);
+  if (extra) points.push(extra);
+  if (points.length < 2) return false;
+  const bounds = new google.maps.LatLngBounds();
+  points.forEach((point) => bounds.extend(point));
+  map.fitBounds(bounds, fitPadding(useUIStore.getState().isVenueInfoOpen));
+  return true;
+}
 const routeFocused = (participantId: string, selectedId: string | null) =>
   participantId === DRAFT_PERSON_ID || selectedId === participantId || selectedId === null;
 
@@ -451,11 +465,15 @@ export function GoogleMapArea() {
     }
 
     // Publishing refreshes the event without moving anyone, and must not pull the map off the venue
+    const firstLook = pannedPositionsRef.current === null;
     const positionsMoved = pannedPositionsRef.current !== positionsKey;
     pannedPositionsRef.current = positionsKey;
 
-    // Smoothly pan to MEC center with offset for sidebar
-    if (map && (positionsMoved || !isV2())) {
+    if (map && positionsMoved && !firstLook && isV2() && validParticipants.length >= 2) {
+      // Someone new must land in view, and the group can be wider than a fixed zoom shows
+      frameGroup(map);
+    } else if (map && (positionsMoved || !isV2())) {
+      // Smoothly pan to MEC center with offset for sidebar
       // Get or set zoom level
       const targetZoom = validParticipants.length === 1 ? 14 : 13;
       const currentZoom = map.getZoom() || targetZoom;
@@ -709,6 +727,19 @@ export function GoogleMapArea() {
     const participant = currentEvent?.participants?.find((p) => p.id === selectedParticipantId);
 
     if (!participant?.location || !participant.location.lat || !participant.location.lng) return;
+
+    // A pin the viewer can already see stays put, so opening a row doesn't undo the group's framing
+    if (
+      version === 'v2' &&
+      isInUncoveredMap(
+        participant.location,
+        map.getBounds(),
+        map.getDiv(),
+        fitPadding(isVenueInfoOpen)
+      )
+    ) {
+      return;
+    }
 
     // Offset for sidebar (and venue detail panel if open)
     map.panTo(
@@ -1092,18 +1123,11 @@ export function GoogleMapArea() {
   // The new place may be off-screen. Only a new place moves the map, with everyone left in view.
   useEffect(() => {
     if (!map || !window.google || draftLat == null || draftLng == null) return;
-    const { currentEvent: event, selectedVenue: venue } = useMeetingStore.getState();
-    const { isVenueInfoOpen: venueOpen } = useUIStore.getState();
-    const others = (event?.participants ?? []).filter(hasStartingPoint).map((p) => p.location!);
-    if (venue) others.push(venue.location);
     const pin = { lat: draftLat, lng: draftLng };
-    if (others.length === 0) {
+    if (!frameGroup(map, pin)) {
+      const venueOpen = useUIStore.getState().isVenueInfoOpen;
       map.panTo(centerBesidePanels(pin, map.getZoom() || 14, leftPanelsWidth(venueOpen)));
-      return;
     }
-    const bounds = new google.maps.LatLngBounds(pin);
-    others.forEach((point) => bounds.extend(point));
-    map.fitBounds(bounds, fitPadding(venueOpen));
   }, [map, draftLat, draftLng]);
 
   // Smoothly pan to selected venue and center it in the visible area
