@@ -335,6 +335,10 @@ function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: bo
   const slowestPerson = participants.find((p) => p.id === slowest?.participantId);
   const me = participants.find((p) => p.id === myId);
   const focused = participants.find((p) => p.id === selectedParticipantId);
+  // On a phone this panel covers the list, so only a wider screen can have both in view
+  const listInView = useUIStore(
+    (state) => state.activeView === 'participant' && state.isSidebarVisible
+  );
   // Someone with a starting point but no route gets a row saying so, even if nobody has a route
   const hasTrips = routes.length > 0 || (hasJoined && participants.some(hasStartingPoint));
 
@@ -372,7 +376,11 @@ function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: bo
       ) : hasTrips ? (
         <>
           <TripRows myId={myId} />
-          {focused && <FocusBox person={focused} />}
+          {focused && (
+            <div className={cn(listInView && 'md:hidden')}>
+              <FocusBox person={focused} />
+            </div>
+          )}
         </>
       ) : (
         <p className="mt-2 text-[13px] text-v2-ink-2">

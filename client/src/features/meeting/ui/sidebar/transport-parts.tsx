@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, type ComponentType } from 'react';
-import { Bike, Bus, Car, PersonStanding } from 'lucide-react';
+import { Bike, Bus, Car, ChevronDown, PersonStanding } from 'lucide-react';
 import type { Participant } from '@/entities';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useChangeParticipantMode } from '@/features/meeting/hooks/useParticipantActions';
 import {
   participantRights,
   viewerFromAuth,
+  type ParticipantRights,
   type RowTag,
 } from '@/features/meeting/lib/participant-rights';
 import { hasStartingPoint, routeKey } from '@/features/meeting/lib/person-routes';
@@ -31,15 +32,15 @@ const messages = defineMessages({
     howTheyGo: (name: string) => `How ${name} gets there`,
     noRoute: 'No route',
     checking: '…',
-    modeFrom: (label: string, place: string) => `${label} from ${place}`,
-    onlyThem: (name: string) => `Only ${name} can change this`,
-    hostSets: (host: string) => `${host} sets this`,
+    modeFrom: (label: string, place: string) => `${label} · ${place}`,
     compareYours: 'Compare your ways there',
     howIs: (name: string) => `How is ${name} getting there?`,
     chose: (name: string, mode: string) =>
       `${name} chose ${mode.toLowerCase()}. Only ${name} can change this.`,
     hostSet: (host: string, name: string, mode: string) =>
       `${host} set ${name} to ${mode.toLowerCase()}.`,
+    choseThis: (name: string) => `${name} chose this. Only ${name} can change it.`,
+    hostSetThis: (host: string, name: string) => `${host} set this for ${name}.`,
     going: (name: string, mode: string) => `${name} is going by ${mode.toLowerCase()}.`,
     youGoing: (mode: string) => `You're going by ${mode.toLowerCase()}.`,
   },
@@ -53,13 +54,13 @@ const messages = defineMessages({
     howTheyGo: (name: string) => `${name}怎么过去`,
     noRoute: '暂无路线',
     checking: '…',
-    modeFrom: (label: string, place: string) => `${label}，从${place}出发`,
-    onlyThem: (name: string) => `只有${name}能修改`,
-    hostSets: (host: string) => `由${host}设置`,
+    modeFrom: (label: string, place: string) => `${label} · ${place}`,
     compareYours: '比较一下怎么过去',
     howIs: (name: string) => `${name}怎么过去？`,
     chose: (name: string, mode: string) => `${name}选择了${mode}。只有${name}能修改。`,
     hostSet: (host: string, name: string, mode: string) => `${host}把${name}设为${mode}。`,
+    choseThis: (name: string) => `这是${name}自己选的，只有${name}能修改。`,
+    hostSetThis: (host: string, name: string) => `这是${host}替${name}设置的。`,
     going: (name: string, mode: string) => `${name}将${mode}前往。`,
     youGoing: (mode: string) => `你将${mode}前往。`,
   },
@@ -116,9 +117,9 @@ export function RowTagBadge({ tag }: { tag: RowTag }) {
 
 /**
  * What's known about each mode for this person at the selected venue. Comparing the other three
- * costs calls, so it only happens while `compare` is on, and each trip is asked for at most once.
+ * costs calls, so it only happens while someone is looking, and each trip is asked for at most once.
  */
-function useModeLookups(person: Participant, compare: boolean) {
+function useModeLookups(person: Participant) {
   const venueId = useMeetingStore((state) => state.selectedVenue?.id);
   const eventId = useMeetingStore((state) => state.currentEvent?.id);
   const token = useAuthStore((state) => state.organizerToken || state.participantToken);
@@ -128,12 +129,12 @@ function useModeLookups(person: Participant, compare: boolean) {
   const currentKey = venueId ? routeKey(venueId, person) : null;
 
   useEffect(() => {
-    if (!compare || !venueId || !eventId || !token || !routable) return;
+    if (!venueId || !eventId || !token || !routable) return;
     PICKER_MODES.filter(({ mode }) => mode !== person.travelMode).forEach(({ mode }) => {
       void useRouteCacheStore.getState().compare({ eventId, venueId, person, mode, token });
     });
     // The key stands for everything about the person that a trip depends on
-  }, [compare, currentKey, eventId, token, routable]);
+  }, [currentKey, eventId, token, routable]);
 
   return (mode: TravelMode) => {
     if (!venueId || !routable) return undefined;
@@ -144,105 +145,151 @@ function useModeLookups(person: Participant, compare: boolean) {
   };
 }
 
-/** Four modes, each with its time to the selected venue once known. Picking one commits it. */
-export function ModePicker({ person, compare }: { person: Participant; compare: boolean }) {
-  const t = useMessages(messages);
+/** Four modes, each saying whatever is known about it. */
+export function ModeGrid({
+  value,
+  onChange,
+  detailOf,
+  label,
+}: {
+  value: TravelMode;
+  onChange: (mode: TravelMode) => void;
+  detailOf: (mode: TravelMode, modeLabel: string) => string;
+  label: string;
+}) {
   const modeLabels = useMessages(travelModeMessages).modes;
+  return (
+    <div role="group" aria-label={label} className="grid grid-cols-4 gap-[3px]">
+      {PICKER_MODES.map(({ mode, ui, icon: Icon }) => (
+        <button
+          key={mode}
+          type="button"
+          aria-pressed={value === mode}
+          title={modeLabels[ui]}
+          onClick={(event) => {
+            event.stopPropagation();
+            onChange(mode);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape') event.stopPropagation();
+          }}
+          className={cn(
+            'grid min-w-0 justify-items-center gap-px rounded-[10px] px-0.5 pb-1.5 pt-[7px] text-center text-[11px] leading-tight tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-ink',
+            value === mode
+              ? 'bg-v2-ink font-semibold text-white'
+              : 'bg-white text-v2-ink-2 hover:text-v2-ink'
+          )}
+        >
+          <Icon className="size-[15px]" aria-hidden="true" />
+          <span className="max-w-full whitespace-nowrap">{detailOf(mode, modeLabels[ui])}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The person's own modes with their times to the selected venue. Picking one commits it. */
+export function ModePicker({ person }: { person: Participant }) {
+  const t = useMessages(messages);
   const locale = useLocale();
   const changeMode = useChangeParticipantMode();
-  const lookupOf = useModeLookups(person, compare);
+  const lookupOf = useModeLookups(person);
   const myId = useAuthStore((state) => state.organizerParticipantId || state.currentParticipantId);
 
   return (
-    <div
-      role="group"
-      aria-label={person.id === myId ? t.howYouGo : t.howTheyGo(person.name)}
-      className="mt-[5px] grid grid-cols-4 gap-[3px]"
-    >
-      {PICKER_MODES.map(({ mode, ui, icon: Icon }) => {
+    <ModeGrid
+      value={person.travelMode}
+      onChange={(mode) => void changeMode(person, mode)}
+      label={person.id === myId ? t.howYouGo : t.howTheyGo(person.name)}
+      detailOf={(mode, modeLabel) => {
         const lookup = lookupOf(mode);
-        const selected = person.travelMode === mode;
-        const detail =
-          lookup?.status === 'found'
-            ? formatTripTime(lookup.route.durationSeconds, locale)
-            : lookup?.status === 'none'
-              ? t.noRoute
-              : lookup?.status === 'loading'
-                ? t.checking
-                : modeLabels[ui];
-        return (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={selected}
-            title={modeLabels[ui]}
-            onClick={(event) => {
-              event.stopPropagation();
-              void changeMode(person, mode);
-            }}
-            onKeyDown={(event) => event.stopPropagation()}
-            className={cn(
-              'grid min-w-0 justify-items-center gap-px rounded-[10px] px-0.5 pb-1 pt-[5px] text-center text-[11px] leading-tight tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-ink',
-              selected
-                ? 'bg-v2-ink font-semibold text-white'
-                : 'bg-v2-wash text-v2-ink-2 hover:bg-[#efebe5]'
-            )}
-          >
-            <Icon className="size-[15px]" aria-hidden="true" />
-            <span className="max-w-full">{detail}</span>
-          </button>
-        );
-      })}
-    </div>
+        if (lookup?.status === 'found') return formatTripTime(lookup.route.durationSeconds, locale);
+        if (lookup?.status === 'none') return t.noRoute;
+        return lookup?.status === 'loading' ? t.checking : modeLabel;
+      }}
+    />
   );
 }
 
-/** A row the viewer can't change: how the person is going, and who could change it. */
-export function ModeLine({ person }: { person: Participant }) {
+/** One line under the name: how they're going and from where. */
+export function HowLine({
+  person,
+  open,
+  expandable,
+}: {
+  person: Participant;
+  open: boolean;
+  expandable: boolean;
+}) {
   const t = useMessages(messages);
   const modeLabels = useMessages(travelModeMessages).modes;
-  const hostName = useMeetingStore((state) => hostOf(state.currentEvent?.participants)?.name);
-  const isPublished = useMeetingStore((state) => !!state.currentEvent?.publishedAt);
   const { ui, icon: Icon } = pickerMode(person.travelMode);
-  const title = isPublished
-    ? undefined
-    : person.claimable
-      ? hostName && t.hostSets(hostName)
-      : t.onlyThem(person.name);
   return (
-    <div title={title} className="mt-0.5 flex items-center gap-[5px] text-[12.5px] text-v2-ink-2">
+    <div className="mt-0.5 flex items-center gap-[5px] text-[12.5px] text-v2-ink-2">
       <Icon className="size-3.5 flex-none" aria-hidden="true" />
-      <span className="truncate">
+      <span className="min-w-0 truncate" title={person.address ?? undefined}>
         {person.address ? t.modeFrom(modeLabels[ui], person.address) : modeLabels[ui]}
       </span>
+      {expandable && (
+        <ChevronDown
+          className={cn(
+            'ml-auto size-[13px] flex-none text-v2-ink-3 transition-transform duration-[180ms]',
+            open && 'rotate-180'
+          )}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 }
 
-/** Under the venue's trips: the selected person's compare, or a sentence on who decides. */
-export function FocusBox({ person }: { person: Participant }) {
+/** An open row the viewer can change: every way there, to compare. */
+export function CompareModes({
+  person,
+  rights,
+}: {
+  person: Participant;
+  rights: ParticipantRights;
+}) {
+  const t = useMessages(messages);
+  return (
+    <>
+      <b className="font-semibold text-v2-ink">
+        {rights.isSelf ? t.compareYours : t.howIs(person.name)}
+      </b>
+      <ModePicker person={person} />
+    </>
+  );
+}
+
+/** An open row the viewer can't change: who could. */
+export function WhoDecides({ person, rights }: { person: Participant; rights: ParticipantRights }) {
   const t = useMessages(messages);
   const modeLabels = useMessages(travelModeMessages).modes;
-  const rights = useParticipantRights(person);
   const hostName = useMeetingStore((state) => hostOf(state.currentEvent?.participants)?.name);
   const isPublished = useMeetingStore((state) => !!state.currentEvent?.publishedAt);
   const mode = modeLabels[pickerMode(person.travelMode).ui];
-
+  if (isPublished) {
+    return <span>{rights.isSelf ? t.youGoing(mode) : t.going(person.name, mode)}</span>;
+  }
   return (
-    <div className="mt-2.5 grid gap-0.5 rounded-xl bg-v2-coral-wash p-2.5 text-[12.5px] text-v2-ink-2 [&_[aria-pressed=false]]:bg-white">
+    <span>
+      {person.claimable && hostName
+        ? t.hostSetThis(hostName, person.name)
+        : t.choseThis(person.name)}
+    </span>
+  );
+}
+
+/** Under the venue's trips, where the list isn't showing: the same as the selected row's. */
+export function FocusBox({ person }: { person: Participant }) {
+  const rights = useParticipantRights(person);
+  return (
+    <div className="mt-2.5 grid gap-[5px] rounded-xl bg-v2-coral-wash p-2.5 text-[12.5px] text-v2-ink-2">
       {rights.editMode ? (
-        <>
-          <b className="font-semibold text-v2-ink">
-            {rights.isSelf ? t.compareYours : t.howIs(person.name)}
-          </b>
-          <ModePicker person={person} compare />
-        </>
-      ) : isPublished ? (
-        <span>{rights.isSelf ? t.youGoing(mode) : t.going(person.name, mode)}</span>
-      ) : person.claimable && hostName ? (
-        <span>{t.hostSet(hostName, person.name, mode)}</span>
+        <CompareModes person={person} rights={rights} />
       ) : (
-        <span>{t.chose(person.name, mode)}</span>
+        <WhoDecides person={person} rights={rights} />
       )}
     </div>
   );

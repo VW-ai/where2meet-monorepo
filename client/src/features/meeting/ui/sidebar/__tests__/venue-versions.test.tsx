@@ -329,31 +329,92 @@ describe('per-person transport', () => {
   it('tells others who decides', () => {
     arrange({ event: withMom, routes: [route('sam', 300)] });
     useMapStore.setState({ selectedParticipantId: 'jun' });
-    expect(panelText()).toContain('Jun chose car. Only Jun can change this.');
+    expect(panelText()).toContain('Jun chose this. Only Jun can change it.');
     useMapStore.setState({ selectedParticipantId: 'mom' });
-    expect(panelText()).toContain('Sam set Mom to car.');
+    expect(panelText()).toContain('Sam set this for Mom.');
   });
 
-  it('the organizer gets a picker on their row and added rows, and Remove on added rows', () => {
+  it('shows no picker or action on a closed row, only how each person is going', () => {
     arrange({ event: withMom, role: 'organizer' });
     useMapStore.setState({ selectedParticipantId: null });
     const text = people();
     expect(text).toContain('HOST');
     expect(text).toContain('ADDED BY YOU');
-    expect(text).toContain('Remove');
-    expect(text).not.toContain("That's me");
-    expect(pickers(peopleHtml())).toBe(2);
+    expect(text).toContain('Car · Hunters Point');
+    expect(text).not.toContain('Remove');
+    expect(text).not.toContain('Edit');
+    expect(pickers(peopleHtml())).toBe(0);
   });
 
-  it('a joined person gets one picker and can read the others', () => {
-    arrange({ event: withMom });
-    useMapStore.setState({ selectedParticipantId: null });
+  it('opens a row the organizer added with its modes, Edit and a named Remove', () => {
+    arrange({ event: withMom, role: 'organizer' });
+    useMapStore.setState({ selectedParticipantId: 'mom' });
     const text = people();
-    expect(text).toContain('ADDED BY SAM');
-    expect(text).toContain('Car from Hunters Point');
-    expect(peopleHtml()).toContain('title="Only Jun can change this"');
-    expect(text).not.toContain("That's me");
+    expect(text).toContain('How is Mom getting there?');
+    expect(text).toContain('Edit');
+    expect(text).toContain('Remove Mom');
     expect(pickers(peopleHtml())).toBe(1);
+  });
+
+  it('opens a joined row for the organizer with no picker, keeping Edit and Remove', () => {
+    arrange({ event: withMom, role: 'organizer' });
+    useMapStore.setState({ selectedParticipantId: 'jun' });
+    const text = people();
+    expect(text).toContain('Jun chose this. Only Jun can change it.');
+    expect(text).toContain('Edit');
+    expect(text).toContain('Remove');
+    expect(pickers(peopleHtml())).toBe(0);
+  });
+
+  it('opens your own row to compare, and someone else\'s to say who decides', () => {
+    arrange({ event: withMom });
+    useMapStore.setState({ selectedParticipantId: 'maya' });
+    expect(people()).toContain('Compare your ways there');
+    expect(people()).toContain('Leave');
+    expect(pickers(peopleHtml())).toBe(1);
+    useMapStore.setState({ selectedParticipantId: 'jun' });
+    expect(people()).toContain('Jun chose this. Only Jun can change it.');
+    expect(people()).not.toContain('Edit');
+    expect(pickers(peopleHtml())).toBe(0);
+  });
+
+  it('marks only the rows the viewer can change as opening to something to change', () => {
+    arrange({ event: withMom, role: 'organizer' });
+    useMapStore.setState({ selectedParticipantId: null });
+    expect(peopleHtml().match(/lucide-chevron-down/g)).toHaveLength(2);
+    arrange({ event: withMom, role: 'visitor' });
+    expect(peopleHtml().match(/lucide-chevron-down/g)).toBeNull();
+  });
+
+  it('hides the venue card compare from wider screens while the list is showing', () => {
+    arrange({ event: withMom, role: 'organizer', routes: [route('sam', 300)] });
+    useMapStore.setState({ selectedParticipantId: 'mom' });
+    useUIStore.setState({ activeView: 'participant', isSidebarVisible: true });
+    expect(renderToStaticMarkup(<VersionedVenuePanel />)).toContain('md:hidden');
+    useUIStore.setState({ activeView: 'venue' });
+    expect(renderToStaticMarkup(<VersionedVenuePanel />)).not.toContain('md:hidden');
+    useUIStore.setState({ activeView: 'participant', isSidebarVisible: false });
+    expect(renderToStaticMarkup(<VersionedVenuePanel />)).not.toContain('md:hidden');
+    useUIStore.setState({ isSidebarVisible: true });
+  });
+
+  it.each([
+    ['organizer', 'Add someone'],
+    ['visitor', 'Join this plan'],
+  ] as const)('gives the %s one way onto the list', (role, label) => {
+    arrange({ event: withMom, role });
+    expect(people()).toContain(label);
+    arrange({
+      event: { ...withMom, publishedAt: '2026-11-04T00:00:00Z', publishedVenueId: 'k' },
+      role,
+    });
+    expect(people()).not.toContain(label);
+  });
+
+  it('gives someone already on the list no way to add anyone', () => {
+    arrange({ event: withMom });
+    expect(people()).not.toContain('Add someone');
+    expect(people()).not.toContain('Join this plan');
   });
 
   it('a visitor can claim an added row, and only that row', () => {

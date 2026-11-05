@@ -1,36 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Heart, MapPin } from 'lucide-react';
 import type { Participant } from '@/entities';
 import { useClaimParticipant } from '@/features/meeting/hooks/useParticipantActions';
 import { formatTripTime } from '@/features/meeting/lib/route-summary';
+import { scrollToReveal } from '@/features/meeting/lib/scroll-to-reveal';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
-import { ModeLine, ModePicker, RowTagBadge, useParticipantRights } from './transport-parts';
+import { prefersReducedMotion } from '../map/map-motion';
+import {
+  CompareModes,
+  HowLine,
+  RowTagBadge,
+  useParticipantRights,
+  WhoDecides,
+} from './transport-parts';
 import { BUTTON, BUTTON_SMALL, ParticipantAvatar } from './venue-v2-parts';
 
 const messages = defineMessages({
   en: {
     you: 'You',
-    from: (place: string) => `From ${place}`,
     addLocation: 'Add starting location',
     noLikes: 'No likes yet',
     edit: 'Edit',
     remove: 'Remove',
+    removeNamed: (name: string) => `Remove ${name}`,
     leave: 'Leave',
     thatsMe: "That's me",
   },
   zh: {
     you: '我',
-    from: (place: string) => `从${place}出发`,
     addLocation: '添加出发地点',
     noLikes: '还没有喜欢的地点',
     edit: '编辑',
     remove: '移除',
+    removeNamed: (name: string) => `移除${name}`,
     leave: '退出',
     thatsMe: '这是我',
   },
@@ -61,6 +69,18 @@ function LikedSpots({ participantId }: { participantId: string }) {
   );
 }
 
+// A row that opens near the edge of the list, or was just added, should end up in full view.
+// Only the list moves: an ancestor that merely clips can still be scrolled, and must not be.
+function revealInList(row: HTMLElement) {
+  let list = row.parentElement;
+  while (list && !/auto|scroll/.test(getComputedStyle(list).overflowY)) list = list.parentElement;
+  if (!list) return;
+  const top = scrollToReveal(row.getBoundingClientRect(), list.getBoundingClientRect());
+  if (top !== 0) {
+    list.scrollBy({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  }
+}
+
 export function PersonRow({
   person,
   onEdit,
@@ -84,6 +104,11 @@ export function PersonRow({
     ? routes.find((r) => r.participantId === person.id && r.travelMode === person.travelMode)
     : undefined;
 
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selected && rowRef.current) revealInList(rowRef.current);
+  }, [selected]);
+
   const toggle = () => setSelectedParticipantId(selected ? null : person.id);
   const quiet = (run: () => void) => (event: React.MouseEvent) => {
     event.stopPropagation();
@@ -92,9 +117,10 @@ export function PersonRow({
 
   return (
     <div
+      ref={rowRef}
       role="button"
       tabIndex={0}
-      aria-pressed={selected}
+      aria-expanded={selected}
       onClick={toggle}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
@@ -113,14 +139,7 @@ export function PersonRow({
           <span className="truncate">{rights.isSelf ? t.you : person.name}</span>
           {rights.tag && <RowTagBadge tag={rights.tag} />}
         </div>
-        {rights.editMode ? (
-          <ModePicker person={person} compare={selected} />
-        ) : (
-          <ModeLine person={person} />
-        )}
-        {rights.editMode && person.address && (
-          <div className="mt-[3px] truncate text-xs text-v2-ink-3">{t.from(person.address)}</div>
-        )}
+        <HowLine person={person} open={selected} expandable={rights.editMode} />
         {!person.claimable && <LikedSpots participantId={person.id} />}
         {!person.address && onAddLocation && (
           <button
@@ -131,20 +150,6 @@ export function PersonRow({
             <MapPin className="size-3 flex-none" aria-hidden="true" />
             {t.addLocation}
           </button>
-        )}
-        {(rights.editDetails || rights.remove) && (
-          <div className="mt-1 flex gap-2.5">
-            {rights.editDetails && (
-              <button type="button" className={LINK} onClick={quiet(onEdit)}>
-                {t.edit}
-              </button>
-            )}
-            {rights.remove && (
-              <button type="button" className={LINK} onClick={quiet(onRemove)}>
-                {rights.isSelf ? t.leave : t.remove}
-              </button>
-            )}
-          </div>
         )}
         {rights.claim && (
           <button
@@ -160,13 +165,45 @@ export function PersonRow({
           </button>
         )}
       </div>
-      {route && (
+      {route ? (
         <span className="text-right text-xs leading-tight tabular-nums text-v2-ink-2">
           <strong className="block whitespace-nowrap text-sm font-semibold text-v2-ink">
             {formatTripTime(route.durationSeconds, locale)}
           </strong>
           {route.distance}
         </span>
+      ) : (
+        <span />
+      )}
+      {selected && (
+        <div
+          className="col-span-full grid cursor-default gap-1.5 text-[12.5px] text-v2-ink-2"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {rights.editMode ? (
+            <CompareModes person={person} rights={rights} />
+          ) : (
+            <WhoDecides person={person} rights={rights} />
+          )}
+          {(rights.editDetails || rights.remove) && (
+            <div className="flex gap-2.5">
+              {rights.editDetails && (
+                <button type="button" className={LINK} onClick={quiet(onEdit)}>
+                  {t.edit}
+                </button>
+              )}
+              {rights.remove && (
+                <button type="button" className={LINK} onClick={quiet(onRemove)}>
+                  {rights.isSelf
+                    ? t.leave
+                    : person.claimable
+                      ? t.removeNamed(person.name)
+                      : t.remove}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

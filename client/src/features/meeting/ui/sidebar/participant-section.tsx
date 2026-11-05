@@ -6,6 +6,7 @@ import { useParticipantStore } from '@/features/meeting/model/participant-store'
 import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-store';
 import { useToastStore } from '@/features/meeting/model/toast-store';
 import { useUiVersion } from '@/features/meeting/model/ui-version-store';
+import { listEntry, viewerFromAuth } from '@/features/meeting/lib/participant-rights';
 import { signInAsParticipant } from '@/features/meeting/hooks/useParticipantActions';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
@@ -16,6 +17,7 @@ import { ParticipantPill } from './participant-pill';
 import { PersonRow } from './person-row';
 import { ClaimList } from './claim-list';
 import { pickerMode } from './transport-parts';
+import { BUTTON } from './venue-v2-parts';
 import { participantClient } from '@/features/meeting/api';
 import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
@@ -52,7 +54,8 @@ const messages = defineMessages({
     ),
     leave: 'Leave',
     delete: 'Delete',
-    addPerson: 'Add a person',
+    addSomeone: 'Add someone',
+    addAnother: 'Add another',
     joinPlan: 'Join this plan',
     going: {
       car: 'going by car',
@@ -88,7 +91,8 @@ const messages = defineMessages({
     removeConfirm: (name: ReactNode) => <>确定要移除{name}吗？此操作无法撤销。</>,
     leave: '退出',
     delete: '删除',
-    addPerson: '添加一个人',
+    addSomeone: '添加一个人',
+    addAnother: '再加一个',
     joinPlan: '加入这个计划',
     going: {
       car: '驾车前往',
@@ -135,8 +139,14 @@ export function ParticipantSection() {
   const [lastAddedName, setLastAddedName] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
 
+  // Unmounting with the tab is what ends this: back on People it's "Add someone" again
+  const [addedSomeone, setAddedSomeone] = useState(false);
+
   const participantCount = currentEvent?.participants?.length || 0;
   const isPublished = !!currentEvent?.publishedAt;
+  const entry = listEntry(viewerFromAuth({ organizerParticipantId, currentParticipantId }), {
+    isPublished,
+  });
 
   // The viewer's own participant record, if they have one in this event
   const myParticipantId = organizerParticipantId || currentParticipantId;
@@ -285,6 +295,7 @@ export function ParticipantSection() {
               ),
             });
             setSelectedParticipantId(newParticipant.id);
+            setAddedSomeone(true);
             setShowAddForm(false);
             return;
           }
@@ -425,8 +436,21 @@ export function ParticipantSection() {
         />
       )}
 
+      {version === 'v2' && !showAddForm && entry && (
+        <div className="sticky top-0 z-[3] bg-[linear-gradient(#fff_82%,transparent)] pb-2 pt-1.5">
+          <button
+            type="button"
+            className={cn(BUTTON.ink, 'w-full')}
+            onClick={() => setShowAddForm(true)}
+          >
+            <Plus aria-hidden="true" />
+            {entry === 'join' ? t.joinPlan : addedSomeone ? t.addAnother : t.addSomeone}
+          </button>
+        </div>
+      )}
+
       {/* Add Participant Button (organizer mode) */}
-      {!showAddForm && isOrganizerMode && (
+      {version === 'classic' && !showAddForm && isOrganizerMode && (
         <button
           onClick={() => setShowAddForm(true)}
           disabled={isPublished}
@@ -439,12 +463,12 @@ export function ParticipantSection() {
           title={isPublished ? t.addDisabled : undefined}
         >
           <Plus className="w-4 h-4" />
-          {version === 'v2' ? t.addPerson : t.addParticipant}
+          {t.addParticipant}
         </button>
       )}
 
       {/* Join Event Button (non-organizer, not yet joined) */}
-      {!showAddForm && !isOrganizerMode && !isParticipantMode && (
+      {version === 'classic' && !showAddForm && !isOrganizerMode && !isParticipantMode && (
         <button
           onClick={() => setShowAddForm(true)}
           disabled={isPublished}
@@ -457,7 +481,7 @@ export function ParticipantSection() {
           title={isPublished ? t.joinDisabled : undefined}
         >
           <UserPlus className="w-4 h-4" />
-          {version === 'v2' ? t.joinPlan : t.joinEvent}
+          {t.joinEvent}
         </button>
       )}
 
