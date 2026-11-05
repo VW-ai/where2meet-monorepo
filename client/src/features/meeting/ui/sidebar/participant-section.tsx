@@ -7,7 +7,10 @@ import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-sto
 import { useToastStore } from '@/features/meeting/model/toast-store';
 import { useUiVersion } from '@/features/meeting/model/ui-version-store';
 import { listEntry, viewerFromAuth } from '@/features/meeting/lib/participant-rights';
-import { signInAsParticipant } from '@/features/meeting/hooks/useParticipantActions';
+import {
+  signInAsParticipant,
+  useRemoveAddedPerson,
+} from '@/features/meeting/hooks/useParticipantActions';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { Users, Plus, BarChart3, UserPlus } from 'lucide-react';
@@ -54,6 +57,7 @@ const messages = defineMessages({
     ),
     leave: 'Leave',
     delete: 'Delete',
+    undo: 'Undo',
     addSomeone: 'Add someone',
     addAnother: 'Add another',
     joinPlan: 'Join this plan',
@@ -91,6 +95,7 @@ const messages = defineMessages({
     removeConfirm: (name: ReactNode) => <>确定要移除{name}吗？此操作无法撤销。</>,
     leave: '退出',
     delete: '删除',
+    undo: '撤销',
     addSomeone: '添加一个人',
     addAnother: '再加一个',
     joinPlan: '加入这个计划',
@@ -123,6 +128,7 @@ export function ParticipantSection() {
   const locale = useLocale();
   const version = useUiVersion();
   const showToast = useToastStore((state) => state.showToast);
+  const { undoAdd, removeWithUndo } = useRemoveAddedPerson();
 
   // Helper to get travel time for a participant from calculated routes
   const getTravelTime = (participantId: string): string | undefined => {
@@ -293,6 +299,7 @@ export function ParticipantSection() {
                 newParticipant.name,
                 t.going[pickerMode(newParticipant.travelMode).ui]
               ),
+              action: { label: t.undo, run: () => void undoAdd(newParticipant) },
             });
             setSelectedParticipantId(newParticipant.id);
             setAddedSomeone(true);
@@ -552,7 +559,11 @@ export function ParticipantSection() {
                 key={participant.id}
                 person={participant}
                 onEdit={() => handleEditParticipant(participant)}
-                onRemove={() => handleDeleteParticipant(participant.id)}
+                onRemove={() =>
+                  participant.claimable
+                    ? void removeWithUndo(participant)
+                    : handleDeleteParticipant(participant.id)
+                }
                 onAddLocation={
                   participant.id === myParticipantId && iNeedLocation
                     ? () => {

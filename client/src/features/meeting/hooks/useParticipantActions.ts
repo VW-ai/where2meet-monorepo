@@ -23,6 +23,9 @@ const messages = defineMessages({
     taken: (name: string) => `Someone else just took ${name}. Join as someone new instead.`,
     claimFailed: "That didn't work. Try again.",
     undoFailed: "Couldn't undo that. Try again.",
+    removed: (name: string) => `${name} removed.`,
+    removeFailed: (name: string) => `Couldn't remove ${name}. Try again.`,
+    takenOver: (name: string) => `${name} has taken this over, so they stay.`,
   },
   zh: {
     modeFailed: (name: string) => `没能修改${name}的出行方式，请重试。`,
@@ -33,6 +36,9 @@ const messages = defineMessages({
     taken: (name: string) => `${name}刚刚被别人认领了，你可以以新成员身份加入。`,
     claimFailed: '操作没有成功，请重试。',
     undoFailed: '没能撤销，请重试。',
+    removed: (name: string) => `已移除${name}。`,
+    removeFailed: (name: string) => `没能移除${name}，请重试。`,
+    takenOver: (name: string) => `${name}已经自己接管了，所以会留下。`,
   },
 });
 
@@ -44,6 +50,27 @@ function patchParticipant(id: string, fields: Partial<Participant>) {
     ...currentEvent,
     participants: currentEvent.participants.map((p) => (p.id === id ? { ...p, ...fields } : p)),
   });
+}
+
+// The stream may already have brought either change
+function putInEvent(person: Participant) {
+  const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
+  if (!currentEvent || currentEvent.participants.some((p) => p.id === person.id)) return;
+  useParticipantStore.getState().addParticipant(person);
+  setCurrentEvent({ ...currentEvent, participants: [...currentEvent.participants, person] });
+}
+
+function takeOutOfEvent(id: string) {
+  const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
+  useParticipantStore.getState().removeParticipant(id);
+  if (currentEvent) {
+    setCurrentEvent({
+      ...currentEvent,
+      participants: currentEvent.participants.filter((p) => p.id !== id),
+    });
+  }
+  const { selectedParticipantId, setSelectedParticipantId } = useMapStore.getState();
+  if (selectedParticipantId === id) setSelectedParticipantId(null);
 }
 
 // A visitor has no stream, so their list is as old as the page
@@ -157,4 +184,73 @@ export function useClaimParticipant() {
     },
     [t]
   );
+}
+
+/** A row nobody has claimed holds no votes or token, so taking it out can be undone in full. */
+export function useRemoveAddedPerson() {
+  const t = useMessages(messages);
+
+  const undoAdd = useCallback(
+    async (person: Participant) => {
+      const eventId = useMeetingStore.getState().currentEvent?.id;
+      const token = useAuthStore.getState().organizerToken;
+      if (!eventId || !token) return;
+      const { showToast } = useToastStore.getState();
+      const current = useMeetingStore
+        .getState()
+        .currentEvent?.participants.find((p) => p.id === person.id);
+      if (current && !current.claimable) {
+        showToast({ message: t.takenOver(person.name) });
+        return;
+      }
+      try {
+        await participantClient.remove(eventId, person.id, token);
+        takeOutOfEvent(person.id);
+      } catch (error) {
+        console.error('Error undoing an add:', error);
+        showToast({ message: t.undoFailed });
+      }
+    },
+    [t]
+  );
+
+  const removeWithUndo = useCallback(
+    async (person: Participant) => {
+      const eventId = useMeetingStore.getState().currentEvent?.id;
+      const token = useAuthStore.getState().organizerToken;
+      if (!eventId || !token) return;
+      const { showToast } = useToastStore.getState();
+
+      const putBack = async () => {
+        if (!person.address) return;
+        try {
+          putInEvent(
+            await participantClient.add(
+              eventId,
+              { name: person.name, address: person.address, travelMode: person.travelMode },
+              token
+            )
+          );
+        } catch (error) {
+          console.error('Error undoing a removal:', error);
+          showToast({ message: t.undoFailed });
+        }
+      };
+
+      try {
+        await participantClient.remove(eventId, person.id, token);
+        takeOutOfEvent(person.id);
+        showToast({
+          message: t.removed(person.name),
+          action: { label: t.undo, run: () => void putBack() },
+        });
+      } catch (error) {
+        console.error('Error removing a participant:', error);
+        showToast({ message: t.removeFailed(person.name) });
+      }
+    },
+    [t]
+  );
+
+  return { undoAdd, removeWithUndo };
 }
