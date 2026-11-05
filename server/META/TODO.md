@@ -191,5 +191,5 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 
 ### Participant Preview
 - [x] Server: `POST /api/events/:id/participant-preview`
-- [ ] Client: draft pin and route on the Google map while adding someone
+- [x] Client: draft pin and route on the Google map while adding someone
 - [ ] Decide whether AMap should draw the draft too; today the form shows minutes only
