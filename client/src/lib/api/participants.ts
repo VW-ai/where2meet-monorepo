@@ -12,7 +12,22 @@ import {
   Participant,
 } from '@/entities';
 import { parseParticipant } from '@/entities/participant/parse';
+import type { Distance, Duration, Location, TravelMode } from '@/shared/types/map';
 import { backendCall } from './client';
+
+export interface ParticipantPreviewRoute {
+  travelMode: TravelMode;
+  distance: Distance;
+  duration: Duration;
+  polyline: string;
+}
+
+export interface ParticipantPreview {
+  location: Location;
+  formattedAddress: string;
+  /** One per mode that has a route. Empty when no venue was asked about. */
+  routes: ParticipantPreviewRoute[];
+}
 
 export const participantsApi = {
   /**
@@ -35,6 +50,14 @@ export const participantsApi = {
       headers: { Authorization: `Bearer ${organizerToken}` },
       body: JSON.stringify(data),
     }).then(parseParticipant),
+
+  /** Where someone would start and their trips to the venue, before they're added. Saves nothing. */
+  preview: (eventId: string, data: { address: string; venueId?: string }, organizerToken: string) =>
+    backendCall<ParticipantPreview>(`/api/events/${eventId}/participant-preview`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${organizerToken}` },
+      body: JSON.stringify(data),
+    }),
 
   /**
    * Update a participant (requires token)

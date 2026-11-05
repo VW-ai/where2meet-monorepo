@@ -57,3 +57,13 @@ export function participantRights(
     tag: rowTag(viewer, person, hostName),
   };
 }
+
+/** The way onto the list this viewer gets, if any. Someone already on it has none of their own. */
+export function listEntry(
+  viewer: Viewer,
+  { isPublished }: { isPublished: boolean }
+): 'add' | 'join' | null {
+  if (isPublished) return null;
+  if (viewer.kind === 'organizer') return 'add';
+  return viewer.kind === 'visitor' ? 'join' : null;
+}

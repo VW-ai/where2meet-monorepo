@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { participantRights, viewerFromAuth, type Viewer } from '../participant-rights';
+import { listEntry, participantRights, viewerFromAuth, type Viewer } from '../participant-rights';
 
 const SAM = { id: 'sam', isOrganizer: true, claimable: false };
 const MAYA = { id: 'maya', isOrganizer: false, claimable: false };
@@ -99,5 +99,18 @@ describe('participantRights tag', () => {
 
   it('leaves someone who joined themselves untagged', () => {
     expect(rights(HOST, MAYA).tag).toBeNull();
+  });
+});
+
+describe('listEntry', () => {
+  it('lets the organizer add, a visitor join, and nobody else in', () => {
+    expect(listEntry(HOST, { isPublished: false })).toBe('add');
+    expect(listEntry(VISITOR, { isPublished: false })).toBe('join');
+    expect(listEntry(JOINED, { isPublished: false })).toBeNull();
+  });
+
+  it('closes for everyone once the plan is published', () => {
+    expect(listEntry(HOST, { isPublished: true })).toBeNull();
+    expect(listEntry(VISITOR, { isPublished: true })).toBeNull();
   });
 });

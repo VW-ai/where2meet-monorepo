@@ -55,6 +55,18 @@ const SERVER_HEX_COLORS: Record<string, string> = {
 };
 
 /**
+ * The color the server will give the next person (assignColor in server/src/utils/colors.ts):
+ * the first unused one in palette order, then cycling by count.
+ */
+export function nextParticipantColor(participants: ReadonlyArray<{ color: string }>): string {
+  const palette = Object.keys(SERVER_HEX_COLORS);
+  const used = new Set(participants.map((person) => person.color));
+  return (
+    palette.find((color) => !used.has(color)) ?? palette[participants.length % palette.length]
+  );
+}
+
+/**
  * A participant's color as hex, from a server palette name or an older Tailwind class.
  */
 export function getHexColor(color: string | undefined): string {
