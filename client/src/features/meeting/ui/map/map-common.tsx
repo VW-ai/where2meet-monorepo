@@ -68,6 +68,17 @@ export function leftPanelsWidth(includeVenuePanel: boolean): number {
   return includeVenuePanel ? panelWidth + 24 + panelWidth : panelWidth;
 }
 
+/** What covers the map on each side, so a fitted view lands where it can be seen. */
+export function fitPadding(includeVenuePanel: boolean): google.maps.Padding {
+  if (window.innerWidth >= 768) {
+    return { top: 96, right: 48, bottom: 48, left: leftPanelsWidth(includeVenuePanel) + 48 };
+  }
+  const top = 130;
+  const sheet = document.querySelector('.meeting-sheet')?.getBoundingClientRect().height ?? 0;
+  // An expanded sheet leaves little map, and a view must still fit in what's left
+  return { top, right: 32, bottom: Math.min(sheet + 32, window.innerHeight - top - 120), left: 32 };
+}
+
 /**
  * Map center that shows `point` in the middle of the map area left uncovered
  * by `leftOffset` pixels of panels, at `zoom` (256px tiles at zoom 0).

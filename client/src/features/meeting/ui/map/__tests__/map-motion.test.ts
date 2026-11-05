@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createMarkerDrops,
+  draftPinImage,
   drawStroke,
   revealStrokes,
   routePillImage,
@@ -232,5 +233,19 @@ describe('routeStrokeStyle', () => {
     expect(stroke.polyline.setOptions.mock.lastCall?.[0].icons[0]).toBe(icons[0]);
     drawStroke({ ...stroke, icons });
     expect(stroke.polyline.setOptions).toHaveBeenLastCalledWith({ icons });
+  });
+});
+
+describe('draftPinImage', () => {
+  const svg = (spin: boolean) => decodeURIComponent(draftPinImage('#3B82F6', spin).url);
+
+  it("draws the next person's color with a dashed ring", () => {
+    expect(svg(true)).toContain('stroke="#3B82F6" stroke-width="2" stroke-dasharray="4 4"');
+    expect(svg(true)).toContain('fill="#3B82F6"');
+  });
+
+  it('spins only when motion is welcome', () => {
+    expect(svg(true)).toContain('animateTransform');
+    expect(svg(false)).not.toContain('animateTransform');
   });
 });

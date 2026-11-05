@@ -6,6 +6,8 @@ import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useMapStore, type RouteInfo } from '@/features/meeting/model/map-store';
+import { useDraftPersonStore } from '@/features/meeting/model/draft-person-store';
+import { DRAFT_PERSON_ID } from '@/features/meeting/lib/add-person-form';
 import { loadGoogleMaps } from '@/shared/lib/google-maps/loader';
 import { calculateMEC, calculateSearchRadius } from '@/shared/lib/mec';
 import { getHexColor } from '@/features/meeting/lib/participant-colors';
@@ -37,6 +39,7 @@ import {
   UI_TO_TRAVEL_MODE,
   centerBesidePanels,
   clampSearchRadius,
+  fitPadding,
   leftPanelsWidth,
   likedVenueMarkerStyle,
   likedVenueMarkerTitle,
@@ -45,6 +48,7 @@ import {
 } from './map-common';
 import {
   createMarkerDrops,
+  draftPinImage,
   prefersReducedMotion,
   pulseAt,
   revealStrokes,
@@ -87,7 +91,7 @@ interface DrawnRoute extends RouteStroke {
 const isV2 = () => useUiVersionStore.getState().version === 'v2';
 const animatesMarkers = () => isV2() && !prefersReducedMotion();
 const routeFocused = (participantId: string, selectedId: string | null) =>
-  selectedId === participantId || selectedId === null;
+  participantId === DRAFT_PERSON_ID || selectedId === participantId || selectedId === null;
 
 export function GoogleMapArea() {
   const locale = useLocale();
@@ -116,6 +120,12 @@ export function GoogleMapArea() {
     setCalculatingRoutes,
     travelMode: uiTravelMode,
   } = useMapStore();
+
+  const draft = useDraftPersonStore((state) => state.draft);
+  const draftLat = draft?.location.lat;
+  const draftLng = draft?.location.lng;
+  const draftColor = draft?.color;
+  const draftRoute = draft?.route ?? null;
 
   // Get ALL voted venue IDs from voting-store (from any participant)
   const savedVenues = getAllVotedVenueIds();
@@ -772,6 +782,34 @@ export function GoogleMapArea() {
     [addRoutePill]
   );
 
+  const drawRouteLine = useCallback(
+    (route: RouteInfo, color: string): DrawnRoute => {
+      const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline);
+      const style = routeStrokeStyle(
+        route.travelMode,
+        routeFocused(route.participantId, useMapStore.getState().selectedParticipantId)
+      );
+      const drawn: DrawnRoute = {
+        participantId: route.participantId,
+        polyline: new google.maps.Polyline({
+          path: decodedPath,
+          geodesic: true,
+          strokeColor: color,
+          map,
+          ...style,
+        }),
+        path: decodedPath.map((point) => point.toJSON()),
+        color,
+        icons: style.icons,
+        durationSeconds: route.durationSeconds,
+        lineMode: route.travelMode,
+      };
+      routePolylinesRef.current.push(drawn);
+      return drawn;
+    },
+    [map]
+  );
+
   const resetRoutes = useCallback(() => {
     // Whatever is on its way is for a venue, viewer or version that no longer applies
     routeRequestRef.current++;
@@ -902,32 +940,9 @@ export function GoogleMapArea() {
       current.forEach(removeRouteDrawing);
       putRoutes(current, fresh);
       revealRoutes(
-        fresh.map((route) => {
-          const color = getHexColor(peopleById.get(route.participantId)?.color ?? '');
-          const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline);
-          const focused = routeFocused(
-            route.participantId,
-            useMapStore.getState().selectedParticipantId
-          );
-          const style = routeStrokeStyle(route.travelMode, focused);
-          const drawn: DrawnRoute = {
-            participantId: route.participantId,
-            polyline: new google.maps.Polyline({
-              path: decodedPath,
-              geodesic: true,
-              strokeColor: color,
-              map,
-              ...style,
-            }),
-            path: decodedPath.map((point) => point.toJSON()),
-            color,
-            icons: style.icons,
-            durationSeconds: route.durationSeconds,
-            lineMode: route.travelMode,
-          };
-          routePolylinesRef.current.push(drawn);
-          return drawn;
-        })
+        fresh.map((route) =>
+          drawRouteLine(route, getHexColor(peopleById.get(route.participantId)?.color ?? ''))
+        )
       );
     };
 
@@ -1002,6 +1017,7 @@ export function GoogleMapArea() {
     setCalculatingRoutes,
     removeRouteDrawing,
     revealRoutes,
+    drawRouteLine,
   ]);
 
   // Each version's routes are its own: switching drops what's drawn, and the other kind fetches
@@ -1048,6 +1064,47 @@ export function GoogleMapArea() {
     if (prefersReducedMotion()) return;
     return pulseAt(map, selectedVenueLocation);
   }, [map, selectedVenueId, version]);
+
+  // Someone being added: on the map, but not in anyone's count or the routes everyone shares
+  useEffect(() => {
+    if (!map || !window.google || draftLat == null || draftLng == null) return;
+    const image = draftPinImage(getHexColor(draftColor), !prefersReducedMotion());
+    const marker = new google.maps.Marker({
+      position: { lat: draftLat, lng: draftLng },
+      map,
+      clickable: false,
+      optimized: false,
+      zIndex: 90,
+      icon: {
+        url: image.url,
+        anchor: new google.maps.Point(image.width / 2, image.height / 2),
+      },
+    });
+    return () => marker.setMap(null);
+  }, [map, draftLat, draftLng, draftColor]);
+
+  useEffect(() => {
+    if (!map || !window.google || !draftRoute) return;
+    revealRoutes([drawRouteLine(draftRoute, getHexColor(draftColor))]);
+    return () => removeRouteDrawing(DRAFT_PERSON_ID);
+  }, [map, draftRoute, draftColor, drawRouteLine, revealRoutes, removeRouteDrawing]);
+
+  // The new place may be off-screen. Only a new place moves the map, with everyone left in view.
+  useEffect(() => {
+    if (!map || !window.google || draftLat == null || draftLng == null) return;
+    const { currentEvent: event, selectedVenue: venue } = useMeetingStore.getState();
+    const { isVenueInfoOpen: venueOpen } = useUIStore.getState();
+    const others = (event?.participants ?? []).filter(hasStartingPoint).map((p) => p.location!);
+    if (venue) others.push(venue.location);
+    const pin = { lat: draftLat, lng: draftLng };
+    if (others.length === 0) {
+      map.panTo(centerBesidePanels(pin, map.getZoom() || 14, leftPanelsWidth(venueOpen)));
+      return;
+    }
+    const bounds = new google.maps.LatLngBounds(pin);
+    others.forEach((point) => bounds.extend(point));
+    map.fitBounds(bounds, fitPadding(venueOpen));
+  }, [map, draftLat, draftLng]);
 
   // Smoothly pan to selected venue and center it in the visible area
   useEffect(() => {

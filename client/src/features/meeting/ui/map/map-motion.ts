@@ -172,6 +172,20 @@ export function routePillImage(label: string, color: string) {
   return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, width, height };
 }
 
+/**
+ * Someone not on the list yet: a dot in their color inside a dashed ring. The ring spins by SMIL,
+ * which keeps running in an SVG image only if the marker is drawn with `optimized: false`.
+ */
+export function draftPinImage(color: string, spin: boolean) {
+  const size = 44;
+  const center = size / 2;
+  const spinner = spin
+    ? `<animateTransform attributeName="transform" type="rotate" from="0 ${center} ${center}" to="360 ${center} ${center}" dur="5s" repeatCount="indefinite"/>`
+    : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${center}" cy="${center}" r="18" fill="none" stroke="${color}" stroke-width="2" stroke-dasharray="4 4">${spinner}</circle><circle cx="${center}" cy="${center}" r="10" fill="${color}" stroke="#ffffff" stroke-width="2"/></svg>`;
+  return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, width: size, height: size };
+}
+
 /** One expanding ring on the selected venue. Returns a cancel. */
 export function pulseAt(map: google.maps.Map, position: PathPoint): () => void {
   const ring = new google.maps.Marker({ position, map, clickable: false, zIndex: 40 });
