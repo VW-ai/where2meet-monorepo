@@ -47,6 +47,9 @@
   occasion: weekend-hangout
 - phrase: where to hang out with friends
   occasion: weekend-hangout
+- phrase: things to do with friends
+  occasion: weekend-hangout
+  note: A list search for a weekend plan with friends, added 2026-11-05 because every other weekend hangout phrase already has a post
 - phrase: family outing
   occasion: family-outing
 - phrase: team offsite location
