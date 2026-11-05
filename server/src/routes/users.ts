@@ -21,7 +21,14 @@ import {
   toUserEventResponse,
   toClaimEventResponse,
 } from "../mappers/user.mapper.js";
-import type { UserResponse, UserEventsListResponse, ClaimEventResponse } from "../dto/index.js";
+import type {
+  UserResponse,
+  UserEventsListResponse,
+  ClaimEventResponse,
+  LogoutResponse,
+} from "../dto/index.js";
+import { getClearSessionCookieOptions, SESSION_COOKIE_NAME } from "../utils/session.js";
+import { isProduction } from "../lib/config.js";
 
 /**
  * Registers user routes on the Fastify instance.
@@ -29,6 +36,7 @@ import type { UserResponse, UserEventsListResponse, ClaimEventResponse } from ".
  * Endpoints:
  * - GET /api/users/me - Get current user's profile
  * - PATCH /api/users/me - Update current user's profile
+ * - DELETE /api/users/me - Permanently delete the current user's account
  * - GET /api/users/me/events - List current user's events
  * - POST /api/users/me/events/claim - Claim an event with participant token
  */
@@ -84,6 +92,30 @@ export function userRoutes(fastify: FastifyInstance): void {
       const user = await userService.updateProfile(userId, parseResult.data);
 
       const response: UserResponse = toUserResponse(user);
+
+      return reply.send(response);
+    }
+  );
+
+  /**
+   * DELETE /api/users/me
+   * Permanently deletes the current user's account and ends their session.
+   */
+  fastify.delete(
+    "/api/users/me",
+    {
+      preHandler: [requireSession],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      if (!request.userAuth) {
+        throw new Error("Session required");
+      }
+
+      await userService.deleteAccount(request.userAuth.userId);
+
+      void reply.setCookie(SESSION_COOKIE_NAME, "", getClearSessionCookieOptions(isProduction));
+
+      const response: LogoutResponse = { success: true };
 
       return reply.send(response);
     }
