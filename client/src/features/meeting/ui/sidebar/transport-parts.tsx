@@ -170,9 +170,6 @@ export function ModeGrid({
             event.stopPropagation();
             onChange(mode);
           }}
-          onKeyDown={(event) => {
-            if (event.key !== 'Escape') event.stopPropagation();
-          }}
           className={cn(
             'grid min-w-0 justify-items-center gap-px rounded-[10px] px-0.5 pb-1.5 pt-[7px] text-center text-[11px] leading-tight tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-v2-ink',
             value === mode

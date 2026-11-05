@@ -32,6 +32,7 @@ const messages = defineMessages({
     useDefaultAddress: 'Use my saved address',
     noRoute: 'No route',
     add: {
+      formLabel: 'Add a person',
       nameLabel: 'Their name',
       namePlaceholder: "Who's coming?",
       sendLink: 'Or send them the link instead',
@@ -43,6 +44,7 @@ const messages = defineMessages({
       submitting: 'Adding…',
     },
     join: {
+      formLabel: 'Join the plan',
       title: (event: string) => `Join ${event}`,
       nameLabel: 'Your name',
       namePlaceholder: 'Your name',
@@ -59,6 +61,7 @@ const messages = defineMessages({
     useDefaultAddress: '使用我保存的地址',
     noRoute: '暂无路线',
     add: {
+      formLabel: '添加一个人',
       nameLabel: 'TA 的名字',
       namePlaceholder: '谁要来？',
       sendLink: '或者把链接发给 TA',
@@ -69,6 +72,7 @@ const messages = defineMessages({
       submitting: '添加中…',
     },
     join: {
+      formLabel: '加入计划',
       title: (event: string) => `加入“${event}”`,
       nameLabel: '你的名字',
       namePlaceholder: '你的名字',
@@ -206,7 +210,8 @@ export function AddPersonForm({
 
   return (
     <form
-      aria-label={kind === 'join' ? words.nameLabel : t.add.nameLabel}
+      aria-label={words.formLabel}
+      data-own-focus-ring
       onSubmit={submit}
       onKeyDown={handleKeyDown}
       className="grid gap-2.5 rounded-2xl bg-v2-wash p-2.5 text-[13px] text-v2-ink"
