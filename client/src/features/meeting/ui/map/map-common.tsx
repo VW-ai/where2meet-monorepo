@@ -50,6 +50,18 @@ export function clampSearchRadius(radius: number): number {
   return Math.min(Math.max(radius, 500), 15000);
 }
 
+// zIndex 200 ensures circle handles are above markers (participant: 100, venue: 50)
+// so the circle can be dragged/resized even when overlapping with markers
+export const CLASSIC_SEARCH_CIRCLE_STYLE = {
+  fillColor: '#1F2937', // gray-800
+  fillOpacity: 0.05,
+  strokeColor: '#374151', // gray-700
+  strokeOpacity: 0.5,
+  strokeWeight: 2,
+  editable: true,
+  zIndex: 200,
+};
+
 // Star path for liked venue markers (SVG path)
 export const STAR_PATH = 'M 0,-1 0.588,0.809 -0.951,-0.309 0.951,-0.309 -0.588,0.809 Z';
 

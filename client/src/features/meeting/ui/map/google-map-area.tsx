@@ -27,6 +27,7 @@ import { useRouteCacheStore } from '@/features/meeting/model/route-cache-store';
 import type { TravelMode } from '@/shared/types/map';
 import { useUiVersion, useUiVersionStore } from '@/features/meeting/model/ui-version-store';
 import {
+  CLASSIC_SEARCH_CIRCLE_STYLE,
   DEFAULT_SEARCH_RADIUS,
   MapLoadError,
   MapLoading,
@@ -54,6 +55,7 @@ import {
   type RouteStroke,
 } from './map-motion';
 import { usePersonPins, useVenuePins } from './use-map-pins';
+import { useSearchArea } from './use-search-area';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
@@ -267,20 +269,12 @@ export function GoogleMapArea() {
     if (searchCircleRef.current) return;
 
     // Create search radius circle (black/dark, editable) at default center
-    // zIndex 200 ensures circle handles are above markers (participant: 100, venue: 50)
-    // so the circle can be dragged/resized even when overlapping with markers
     searchCircleRef.current = new google.maps.Circle({
       center: defaultCenter,
       radius: DEFAULT_SEARCH_RADIUS,
       map,
-      fillColor: '#1F2937', // gray-800
-      fillOpacity: 0.05,
-      strokeColor: '#374151', // gray-700
-      strokeOpacity: 0.5,
-      strokeWeight: 2,
-      editable: true,
+      ...CLASSIC_SEARCH_CIRCLE_STYLE,
       draggable: true, // Allow dragging when no participants
-      zIndex: 200,
     });
 
     // Set initial search radius in store
@@ -401,7 +395,7 @@ export function GoogleMapArea() {
     // If no valid participants, keep the default search circle
     if (validParticipants.length === 0) {
       // Ensure search circle is draggable when no participants
-      if (searchCircleRef.current) {
+      if (searchCircleRef.current && !isV2()) {
         searchCircleRef.current.setDraggable(true);
       }
       return;
@@ -434,6 +428,7 @@ export function GoogleMapArea() {
     if (validParticipants.length >= 2) {
       // Create MEC circle (yellow, very low visibility)
       mecCircleRef.current = new google.maps.Circle({
+        visible: !isV2(),
         center: newCenter,
         radius: mec.radius,
         map,
@@ -451,7 +446,7 @@ export function GoogleMapArea() {
       searchCircleRef.current.setCenter(newCenter);
       searchCircleRef.current.setRadius(newSearchRadius);
       // Disable dragging when we have participants (circle follows MEC)
-      searchCircleRef.current.setDraggable(false);
+      if (!isV2()) searchCircleRef.current.setDraggable(false);
 
       // Also update search circle store state
       setSearchCircle({
@@ -715,6 +710,7 @@ export function GoogleMapArea() {
     markerDrops,
   ]);
 
+  useSearchArea(map, searchCircleRef, mecCircleRef, version === 'v2');
   useVenuePins(map, version === 'v2');
   usePersonPins(map, version === 'v2');
 
