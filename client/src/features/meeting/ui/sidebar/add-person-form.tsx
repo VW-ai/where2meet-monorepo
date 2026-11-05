@@ -151,13 +151,17 @@ export function AddPersonForm({
   // Visitors get no preview: the endpoint is the organizer's
   const preview = useDraftPreview(kind === 'add' ? place : null);
 
-  const draft = draftPerson(preview, mode, color);
+  const draft = draftPerson(preview, mode, color, trimmedName);
   const setDraft = useDraftPersonStore((state) => state.setDraft);
   const draftLocation = draft?.location;
   const draftRoute = draft?.route;
   useEffect(() => {
-    setDraft(draftLocation ? { color, location: draftLocation, route: draftRoute ?? null } : null);
-  }, [setDraft, color, draftLocation, draftRoute]);
+    setDraft(
+      draftLocation
+        ? { name: trimmedName, color, location: draftLocation, route: draftRoute ?? null }
+        : null
+    );
+  }, [setDraft, trimmedName, color, draftLocation, draftRoute]);
   useEffect(() => () => setDraft(null), [setDraft]);
 
   // On a phone the half-height sheet has no room for the steps or the suggestions

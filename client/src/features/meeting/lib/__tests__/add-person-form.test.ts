@@ -71,22 +71,22 @@ describe('modeEstimate', () => {
 
 describe('draftPerson', () => {
   it('draws nothing until the place is known', () => {
-    expect(draftPerson(null, 'driving', 'teal')).toBeNull();
-    expect(draftPerson({ status: 'loading' }, 'driving', 'teal')).toBeNull();
-    expect(draftPerson({ status: 'failed' }, 'driving', 'teal')).toBeNull();
+    expect(draftPerson(null, 'driving', 'teal', 'Ana')).toBeNull();
+    expect(draftPerson({ status: 'loading' }, 'driving', 'teal', 'Ana')).toBeNull();
+    expect(draftPerson({ status: 'failed' }, 'driving', 'teal', 'Ana')).toBeNull();
   });
 
   it('carries the route for the chosen mode, from the one answer', () => {
-    expect(draftPerson(READY, 'transit', 'teal')).toMatchObject({
+    expect(draftPerson(READY, 'transit', 'teal', 'Ana')).toMatchObject({
       color: 'teal',
       location: RESPONSE.location,
       route: { travelMode: 'transit', polyline: 'transit-line', durationSeconds: 1320 },
     });
-    expect(draftPerson(READY, 'driving', 'teal')?.route?.polyline).toBe('driving-line');
+    expect(draftPerson(READY, 'driving', 'teal', 'Ana')?.route?.polyline).toBe('driving-line');
   });
 
   it('keeps the pin when the chosen mode has no route', () => {
-    expect(draftPerson(READY, 'walking', 'teal')).toMatchObject({
+    expect(draftPerson(READY, 'walking', 'teal', 'Ana')).toMatchObject({
       location: RESPONSE.location,
       route: null,
     });
@@ -96,6 +96,6 @@ describe('draftPerson', () => {
 describe('nextParticipantColor', () => {
   it('takes the first color nobody has, as the server will', () => {
     expect(nextParticipantColor([])).toBe('coral');
-    expect(nextParticipantColor([{ color: 'coral' }, { color: 'gold' }])).toBe('teal');
+    expect(nextParticipantColor([{ color: 'coral' }, { color: 'gold' }])).toBe('teal', 'Ana');
   });
 });

@@ -25,8 +25,6 @@ import {
 } from '@/features/meeting/lib/person-routes';
 import { useRouteCacheStore } from '@/features/meeting/model/route-cache-store';
 import type { TravelMode } from '@/shared/types/map';
-import { pathUpTo } from '@/features/meeting/lib/path-up-to';
-import { formatTripTime } from '@/features/meeting/lib/route-summary';
 import { useUiVersion, useUiVersionStore } from '@/features/meeting/model/ui-version-store';
 import {
   DEFAULT_SEARCH_RADIUS,
@@ -49,15 +47,13 @@ import {
 } from './map-common';
 import {
   createMarkerDrops,
-  draftPinImage,
   prefersReducedMotion,
   pulseAt,
   revealStrokes,
-  routePillImage,
   routeStrokeStyle,
   type RouteStroke,
 } from './map-motion';
-import { useVenuePins } from './use-map-pins';
+import { usePersonPins, useVenuePins } from './use-map-pins';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
@@ -169,7 +165,6 @@ export function GoogleMapArea() {
   const mecCircleRef = useRef<google.maps.Circle | null>(null);
   const searchCircleRef = useRef<google.maps.Circle | null>(null);
   const routePolylinesRef = useRef<DrawnRoute[]>([]);
-  const routePillsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const cancelRevealRef = useRef<(() => void) | null>(null);
   const routeRequestRef = useRef(0);
   const positionsKey = participantPositionsKey(currentEvent?.participants ?? []);
@@ -513,6 +508,7 @@ export function GoogleMapArea() {
     markerDrops.participant.cancelPending();
     participantMarkersRef.current.forEach((marker) => marker.setMap(null));
     participantMarkersRef.current = [];
+    if (version === 'v2') return;
 
     // Add participant markers with matching colors
     currentEvent?.participants.forEach((participant) => {
@@ -563,6 +559,7 @@ export function GoogleMapArea() {
     });
   }, [
     map,
+    version,
     currentEvent?.participants,
     selectedParticipantId,
     setSelectedParticipantId,
@@ -719,6 +716,7 @@ export function GoogleMapArea() {
   ]);
 
   useVenuePins(map, version === 'v2');
+  usePersonPins(map, version === 'v2');
 
   // Under v2 a refreshed event, a changed travel mode above all, must not move the map
   const selectedSpot = currentEvent?.participants?.find((p) => p.id === selectedParticipantId);
@@ -762,39 +760,11 @@ export function GoogleMapArea() {
   const clearRouteDrawings = useCallback(() => {
     cancelRevealRef.current?.();
     cancelRevealRef.current = null;
-    routePillsRef.current.forEach((pill) => pill.setMap(null));
-    routePillsRef.current.clear();
     routePolylinesRef.current.forEach(({ polyline }) => polyline.setMap(null));
     routePolylinesRef.current = [];
   }, []);
 
-  const addRoutePill = useCallback(
-    (route: DrawnRoute) => {
-      if (!map || route.path.length === 0) return;
-      const image = routePillImage(formatTripTime(route.durationSeconds, locale), route.color);
-      const midpoint = pathUpTo(route.path, 0.5).at(-1)!;
-      const { selectedParticipantId: selectedId } = useMapStore.getState();
-      routePillsRef.current.set(
-        route.participantId,
-        new google.maps.Marker({
-          position: midpoint,
-          map,
-          clickable: false,
-          opacity: routeFocused(route.participantId, selectedId) ? 1 : 0.45,
-          zIndex: 30,
-          icon: {
-            url: image.url,
-            anchor: new google.maps.Point(image.width / 2, image.height / 2),
-          },
-        })
-      );
-    },
-    [map, locale]
-  );
-
   const removeRouteDrawing = useCallback((participantId: string) => {
-    routePillsRef.current.get(participantId)?.setMap(null);
-    routePillsRef.current.delete(participantId);
     routePolylinesRef.current = routePolylinesRef.current.filter((route) => {
       if (route.participantId !== participantId) return true;
       route.polyline.setMap(null);
@@ -802,24 +772,16 @@ export function GoogleMapArea() {
     });
   }, []);
 
-  const revealRoutes = useCallback(
-    (routes: DrawnRoute[]) => {
-      if (prefersReducedMotion()) {
-        routes.forEach(addRoutePill);
-        return;
-      }
-      const cancelEarlier = cancelRevealRef.current;
-      // Someone else's reveal may still be playing, and only this person's line should start over
-      const cancelThese = revealStrokes(routes, (route) => {
-        if (routePolylinesRef.current.includes(route)) addRoutePill(route);
-      });
-      cancelRevealRef.current = () => {
-        cancelEarlier?.();
-        cancelThese();
-      };
-    },
-    [addRoutePill]
-  );
+  const revealRoutes = useCallback((routes: DrawnRoute[]) => {
+    if (prefersReducedMotion()) return;
+    const cancelEarlier = cancelRevealRef.current;
+    // Someone else's reveal may still be playing, and only this person's line should start over
+    const cancelThese = revealStrokes(routes);
+    cancelRevealRef.current = () => {
+      cancelEarlier?.();
+      cancelThese();
+    };
+  }, []);
 
   const drawRouteLine = useCallback(
     (route: RouteInfo, color: string): DrawnRoute => {
@@ -1092,7 +1054,6 @@ export function GoogleMapArea() {
       const style = routeStrokeStyle(route.lineMode, isSelected);
       route.icons = style.icons;
       route.polyline.setOptions(style);
-      routePillsRef.current.get(ownerId)?.setOpacity(isSelected ? 1 : 0.45);
     });
   }, [selectedParticipantId, currentEvent?.participants, selectedVenue, version]);
 
@@ -1103,24 +1064,6 @@ export function GoogleMapArea() {
     if (prefersReducedMotion()) return;
     return pulseAt(map, selectedVenueLocation);
   }, [map, selectedVenueId, version]);
-
-  // Someone being added: on the map, but not in anyone's count or the routes everyone shares
-  useEffect(() => {
-    if (!map || !window.google || draftLat == null || draftLng == null) return;
-    const image = draftPinImage(getHexColor(draftColor), !prefersReducedMotion());
-    const marker = new google.maps.Marker({
-      position: { lat: draftLat, lng: draftLng },
-      map,
-      clickable: false,
-      optimized: false,
-      zIndex: 90,
-      icon: {
-        url: image.url,
-        anchor: new google.maps.Point(image.width / 2, image.height / 2),
-      },
-    });
-    return () => marker.setMap(null);
-  }, [map, draftLat, draftLng, draftColor]);
 
   useEffect(() => {
     if (!map || !window.google || !draftRoute) return;

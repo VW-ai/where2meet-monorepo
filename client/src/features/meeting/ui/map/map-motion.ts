@@ -84,13 +84,10 @@ function headDot(color: string): google.maps.IconSequence[] {
 }
 
 /**
- * Grows each stroke from its start, staggered, with a dot on the head, then calls `onArrive`.
+ * Grows each stroke from its start, staggered, with a dot on the head.
  * Returns a cancel that stops the animation where it is; the caller owns the polylines.
  */
-export function revealStrokes<T extends RouteStroke>(
-  strokes: readonly T[],
-  onArrive: (stroke: T) => void
-): () => void {
+export function revealStrokes(strokes: readonly RouteStroke[]): () => void {
   const waiting = new Set(strokes);
   let frame = 0;
   let start: number | null = null;
@@ -112,7 +109,6 @@ export function revealStrokes<T extends RouteStroke>(
       }
       drawStroke(stroke);
       waiting.delete(stroke);
-      onArrive(stroke);
     });
     if (waiting.size > 0) frame = requestAnimationFrame(tick);
   };
@@ -158,32 +154,6 @@ export function createMarkerDrops(stepMs = DROP_STAGGER_MS) {
       pending.delete(id);
     },
   };
-}
-
-/** The label is drawn into the image: an SVG data URL can't load the page's fonts. */
-export function routePillImage(label: string, color: string) {
-  const textWidth = Array.from(label).reduce(
-    (width, char) => width + (char.charCodeAt(0) > 0x2e7f ? 12 : 6.6),
-    0
-  );
-  const width = Math.ceil(textWidth + 18);
-  const height = 24;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="11" fill="#ffffff" stroke="${color}" stroke-width="1.5"/><text x="${width / 2}" y="16" text-anchor="middle" fill="#21252b" font-family="-apple-system, 'Segoe UI', 'PingFang SC', sans-serif" font-size="11.5" font-weight="600">${label}</text></svg>`;
-  return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, width, height };
-}
-
-/**
- * Someone not on the list yet: a dot in their color inside a dashed ring. The ring spins by SMIL,
- * which keeps running in an SVG image only if the marker is drawn with `optimized: false`.
- */
-export function draftPinImage(color: string, spin: boolean) {
-  const size = 44;
-  const center = size / 2;
-  const spinner = spin
-    ? `<animateTransform attributeName="transform" type="rotate" from="0 ${center} ${center}" to="360 ${center} ${center}" dur="5s" repeatCount="indefinite"/>`
-    : '';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${center}" cy="${center}" r="18" fill="none" stroke="${color}" stroke-width="2" stroke-dasharray="4 4">${spinner}</circle><circle cx="${center}" cy="${center}" r="10" fill="${color}" stroke="#ffffff" stroke-width="2"/></svg>`;
-  return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, width: size, height: size };
 }
 
 /** One expanding ring on the selected venue. Returns a cancel. */

@@ -46,6 +46,7 @@ export function modeEstimate(preview: DraftPreview | null, mode: TravelMode): Mo
 
 /** What the map draws for someone being added, who is on no list and in no count. */
 export interface DraftPerson {
+  name: string;
   color: string;
   location: Location;
   route: RouteInfo | null;
@@ -54,10 +55,12 @@ export interface DraftPerson {
 export function draftPerson(
   preview: DraftPreview | null,
   mode: TravelMode,
-  color: string
+  color: string,
+  name: string
 ): DraftPerson | null {
   if (preview?.status !== 'ready') return null;
   return {
+    name,
     color,
     location: preview.location,
     route: preview.routes.find((route) => route.travelMode === mode) ?? null,

@@ -1,10 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createMarkerDrops,
-  draftPinImage,
   drawStroke,
   revealStrokes,
-  routePillImage,
   routeStrokeStyle,
   type RouteStroke,
 } from '../map-motion';
@@ -44,37 +42,31 @@ describe('revealStrokes', () => {
 
   it('starts every stroke at its first point with a head dot', () => {
     const polyline = fakePolyline();
-    revealStrokes([{ polyline, path: PATH, color: '#f00' }], () => {});
+    revealStrokes([{ polyline, path: PATH, color: '#f00' }]);
     expect(polyline.setPath).toHaveBeenCalledWith([{ lat: 0, lng: 0 }]);
     expect(polyline.setOptions.mock.lastCall?.[0].icons[0].offset).toBe('100%');
   });
 
-  it('ends on the whole path with no dot, and arrives once', () => {
+  it('ends on the whole path with no dot, and stops', () => {
     const polyline = fakePolyline();
     const stroke: RouteStroke = { polyline, path: PATH, color: '#f00' };
-    const onArrive = vi.fn();
-    revealStrokes([stroke], onArrive);
+    revealStrokes([stroke]);
 
     runFrame(0);
     runFrame(5000);
 
     expect(lastPath(polyline)).toEqual(PATH);
     expect(polyline.setOptions).toHaveBeenLastCalledWith({ icons: [] });
-    expect(onArrive).toHaveBeenCalledTimes(1);
-    expect(onArrive).toHaveBeenCalledWith(stroke);
     expect(frames).toEqual([]);
   });
 
   it('staggers: a later stroke is still at the start when the first has moved', () => {
     const first = fakePolyline();
     const second = fakePolyline();
-    revealStrokes(
-      [
-        { polyline: first, path: PATH, color: '#f00' },
-        { polyline: second, path: PATH, color: '#0f0' },
-      ],
-      () => {}
-    );
+    revealStrokes([
+      { polyline: first, path: PATH, color: '#f00' },
+      { polyline: second, path: PATH, color: '#0f0' },
+    ]);
 
     runFrame(0);
     runFrame(200);
@@ -85,14 +77,12 @@ describe('revealStrokes', () => {
 
   it('stops moving after cancel', () => {
     const polyline = fakePolyline();
-    const onArrive = vi.fn();
-    const cancel = revealStrokes([{ polyline, path: PATH, color: '#f00' }], onArrive);
+    const cancel = revealStrokes([{ polyline, path: PATH, color: '#f00' }]);
 
     runFrame(0);
     cancel();
     runFrame(5000);
 
-    expect(onArrive).not.toHaveBeenCalled();
     expect(lastPath(polyline)).not.toEqual(PATH);
   });
 });
@@ -176,22 +166,6 @@ describe('createMarkerDrops', () => {
   });
 });
 
-describe('routePillImage', () => {
-  it('draws the label in a pill bordered in the participant colour', () => {
-    const { url, height } = routePillImage('11 min', '#847ce1');
-    const svg = decodeURIComponent(url.replace('data:image/svg+xml,', ''));
-    expect(height).toBe(24);
-    expect(svg).toContain('stroke="#847ce1"');
-    expect(svg).toContain('>11 min</text>');
-  });
-
-  it('leaves more room for Chinese than for the same count of Latin characters', () => {
-    expect(routePillImage('十一分钟', '#000').width).toBeGreaterThan(
-      routePillImage('abcd', '#000').width
-    );
-  });
-});
-
 describe('routeStrokeStyle', () => {
   beforeEach(() => {
     vi.stubGlobal('google', { maps: { SymbolPath: { CIRCLE: 0 } } });
@@ -229,23 +203,9 @@ describe('routeStrokeStyle', () => {
   it('keeps the dashes showing while a line reveals, then after it lands', () => {
     const stroke = { polyline: { setPath: vi.fn(), setOptions: vi.fn() }, path: [], color: '#000' };
     const { icons } = routeStrokeStyle('transit', true);
-    revealStrokes([{ ...stroke, icons }], () => {});
+    revealStrokes([{ ...stroke, icons }]);
     expect(stroke.polyline.setOptions.mock.lastCall?.[0].icons[0]).toBe(icons[0]);
     drawStroke({ ...stroke, icons });
     expect(stroke.polyline.setOptions).toHaveBeenLastCalledWith({ icons });
-  });
-});
-
-describe('draftPinImage', () => {
-  const svg = (spin: boolean) => decodeURIComponent(draftPinImage('#3B82F6', spin).url);
-
-  it("draws the next person's color with a dashed ring", () => {
-    expect(svg(true)).toContain('stroke="#3B82F6" stroke-width="2" stroke-dasharray="4 4"');
-    expect(svg(true)).toContain('fill="#3B82F6"');
-  });
-
-  it('spins only when motion is welcome', () => {
-    expect(svg(true)).toContain('animateTransform');
-    expect(svg(false)).not.toContain('animateTransform');
   });
 });
