@@ -3,18 +3,16 @@
 import { cn } from '@/shared/lib/cn';
 import { useMessages } from '@/shared/lib/i18n';
 import type { TravelMode } from '@/shared/types/map';
-import { PICKER_MODES, pickerMode } from './transport-parts';
+import { PICKER_MODES } from './transport-parts';
 import { travelModeMessages } from './travel-type-filter';
 
-/** The small icon-only choice of mode, with no times: the join form and "You go by". */
+/** The small icon-only choice of mode, with no times: "You go by". */
 export function ModeSegment({
   value,
   onChange,
-  showLabel = false,
 }: {
   value: TravelMode;
   onChange: (mode: TravelMode) => void;
-  showLabel?: boolean;
 }) {
   const modeLabels = useMessages(travelModeMessages).modes;
   return (
@@ -37,11 +35,6 @@ export function ModeSegment({
           <Icon aria-hidden="true" />
         </button>
       ))}
-      {showLabel && (
-        <em className="pl-1.5 pr-2 text-xs not-italic text-v2-ink-2">
-          {modeLabels[pickerMode(value).ui]}
-        </em>
-      )}
     </div>
   );
 }

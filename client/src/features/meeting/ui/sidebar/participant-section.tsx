@@ -15,7 +15,7 @@ import { AddParticipant, type ParticipantFormData } from './add-participant';
 import { MyLocationPrompt, MY_LOCATION_INPUT_ID } from './my-location-prompt';
 import { ParticipantPill } from './participant-pill';
 import { PersonRow } from './person-row';
-import { ClaimList } from './claim-list';
+import { AddPersonForm } from './add-person-form';
 import { pickerMode } from './transport-parts';
 import { BUTTON } from './venue-v2-parts';
 import { participantClient } from '@/features/meeting/api';
@@ -441,7 +441,10 @@ export function ParticipantSection() {
           <button
             type="button"
             className={cn(BUTTON.ink, 'w-full')}
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              setSelectedParticipantId(null);
+              setShowAddForm(true);
+            }}
           >
             <Plus aria-hidden="true" />
             {entry === 'join' ? t.joinPlan : addedSomeone ? t.addAnother : t.addSomeone}
@@ -488,43 +491,35 @@ export function ParticipantSection() {
       {/* Add/Edit Participant Form */}
       {showAddForm && (
         <div className="space-y-3">
-          <div className="p-4 bg-white/95 backdrop-blur-md rounded-xl shadow-xl ring-2 ring-coral-500/30">
-            <AddParticipant
-              key={formKey}
+          {version === 'v2' && !editingParticipant ? (
+            <AddPersonForm
+              kind={isOrganizerMode ? 'add' : 'join'}
               onSubmit={handleSubmitParticipant}
               onCancel={handleCancelForm}
               isSubmitting={isSubmitting}
-              notice={lastAddedName ? t.added(lastAddedName) : null}
-              cancelLabel={lastAddedName ? t.done : t.cancel}
-              mode={editingParticipant ? 'edit' : 'add'}
-              transport={
-                version === 'v2' && !editingParticipant
-                  ? {
-                      kind: isOrganizerMode ? 'add' : 'join',
-                      eventTitle: currentEvent?.title ?? '',
-                    }
-                  : undefined
-              }
-              leading={
-                version === 'v2' && !editingParticipant && !isOrganizerMode && !isPublished ? (
-                  <ClaimList
-                    people={currentEvent?.participants.filter((p) => p.claimable) ?? []}
-                    hostName={currentEvent?.participants.find((p) => p.isOrganizer)?.name ?? ''}
-                    onClaimed={handleCancelForm}
-                  />
-                ) : undefined
-              }
-              initialData={
-                editingParticipant
-                  ? {
-                      name: editingParticipant.name,
-                      address: editingParticipant.address || '',
-                      placeId: '',
-                    }
-                  : undefined
-              }
             />
-          </div>
+          ) : (
+            <div className="p-4 bg-white/95 backdrop-blur-md rounded-xl shadow-xl ring-2 ring-coral-500/30">
+              <AddParticipant
+                key={formKey}
+                onSubmit={handleSubmitParticipant}
+                onCancel={handleCancelForm}
+                isSubmitting={isSubmitting}
+                notice={lastAddedName ? t.added(lastAddedName) : null}
+                cancelLabel={lastAddedName ? t.done : t.cancel}
+                mode={editingParticipant ? 'edit' : 'add'}
+                initialData={
+                  editingParticipant
+                    ? {
+                        name: editingParticipant.name,
+                        address: editingParticipant.address || '',
+                        placeId: '',
+                      }
+                    : undefined
+                }
+              />
+            </div>
+          )}
 
           {/* Error Message */}
           {errorMessage && (
