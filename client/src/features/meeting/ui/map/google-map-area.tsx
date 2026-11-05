@@ -456,11 +456,10 @@ export function GoogleMapArea() {
     }
 
     // Publishing refreshes the event without moving anyone, and must not pull the map off the venue
-    const firstLook = pannedPositionsRef.current === null;
     const positionsMoved = pannedPositionsRef.current !== positionsKey;
     pannedPositionsRef.current = positionsKey;
 
-    if (map && positionsMoved && !firstLook && isV2() && validParticipants.length >= 2) {
+    if (map && positionsMoved && isV2() && validParticipants.length >= 2) {
       // Someone new must land in view, and the group can be wider than a fixed zoom shows
       frameGroup(map);
     } else if (map && (positionsMoved || !isV2())) {
@@ -1083,6 +1082,23 @@ export function GoogleMapArea() {
 
     // Get the current zoom level
     const currentZoom = map.getZoom() || 14;
+
+    if (isV2()) {
+      // Picking a place keeps the group's framing: a zoom change would throw everyone off-screen
+      if (
+        !isInUncoveredMap(
+          selectedVenue.location,
+          map.getBounds(),
+          map.getDiv(),
+          fitPadding(isVenueInfoOpen)
+        )
+      ) {
+        map.panTo(
+          centerBesidePanels(selectedVenue.location, currentZoom, leftPanelsWidth(isVenueInfoOpen))
+        );
+      }
+      return;
+    }
 
     // Show the venue in the middle of the map area beside the sidebar/panels
     map.panTo(
