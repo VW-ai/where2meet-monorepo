@@ -352,6 +352,9 @@ export function LandingView({ children }: { children: ReactNode }) {
           <Link href="/contact" className="font-medium text-[#555a62] hover:text-[#bd3843]">
             Contact
           </Link>
+          <Link href="/privacy" className="font-medium text-[#555a62] hover:text-[#bd3843]">
+            Privacy
+          </Link>
         </nav>
         <p className="text-center text-xs text-[#555a62]">
           © {new Date().getFullYear()} Where2Meet
