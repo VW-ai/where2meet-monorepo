@@ -444,7 +444,7 @@ export function ParticipantSection() {
       )}
 
       {version === 'v2' && !showAddForm && entry && (
-        <div className="sticky top-0 z-[3] bg-[linear-gradient(#fff_82%,transparent)] pb-2 pt-1.5">
+        <div className="top-0 z-[3] bg-[linear-gradient(#fff_82%,transparent)] pb-2 pt-1.5 md:sticky">
           <button
             type="button"
             className={cn(BUTTON.ink, 'w-full')}

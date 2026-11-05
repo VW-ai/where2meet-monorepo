@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import {
   PhoneHeader,
@@ -17,6 +17,7 @@ import { ToastHost } from '@/features/meeting/ui/toast-host';
 import { TutorialProvider } from '@/features/tutorial/ui';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
+import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useTutorialStore } from '@/features/tutorial/model/tutorial-store';
@@ -29,7 +30,8 @@ import { LANGUAGE_TAGS, LocaleProvider, localeFor } from '@/shared/lib/i18n';
 
 export default function MeetPage() {
   useUiVersionSwitch();
-  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const sheetExpanded = useUIStore((state) => state.isSheetExpanded);
+  const setSheetExpanded = useUIStore((state) => state.setSheetExpanded);
   const params = useParams();
   const eventId = params.id as string;
   const {

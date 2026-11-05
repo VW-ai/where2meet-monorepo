@@ -71,11 +71,17 @@ function LikedSpots({ participantId }: { participantId: string }) {
 
 // A row that opens near the edge of the list, or was just added, should end up in full view.
 // Only the list moves: an ancestor that merely clips can still be scrolled, and must not be.
+const SHEET_RESIZE_MS = 240;
+
 function revealInList(row: HTMLElement) {
   let list = row.parentElement;
   while (list && !/auto|scroll/.test(getComputedStyle(list).overflowY)) list = list.parentElement;
   if (!list) return;
-  const top = scrollToReveal(row.getBoundingClientRect(), list.getBoundingClientRect());
+  const top = scrollToReveal(
+    row.getBoundingClientRect(),
+    list.getBoundingClientRect(),
+    window.innerWidth >= 768
+  );
   if (top !== 0) {
     list.scrollBy({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   }
@@ -106,7 +112,12 @@ export function PersonRow({
 
   const rowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (selected && rowRef.current) revealInList(rowRef.current);
+    const row = rowRef.current;
+    if (!selected || !row) return;
+    revealInList(row);
+    // Closing the add form shrinks a phone's sheet, and this list with it
+    const settled = setTimeout(() => revealInList(row), SHEET_RESIZE_MS);
+    return () => clearTimeout(settled);
   }, [selected]);
 
   const toggle = () => setSelectedParticipantId(selected ? null : person.id);

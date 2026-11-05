@@ -160,6 +160,13 @@ export function AddPersonForm({
   }, [setDraft, color, draftLocation, draftRoute]);
   useEffect(() => () => setDraft(null), [setDraft]);
 
+  // On a phone the half-height sheet has no room for the steps or the suggestions
+  useEffect(() => {
+    const { isSheetExpanded, setSheetExpanded } = useUIStore.getState();
+    setSheetExpanded(true);
+    return () => setSheetExpanded(isSheetExpanded);
+  }, []);
+
   const hadPlace = useRef(false);
   useEffect(() => {
     if (place) submitRef.current?.focus();
