@@ -53,7 +53,7 @@ const HIDE_ADDRESS_UNAVAILABLE =
  * @throws BusinessAddressNotFoundError if address not found
  * @throws ExternalServiceError on API failures
  */
-async function geocodeWithBusinessErrors(
+export async function geocodeWithBusinessErrors(
   mapProvider: MapProvider,
   address: string
 ): Promise<{ lat: number; lng: number; formattedAddress: string }> {

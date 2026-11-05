@@ -184,3 +184,12 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [ ] Client: per-person mode picker, compare times, "That's me" and undo
 - [ ] iOS: send and show per-person modes (the shipped app keeps working because it always sends `travelMode`)
 - [ ] Decide whether a self-joined person should be able to call undo, which turns their row claimable
+
+---
+
+## 2026-11-05
+
+### Participant Preview
+- [x] Server: `POST /api/events/:id/participant-preview`
+- [ ] Client: draft pin and route on the Google map while adding someone
+- [ ] Decide whether AMap should draw the draft too; today the form shows minutes only

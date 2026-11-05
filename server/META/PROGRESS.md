@@ -966,3 +966,28 @@ Each person now has their own travel mode, and someone the organizer added can c
 #### Test Summary
 - New: `tests/participant-claim.test.ts` (22), travel mode cases in `tests/participants.test.ts` (10), per-person cases in `tests/directions.test.ts` (6)
 - Updated: exact-match payloads in `tests/participants-sse.test.ts`, the create payload and actor argument in `tests/services/participant.test.ts`, and the default top-level mode in `tests/directions.test.ts`
+
+---
+
+## 2026-11-05
+
+### Participant Preview
+
+The organizer now sees where someone would start, and each way there, before adding them. Autocomplete gives no coordinates, so this needs the server.
+
+- `POST /api/events/:id/participant-preview` is organizer only and read-only: no database writes, no SSE.
+- It geocodes through the event's provider with the same error mapping as adding a person, then makes one route call per mode when a venue is given. A mode with no route is absent.
+- `DirectionsService` gained `previewParticipant`. Venue coordinate lookup and the per-mode provider call moved into private methods that `getDirections` shares.
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/services/directions.ts` | `previewParticipant`, `resolveVenueCoords`, `calculateByMode` |
+| `src/services/participant.ts` | Export `geocodeWithBusinessErrors` |
+| `src/routes/participants.ts`, `src/schemas/participant.ts` | Route and request schema |
+| `src/dto/directions.dto.ts`, `src/dto/index.ts`, `src/mappers/directions.mapper.ts` | Response DTO and mapper |
+| `META/ARCHITECTURE/API_SPECIFICATION.md` | New endpoint |
+
+#### Test Summary
+- New: `tests/participant-preview.test.ts`

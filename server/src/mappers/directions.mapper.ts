@@ -6,7 +6,13 @@
  */
 
 import type { ModeRouteResult, TravelMode } from "../lib/directions/index.js";
-import { DirectionsResponseSchema, type DirectionsResponse } from "../dto/directions.dto.js";
+import type { ParticipantPreview } from "../services/directions.js";
+import {
+  DirectionsResponseSchema,
+  ParticipantPreviewResponseSchema,
+  type DirectionsResponse,
+  type ParticipantPreviewResponse,
+} from "../dto/directions.dto.js";
 
 /**
  * Transforms route results to DirectionsResponse DTO.
@@ -34,4 +40,22 @@ export function toDirectionsResponse(
   };
 
   return DirectionsResponseSchema.parse(response);
+}
+
+/**
+ * Transforms a participant preview to its Response DTO. A result the provider returned
+ * empty is a mode with no route, so it is left out.
+ * @param preview - Geocoded place and its routes
+ * @returns Validated ParticipantPreviewResponse DTO
+ */
+export function toParticipantPreviewResponse(
+  preview: ParticipantPreview
+): ParticipantPreviewResponse {
+  return ParticipantPreviewResponseSchema.parse({
+    location: preview.location,
+    formattedAddress: preview.formattedAddress,
+    routes: preview.routes.flatMap(({ travelMode, distance, duration, polyline }) =>
+      distance && duration && polyline ? [{ travelMode, distance, duration, polyline }] : []
+    ),
+  });
 }

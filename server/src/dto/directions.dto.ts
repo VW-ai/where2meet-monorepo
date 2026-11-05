@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { LocationResponseSchema } from "./common.dto.js";
 
 /**
  * Travel modes supported by Google Directions API.
@@ -55,3 +56,26 @@ export const DirectionsResponseSchema = z.object({
 });
 
 export type DirectionsResponse = z.infer<typeof DirectionsResponseSchema>;
+
+/**
+ * One way to get from a place to the venue, for someone not yet on the list.
+ */
+export const PreviewRouteResponseSchema = z.object({
+  travelMode: TravelModeSchema,
+  distance: FormattedValueSchema,
+  duration: FormattedValueSchema,
+  polyline: z.string(),
+});
+
+export type PreviewRouteResponse = z.infer<typeof PreviewRouteResponseSchema>;
+
+/**
+ * Where an address is, and how it reaches the venue. A mode with no route is absent.
+ */
+export const ParticipantPreviewResponseSchema = z.object({
+  location: LocationResponseSchema,
+  formattedAddress: z.string(),
+  routes: z.array(PreviewRouteResponseSchema),
+});
+
+export type ParticipantPreviewResponse = z.infer<typeof ParticipantPreviewResponseSchema>;

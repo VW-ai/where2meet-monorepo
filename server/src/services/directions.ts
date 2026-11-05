@@ -8,10 +8,12 @@
  */
 
 import type { Participant, PrismaClient } from "@prisma/client";
+import type { MapProviderClient } from "../lib/providers/index.js";
 import { createEventRepository, type EventRepository } from "../repositories/event.js";
 import { createVenueRepository, type VenueRepository } from "../repositories/venue.js";
 import {
   DirectionsApiError,
+  type GeoPoint,
   type ModeRouteResult,
   type ParticipantLocation,
   type TravelMode,
@@ -25,6 +27,18 @@ import {
 import { PlacesApiError } from "../lib/places/index.js";
 import { providerFor, providerForVenueId } from "../lib/providers/index.js";
 import { createLogger } from "../lib/logger.js";
+import { geocodeWithBusinessErrors } from "./participant.js";
+
+const TRAVEL_MODES: readonly TravelMode[] = ["driving", "walking", "transit", "bicycling"];
+// Nobody is routed yet, but the provider labels each result with an id
+const PREVIEW_ROUTE_ID = "preview";
+
+/** A place someone could start from, and each way to get from there to the venue. */
+export interface ParticipantPreview {
+  location: GeoPoint;
+  formattedAddress: string;
+  routes: ModeRouteResult[];
+}
 
 const logger = createLogger("DirectionsService");
 
@@ -76,32 +90,7 @@ export class DirectionsService {
       throw new EventNotFoundError(eventId);
     }
 
-    // Get venue coordinates from database or fallback to Google Places API
-    let venueCoords: { lat: number; lng: number };
-    const venue = await this.venueRepository.findById(venueId);
-
-    if (venue) {
-      venueCoords = {
-        lat: Number(venue.lat),
-        lng: Number(venue.lng),
-      };
-    } else {
-      // Fallback: fetch from the venue's provider for candidate venues not yet persisted
-      const venueProvider = providerForVenueId(venueId);
-      try {
-        logger.debug({ venueId }, "Venue not in database, fetching from Places API");
-        const details = await venueProvider.getDetails(venueId);
-        venueCoords = details.location;
-      } catch (error) {
-        if (error instanceof PlacesApiError) {
-          if (error.status === "NOT_FOUND" || error.status === "INVALID_REQUEST") {
-            throw new ValidationError(`Invalid venue ID: ${venueId}`);
-          }
-          throw new ExternalServiceError(venueProvider.displayName, error.message);
-        }
-        throw error;
-      }
-    }
+    const venueCoords = await this.resolveVenueCoords(venueId);
 
     // Get all participants (optionally filter to single participant)
     let allParticipants = event.participants;
@@ -149,36 +138,129 @@ export class DirectionsService {
       locationsByMode.set(mode, locations);
     }
 
-    const routeProvider = providerFor(event.mapProvider);
+    const calculatedRoutes = await this.calculateByMode(
+      providerFor(event.mapProvider),
+      [...locationsByMode],
+      venueCoords,
+      venueId
+    );
+
+    logger.info(
+      {
+        eventId,
+        venueId,
+        travelModes: [...locationsByMode.keys()],
+        participantCount: allParticipants.length,
+        withLocation: participantsWithLocation.length,
+        withoutLocation: participantsWithoutLocation.length,
+      },
+      "Directions calculated"
+    );
+
+    // Combine calculated routes with null routes
+    return [...calculatedRoutes, ...nullRoutes];
+  }
+
+  /**
+   * Geocodes an address and, given a venue, routes it there in every mode. Writes nothing.
+   * @param eventId - Event whose map provider serves the lookup
+   * @param address - Address the person would start from
+   * @param venueId - Destination venue, if one is selected
+   * @returns The geocoded place and one route per mode that has one
+   * @throws EventNotFoundError if event doesn't exist
+   * @throws BusinessAddressNotFoundError if the address cannot be geocoded
+   * @throws ValidationError if the venue ID is invalid
+   * @throws ExternalServiceError if a provider API fails
+   */
+  async previewParticipant(
+    eventId: string,
+    address: string,
+    venueId?: string
+  ): Promise<ParticipantPreview> {
+    const status = await this.eventRepository.getStatus(eventId);
+    if (!status) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(
+      status.mapProvider,
+      address
+    );
+    const location = { lat, lng };
+    if (!venueId) {
+      return { location, formattedAddress, routes: [] };
+    }
+
+    const origin: ParticipantLocation = { id: PREVIEW_ROUTE_ID, lat, lng };
+    const routes = await this.calculateByMode(
+      providerFor(status.mapProvider),
+      TRAVEL_MODES.map((mode) => [mode, [origin]]),
+      await this.resolveVenueCoords(venueId),
+      venueId
+    );
+    return { location, formattedAddress, routes };
+  }
+
+  /**
+   * Finds a venue's coordinates in the database, or from its provider for a candidate
+   * venue that hasn't been persisted.
+   * @param venueId - Destination venue
+   * @returns The venue's coordinates
+   * @throws ValidationError if the provider doesn't know the venue
+   * @throws ExternalServiceError if the provider API fails
+   */
+  private async resolveVenueCoords(venueId: string): Promise<GeoPoint> {
+    const venue = await this.venueRepository.findById(venueId);
+    if (venue) {
+      return { lat: Number(venue.lat), lng: Number(venue.lng) };
+    }
+
+    const venueProvider = providerForVenueId(venueId);
     try {
-      const calculatedRoutes = await Promise.all(
-        [...locationsByMode].map(async ([travelMode, locations]) => {
-          const routes = await routeProvider.calculateBatchRoutes(
+      logger.debug({ venueId }, "Venue not in database, fetching from Places API");
+      const details = await venueProvider.getDetails(venueId);
+      return details.location;
+    } catch (error) {
+      if (error instanceof PlacesApiError) {
+        if (error.status === "NOT_FOUND" || error.status === "INVALID_REQUEST") {
+          throw new ValidationError(`Invalid venue ID: ${venueId}`);
+        }
+        throw new ExternalServiceError(venueProvider.displayName, error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Makes one provider call per mode. A trip with no route is left out by the provider.
+   * @param routeProvider - Provider of the event
+   * @param requests - Who to route in each mode
+   * @param venueCoords - Destination
+   * @param venueId - Destination, for the log
+   * @returns The routes found, labeled with their mode
+   * @throws ExternalServiceError if the Directions API fails
+   */
+  private async calculateByMode(
+    routeProvider: MapProviderClient,
+    requests: readonly (readonly [TravelMode, ParticipantLocation[]])[],
+    venueCoords: GeoPoint,
+    venueId: string
+  ): Promise<ModeRouteResult[]> {
+    try {
+      const routes = await Promise.all(
+        requests.map(async ([travelMode, locations]) => {
+          const found = await routeProvider.calculateBatchRoutes(
             locations,
             venueCoords,
             travelMode
           );
-          return routes.map((route) => ({ ...route, travelMode }));
+          return found.map((route) => ({ ...route, travelMode }));
         })
       );
-
-      logger.info(
-        {
-          eventId,
-          venueId,
-          travelModes: [...locationsByMode.keys()],
-          participantCount: allParticipants.length,
-          withLocation: participantsWithLocation.length,
-          withoutLocation: participantsWithoutLocation.length,
-        },
-        "Directions calculated"
-      );
-
-      // Combine calculated routes with null routes
-      return [...calculatedRoutes.flat(), ...nullRoutes];
+      return routes.flat();
     } catch (error) {
       if (error instanceof DirectionsApiError) {
-        logger.error({ err: error, eventId, venueId }, "Directions API error");
+        logger.error({ err: error, venueId }, "Directions API error");
         throw new ExternalServiceError(routeProvider.displayName, error.message);
       }
       throw error;

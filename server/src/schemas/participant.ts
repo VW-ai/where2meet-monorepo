@@ -27,6 +27,19 @@ export const CreateParticipantSchema = z.object({
 export type CreateParticipantInput = z.infer<typeof CreateParticipantSchema>;
 
 /**
+ * Schema for previewing a person before adding them.
+ */
+export const ParticipantPreviewSchema = z.object({
+  address: z
+    .string()
+    .min(1, "Address is required")
+    .max(255, "Address must be 255 characters or less"),
+  venueId: z.string().min(1, "Venue ID cannot be empty").optional(),
+});
+
+export type ParticipantPreviewInput = z.infer<typeof ParticipantPreviewSchema>;
+
+/**
  * Schema for updating an existing participant.
  */
 export const UpdateParticipantSchema = z

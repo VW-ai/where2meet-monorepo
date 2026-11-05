@@ -12,10 +12,13 @@ import type { Participant } from "@prisma/client";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createParticipantService } from "../services/participant.js";
 import { createVoteService } from "../services/vote.js";
+import { createDirectionsService } from "../services/directions.js";
 import {
   CreateParticipantSchema,
+  ParticipantPreviewSchema,
   UpdateParticipantSchema,
   type CreateParticipantInput,
+  type ParticipantPreviewInput,
   type UpdateParticipantInput,
 } from "../schemas/participant.js";
 import { EventIdSchema } from "../schemas/event.js";
@@ -24,6 +27,7 @@ import {
   toCreateParticipantResponse,
   toPublicParticipant,
 } from "../mappers/event.mapper.js";
+import { toParticipantPreviewResponse } from "../mappers/directions.mapper.js";
 import { toVoteStatisticsPayload } from "../mappers/vote.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { createVerifyToken, createVerifyParticipantAccess } from "../hooks/auth.js";
@@ -51,6 +55,7 @@ interface ParticipantParams extends EventParams {
  *
  * Endpoints:
  * - POST /api/events/:id/participants - Add a participant
+ * - POST /api/events/:id/participant-preview - See where someone would start and their trips
  * - PATCH /api/events/:id/participants/:participantId - Update a participant
  * - DELETE /api/events/:id/participants/:participantId - Remove a participant
  * - POST /api/events/:id/participants/:participantId/claim - Claim an added row
@@ -60,10 +65,12 @@ interface ParticipantParams extends EventParams {
  * - POST: Optional token (no auth = self-registration with new participantToken)
  * - PATCH/DELETE: Organizer can access any participant, non-organizer only self
  * - Claim: No auth to claim, the row's own token to undo
+ * - Preview: Organizer only
  */
 export function participantRoutes(fastify: FastifyInstance): void {
   const participantService = createParticipantService(fastify.db);
   const voteService = createVoteService(fastify.db);
+  const directionsService = createDirectionsService(fastify.db);
 
   const broadcastParticipantUpdated = (eventId: string, participant: Participant): void => {
     const payload: ParticipantUpdatedPayload = { participant: toPublicParticipant(participant) };
@@ -144,6 +151,31 @@ export function participantRoutes(fastify: FastifyInstance): void {
         });
 
       return reply.status(201).send(response);
+    }
+  );
+
+  /**
+   * POST /api/events/:id/participant-preview
+   * Geocodes an address and routes it to the venue in every mode, for someone the
+   * organizer is about to add. Read-only: nothing is saved or broadcast.
+   */
+  fastify.post<{ Params: EventParams; Body: ParticipantPreviewInput }>(
+    "/api/events/:id/participant-preview",
+    {
+      preHandler: [createVerifyToken({ requireOrganizer: true })],
+    },
+    async (request, reply) => {
+      const bodyResult = ParticipantPreviewSchema.safeParse(request.body);
+      if (!bodyResult.success) {
+        throw bodyResult.error;
+      }
+
+      const preview = await directionsService.previewParticipant(
+        request.params.id,
+        bodyResult.data.address,
+        bodyResult.data.venueId
+      );
+      return reply.send(toParticipantPreviewResponse(preview));
     }
   );
 

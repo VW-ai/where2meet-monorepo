@@ -26,6 +26,7 @@
 | Vote | /api/events/:id/participants/:participantId/votes/:venueId | DELETE | 取消投票（仅自己） |
 | Vote | /api/events/:id/votes | GET | 获取投票统计 |
 | Directions | /api/events/:id/venues/:venueId/directions | GET | 获取路线（事件上下文） |
+| Participants | /api/events/:id/participant-preview | POST | 预览即将添加的参与者（只读） |
 | SSE | /api/events/:id/stream | GET | 订阅事件实时更新（需认证） |
 
 ---
@@ -825,6 +826,47 @@ GET /api/events/:id/venues/:venueId/directions
 
 **高德活动**：`mapProvider` 为 `amap` 时用高德路径规划 2.0 计算路线。`distance.text` 用公制（`850 m`、`3.2 km`），Google 活动仍为英制。`polyline` 仍是 Google 编码格式的 WGS-84 坐标，前端不需要区分。公交需要两端的高德城市编码，由服务器逆地理编码得到；高德只规划中国大陆内的路线，境外的参与者没有路线。
 
+### 6.2 预览即将添加的参与者
+
+```
+POST /api/events/:id/participant-preview
+```
+
+组织者添加参与者之前，先看这个地址在哪里、到所选场所每种方式要多久。只读：不写数据库，不发 SSE。
+
+**认证**：需要 Authorization: Bearer {organizerToken}。
+
+**请求体：**
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| address | string | ✓ | 出发地址，1-255 字符 |
+| venueId | string | - | 目的地场所 ID。省略时 routes 为空 |
+
+**后端输出（成功 200）：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| location | { lat, lng } | 地理编码结果 |
+| formattedAddress | string | 格式化地址 |
+| routes | PreviewRoute[] | 每种有路线的方式一条。没有路线的方式不出现，不算错误 |
+
+**PreviewRoute 结构：**
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| travelMode | string | driving/walking/transit/bicycling |
+| distance | Distance | { value: 米, text: 文本 } |
+| duration | Duration | { value: 秒, text: 文本 } |
+| polyline | string | 路线编码 |
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 400 | VALIDATION_ERROR | 请求体格式错误，或场所 ID 无效 |
+| 400 | ADDRESS_NOT_FOUND | 地址无法解析 |
+| 401 | UNAUTHORIZED | 缺少令牌 |
+| 403 | FORBIDDEN | 不是组织者 |
+| 404 | EVENT_NOT_FOUND | 活动不存在 |
+| 502 | EXTERNAL_SERVICE_ERROR | 地图服务调用失败 |
+
 ---
 
 ## 七、SSE 模块
@@ -1014,4 +1056,5 @@ GET /api/events/:id/stream
 | GET /api/events/:id/votes | ✅ 已实现 | 公开统计 |
 | GET /api/events/:id/votes/statistics | ✅ 已实现 | SSE 同步快照 |
 | GET /api/events/:id/venues/:venueId/directions | ✅ 已实现 | 需认证 |
+| POST /api/events/:id/participant-preview | ✅ 已实现 | 仅组织者，只读 |
 | GET /api/events/:id/stream | ✅ 已实现 | 需认证（SSE） |
