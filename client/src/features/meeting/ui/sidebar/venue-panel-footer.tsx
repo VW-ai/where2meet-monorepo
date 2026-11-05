@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Heart, Navigation, Share } from 'lucide-react';
+import { Heart, Navigation, Share } from 'lucide-react';
 import type { Venue } from '@/entities';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { isPublished } from '@/features/invitation/model/invitation';
@@ -18,6 +18,7 @@ import { useVotingStore } from '@/features/voting/model/voting-store';
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
 import { venueMapsUrl } from '@/shared/lib/map-provider';
+import { SlideToLock } from './slide-to-lock';
 import { BUTTON } from './venue-v2-parts';
 
 const messages = defineMessages({
@@ -28,13 +29,7 @@ const messages = defineMessages({
     liked: 'Liked',
     picksFinal: (name: string) => `${name} picks the final spot.`,
     organizerPicksFinal: 'The organizer picks the final spot.',
-    pick: 'Pick this spot',
-    confirmTitle: (venue: string) => `Make ${venue} the spot?`,
-    confirmBody:
-      "Everyone in the plan sees it right away, and new people can't join. You can change it later.",
-    keepLooking: 'Keep looking',
-    confirm: 'Yes, pick it',
-    confirming: 'Picking...',
+    lockNote: "Everyone sees it right away, and new people can't join. You can change it later.",
     share: 'Share invite',
     goingTo: (venue: string) => `The group is going to ${venue}.`,
     goingElsewhere: 'The group picked another spot.',
@@ -47,12 +42,7 @@ const messages = defineMessages({
     liked: '已喜欢',
     picksFinal: (name: string) => `${name}来定最终地点。`,
     organizerPicksFinal: '发起人来定最终地点。',
-    pick: '就定这里',
-    confirmTitle: (venue: string) => `就定${venue}？`,
-    confirmBody: '所有人会马上看到，新成员也不能再加入。之后还可以更换。',
-    keepLooking: '再看看',
-    confirm: '就定这里',
-    confirming: '正在确定…',
+    lockNote: '所有人会马上看到，新成员也不能再加入。之后还可以更换。',
     share: '分享邀请',
     goingTo: (venue: string) => `大家要去${venue}。`,
     goingElsewhere: '大家选了别的地点。',
@@ -100,7 +90,7 @@ function viewerRole(isOrganizer: boolean, isParticipant: boolean): ViewerRole {
   return isParticipant ? 'participant' : 'visitor';
 }
 
-/** Mounted once per venue (keyed by id), so a half-open confirmation never follows you to the next one. */
+/** Mounted once per venue (keyed by id), so a half-finished slide never follows you to the next one. */
 export function VenuePanelFooter({ venue }: { venue: Venue }) {
   const t = useMessages(messages);
   const locale = useLocale();
@@ -108,8 +98,6 @@ export function VenuePanelFooter({ venue }: { venue: Venue }) {
   const { closeVenueInfo, openVenueInfo, openShareModal, requestJoinForm } = useUIStore();
   const { isOrganizerMode, isParticipantMode, organizerToken } = useAuthStore();
   const like = useVenueLike(venue);
-  const [confirming, setConfirming] = useState(false);
-  const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const publishedVenueId =
@@ -118,7 +106,6 @@ export function VenuePanelFooter({ venue }: { venue: Venue }) {
     venueId: venue.id,
     publishedVenueId,
     role: viewerRole(isOrganizerMode, isParticipantMode),
-    confirming,
   });
 
   useEffect(() => {
@@ -159,16 +146,15 @@ export function VenuePanelFooter({ venue }: { venue: Venue }) {
     </button>
   );
 
-  const handlePick = async () => {
-    if (!currentEvent || !organizerToken) return;
-    setPicking(true);
+  const lockIn = async () => {
+    if (!currentEvent || !organizerToken) return false;
     setError(null);
     try {
       await publishVenue(currentEvent.id, venue, organizerToken);
+      return true;
     } catch (err) {
       setError(publishErrorMessage(err, locale));
-    } finally {
-      setPicking(false);
+      return false;
     }
   };
 
@@ -206,55 +192,19 @@ export function VenuePanelFooter({ venue }: { venue: Venue }) {
       }
       case 'pick':
         return (
-          <div className="flex gap-2">
-            {likeButton(false)}
-            <button
-              type="button"
-              className={cn(BUTTON.radiant, 'flex-1')}
-              onClick={() => setConfirming(true)}
-            >
-              {t.pick}
-            </button>
-          </div>
-        );
-      case 'confirm':
-        return (
-          <div className="venue-confirm-enter grid gap-2.5">
-            <div>
-              <b className="text-[14.5px] font-semibold tracking-[-.01em] text-v2-ink">
-                {t.confirmTitle(venue.name)}
-              </b>
-              <p className="mt-0.5 text-[12.5px] text-v2-ink-2">{t.confirmBody}</p>
+          <>
+            <div className="flex gap-2">
+              {likeButton(true)}
+              {directionsButton}
             </div>
             {error && (
-              <p role="alert" className="text-[12.5px] text-v2-coral-deep">
+              <p role="alert" className="text-center text-[12.5px] text-v2-coral-deep">
                 {error}
               </p>
             )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className={cn(BUTTON.line, 'flex-1')}
-                onClick={() => {
-                  setConfirming(false);
-                  setError(null);
-                }}
-                disabled={picking}
-              >
-                {t.keepLooking}
-              </button>
-              <button
-                type="button"
-                className={cn(BUTTON.ink, 'flex-1')}
-                onClick={handlePick}
-                disabled={picking}
-                aria-busy={picking}
-              >
-                <Check aria-hidden="true" />
-                {picking ? t.confirming : t.confirm}
-              </button>
-            </div>
-          </div>
+            <SlideToLock venueName={venue.name} onLock={lockIn} />
+            <p className="text-center text-xs text-v2-ink-3">{t.lockNote}</p>
+          </>
         );
       case 'share':
         return (

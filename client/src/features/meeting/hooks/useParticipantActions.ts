@@ -137,6 +137,18 @@ export function useChangeParticipantMode() {
   );
 }
 
+export function useSavePersonDetails() {
+  return useCallback(async (person: Participant, fields: { name?: string; address?: string }) => {
+    const eventId = useMeetingStore.getState().currentEvent?.id;
+    const auth = useAuthStore.getState();
+    const token = auth.isOrganizerMode ? auth.organizerToken : auth.participantToken;
+    if (!eventId || !token) throw new Error('No authorization token available');
+
+    patchParticipant(person.id, await participantClient.update(eventId, person.id, fields, token));
+    if (fields.address) analyticsEvents.addLocation(eventId, fields.address);
+  }, []);
+}
+
 export function useClaimParticipant() {
   const t = useMessages(messages);
 

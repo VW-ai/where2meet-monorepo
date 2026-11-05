@@ -324,17 +324,6 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
   }
 }
 
-.venue-confirm-enter {
-  animation: venue-confirm-enter 0.2s both;
-}
-
-@keyframes venue-confirm-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.985);
-  }
-}
-
 .plan-ticket-stamp {
   animation: plan-ticket-stamp 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
 }
@@ -374,7 +363,6 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
   .rad-border::before,
   .rad-border::after,
   .like-burst svg,
-  .venue-confirm-enter,
   .plan-ticket-stamp {
     animation: none;
   }

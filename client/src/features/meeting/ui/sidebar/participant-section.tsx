@@ -436,7 +436,7 @@ export function ParticipantSection() {
       </div>
 
       {/* Prompt for the viewer's own starting point (organizers start without one) */}
-      {!showAddForm && iNeedLocation && me && (
+      {version === 'classic' && !showAddForm && iNeedLocation && me && (
         <MyLocationPrompt
           askName={me.isOrganizer && me.name === 'Organizer'}
           onSubmit={handleSaveMyLocation}
@@ -498,7 +498,7 @@ export function ParticipantSection() {
       {/* Add/Edit Participant Form */}
       {showAddForm && (
         <div className="space-y-3">
-          {version === 'v2' && !editingParticipant ? (
+          {version === 'v2' ? (
             <AddPersonForm
               kind={isOrganizerMode ? 'add' : 'join'}
               onSubmit={handleSubmitParticipant}
@@ -558,19 +558,10 @@ export function ParticipantSection() {
               <PersonRow
                 key={participant.id}
                 person={participant}
-                onEdit={() => handleEditParticipant(participant)}
                 onRemove={() =>
                   participant.claimable
                     ? void removeWithUndo(participant)
                     : handleDeleteParticipant(participant.id)
-                }
-                onAddLocation={
-                  participant.id === myParticipantId && iNeedLocation
-                    ? () => {
-                        handleCancelForm();
-                        setTimeout(focusMyLocationPrompt, 50);
-                      }
-                    : undefined
                 }
               />
             ) : (

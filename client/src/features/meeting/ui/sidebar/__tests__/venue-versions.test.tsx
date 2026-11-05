@@ -199,7 +199,7 @@ describe('v2 panel states', () => {
   it('gives the organizer the one radiant action', () => {
     arrange({ role: 'organizer' });
     const html = renderToStaticMarkup(<VersionedVenuePanel />);
-    expect(textOf(html)).toContain('Pick this spot');
+    expect(textOf(html)).toContain('Slide to lock in');
     expect(html.match(/rad-border/g)).toHaveLength(1);
   });
 
@@ -376,6 +376,40 @@ describe('per-person transport', () => {
     expect(people()).toContain('Jun chose this. Only Jun can change it.');
     expect(people()).not.toContain('Edit');
     expect(pickers(peopleHtml())).toBe(0);
+  });
+
+  it('asks for your own starting point on your own row, with one Save', () => {
+    arrange({
+      event: {
+        ...withMom,
+        participants: withMom.participants.map((p) =>
+          p.id === 'maya' ? { ...p, address: null, location: null } : p
+        ),
+      },
+    });
+    useMapStore.setState({ selectedParticipantId: null });
+    const text = people();
+    expect(text).toContain('Where are you coming from?');
+    expect(text.match(/Save/g)).toHaveLength(1);
+    expect(text).not.toContain('Save my location');
+    expect(text).not.toContain('Add starting location');
+    useMapStore.setState({ selectedParticipantId: 'maya' });
+    expect(people()).not.toContain('Edit');
+  });
+
+  it('offers the organizer the same card for someone with no starting point', () => {
+    arrange({
+      event: {
+        ...withMom,
+        participants: withMom.participants.map((p) =>
+          p.id === 'mom' ? { ...p, address: null, location: null } : p
+        ),
+      },
+      role: 'organizer',
+    });
+    useMapStore.setState({ selectedParticipantId: null });
+    expect(people()).toContain('Add starting location');
+    expect(people()).not.toContain('Where is Mom coming from?');
   });
 
   it('marks only the rows the viewer can change as opening to something to change', () => {

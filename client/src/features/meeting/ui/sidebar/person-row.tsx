@@ -12,6 +12,7 @@ import { useVotingStore } from '@/features/voting/model/voting-store';
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
 import { prefersReducedMotion } from '../map/map-motion';
+import { PersonDetailsEditor } from './person-details-editor';
 import {
   CompareModes,
   HowLine,
@@ -87,22 +88,14 @@ function revealInList(row: HTMLElement) {
   }
 }
 
-export function PersonRow({
-  person,
-  onEdit,
-  onRemove,
-  onAddLocation,
-}: {
-  person: Participant;
-  onEdit: () => void;
-  onRemove: () => void;
-  onAddLocation?: () => void;
-}) {
+export function PersonRow({ person, onRemove }: { person: Participant; onRemove: () => void }) {
   const t = useMessages(messages);
   const locale = useLocale();
   const rights = useParticipantRights(person);
   const claim = useClaimParticipant();
   const [claiming, setClaiming] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const askingForMyStart = rights.isSelf && rights.editDetails && !person.address;
   const { selectedParticipantId, setSelectedParticipantId, routes } = useMapStore();
   const hasVenue = useMeetingStore((state) => !!state.selectedVenue);
   const selected = selectedParticipantId === person.id;
@@ -111,14 +104,15 @@ export function PersonRow({
     : undefined;
 
   const rowRef = useRef<HTMLDivElement>(null);
+  const open = selected || editing;
   useEffect(() => {
     const row = rowRef.current;
-    if (!selected || !row) return;
+    if (!open || !row) return;
     revealInList(row);
     // Closing the add form shrinks a phone's sheet, and this list with it
     const settled = setTimeout(() => revealInList(row), SHEET_RESIZE_MS);
     return () => clearTimeout(settled);
-  }, [selected]);
+  }, [open]);
 
   const toggle = () => setSelectedParticipantId(selected ? null : person.id);
   const quiet = (run: () => void) => (event: React.MouseEvent) => {
@@ -141,7 +135,8 @@ export function PersonRow({
       }}
       className={cn(
         'grid cursor-pointer grid-cols-[32px_minmax(0,1fr)_auto] items-start gap-2.5 rounded-[14px] px-2.5 py-2 text-left text-sm text-v2-ink',
-        selected ? 'bg-v2-coral-wash' : 'hover:bg-v2-wash'
+        open || askingForMyStart ? 'bg-v2-coral-wash' : 'hover:bg-v2-wash',
+        (editing || askingForMyStart) && 'shadow-[inset_0_0_0_1.5px_#ffc9c7]'
       )}
     >
       <ParticipantAvatar participant={person} large />
@@ -152,10 +147,10 @@ export function PersonRow({
         </div>
         <HowLine person={person} open={selected} expandable={rights.editMode} />
         {!person.claimable && <LikedSpots participantId={person.id} />}
-        {!person.address && onAddLocation && (
+        {!person.address && rights.editDetails && !rights.isSelf && !editing && (
           <button
             type="button"
-            onClick={quiet(onAddLocation)}
+            onClick={quiet(() => setEditing(true))}
             className="mt-1 flex items-center gap-1 text-xs font-medium text-v2-coral-deep hover:underline"
           >
             <MapPin className="size-3 flex-none" aria-hidden="true" />
@@ -186,7 +181,17 @@ export function PersonRow({
       ) : (
         <span />
       )}
-      {selected && (
+      {editing ? (
+        <PersonDetailsEditor
+          person={person}
+          isSelf={rights.isSelf}
+          onSaved={() => setEditing(false)}
+          onCancel={() => setEditing(false)}
+        />
+      ) : (
+        askingForMyStart && <PersonDetailsEditor person={person} isSelf />
+      )}
+      {selected && !editing && (
         <div
           className="col-span-full grid cursor-default gap-1.5 text-[12.5px] text-v2-ink-2"
           onClick={(event) => event.stopPropagation()}
@@ -196,10 +201,10 @@ export function PersonRow({
           ) : (
             <WhoDecides person={person} rights={rights} />
           )}
-          {(rights.editDetails || rights.remove) && (
+          {((rights.editDetails && !askingForMyStart) || rights.remove) && (
             <div className="flex gap-2.5">
-              {rights.editDetails && (
-                <button type="button" className={LINK} onClick={quiet(onEdit)}>
+              {rights.editDetails && !askingForMyStart && (
+                <button type="button" className={LINK} onClick={quiet(() => setEditing(true))}>
                   {t.edit}
                 </button>
               )}
