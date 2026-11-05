@@ -57,6 +57,7 @@ import {
   routeStrokeStyle,
   type RouteStroke,
 } from './map-motion';
+import { useVenuePins } from './use-map-pins';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
@@ -576,6 +577,7 @@ export function GoogleMapArea() {
     markerDrops.venue.cancelPending();
     venueMarkersRef.current.forEach((marker) => marker.setMap(null));
     venueMarkersRef.current = [];
+    if (version === 'v2') return;
 
     // Add markers for searched venues that are NOT liked
     searchedVenues.forEach((venue) => {
@@ -619,6 +621,7 @@ export function GoogleMapArea() {
     });
   }, [
     map,
+    version,
     searchedVenues,
     selectedVenue,
     hoveredVenueId,
@@ -634,12 +637,14 @@ export function GoogleMapArea() {
 
     // Remove markers for venues that are no longer liked
     likedVenueMarkersRef.current.forEach((marker, venueId) => {
-      if (!savedVenues.includes(venueId)) {
+      if (version === 'v2' || !savedVenues.includes(venueId)) {
         markerDrops.liked.forget(venueId);
         marker.setMap(null);
         likedVenueMarkersRef.current.delete(venueId);
       }
     });
+
+    if (version === 'v2') return;
 
     // Get all liked venues - use venueById for details, fallback to searchedVenues
     const allLikedVenues = savedVenues
@@ -700,6 +705,7 @@ export function GoogleMapArea() {
     });
   }, [
     map,
+    version,
     searchedVenues,
     selectedVenue,
     hoveredVenueId,
@@ -711,6 +717,8 @@ export function GoogleMapArea() {
     locale,
     markerDrops,
   ]);
+
+  useVenuePins(map, version === 'v2');
 
   // Under v2 a refreshed event, a changed travel mode above all, must not move the map
   const selectedSpot = currentEvent?.participants?.find((p) => p.id === selectedParticipantId);
