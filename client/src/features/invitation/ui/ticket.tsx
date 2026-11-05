@@ -1,5 +1,5 @@
 import { createElement, type CSSProperties } from 'react';
-import type { IconNode } from 'lucide';
+import { MapPin, type IconNode } from 'lucide';
 import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
 import { defineMessages } from '@/shared/lib/locale';
 import { VENUE_KINDS, type Invitation } from '../model/invitation';
@@ -209,13 +209,39 @@ export function Ticket({ invitation, u, photo, cat, live = false }: TicketProps)
             >
               {invitation.title}
             </div>
-            {venue && (
-              <div style={{ fontSize: 14 * u, opacity: 0.8, marginTop: 3 * u, ...clamp(2, live) }}>
-                {`${venue.name} · ${venue.address}`}
-              </div>
-            )}
           </div>
         </div>
+        {venue && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', marginTop: 14 * u }}>
+            <Icon icon={MapPin} size={22 * u} color={theme.accent} strokeWidth={2.4} />
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                minWidth: 0,
+                marginLeft: 8 * u,
+              }}
+            >
+              <div
+                style={{ fontSize: 18 * u, fontWeight: 700, lineHeight: 1.2, ...clamp(2, live) }}
+              >
+                {venue.name}
+              </div>
+              <div
+                style={{
+                  fontSize: 15 * u,
+                  fontWeight: 600,
+                  lineHeight: 1.3,
+                  marginTop: 2 * u,
+                  ...clamp(2, live),
+                }}
+              >
+                {venue.address}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <Strip

@@ -439,7 +439,7 @@ export async function renderInvitation({
       <div style={{ display: 'flex', flexShrink: 0 }}>
         <Ticket
           invitation={invitation}
-          u={portrait ? 2.3 : 1.45}
+          u={portrait ? 2.3 : 1.3}
           photo={photoSrc}
           cat={svgDataUri(logo)}
         />
