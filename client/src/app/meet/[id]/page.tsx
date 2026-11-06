@@ -226,7 +226,7 @@ export default function MeetPage() {
     <LocaleProvider locale={locale}>
       <TutorialProvider>
         <div
-          className="meeting-screen relative h-screen w-screen overflow-hidden"
+          className="meeting-screen relative h-screen w-screen overflow-clip"
           data-expanded={sheetExpanded}
           lang={LANGUAGE_TAGS[locale]}
         >
