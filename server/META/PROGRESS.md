@@ -937,3 +937,12 @@ Google Maps is blocked in mainland China and has little venue data there, so mee
 - New: `tests/unit/amap.test.ts` (27), `tests/unit/geo-coords.test.ts` (5), `tests/unit/geo-polyline.test.ts` (2), `tests/services/map-provider.test.ts` (7), `tests/amap-routes.test.ts` (9), metric formatting (2) and `mapProvider` schema cases (3)
 - Tests that need no database pass. The database-backed integration tests were not run: no Postgres or Redis was available in this environment
 - AMap responses in tests follow AMap's documented field tables; nothing was run against the live AMap API because no key exists yet
+
+## 2026-11-05
+
+### Account Deletion
+
+`DELETE /api/users/me` deletes the account and ends the session. A meeting the person organized that nobody else joined is deleted. In any other meeting, their participant row keeps its place as "Former guest", and its name, starting point, token, visits and searches are removed.
+
+#### Test Summary
+- New: 5 cases in `tests/users.test.ts`, run against the local Postgres and Redis.

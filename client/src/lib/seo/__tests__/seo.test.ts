@@ -150,6 +150,7 @@ describe('sitemap', () => {
       [`${CANONICAL_ORIGIN}/faq`, '2026-10-19', undefined],
       [`${CANONICAL_ORIGIN}/about`, '2026-10-21', undefined],
       [`${CANONICAL_ORIGIN}/contact`, '2026-10-21', undefined],
+      [`${CANONICAL_ORIGIN}/privacy`, '2026-11-05', undefined],
       [`${CANONICAL_ORIGIN}/blog`, undefined, undefined],
     ]);
   });

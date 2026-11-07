@@ -62,6 +62,124 @@ describe("User Endpoints", () => {
     };
   }
 
+  describe("DELETE /api/users/me", () => {
+    async function claim(sessionToken: string, eventId: string, participantToken: string) {
+      await server.inject({
+        method: "POST",
+        url: "/api/users/me/events/claim",
+        cookies: { session_token: sessionToken },
+        payload: { eventId, participantToken },
+      });
+    }
+    async function join(eventId: string, name: string) {
+      const response = await server.inject({
+        method: "POST",
+        url: `/api/events/${eventId}/participants`,
+        payload: { name, address: "1 Main St" },
+      });
+      return response.json<{ id: string; participantToken: string }>();
+    }
+    function deleteAccount(sessionToken: string) {
+      return server.inject({
+        method: "DELETE",
+        url: "/api/users/me",
+        cookies: { session_token: sessionToken },
+      });
+    }
+
+    it("should require a session", async () => {
+      const response = await server.inject({ method: "DELETE", url: "/api/users/me" });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should end the session and free the email", async () => {
+      const email = `delete-${Date.now()}@example.com`;
+      const { user, sessionToken } = await registerUser(email, "Leaving");
+
+      const response = await deleteAccount(sessionToken);
+
+      expect(response.statusCode).toBe(200);
+      expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
+      const session = await server.inject({
+        method: "GET",
+        url: "/api/users/me",
+        cookies: { session_token: sessionToken },
+      });
+      expect(session.statusCode).toBe(401);
+      const again = await server.inject({
+        method: "POST",
+        url: "/api/auth/register",
+        payload: { email, password: "password123" },
+      });
+      expect(again.statusCode).toBe(201);
+    });
+
+    it("should delete a meeting nobody else joined", async () => {
+      const { sessionToken } = await registerUser(`solo-${Date.now()}@example.com`);
+      const { eventId, participantToken } = await createEvent();
+      await claim(sessionToken, eventId, participantToken);
+      await server.inject({
+        method: "POST",
+        url: `/api/events/${eventId}/participants`,
+        headers: { authorization: `Bearer ${participantToken}` },
+        payload: { name: "Added by organizer", address: "2 Main St" },
+      });
+
+      await deleteAccount(sessionToken);
+
+      expect(await prisma.event.findUnique({ where: { id: eventId } })).toBeNull();
+    });
+
+    it("should keep a meeting others joined, without the organizer's data", async () => {
+      const { sessionToken } = await registerUser(`host-${Date.now()}@example.com`);
+      const { eventId, participantToken, organizerParticipantId } = await createEvent();
+      await claim(sessionToken, eventId, participantToken);
+      await prisma.participant.update({
+        where: { id: organizerParticipantId },
+        data: { name: "Real Name", address: "Home", formattedAddress: "Home", lat: 1, lng: 2 },
+      });
+      await prisma.meetingVisit.create({ data: { eventId, participantId: organizerParticipantId } });
+      await prisma.venueSearch.create({
+        data: { eventId, participantId: organizerParticipantId, query: "cafe", resultCount: 1 },
+      });
+      const guest = await join(eventId, "Guest");
+
+      await deleteAccount(sessionToken);
+
+      const organizer = await prisma.participant.findUniqueOrThrow({
+        where: { id: organizerParticipantId },
+      });
+      expect(organizer).toMatchObject({
+        name: "Former guest",
+        address: null,
+        formattedAddress: null,
+        lat: null,
+        lng: null,
+        tokenHash: null,
+      });
+      const stillThere = await prisma.participant.findUniqueOrThrow({ where: { id: guest.id } });
+      expect(stillThere).toMatchObject({ name: "Guest", address: "1 Main St" });
+      expect(await prisma.meetingVisit.count({ where: { eventId } })).toBe(0);
+      expect(await prisma.venueSearch.count({ where: { eventId } })).toBe(0);
+    });
+
+    it("should remove a guest's data from someone else's meeting", async () => {
+      const { sessionToken } = await registerUser(`guest-${Date.now()}@example.com`);
+      const { eventId, organizerParticipantId } = await createEvent();
+      const guest = await join(eventId, "Guest");
+      await claim(sessionToken, eventId, guest.participantToken);
+
+      await deleteAccount(sessionToken);
+
+      expect(await prisma.event.findUnique({ where: { id: eventId } })).not.toBeNull();
+      const row = await prisma.participant.findUniqueOrThrow({ where: { id: guest.id } });
+      expect(row).toMatchObject({ name: "Former guest", address: null, tokenHash: null });
+      expect(
+        await prisma.participant.findUnique({ where: { id: organizerParticipantId } })
+      ).not.toBeNull();
+    });
+  });
+
   describe("GET /api/users/me", () => {
     it("should return user profile", async () => {
       const { user, sessionToken } = await registerUser(undefined, "Profile User");
