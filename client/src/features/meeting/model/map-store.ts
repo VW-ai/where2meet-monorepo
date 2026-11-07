@@ -8,6 +8,7 @@ export interface RouteInfo {
   participantId: string;
   distance: string; // e.g., "2.5 km"
   duration: string; // e.g., "8 mins"
+  durationSeconds: number;
   polyline: string; // encoded polyline
 }
 
