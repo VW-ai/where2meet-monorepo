@@ -146,6 +146,7 @@ export interface BackendDirectionsRoute {
   distance: { text: string; value: number };
   duration: { text: string; value: number };
   polyline: string;
+  travelMode: TravelMode;
 }
 
 /**
@@ -153,6 +154,7 @@ export interface BackendDirectionsRoute {
  */
 export interface BackendDirectionsResponse {
   venueId: string;
-  travelMode: string;
+  /** The override the request asked for, null when each person used their own mode */
+  travelMode: TravelMode | null;
   routes: BackendDirectionsRoute[];
 }

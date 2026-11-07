@@ -1,5 +1,6 @@
 import { createElement, type CSSProperties } from 'react';
-import type { IconNode } from 'lucide';
+import { MapPin, type IconNode } from 'lucide';
+import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
 import { defineMessages } from '@/shared/lib/locale';
 import { VENUE_KINDS, type Invitation } from '../model/invitation';
 
@@ -24,6 +25,8 @@ export const ticketMessages = defineMessages({
   en: {
     invited: "You're invited",
     when: 'When',
+    dateToBeSet: 'TBD',
+    timeToBeSet: 'Time to be set',
     going: 'Going',
     hostedBy: (name: string) => `Hosted by ${name}`,
     confirmed: 'CONFIRMED',
@@ -31,6 +34,8 @@ export const ticketMessages = defineMessages({
   zh: {
     invited: '邀请你来',
     when: '时间',
+    dateToBeSet: '待定',
+    timeToBeSet: '时间待定',
     going: '参加',
     hostedBy: (name: string) => `${name} 发起`,
     confirmed: '已确定',
@@ -204,13 +209,39 @@ export function Ticket({ invitation, u, photo, cat, live = false }: TicketProps)
             >
               {invitation.title}
             </div>
-            {venue && (
-              <div style={{ fontSize: 14 * u, opacity: 0.8, marginTop: 3 * u, ...clamp(2, live) }}>
-                {`${venue.name} · ${venue.address}`}
-              </div>
-            )}
           </div>
         </div>
+        {venue && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', marginTop: 14 * u }}>
+            <Icon icon={MapPin} size={22 * u} color={theme.accent} strokeWidth={2.4} />
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                minWidth: 0,
+                marginLeft: 8 * u,
+              }}
+            >
+              <div
+                style={{ fontSize: 18 * u, fontWeight: 700, lineHeight: 1.2, ...clamp(2, live) }}
+              >
+                {venue.name}
+              </div>
+              <div
+                style={{
+                  fontSize: 15 * u,
+                  fontWeight: 600,
+                  lineHeight: 1.3,
+                  marginTop: 2 * u,
+                  ...clamp(2, live),
+                }}
+              >
+                {venue.address}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <Strip
@@ -222,14 +253,12 @@ export function Ticket({ invitation, u, photo, cat, live = false }: TicketProps)
       />
 
       <div style={{ display: 'flex', padding: `${18 * u}px ${20 * u}px ${6 * u}px` }}>
-        {when && (
-          <Stat label={t.when} u={u}>
-            <div style={{ fontFamily: DISPLAY_FONT, fontSize: 28 * u, marginTop: 4 * u }}>
-              {when.date}
-            </div>
-            <div style={{ fontSize: 13 * u, opacity: 0.75 }}>{when.time}</div>
-          </Stat>
-        )}
+        <Stat label={t.when} u={u}>
+          <div style={{ fontFamily: DISPLAY_FONT, fontSize: 28 * u, marginTop: 4 * u }}>
+            {when?.date ?? t.dateToBeSet}
+          </div>
+          <div style={{ fontSize: 13 * u, opacity: 0.75 }}>{when?.time ?? t.timeToBeSet}</div>
+        </Stat>
         <Stat label={t.going} u={u} color={theme.accent}>
           <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 * u }}>
             <div style={{ fontFamily: DISPLAY_FONT, fontSize: 28 * u }}>{String(going.length)}</div>
@@ -238,21 +267,35 @@ export function Ticket({ invitation, u, photo, cat, live = false }: TicketProps)
                 <div
                   key={i}
                   style={{
+                    position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: 24 * u,
-                    height: 24 * u,
-                    marginLeft: i ? -7 * u : 0,
-                    borderRadius: 12 * u,
-                    border: `${2 * u}px solid ${theme.ring}`,
-                    backgroundColor: person.color,
+                    width: 28 * u,
+                    height: 28 * u,
+                    marginLeft: i ? -8 * u : 0,
+                    paddingTop: 5 * u,
                     color: '#fff',
                     fontSize: 11 * u,
                     fontWeight: 700,
                   }}
                 >
-                  {person.initial}
+                  {/* The margin in the viewBox keeps the outline inside the box satori clips to */}
+                  <svg
+                    width={28 * u}
+                    height={28 * u}
+                    viewBox="-6 -6 112 112"
+                    style={{ position: 'absolute', left: 0, top: 0 }}
+                  >
+                    <path
+                      d={CAT_HEAD_PATH}
+                      fill={person.color}
+                      stroke={theme.ring}
+                      strokeWidth={8}
+                      paintOrder="stroke"
+                    />
+                  </svg>
+                  <div style={{ position: 'relative' }}>{person.initial}</div>
                 </div>
               ))}
             </div>
@@ -276,7 +319,7 @@ export function Ticket({ invitation, u, photo, cat, live = false }: TicketProps)
           opacity: 0.45,
         }}
       >
-        <div>{invitation.issued ?? ''}</div>
+        <div>{invitation.issued}</div>
         <div>{t.confirmed}</div>
       </div>
     </div>

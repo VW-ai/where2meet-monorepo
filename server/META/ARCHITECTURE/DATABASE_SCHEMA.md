@@ -77,6 +77,7 @@
 │  color           VARCHAR(20)     NOT NULL               │
 │  is_organizer    BOOLEAN         DEFAULT FALSE          │
 │  token_hash      VARCHAR(64)     NULL                   │
+│  travel_mode     TravelMode      DEFAULT 'driving'      │
 │  created_at      TIMESTAMP       NOT NULL, DEFAULT NOW  │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -93,6 +94,7 @@
 | `color` | VARCHAR(20) | 显示颜色（如 "coral"） |
 | `is_organizer` | BOOLEAN | 是否为组织者参与者 |
 | `token_hash` | VARCHAR(64) | 参与者令牌哈希（SHA-256），用于认证。组织者和自行加入者有此令牌，组织者添加的参与者为空 |
+| `travel_mode` | TravelMode | 此人的出行方式：driving/walking/transit/bicycling |
 | `created_at` | TIMESTAMP | 创建时间 |
 
 **说明**：
@@ -102,6 +104,7 @@
 - `is_organizer=true` 的参与者在创建活动时自动创建，无需提供位置信息
 - 组织者参与者若 lat/lng 为 NULL 则不会计入 MEC；当组织者添加了位置后，将计入 MEC 计算
 - 组织者通过 `token_hash` 认证，权限由 `is_organizer` 标志确定
+- `claimable`（`token_hash IS NULL AND NOT is_organizer`）不存储，由 `src/utils/claimable.ts` 推导。claimable 的行没有投票
 
 ---
 

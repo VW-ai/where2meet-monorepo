@@ -1,4 +1,5 @@
 import { pathUpTo, type PathPoint } from '@/features/meeting/lib/path-up-to';
+import type { TravelMode } from '@/shared/types/map';
 
 const REVEAL_LEAD_MS = 120;
 const REVEAL_STAGGER_MS = 140;
@@ -18,11 +19,56 @@ export interface RouteStroke {
   polyline: Pick<google.maps.Polyline, 'setPath' | 'setOptions'>;
   path: PathPoint[];
   color: string;
+  /** What draws the line when its own stroke is hidden, as a dashed route's is */
+  icons?: google.maps.IconSequence[];
 }
 
 export function drawStroke(stroke: RouteStroke) {
   stroke.polyline.setPath(stroke.path);
-  stroke.polyline.setOptions({ icons: [] });
+  stroke.polyline.setOptions({ icons: stroke.icons ?? [] });
+}
+
+/** Classic's one line for everyone stays solid, so it never reads as anyone's own mode. */
+export type RouteLine = TravelMode | 'solid';
+
+/** Dash and gap in pixels. Walking is a line of dots. */
+const ROUTE_DASH: Record<RouteLine, readonly [dash: number, gap: number] | null> = {
+  solid: null,
+  driving: [18, 9],
+  transit: [11, 8],
+  bicycling: [3, 7],
+  walking: [0, 8],
+};
+
+/** Google polylines have no dash option: a dashed line is a hidden stroke with a repeating symbol. */
+export function routeStrokeStyle(line: RouteLine, focused: boolean) {
+  const strokeOpacity = focused ? 0.9 : 0.3;
+  const strokeWeight = focused ? 5 : 3;
+  const zIndex = focused ? 20 : 5;
+  const dash = ROUTE_DASH[line];
+  if (!dash) return { strokeOpacity, strokeWeight, zIndex, icons: [] };
+
+  const [length, gap] = dash;
+  const icon: google.maps.Symbol =
+    length === 0
+      ? {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: strokeWeight / 2,
+          fillOpacity: strokeOpacity,
+          strokeOpacity: 0,
+        }
+      : {
+          path: `M 0,0 0,${length}`,
+          scale: 1,
+          strokeOpacity,
+          strokeWeight,
+        };
+  return {
+    strokeOpacity: 0,
+    strokeWeight,
+    zIndex,
+    icons: [{ icon, offset: '0', repeat: `${length + gap}px` }],
+  };
 }
 
 function headDot(color: string): google.maps.IconSequence[] {
@@ -42,20 +88,17 @@ function headDot(color: string): google.maps.IconSequence[] {
 }
 
 /**
- * Grows each stroke from its start, staggered, with a dot on the head, then calls `onArrive`.
+ * Grows each stroke from its start, staggered, with a dot on the head.
  * Returns a cancel that stops the animation where it is; the caller owns the polylines.
  */
-export function revealStrokes<T extends RouteStroke>(
-  strokes: readonly T[],
-  onArrive: (stroke: T) => void
-): () => void {
+export function revealStrokes(strokes: readonly RouteStroke[]): () => void {
   const waiting = new Set(strokes);
   let frame = 0;
   let start: number | null = null;
 
   strokes.forEach((stroke) => {
     stroke.polyline.setPath(pathUpTo(stroke.path, 0));
-    stroke.polyline.setOptions({ icons: headDot(stroke.color) });
+    stroke.polyline.setOptions({ icons: [...(stroke.icons ?? []), ...headDot(stroke.color)] });
   });
 
   const tick = (now: number) => {
@@ -70,7 +113,6 @@ export function revealStrokes<T extends RouteStroke>(
       }
       drawStroke(stroke);
       waiting.delete(stroke);
-      onArrive(stroke);
     });
     if (waiting.size > 0) frame = requestAnimationFrame(tick);
   };
@@ -116,18 +158,6 @@ export function createMarkerDrops(stepMs = DROP_STAGGER_MS) {
       pending.delete(id);
     },
   };
-}
-
-/** The label is drawn into the image: an SVG data URL can't load the page's fonts. */
-export function routePillImage(label: string, color: string) {
-  const textWidth = Array.from(label).reduce(
-    (width, char) => width + (char.charCodeAt(0) > 0x2e7f ? 12 : 6.6),
-    0
-  );
-  const width = Math.ceil(textWidth + 18);
-  const height = 24;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="11" fill="#ffffff" stroke="${color}" stroke-width="1.5"/><text x="${width / 2}" y="16" text-anchor="middle" fill="#21252b" font-family="-apple-system, 'Segoe UI', 'PingFang SC', sans-serif" font-size="11.5" font-weight="600">${label}</text></svg>`;
-  return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, width, height };
 }
 
 /** One expanding ring on the selected venue. Returns a cancel. */

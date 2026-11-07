@@ -20,6 +20,8 @@ import { useMeetingStore } from '../../model/meeting-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMapStore } from '../../model/map-store';
 import { getHexColor, getInitials } from '../../lib/participant-colors';
+import { useUiVersionStore } from '../../model/ui-version-store';
+import { ParticipantAvatar } from '../sidebar/venue-v2-parts';
 import { SettingsDropdown } from '../header/settings-dropdown';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
 import './phone-meeting.css';
@@ -159,6 +161,7 @@ export function PhoneSheetHeading({
   const { currentEvent, selectedVenue, searchedVenues } = useMeetingStore();
   const { activeView, setActiveView, showSidebar } = useUIStore();
   const { routes, isCalculatingRoutes } = useMapStore();
+  const version = useUiVersionStore((state) => state.version);
   const participants = currentEvent?.participants ?? [];
   return (
     <div className="phone-sheet-heading md:hidden">
@@ -195,13 +198,17 @@ export function PhoneSheetHeading({
         <div className="phone-travel-times" aria-label={t.travelTimes}>
           {participants.map((person) => (
             <div key={person.id}>
-              <span
-                className="phone-avatar"
-                style={{ backgroundColor: getHexColor(person.color) }}
-                title={person.name}
-              >
-                {getInitials(person.name)}
-              </span>
+              {version === 'v2' ? (
+                <ParticipantAvatar participant={person} large />
+              ) : (
+                <span
+                  className="phone-avatar"
+                  style={{ backgroundColor: getHexColor(person.color) }}
+                  title={person.name}
+                >
+                  {getInitials(person.name)}
+                </span>
+              )}
               <span className="sr-only">{person.name}: </span>
               <span>
                 {isCalculatingRoutes

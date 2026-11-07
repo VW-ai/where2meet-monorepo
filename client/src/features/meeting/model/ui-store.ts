@@ -15,6 +15,10 @@ interface UIStore {
   showSidebar: () => void;
   hideSidebar: () => void;
 
+  // Phone sheet
+  isSheetExpanded: boolean;
+  setSheetExpanded: (expanded: boolean) => void;
+
   // Category filter
   selectedCategory: CategoryFilter;
   setSelectedCategory: (category: CategoryFilter) => void;
@@ -87,6 +91,8 @@ export const useUIStore = create<UIStore>((set) => ({
 
   // Sidebar visibility
   isSidebarVisible: true,
+  isSheetExpanded: false,
+  setSheetExpanded: (isSheetExpanded) => set({ isSheetExpanded }),
   toggleSidebar: () => set((state) => ({ isSidebarVisible: !state.isSidebarVisible })),
   showSidebar: () => set({ isSidebarVisible: true }),
   hideSidebar: () => set({ isSidebarVisible: false }),

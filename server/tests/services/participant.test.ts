@@ -149,6 +149,7 @@ describe("ParticipantService", () => {
               color: "coral",
               tokenHash: undefined,
               isOrganizer: false,
+              travelMode: undefined,
             },
           },
         ],
@@ -256,6 +257,8 @@ describe("ParticipantService", () => {
   });
 
   describe("updateParticipant", () => {
+    const SELF = { participantId: TEST_PARTICIPANT_ID, isOrganizer: false };
+
     it("should update participant name without re-geocoding", async () => {
       vi.mocked(mockPrisma.event.findUnique).mockResolvedValue(createMockEvent());
       vi.mocked(mockPrisma.participant.count).mockResolvedValue(1);
@@ -264,9 +267,12 @@ describe("ParticipantService", () => {
         createMockParticipant({ name: "Alicia" })
       );
 
-      const result = await service.updateParticipant(TEST_EVENT_ID, TEST_PARTICIPANT_ID, {
-        name: "Alicia",
-      });
+      const result = await service.updateParticipant(
+        TEST_EVENT_ID,
+        TEST_PARTICIPANT_ID,
+        { name: "Alicia" },
+        SELF
+      );
 
       expect(result.name).toBe("Alicia");
       expect(mockGeocode).not.toHaveBeenCalled();
@@ -289,9 +295,12 @@ describe("ParticipantService", () => {
         })
       );
 
-      await service.updateParticipant(TEST_EVENT_ID, TEST_PARTICIPANT_ID, {
-        address: "456 Oak Ave, LA",
-      });
+      await service.updateParticipant(
+        TEST_EVENT_ID,
+        TEST_PARTICIPANT_ID,
+        { address: "456 Oak Ave, LA" },
+        SELF
+      );
 
       expect(mockGeocode).toHaveBeenCalledWith("456 Oak Ave, LA");
       expect(mockPrisma.participant.update).toHaveBeenCalledWith(
@@ -310,7 +319,7 @@ describe("ParticipantService", () => {
       vi.mocked(mockPrisma.participant.count).mockResolvedValue(0);
 
       await expect(
-        service.updateParticipant(TEST_EVENT_ID, "non-existent", { name: "Bob" })
+        service.updateParticipant(TEST_EVENT_ID, "non-existent", { name: "Bob" }, SELF)
       ).rejects.toMatchObject({
         code: "PARTICIPANT_NOT_FOUND",
         statusCode: 404,
@@ -323,7 +332,7 @@ describe("ParticipantService", () => {
       );
 
       await expect(
-        service.updateParticipant(TEST_EVENT_ID, TEST_PARTICIPANT_ID, { name: "Bob" })
+        service.updateParticipant(TEST_EVENT_ID, TEST_PARTICIPANT_ID, { name: "Bob" }, SELF)
       ).rejects.toMatchObject({
         code: "EVENT_ALREADY_PUBLISHED",
         statusCode: 409,

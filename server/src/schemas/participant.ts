@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { TravelModeSchema } from "../dto/directions.dto.js";
 
 const legacyFuzzyLocation = z.boolean().optional();
 
@@ -20,9 +21,23 @@ export const CreateParticipantSchema = z.object({
     .min(1, "Address is required")
     .max(255, "Address must be 255 characters or less"),
   fuzzyLocation: legacyFuzzyLocation,
+  travelMode: TravelModeSchema.optional(),
 });
 
 export type CreateParticipantInput = z.infer<typeof CreateParticipantSchema>;
+
+/**
+ * Schema for previewing a person before adding them.
+ */
+export const ParticipantPreviewSchema = z.object({
+  address: z
+    .string()
+    .min(1, "Address is required")
+    .max(255, "Address must be 255 characters or less"),
+  venueId: z.string().min(1, "Venue ID cannot be empty").optional(),
+});
+
+export type ParticipantPreviewInput = z.infer<typeof ParticipantPreviewSchema>;
 
 /**
  * Schema for updating an existing participant.
@@ -41,10 +56,14 @@ export const UpdateParticipantSchema = z
       .nullish()
       .transform((address) => address ?? undefined),
     fuzzyLocation: legacyFuzzyLocation,
+    travelMode: TravelModeSchema.optional(),
   })
   .refine(
     (data) =>
-      data.name !== undefined || data.address !== undefined || data.fuzzyLocation !== undefined,
+      data.name !== undefined ||
+      data.address !== undefined ||
+      data.fuzzyLocation !== undefined ||
+      data.travelMode !== undefined,
     {
       message: "At least one field must be provided",
     }

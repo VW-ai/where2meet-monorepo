@@ -65,12 +65,16 @@ export {
   FormattedValueSchema,
   RouteResponseSchema,
   DirectionsResponseSchema,
+  PreviewRouteResponseSchema,
+  ParticipantPreviewResponseSchema,
 } from "./directions.dto.js";
 export type {
   TravelMode,
   FormattedValue,
   RouteResponse,
   DirectionsResponse,
+  PreviewRouteResponse,
+  ParticipantPreviewResponse,
 } from "./directions.dto.js";
 
 // User DTOs

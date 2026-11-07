@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import { LocationResponseSchema } from "./common.dto.js";
+import { TravelModeSchema, type TravelMode } from "./directions.dto.js";
 
 export interface PublicParticipant {
   id: string;
@@ -15,6 +16,8 @@ export interface PublicParticipant {
   color: string;
   fuzzyLocation: false;
   isOrganizer: boolean;
+  travelMode: TravelMode;
+  claimable: boolean;
 }
 
 /**
@@ -28,6 +31,8 @@ export const ParticipantResponseSchema = z.object({
   color: z.string(),
   fuzzyLocation: z.literal(false),
   isOrganizer: z.boolean(),
+  travelMode: TravelModeSchema,
+  claimable: z.boolean(),
 });
 
 export type ParticipantResponse = z.infer<typeof ParticipantResponseSchema>;
@@ -44,6 +49,8 @@ export const CreateParticipantResponseSchema = z.object({
   color: z.string(),
   fuzzyLocation: z.literal(false),
   isOrganizer: z.boolean(),
+  travelMode: TravelModeSchema,
+  claimable: z.boolean(),
   participantToken: z.string().optional(),
 });
 

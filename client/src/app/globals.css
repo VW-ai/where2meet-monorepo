@@ -227,6 +227,7 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
   --color-v2-line: #ece8e3;
   --color-v2-paper: #fffdfa;
   --color-v2-wash: #f7f4f0;
+  --color-v2-coral: #ff6b6b;
   --color-v2-coral-wash: #fff0ef;
   --color-v2-coral-deep: #dd4949;
   --color-v2-mint: #3b954a;
@@ -297,23 +298,29 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
   animation: like-burst 0.45s cubic-bezier(0.3, 1.8, 0.5, 1);
 }
 
+.form-step-in {
+  animation: form-step-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+@keyframes form-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-step-in {
+    animation: none;
+  }
+}
+
 @keyframes like-burst {
   0% {
     transform: scale(0.4);
   }
   60% {
     transform: scale(1.35);
-  }
-}
-
-.venue-confirm-enter {
-  animation: venue-confirm-enter 0.2s both;
-}
-
-@keyframes venue-confirm-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.985);
   }
 }
 
@@ -356,7 +363,6 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
   .rad-border::before,
   .rad-border::after,
   .like-burst svg,
-  .venue-confirm-enter,
   .plan-ticket-stamp {
     animation: none;
   }
