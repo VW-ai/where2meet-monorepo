@@ -81,6 +81,11 @@ export async function buildServer() {
                 }
               : undefined,
         },
+    // Railway's edge drops any client-sent X-Forwarded-For and writes
+    // "<client>, <edge>", then an internal 100.64.0.0/10 hop connects to us.
+    // Without trusting those two hops request.ip is the rotating proxy hop and
+    // the rate limiter gives every request a fresh bucket.
+    trustProxy: 2,
     requestIdHeader: "x-request-id",
     requestIdLogLabel: "requestId",
     disableRequestLogging: isTest,
