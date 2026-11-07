@@ -89,6 +89,9 @@
   occasion: study-session
 - phrase: study group meeting place
   occasion: study-session
+- phrase: group study spots
+  occasion: study-session
+  note: A search for places a study group can use, added 2026-11-07 because every other study session phrase already has a post
 - phrase: board game bar
   occasion: game-night
 - phrase: board game bar near me
