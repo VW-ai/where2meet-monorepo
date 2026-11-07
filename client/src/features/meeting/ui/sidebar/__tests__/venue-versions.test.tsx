@@ -2,8 +2,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Event, Participant, Venue } from '@/entities';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { routeKey } from '@/features/meeting/lib/person-routes';
 import { useMapStore } from '@/features/meeting/model/map-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
+import { useRouteCacheStore } from '@/features/meeting/model/route-cache-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useUiVersionStore, type UiVersion } from '@/features/meeting/model/ui-version-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
@@ -103,7 +105,8 @@ function arrange({
     myParticipantId: role === 'visitor' ? null : role === 'organizer' ? 'sam' : 'maya',
     voteStatsByVenueId: { [KETTLE.id]: { voteCount: voters.length, voterIds: voters } },
   });
-  useMapStore.setState({ routes, isCalculatingRoutes: false, travelMode: 'car' });
+  useMapStore.setState({ routes, tripRequests: {}, isCalculatingRoutes: false, travelMode: 'car' });
+  useRouteCacheStore.setState({ entries: {} });
   useAuthStore.setState({
     isOrganizerMode: role === 'organizer',
     isParticipantMode: role === 'participant',
@@ -165,13 +168,70 @@ describe('v2 panel states', () => {
     expect(panelText()).toContain('No likes yet');
   });
 
+  const everyone = [route('sam', 600), route('maya', 300), route('jun', 1500), route('theo', 900)];
+
   it('names the slowest person with the longest trip, and lists you first', () => {
-    arrange({ routes: [route('maya', 300), route('jun', 1500)] });
+    arrange({ routes: everyone });
     const text = panelText();
     expect(text).toContain('Everyone there in 25 min');
     expect(text).toContain('Jun has the longest trip, driving');
     expect(text.indexOf('You 5 min')).toBeLessThan(text.indexOf('Jun 25 min'));
+  });
+
+  it('counts only the people who have a route when someone has none', () => {
+    arrange({ routes: [route('maya', 300), route('jun', 1500)] });
+    const text = panelText();
+    expect(text).not.toContain('Everyone there');
+    expect(text).toContain('2 of 4 there in 25 min');
     expect(text).toContain('Sam No route');
+    expect(text).not.toContain('Try again');
+  });
+
+  it('tells a failed request apart from a missing route and offers a retry', () => {
+    arrange({ routes: [route('maya', 300), route('jun', 1500)] });
+    useMapStore.setState({ tripRequests: { sam: 'failed' } });
+    const text = panelText();
+    expect(text).toContain('Sam Couldn’t load');
+    expect(text).toContain('Theo No route');
+    expect(text).toContain('Some trips didn’t load. Try again');
+    expect(text).toContain('2 of 4 there in 25 min');
+  });
+
+  it('makes no claim about the group when every request failed', () => {
+    arrange();
+    useMapStore.setState({
+      tripRequests: { sam: 'failed', maya: 'failed', jun: 'failed', theo: 'failed' },
+    });
+    const text = panelText();
+    expect(text).toContain('Travel times');
+    expect(text).not.toContain('there in');
+    expect(text).not.toContain('No route');
+    expect(text).toContain('Trips didn’t load. Try again');
+  });
+
+  it('retries through the store', () => {
+    arrange();
+    const before = useMapStore.getState().tripRetry;
+    useMapStore.getState().retryTrips();
+    expect(useMapStore.getState().tripRetry).toBe(before + 1);
+  });
+
+  it('holds the headline while someone’s trip is still on its way', () => {
+    arrange({ routes: everyone });
+    useMapStore.setState({ tripRequests: { theo: 'loading' } });
+    const text = panelText();
+    expect(text).toContain('Travel times');
+    expect(text).toContain('Theo …');
+  });
+
+  it('says who has no starting point and keeps them in the count', () => {
+    arrange({
+      event: { ...EVENT, participants: [SAM, MAYA, JUN, { ...THEO, location: null }] },
+      routes: everyone.slice(0, 3),
+    });
+    const text = panelText();
+    expect(text).toContain('Theo No starting point');
+    expect(text).toContain('3 of 4 there in 25 min');
   });
 
   it('asks a visitor to join, instead of offering a like', () => {
@@ -295,7 +355,15 @@ describe('per-person transport', () => {
   });
 
   it('words the longest trip by that person’s own mode', () => {
-    arrange({ routes: [route('maya', 300), route('jun', 1500, 'transit')] });
+    arrange({
+      event: {
+        ...EVENT,
+        participants: EVENT.participants.map((p) =>
+          p.id === 'jun' ? { ...p, travelMode: 'transit' as const } : p
+        ),
+      },
+      routes: [route('maya', 300), route('jun', 1500, 'transit')],
+    });
     expect(panelText()).toContain('Jun has the longest trip, by transit');
   });
 
@@ -366,7 +434,7 @@ describe('per-person transport', () => {
     expect(pickers(peopleHtml())).toBe(0);
   });
 
-  it('opens your own row to compare, and someone else\'s to say who decides', () => {
+  it("opens your own row to compare, and someone else's to say who decides", () => {
     arrange({ event: withMom });
     useMapStore.setState({ selectedParticipantId: 'maya' });
     expect(people()).toContain('Compare your ways there');
@@ -509,17 +577,51 @@ describe('PlanTicket', () => {
     expect(ticket()).not.toContain(' PM');
   });
 
+  const allFour = ['sam', 'maya', 'jun', 'theo'].map((id, i) => route(id, 600 + i * 300));
+
   it('only states the trip once routes exist', () => {
     arrange({ event: published });
-    expect(ticket()).not.toContain('Everyone gets there');
-    arrange({ event: published, routes: [route('maya', 1500)] });
+    expect(ticket()).not.toContain('gets there');
+    arrange({ event: published, routes: allFour });
     expect(ticket()).toContain('Everyone gets there within 25 min.');
   });
 
-  it('does not credit the spot with routes from another selected venue', () => {
+  it('counts the people who can get there when someone has no route', () => {
     arrange({ event: published, routes: [route('maya', 1500)] });
+    const text = ticket();
+    expect(text).not.toContain('Everyone gets there');
+    expect(text).toContain('1 of 4 people get there within 25 min.');
+  });
+
+  it('does not count someone whose request failed as getting there', () => {
+    arrange({ event: published, routes: allFour.slice(0, 3) });
+    useMapStore.setState({ tripRequests: { theo: 'failed' } });
+    expect(ticket()).toContain('3 of 4 people get there');
+  });
+
+  it('keeps the line after a reload, when the spot is no longer selected', () => {
+    arrange({ event: published });
+    useMeetingStore.setState({ selectedVenue: null });
+    useRouteCacheStore
+      .getState()
+      .record(published.participants.map((p, i) => [routeKey(KETTLE.id, p), allFour[i]]));
+    expect(ticket()).toContain('Everyone gets there within 25 min.');
+  });
+
+  it('stays quiet until every trip to the spot is known', () => {
+    arrange({ event: published });
+    useMeetingStore.setState({ selectedVenue: null });
+    useRouteCacheStore.getState().record([
+      [routeKey(KETTLE.id, SAM), allFour[0]],
+      [routeKey(KETTLE.id, MAYA), undefined],
+    ]);
+    expect(ticket()).not.toContain('gets there');
+  });
+
+  it('does not credit the spot with routes from another selected venue', () => {
+    arrange({ event: published, routes: allFour });
     useMeetingStore.setState({ selectedVenue: { ...KETTLE, id: 'other' } });
-    expect(ticket()).not.toContain('Everyone gets there');
+    expect(ticket()).not.toContain('gets there');
   });
 
   it('offers the organizer a way to change the spot', () => {

@@ -609,9 +609,17 @@ export function AmapMapArea() {
       });
 
       setRoutes(routeInfos);
+      useMapStore.getState().markTripRequests(
+        validParticipants.map((p) => p.id),
+        null
+      );
     } catch (error) {
       console.error('[Map] Error calculating routes:', error);
       clearRoutes();
+      useMapStore.getState().markTripRequests(
+        validParticipants.map((p) => p.id),
+        'failed'
+      );
     } finally {
       setCalculatingRoutes(false);
     }
@@ -630,7 +638,8 @@ export function AmapMapArea() {
     setCalculatingRoutes,
   ]);
 
-  // Trigger route calculation when venue changes
+  const tripRetry = useMapStore((state) => state.tripRetry);
+  // Trigger route calculation when venue changes, or when someone asks to try failed trips again
   useEffect(() => {
     if (selectedVenue) {
       calculateRoutes();
@@ -639,7 +648,7 @@ export function AmapMapArea() {
       removeRoutes();
       clearRoutes();
     }
-  }, [selectedVenue, calculateRoutes, clearRoutes, removeRoutes]);
+  }, [selectedVenue, calculateRoutes, clearRoutes, removeRoutes, tripRetry]);
 
   // Update route visibility when selected participant changes
   useEffect(() => {

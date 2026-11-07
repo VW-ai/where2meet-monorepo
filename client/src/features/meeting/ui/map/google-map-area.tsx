@@ -929,8 +929,12 @@ export function GoogleMapArea() {
     };
     const stillWanted = (id: string) => fetchedRoutesRef.current.get(id) === wanted.get(id);
 
+    const { markTripRequests } = useMapStore.getState();
     gone.forEach(removeRouteDrawing);
-    if (gone.length > 0) putRoutes(gone, []);
+    if (gone.length > 0) {
+      putRoutes(gone, []);
+      markTripRequests(gone, null);
+    }
 
     const draw = (ids: string[], routes: RouteInfo[]) => {
       const current = ids.filter(stillWanted);
@@ -953,6 +957,7 @@ export function GoogleMapArea() {
       ids: string[],
       options: { participantId?: string; travelMode?: TravelMode }
     ): Promise<void> => {
+      markTripRequests(ids, 'loading');
       try {
         const response = await directionsClient.getDirections(eventId, venueId, authToken, options);
         const routes = response.routes.map(toRouteInfo);
@@ -966,6 +971,7 @@ export function GoogleMapArea() {
               .filter((id) => !lagging.some((route) => route.participantId === id))
               .map((id) => [wanted.get(id)!, routes.find((route) => route.participantId === id)])
           );
+        markTripRequests(ids.filter(stillWanted), null);
         draw(ids, routes);
         lagging.forEach((route) => {
           if (stillWanted(route.participantId)) void fetchOne(route.participantId);
@@ -978,6 +984,7 @@ export function GoogleMapArea() {
           removeRouteDrawing(id);
         });
         putRoutes(current, []);
+        markTripRequests(current, 'failed');
       }
     };
 
@@ -1029,14 +1036,15 @@ export function GoogleMapArea() {
 
   const calculateRoutes = version === 'v2' ? syncPersonRoutes : calculateClassicRoutes;
 
-  // Trigger route calculation when venue changes
+  const tripRetry = useMapStore((state) => state.tripRetry);
+  // Trigger route calculation when venue changes, or when someone asks to try failed trips again
   useEffect(() => {
     if (selectedVenue) {
       calculateRoutes();
     } else {
       resetRoutes();
     }
-  }, [selectedVenue, calculateRoutes, resetRoutes]);
+  }, [selectedVenue, calculateRoutes, resetRoutes, tripRetry]);
 
   // Update route visibility when selected participant changes
   useEffect(() => {

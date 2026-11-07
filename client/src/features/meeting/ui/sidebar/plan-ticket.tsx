@@ -6,9 +6,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Navigation, Share } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { invitationFor, isPublished } from '@/features/invitation/model/invitation';
-import { formatTripTime, slowestRoute } from '@/features/meeting/lib/route-summary';
-import { useMapStore } from '@/features/meeting/model/map-store';
+import type { Event } from '@/entities';
+import { hasStartingPoint, routeKey } from '@/features/meeting/lib/person-routes';
+import { formatTripTime, tripClaim, tripOf, type Trip } from '@/features/meeting/lib/route-summary';
+import { useMapStore, type RouteInfo } from '@/features/meeting/model/map-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
+import { useRouteCacheStore } from '@/features/meeting/model/route-cache-store';
 import { unpublishVenue } from '@/features/meeting/model/publish-venue';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { cn } from '@/shared/lib/cn';
@@ -25,6 +28,8 @@ const messages = defineMessages({
     changing: 'Changing...',
     changeFailed: "Couldn't change the spot. Try again.",
     within: (time: string) => `Everyone gets there within ${time}.`,
+    someWithin: (reached: number, total: number, time: string) =>
+      `${reached} of ${total} people get there within ${time}.`,
   },
   zh: {
     set: '已定',
@@ -34,6 +39,8 @@ const messages = defineMessages({
     changing: '正在更换…',
     changeFailed: '没能更换地点，请重试。',
     within: (time: string) => `大家 ${time}内都能到。`,
+    someWithin: (reached: number, total: number, time: string) =>
+      `${total} 人中有 ${reached} 人 ${time}内能到。`,
   },
 });
 
@@ -57,18 +64,58 @@ function usePublishStamp(sighting: PublishSighting) {
   return stamp;
 }
 
+/**
+ * Everyone's trip to the spot. The map only holds routes for the selected venue, so when the spot
+ * isn't selected, as after a reload, the ticket looks the trips up itself.
+ */
+function useSpotTrips(event: Event | null, spotId: string | null) {
+  const spotSelected = useMeetingStore((state) => !!spotId && state.selectedVenue?.id === spotId);
+  const { routes, tripRequests, isCalculatingRoutes } = useMapStore();
+  const entries = useRouteCacheStore((state) => state.entries);
+  const token = useAuthStore((state) => state.organizerToken || state.participantToken);
+  const people = event?.participants ?? [];
+  const unknown = spotId
+    ? people
+        .filter(hasStartingPoint)
+        .map((person) => routeKey(spotId, person))
+        .filter((key) => !entries[key])
+        .join(' ')
+    : '';
+
+  useEffect(() => {
+    if (spotSelected || !unknown || !event || !spotId || !token) return;
+    void useRouteCacheStore
+      .getState()
+      .lookupVenue({ eventId: event.id, venueId: spotId, people: event.participants, token });
+    // Only a person whose trip isn't known yet is worth a request, so `event` itself isn't a dep
+  }, [spotSelected, unknown, spotId, token]);
+
+  if (!spotId) return null;
+  if (spotSelected) {
+    return isCalculatingRoutes
+      ? null
+      : people.map((person) => tripOf(person, routes, tripRequests[person.id]));
+  }
+  return people.map((person): Trip<RouteInfo> => {
+    if (!hasStartingPoint(person)) return { status: 'no-start' };
+    const lookup = entries[routeKey(spotId, person)];
+    if (lookup?.status === 'found') return { status: 'found', route: lookup.route };
+    return lookup?.status === 'none' ? { status: 'none' } : { status: 'pending' };
+  });
+}
+
 export function PlanTicket() {
   const t = useMessages(messages);
   const locale = useLocale();
   const { currentEvent, selectedVenue, venueById, hydrateVenue } = useMeetingStore();
   const { openShareModal } = useUIStore();
   const { isOrganizerMode, organizerToken } = useAuthStore();
-  const { routes, isCalculatingRoutes } = useMapStore();
   const [isChanging, setIsChanging] = useState(false);
   const [changeFailed, setChangeFailed] = useState(false);
 
   const event = currentEvent && isPublished(currentEvent) ? currentEvent : null;
   const spotId = event?.publishedVenueId ?? null;
+  const trips = useSpotTrips(event, spotId);
   const stamp = usePublishStamp({ eventId: currentEvent?.id, published: !!event });
   const ticketRef = useRef<HTMLDivElement>(null);
 
@@ -85,9 +132,7 @@ export function PlanTicket() {
 
   const venue = selectedVenue?.id === spotId ? selectedVenue : (venueById[spotId] ?? null);
   const { title, when } = invitationFor(event, venue, '');
-  // The store only ever holds routes for the selected venue
-  const slowest =
-    selectedVenue?.id === spotId && !isCalculatingRoutes ? slowestRoute(routes) : null;
+  const claim = trips && tripClaim(trips);
 
   const changeSpot = async () => {
     if (!organizerToken) return;
@@ -130,9 +175,15 @@ export function PlanTicket() {
       </div>
       <div className="plan-ticket-cut" />
       <div className="grid gap-2.5 px-4 pb-3.5 pt-3">
-        {slowest && (
+        {claim && (
           <div className="text-[13px] text-white">
-            {t.within(formatTripTime(slowest.durationSeconds, locale))}
+            {claim.reached === claim.total
+              ? t.within(formatTripTime(claim.slowest.durationSeconds, locale))
+              : t.someWithin(
+                  claim.reached,
+                  claim.total,
+                  formatTripTime(claim.slowest.durationSeconds, locale)
+                )}
           </div>
         )}
         <div className="flex gap-2">
