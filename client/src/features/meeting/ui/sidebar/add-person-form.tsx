@@ -225,7 +225,7 @@ export function AddPersonForm({
       data-own-focus-ring
       onSubmit={submit}
       onKeyDown={handleKeyDown}
-      className="grid gap-2.5 rounded-2xl bg-v2-wash p-2.5 text-[13px] text-v2-ink"
+      className="grid grid-cols-[minmax(0,1fr)] gap-2.5 rounded-2xl bg-v2-wash p-2.5 text-[13px] text-v2-ink"
     >
       {kind === 'join' && (
         <div className="flex items-center justify-between gap-2">
@@ -278,7 +278,7 @@ export function AddPersonForm({
       )}
 
       {step !== 'name' && (
-        <div className="form-step-in grid gap-1.5">
+        <div className="form-step-in grid grid-cols-[minmax(0,1fr)] gap-1.5">
           <div className="flex items-baseline justify-between gap-2">
             <label htmlFor={place ? undefined : PLACE_INPUT_ID} className={LABEL}>
               {words.from(trimmedName)}
@@ -318,7 +318,7 @@ export function AddPersonForm({
 
       {step === 'mode' && (
         <>
-          <div className="form-step-in grid gap-1.5">
+          <div className="form-step-in grid grid-cols-[minmax(0,1fr)] gap-1.5">
             <p className={LABEL}>{words.how(trimmedName)}</p>
             <ModeGrid
               value={mode}
