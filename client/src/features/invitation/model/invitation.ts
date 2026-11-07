@@ -1,6 +1,6 @@
 import { Coffee, MapPin, Utensils, Wine, type IconNode } from 'lucide';
 import { getVenueCategory, type Event, type Venue, type VenueCategory } from '@/entities';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { getMutedHexColor } from '@/features/meeting/lib/participant-colors';
 import { LANGUAGE_TAGS, localeFor, type Locale } from '@/shared/lib/locale';
 
 export type PublishedEvent = Event & { publishedAt: string; publishedVenueId: string };
@@ -42,12 +42,12 @@ export interface Invitation {
   /** Printed on the ticket's strip, like `W2M-A8K3-MX2P`. */
   code: string;
   kind: VenueKind;
-  /** In the meeting's own time zone; null without a time or a zone. */
+  /** In the meeting's own time zone, or labelled UTC for an event saved without one; null without a time. */
   when: { startsAt: string; date: string; time: string } | null;
   venue: { name: string; address: string; photoUrl: string | null } | null;
   going: { initial: string; color: string }[];
-  /** The publish moment as the ticket's foot prints it; null without a zone. */
-  issued: string | null;
+  /** The publish moment as the ticket's foot prints it. */
+  issued: string;
 }
 
 export function invitationFor(
@@ -56,7 +56,7 @@ export function invitationFor(
   origin: string
 ): Invitation {
   const locale = localeFor(event.mapProvider);
-  const zone = event.meetingTimeZone;
+  const zone = event.meetingTimeZone ?? 'UTC';
   return {
     locale,
     title: event.title,
@@ -64,16 +64,15 @@ export function invitationFor(
     url: `${origin}/meet/${event.id}`,
     code: invitationCode(event.id),
     kind: (venue && KIND_BY_CATEGORY[getVenueCategory(venue.types)]) ?? 'place',
-    when:
-      event.meetingTime && zone
-        ? { startsAt: event.meetingTime, ...dateAndTime(event.meetingTime, zone, locale) }
-        : null,
+    when: event.meetingTime
+      ? { startsAt: event.meetingTime, ...dateAndTime(event.meetingTime, zone, locale) }
+      : null,
     venue: venue && { name: venue.name, address: venue.address, photoUrl: venue.photoUrl },
     going: event.participants.map((p) => ({
       initial: Array.from(p.name.trim())[0]?.toUpperCase() ?? '?',
-      color: getHexColor(p.color),
+      color: getMutedHexColor(p.color),
     })),
-    issued: zone ? stamp(event.publishedAt, zone, locale) : null,
+    issued: stamp(event.publishedAt, zone, locale),
   };
 }
 

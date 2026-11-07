@@ -2,13 +2,16 @@
 
 import { create } from 'zustand';
 import type { Circle } from '@/shared/lib/mec';
+import type { TravelMode } from '@/shared/types/map';
 import { useUIStore } from './ui-store';
 
 export interface RouteInfo {
   participantId: string;
   distance: string; // e.g., "2.5 km"
   duration: string; // e.g., "8 mins"
+  durationSeconds: number;
   polyline: string; // encoded polyline
+  travelMode: TravelMode;
 }
 
 // UI-friendly travel mode (matches user interface)

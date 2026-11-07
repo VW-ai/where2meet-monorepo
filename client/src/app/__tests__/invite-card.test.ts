@@ -112,6 +112,21 @@ describe('GET /meet/[id]/invite.png', { timeout: 30_000 }, () => {
     );
   });
 
+  it('asks for the Chinese words that stand in for a missing time', async () => {
+    vi.mocked(eventClient.get).mockResolvedValue({
+      ...published,
+      mapProvider: 'amap',
+      meetingTime: null,
+      meetingTimeZone: null,
+    });
+    await invite(published.id, '?format=portrait');
+    const fontRequest = fetchMock.mock.calls
+      .map(([url]) => new URL(url))
+      .find((url) => url.hostname === 'fonts.googleapis.com');
+    expect(fontRequest?.searchParams.get('text')).toContain('待');
+    expect(fontRequest?.searchParams.get('text')).toContain('定');
+  });
+
   it('still draws the card when the photo or the venue cannot be loaded', async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 502 }));
     expect(await pngSize(await invite())).toEqual([1200, 630]);

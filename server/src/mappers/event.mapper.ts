@@ -24,6 +24,7 @@ import {
   type PublicParticipant,
 } from "../dto/index.js";
 import type { MECResult } from "../utils/mec.js";
+import { isClaimable } from "../utils/claimable.js";
 
 export function toPublicParticipant(entity: Participant): PublicParticipant {
   return {
@@ -36,6 +37,8 @@ export function toPublicParticipant(entity: Participant): PublicParticipant {
     // The shipped iOS app decodes fuzzyLocation as a required field.
     fuzzyLocation: false,
     isOrganizer: entity.isOrganizer,
+    travelMode: entity.travelMode,
+    claimable: isClaimable(entity),
   };
 }
 

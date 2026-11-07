@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useUIStore } from '@/features/meeting/model/ui-store';
+import { useUiVersion } from '@/features/meeting/model/ui-version-store';
 import { ParticipantSection } from './participant-section';
 import { VenueSection } from './venue-section';
+import { PlanTicket } from './plan-ticket';
 import { cn } from '@/shared/lib/cn';
 
 export function Sidebar() {
   const { activeView, isSidebarVisible } = useUIStore();
+  const version = useUiVersion();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayView, setDisplayView] = useState(activeView);
 
@@ -49,6 +52,8 @@ export function Sidebar() {
       )}
     >
       <div className="p-4 md:p-5 lg:p-6 space-y-4 md:space-y-5 lg:space-y-6 relative">
+        {version === 'v2' && <PlanTicket />}
+
         {/* Content based on active view with smooth cross-fade transitions */}
         <div
           className={cn(

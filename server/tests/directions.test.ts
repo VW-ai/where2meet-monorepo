@@ -5,9 +5,20 @@
  * Mocks Google Directions API to avoid external calls.
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  afterEach,
+  vi,
+  beforeEach,
+  type MockInstance,
+} from "vitest";
 import { buildServer } from "../src/server.js";
 import type { FastifyInstance } from "fastify";
+import type { MapProviderClient } from "../src/lib/providers/index.js";
 
 // Mock Directions API module
 vi.mock("../src/lib/directions/client.js", () => ({
@@ -53,6 +64,8 @@ vi.mock("../src/lib/maps.js", () => ({
 }));
 
 import { fetchDirectionsApi } from "../src/lib/directions/client.js";
+import { providerFor } from "../src/lib/providers/index.js";
+import { DirectionsApiError } from "../src/lib/directions/index.js";
 import { getPlaceDetails, PlacesApiError } from "../src/lib/places/index.js";
 
 const mockFetchDirectionsApi = fetchDirectionsApi as ReturnType<typeof vi.fn>;
@@ -274,7 +287,7 @@ describe("Directions Endpoint", () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body).toHaveProperty("venueId", testVenueId);
-      expect(body).toHaveProperty("travelMode", "driving");
+      expect(body).toHaveProperty("travelMode", null);
       expect(body).toHaveProperty("routes");
       expect(body.routes).toBeInstanceOf(Array);
       // 2 participants: organizer (no location) + Alice (with location)
@@ -425,6 +438,150 @@ describe("Directions Endpoint", () => {
         expect(response.statusCode).toBe(200);
         expect(response.json().travelMode).toBe(mode);
       }
+    });
+
+    describe("per-person travel modes", () => {
+      const durationByMode = { driving: 600, walking: 2400, transit: 1500, bicycling: 900 };
+      const directions = (query = "") =>
+        server.inject({
+          method: "GET",
+          url: `/api/events/${testEventId}/venues/${testVenueId}/directions${query}`,
+          headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
+        });
+      const routeOf = (
+        routes: { participantId: string; travelMode: string; duration: { value: number } | null }[],
+        participantId: string
+      ) => routes.find((r) => r.participantId === participantId);
+
+      let batchRoutes: MockInstance<MapProviderClient["calculateBatchRoutes"]>;
+      let bikerId: string;
+      let otherDriverId: string;
+
+      beforeEach(async () => {
+        batchRoutes = vi
+          .spyOn(providerFor("google"), "calculateBatchRoutes")
+          .mockImplementation((participants, _venue, mode) =>
+            Promise.resolve(
+              participants.map((p) => ({
+                participantId: p.id,
+                distance: { value: 1000, text: "0.6 mi" },
+                duration: { value: durationByMode[mode], text: mode },
+                polyline: `polyline_${mode}`,
+              }))
+            )
+          );
+
+        const add = async (name: string, travelMode?: string) =>
+          (
+            await server.inject({
+              method: "POST",
+              url: `/api/events/${testEventId}/participants`,
+              headers: { Authorization: `Bearer ${testOrganizerParticipantToken}` },
+              payload: { name, address: "World Trade Center, NYC", travelMode },
+            })
+          ).json().id as string;
+        bikerId = await add("Biker", "bicycling");
+        otherDriverId = await add("Other driver");
+      });
+
+      afterEach(() => {
+        batchRoutes.mockRestore();
+      });
+
+      it("uses each person's own mode with one provider call per mode", async () => {
+        const response = await directions();
+
+        expect(response.statusCode).toBe(200);
+        const body = response.json();
+        expect(body.travelMode).toBeNull();
+
+        expect(
+          batchRoutes.mock.calls
+            .map(([participants, , mode]) => [mode, participants.map((p) => p.id).sort()])
+            .sort()
+        ).toEqual([
+          ["bicycling", [bikerId]],
+          ["driving", [testParticipantId, otherDriverId].sort()],
+        ]);
+
+        expect(routeOf(body.routes, bikerId)).toMatchObject({
+          travelMode: "bicycling",
+          duration: { value: durationByMode.bicycling },
+        });
+        expect(routeOf(body.routes, testParticipantId)).toMatchObject({
+          travelMode: "driving",
+          duration: { value: durationByMode.driving },
+        });
+      });
+
+      it("overrides everyone with one provider call when travelMode is sent", async () => {
+        const response = await directions("?travelMode=transit");
+
+        expect(response.statusCode).toBe(200);
+        const body = response.json();
+        expect(body.travelMode).toBe("transit");
+        expect(batchRoutes).toHaveBeenCalledOnce();
+        expect(batchRoutes.mock.calls[0]?.[2]).toBe("transit");
+        expect(new Set(body.routes.map((r: { travelMode: string }) => r.travelMode))).toEqual(
+          new Set(["transit"])
+        );
+      });
+
+      it("compares one person's time in another mode", async () => {
+        const response = await directions(`?participantId=${bikerId}&travelMode=transit`);
+
+        const body = response.json();
+        expect(body.travelMode).toBe("transit");
+        expect(body.routes).toHaveLength(1);
+        expect(body.routes[0]).toMatchObject({
+          participantId: bikerId,
+          travelMode: "transit",
+          duration: { value: durationByMode.transit },
+        });
+      });
+
+      it("uses one person's own mode when only participantId is sent", async () => {
+        const response = await directions(`?participantId=${bikerId}`);
+
+        const body = response.json();
+        expect(body.travelMode).toBeNull();
+        expect(body.routes[0]).toMatchObject({ participantId: bikerId, travelMode: "bicycling" });
+      });
+
+      it("puts the mode on routes for people with no location", async () => {
+        const organizer = await server.db.participant.findFirstOrThrow({
+          where: { eventId: testEventId, isOrganizer: true },
+        });
+        await server.db.participant.update({
+          where: { id: organizer.id },
+          data: { travelMode: "walking" },
+        });
+
+        const own = (await directions()).json();
+        expect(routeOf(own.routes, organizer.id)).toMatchObject({
+          travelMode: "walking",
+          duration: null,
+        });
+
+        const overridden = (await directions("?travelMode=transit")).json();
+        expect(routeOf(overridden.routes, organizer.id)).toMatchObject({
+          travelMode: "transit",
+          duration: null,
+        });
+      });
+
+      it("fails the request when one mode's provider call fails", async () => {
+        batchRoutes.mockImplementation((participants, _venue, mode) =>
+          mode === "bicycling"
+            ? Promise.reject(new DirectionsApiError("Directions API down", "UNKNOWN_ERROR"))
+            : Promise.resolve([])
+        );
+
+        const response = await directions();
+
+        expect(response.statusCode).toBe(502);
+        expect(response.json()).toHaveProperty("error.code", "EXTERNAL_SERVICE_ERROR");
+      });
     });
   });
 });

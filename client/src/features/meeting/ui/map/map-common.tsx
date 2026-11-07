@@ -5,6 +5,7 @@
 
 import { Layers, Loader2, LocateFixed } from 'lucide-react';
 import type { UITravelMode } from '@/features/meeting/model/map-store';
+import { useUIStore } from '@/features/meeting/model/ui-store';
 import type { Location, TravelMode } from '@/shared/types/map';
 import { defineMessages, useMessages, type Locale } from '@/shared/lib/i18n';
 
@@ -49,6 +50,18 @@ export function clampSearchRadius(radius: number): number {
   return Math.min(Math.max(radius, 500), 15000);
 }
 
+// zIndex 200 ensures circle handles are above markers (participant: 100, venue: 50)
+// so the circle can be dragged/resized even when overlapping with markers
+export const CLASSIC_SEARCH_CIRCLE_STYLE = {
+  fillColor: '#1F2937', // gray-800
+  fillOpacity: 0.05,
+  strokeColor: '#374151', // gray-700
+  strokeOpacity: 0.5,
+  strokeWeight: 2,
+  editable: true,
+  zIndex: 200,
+};
+
 // Star path for liked venue markers (SVG path)
 export const STAR_PATH = 'M 0,-1 0.588,0.809 -0.951,-0.309 0.951,-0.309 -0.588,0.809 Z';
 
@@ -66,6 +79,43 @@ export function leftPanelsWidth(includeVenuePanel: boolean): number {
   const panelWidth = screenWidth >= 1280 ? 400 : screenWidth >= 1024 ? 360 : 320;
   // Venue detail panel and the gap before it (only when open)
   return includeVenuePanel ? panelWidth + 24 + panelWidth : panelWidth;
+}
+
+/** What covers the map on each side, so a fitted view lands where it can be seen. */
+export function fitPadding(includeVenuePanel: boolean): Required<google.maps.Padding> {
+  if (window.innerWidth >= 768) {
+    return { top: 96, right: 48, bottom: 48, left: leftPanelsWidth(includeVenuePanel) + 48 };
+  }
+  const top = 130;
+  const mapBox = document.querySelector('.meeting-map')?.getBoundingClientRect();
+  const mapBottom = mapBox?.bottom ?? window.innerHeight;
+  // Mirrors --sheet-height: the sheet may still be animating, so measuring it could be stale
+  const sheet = window.innerHeight * (useUIStore.getState().isSheetExpanded ? 0.76 : 0.43);
+  const covered = mapBottom - (window.innerHeight - sheet);
+  // An expanded sheet leaves little map, and a view must still fit in what's left
+  return { top, right: 32, bottom: Math.min(covered + 32, mapBottom - top - 120), left: 32 };
+}
+
+/** Whether `point` is on the part of the map that `padding` doesn't cover. Unsure means no. */
+export function isInUncoveredMap(
+  point: Location,
+  bounds: google.maps.LatLngBounds | undefined,
+  size: { clientWidth: number; clientHeight: number },
+  padding: Required<google.maps.Padding>
+): boolean {
+  if (!bounds) return false;
+  const north = bounds.getNorthEast().lat();
+  const east = bounds.getNorthEast().lng();
+  const south = bounds.getSouthWest().lat();
+  const west = bounds.getSouthWest().lng();
+  const x = ((point.lng - west) / (east - west)) * size.clientWidth;
+  const y = ((north - point.lat) / (north - south)) * size.clientHeight;
+  return (
+    x >= padding.left &&
+    x <= size.clientWidth - padding.right &&
+    y >= padding.top &&
+    y <= size.clientHeight - padding.bottom
+  );
 }
 
 /**

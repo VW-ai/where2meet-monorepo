@@ -218,3 +218,156 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
     }
   }
 }
+
+/* The redesigned venue surfaces (ui version v2). */
+@theme {
+  --color-v2-ink: #21252b;
+  --color-v2-ink-2: #5f636b;
+  --color-v2-ink-3: #8d9098;
+  --color-v2-line: #ece8e3;
+  --color-v2-paper: #fffdfa;
+  --color-v2-wash: #f7f4f0;
+  --color-v2-coral: #ff6b6b;
+  --color-v2-coral-wash: #fff0ef;
+  --color-v2-coral-deep: #dd4949;
+  --color-v2-mint: #3b954a;
+  --color-v2-ticket: #bc3942;
+  --font-v2-display: Anton, 'PingFang SC', Impact, sans-serif;
+  --font-v2-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+
+@property --spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* The fill is on ::before and the glow on ::after, inside the button's own stacking context, so the label stays on top. */
+.rad-border {
+  position: relative;
+  z-index: 0;
+  background: none;
+  color: #fff;
+}
+
+.rad-border:hover {
+  transform: translateY(-1px);
+}
+
+.rad-border::before,
+.rad-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: rad-spin 3s linear infinite;
+}
+
+.rad-border::before {
+  z-index: -1;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#21252b, #21252b) padding-box,
+    conic-gradient(from var(--spin), #ff6b6b, #ffd93d, #6bcb77, #5cc8f2, #a8a4ff, #ff6b6b)
+      border-box;
+}
+
+.rad-border::after {
+  z-index: -2;
+  background: conic-gradient(
+    from var(--spin),
+    #ff6b6b,
+    #ffd93d,
+    #6bcb77,
+    #5cc8f2,
+    #a8a4ff,
+    #ff6b6b
+  );
+  filter: blur(9px);
+  opacity: 0.55;
+}
+
+@keyframes rad-spin {
+  to {
+    --spin: 360deg;
+  }
+}
+
+.like-burst svg {
+  animation: like-burst 0.45s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+
+.form-step-in {
+  animation: form-step-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+@keyframes form-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-step-in {
+    animation: none;
+  }
+}
+
+@keyframes like-burst {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.35);
+  }
+}
+
+.plan-ticket-stamp {
+  animation: plan-ticket-stamp 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+@keyframes plan-ticket-stamp {
+  from {
+    transform: scale(1.1) rotate(-1.5deg);
+    opacity: 0;
+  }
+}
+
+.plan-ticket-cut {
+  position: relative;
+  border-top: 2px dashed rgb(255 255 255 / 0.35);
+}
+
+.plan-ticket-cut::before,
+.plan-ticket-cut::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.plan-ticket-cut::before {
+  left: -8px;
+}
+
+.plan-ticket-cut::after {
+  right: -8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rad-border::before,
+  .rad-border::after,
+  .like-burst svg,
+  .plan-ticket-stamp {
+    animation: none;
+  }
+
+  .rad-border:hover {
+    transform: none;
+  }
+}

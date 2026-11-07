@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Dices, UserPlus, X, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { generateRandomName } from '@/features/meeting/lib/name-generator';
@@ -8,6 +8,7 @@ import { LocationField } from '@/shared/ui/location-field';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
+import type { TravelMode } from '@/shared/types/map';
 
 const messages = defineMessages({
   en: {
@@ -64,6 +65,7 @@ export interface ParticipantFormData {
   name: string;
   address: string;
   placeId: string;
+  travelMode?: TravelMode;
 }
 
 export function AddParticipant({

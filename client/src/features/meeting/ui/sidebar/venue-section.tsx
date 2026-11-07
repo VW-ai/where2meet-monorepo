@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, type ComponentType } from 'react';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
@@ -8,9 +8,12 @@ import { useMapStore } from '@/features/meeting/model/map-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
 import { venueSearchFilters } from '@/features/meeting/lib/venue-search-filters';
+import { sidebarVenues } from '@/features/meeting/lib/venue-list';
+import { useUiVersion, type UiVersion } from '@/features/meeting/model/ui-version-store';
 import type { Venue } from '@/entities';
 import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
-import { VenueCard } from './venue-card';
+import { VenueCard, type VenueCardProps } from './venue-card';
+import { VenueCardV2 } from './venue-card-v2';
 import { TravelTypeFilter } from './travel-type-filter';
 import { SearchPillBar } from './search-pill-bar';
 import { LikedFilterButton } from '@/features/voting/ui/liked-filter-button';
@@ -62,7 +65,14 @@ const messages = defineMessages({
   },
 });
 
+const VENUE_LIST: Record<UiVersion, { Card: ComponentType<VenueCardProps>; className: string }> = {
+  classic: { Card: VenueCard, className: 'space-y-4 px-2' },
+  v2: { Card: VenueCardV2, className: 'space-y-0.5' },
+};
+
 export function VenueSection() {
+  const version = useUiVersion();
+  const { Card, className: listClassName } = VENUE_LIST[version];
   const { currentEvent, searchedVenues, setSearchedVenues, venueById, setSelectedVenue } =
     useMeetingStore();
   const { getAllVotedVenueIds, voteStatsByVenueId } = useVotingStore();
@@ -249,6 +259,11 @@ export function VenueSection() {
     t,
   ]);
 
+  const setVenueListScope = useUIStore((state) => state.setVenueListScope);
+  useEffect(() => {
+    setVenueListScope(showLikedOnly ? 'liked' : 'search');
+  }, [showLikedOnly, setVenueListScope]);
+
   // Force liked mode when published, restore on unpublish
   useEffect(() => {
     if (isPublished) {
@@ -319,7 +334,7 @@ export function VenueSection() {
         </div>
 
         {/* Travel Type Filter */}
-        {!isPublished && <TravelTypeFilter />}
+        {!isPublished && version === 'classic' && <TravelTypeFilter />}
 
         {/* Search + Liked Filter */}
         <div className="flex items-center gap-2">
@@ -429,22 +444,13 @@ export function VenueSection() {
         {!loading &&
           !error &&
           (() => {
-            // When showing liked only, use likedVenueData (persistent across searches)
-            // Otherwise, filter from current search results
-            let displayVenues: Venue[];
-
-            if (showLikedOnly) {
-              // Get all liked venues from persistent storage
-              displayVenues = Object.values(likedVenueData).sort((a, b) => {
-                // Sort by vote count (highest first)
-                const aVotes = a.voteCount || 0;
-                const bVotes = b.voteCount || 0;
-                return bVotes - aVotes;
-              });
-            } else {
-              // Show current search results
-              displayVenues = venues;
-            }
+            // The liked list comes from persistent storage, so it survives new searches
+            const displayVenues = sidebarVenues({
+              scope: showLikedOnly ? 'liked' : 'search',
+              searched: venues,
+              likedIds: savedVenues,
+              venueById,
+            });
 
             // No venues to display
             if (displayVenues.length === 0) {
@@ -458,9 +464,9 @@ export function VenueSection() {
             }
 
             return (
-              <div className="space-y-4 px-2">
+              <div className={listClassName}>
                 {displayVenues.map((venue) => (
-                  <VenueCard
+                  <Card
                     key={venue.id}
                     venue={venue}
                     isPublishedVenue={venue.id === currentEvent?.publishedVenueId}

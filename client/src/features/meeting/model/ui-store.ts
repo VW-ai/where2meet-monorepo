@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { VenueListScope } from '@/features/meeting/lib/venue-list';
 
 export type ActiveView = 'participant' | 'venue';
 export type CategoryFilter = 'bar' | 'gym' | 'cafe' | 'things_to_do' | null;
@@ -13,6 +14,10 @@ interface UIStore {
   toggleSidebar: () => void;
   showSidebar: () => void;
   hideSidebar: () => void;
+
+  // Phone sheet
+  isSheetExpanded: boolean;
+  setSheetExpanded: (expanded: boolean) => void;
 
   // Category filter
   selectedCategory: CategoryFilter;
@@ -64,6 +69,15 @@ interface UIStore {
   openVenueInfo: (venueId: string) => void;
   closeVenueInfo: () => void;
 
+  // Which list the sidebar's venue section is showing
+  venueListScope: VenueListScope;
+  setVenueListScope: (scope: VenueListScope) => void;
+
+  // Asks the participant section to open its join form, from outside that section
+  isJoinFormRequested: boolean;
+  requestJoinForm: () => void;
+  clearJoinFormRequest: () => void;
+
   // Participant stats slide-out
   isParticipantStatsOpen: boolean;
   toggleParticipantStats: () => void;
@@ -77,6 +91,8 @@ export const useUIStore = create<UIStore>((set) => ({
 
   // Sidebar visibility
   isSidebarVisible: true,
+  isSheetExpanded: false,
+  setSheetExpanded: (isSheetExpanded) => set({ isSheetExpanded }),
   toggleSidebar: () => set((state) => ({ isSidebarVisible: !state.isSidebarVisible })),
   showSidebar: () => set({ isSidebarVisible: true }),
   hideSidebar: () => set({ isSidebarVisible: false }),
@@ -133,6 +149,13 @@ export const useUIStore = create<UIStore>((set) => ({
   selectedVenueId: null,
   openVenueInfo: (venueId) => set({ isVenueInfoOpen: true, selectedVenueId: venueId }),
   closeVenueInfo: () => set({ isVenueInfoOpen: false, selectedVenueId: null }),
+
+  venueListScope: 'search',
+  setVenueListScope: (scope) => set({ venueListScope: scope }),
+
+  isJoinFormRequested: false,
+  requestJoinForm: () => set({ isJoinFormRequested: true, activeView: 'participant' }),
+  clearJoinFormRequest: () => set({ isJoinFormRequested: false }),
 
   // Participant stats
   isParticipantStatsOpen: false,

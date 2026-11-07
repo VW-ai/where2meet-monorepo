@@ -70,6 +70,9 @@
   occasion: graduation-celebration
 - phrase: graduation party venue
   occasion: graduation-celebration
+- phrase: graduation dinner
+  occasion: graduation-celebration
+  note: The meal after the ceremony, added 2026-11-06 because every other graduation celebration phrase already has a post
 - phrase: baby shower venue
   occasion: baby-shower
 - phrase: where to have a baby shower
@@ -86,6 +89,9 @@
   occasion: study-session
 - phrase: study group meeting place
   occasion: study-session
+- phrase: group study spots
+  occasion: study-session
+  note: A search for places a study group can use, added 2026-11-07 because every other study session phrase already has a post
 - phrase: board game bar
   occasion: game-night
 - phrase: board game bar near me

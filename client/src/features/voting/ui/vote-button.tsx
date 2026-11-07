@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
+import { venueVoteData } from '@/features/voting/model/venue-vote-data';
 import type { Venue } from '@/entities';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
 
@@ -56,16 +57,7 @@ export function VoteButton({ venueId, voteCount = 0, venue }: VoteButtonProps) {
           console.error('Cannot vote: Venue data is required');
           return;
         }
-        await voteForVenue(currentEvent.id, venueId, {
-          name: venue.name,
-          address: venue.address || undefined,
-          lat: venue.location.lat,
-          lng: venue.location.lng,
-          category: venue.types?.[0] || undefined,
-          rating: venue.rating ?? undefined,
-          priceLevel: venue.priceLevel ?? undefined,
-          photoUrl: venue.photoUrl ?? undefined,
-        });
+        await voteForVenue(currentEvent.id, venueId, venueVoteData(venue));
         // Trigger animation on successful vote
         setIsAnimating(true);
         setTimeout(() => setIsAnimating(false), 300);

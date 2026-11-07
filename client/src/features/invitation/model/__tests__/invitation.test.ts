@@ -76,8 +76,8 @@ describe('invitationFor', () => {
         photoUrl: 'https://photos.example/787.jpg',
       },
       going: [
-        { initial: 'V', color: '#FF7F50' },
-        { initial: 'A', color: '#3B82F6' },
+        { initial: 'V', color: '#C2704F' },
+        { initial: 'A', color: '#4F80AB' },
       ],
       issued: '10.14.26 9:41 PM',
     });
@@ -98,7 +98,7 @@ describe('invitationFor', () => {
       locale: 'zh',
       kind: 'food',
       when: { date: '10月17日', time: '周六 23:00 GMT+8' },
-      going: [{ initial: '小', color: '#FF7F50' }],
+      going: [{ initial: '小', color: '#C2704F' }],
       issued: '2026.10.15 09:41',
     });
     expect(shareText(invitation)).toBe(
@@ -106,7 +106,7 @@ describe('invitationFor', () => {
     );
   });
 
-  it('leaves out the time without a zone, and the venue when it cannot be loaded', () => {
+  it('labels the time UTC without a zone, and leaves out the venue when it cannot be loaded', () => {
     expect(
       invitationFor(
         event({ meetingTimeZone: null, participants: [] }),
@@ -116,11 +116,14 @@ describe('invitationFor', () => {
     ).toMatchObject({
       host: null,
       kind: 'place',
-      when: null,
+      when: { startsAt: '2026-10-17T15:00:00Z', date: 'Sat, Oct 17', time: '3:00 PM UTC' },
       venue: null,
       going: [],
-      issued: null,
     });
+  });
+
+  it('has no time to show when none was set', () => {
+    expect(invitationFor(event({ meetingTime: null }), null, '').when).toBeNull();
   });
 
   it('maps venue types to a kind through the registry', () => {
