@@ -34,6 +34,7 @@ export type {
   TravelMode,
   FormattedValue,
   RouteResult,
+  ModeRouteResult,
   DirectionsResult,
 } from "./types.js";
 

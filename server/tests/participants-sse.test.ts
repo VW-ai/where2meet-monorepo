@@ -109,6 +109,8 @@ describe("Participant SSE Broadcasting", () => {
             color: participant.color,
             fuzzyLocation: false,
             isOrganizer: false,
+            travelMode: "driving",
+            claimable: true,
           },
         }),
       });
@@ -146,6 +148,8 @@ describe("Participant SSE Broadcasting", () => {
             color: participant.color,
             fuzzyLocation: false,
             isOrganizer: false,
+            travelMode: "driving",
+            claimable: false,
           },
         }),
       });
@@ -226,6 +230,8 @@ describe("Participant SSE Broadcasting", () => {
             color: participant.color,
             fuzzyLocation: false,
             isOrganizer: false,
+            travelMode: "driving",
+            claimable: true,
           },
         }),
       });
@@ -263,6 +269,8 @@ describe("Participant SSE Broadcasting", () => {
             color: participant.color,
             fuzzyLocation: false,
             isOrganizer: false,
+            travelMode: "driving",
+            claimable: true,
           },
         }),
       });

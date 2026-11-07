@@ -7,6 +7,7 @@
 
 import { Event, CreateEventDTO, UpdateEventDTO } from '@/entities';
 import { ParticipantResponse } from '@/entities/participant/types';
+import { parseEventParticipants, parseParticipant } from '@/entities/participant/parse';
 import { backendCall } from './client';
 
 export const eventsApi = {
@@ -14,16 +15,16 @@ export const eventsApi = {
     backendCall<Event>('/api/events', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    }).then(parseEventParticipants),
 
-  get: (id: string) => backendCall<Event>(`/api/events/${id}`),
+  get: (id: string) => backendCall<Event>(`/api/events/${id}`).then(parseEventParticipants),
 
   update: (id: string, data: UpdateEventDTO, token: string) =>
     backendCall<Event>(`/api/events/${id}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
-    }),
+    }).then(parseEventParticipants),
 
   delete: (id: string, token: string) =>
     backendCall<{ success: true; message: string }>(`/api/events/${id}`, {
@@ -40,7 +41,7 @@ export const eventsApi = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify({ venueId }),
-    }),
+    }).then(parseEventParticipants),
 
   /**
    * Unpublish an event to allow further modifications
@@ -49,7 +50,7 @@ export const eventsApi = {
     backendCall<Event>(`/api/events/${id}/publish`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
-    }),
+    }).then(parseEventParticipants),
 
   /**
    * Get the current participant's information for this event
@@ -58,5 +59,5 @@ export const eventsApi = {
   getMe: (id: string, token: string) =>
     backendCall<ParticipantResponse>(`/api/events/${id}/me`, {
       headers: { Authorization: `Bearer ${token}` },
-    }),
+    }).then(parseParticipant),
 };

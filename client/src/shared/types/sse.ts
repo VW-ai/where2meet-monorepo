@@ -1,5 +1,19 @@
 import * as v from '@/shared/lib/schema';
 import type { SSEMessage } from '@/shared/lib/sse-parser';
+import type { TravelMode } from '@/shared/types/map';
+
+const TRAVEL_MODES: Record<TravelMode, true> = {
+  driving: true,
+  walking: true,
+  transit: true,
+  bicycling: true,
+};
+
+const travelMode: v.Schema<TravelMode> = (value, path) => {
+  const mode = v.string(value, path);
+  if (mode in TRAVEL_MODES) return mode as TravelMode;
+  throw new Error(`${path}: unknown travel mode ${mode}`);
+};
 
 const participant = v.object({
   id: v.string,
@@ -9,6 +23,8 @@ const participant = v.object({
   lng: v.nullable(v.number),
   color: v.string,
   isOrganizer: v.boolean,
+  travelMode: v.optional(travelMode),
+  claimable: v.optional(v.boolean),
 });
 
 const sseEventSchemas = {

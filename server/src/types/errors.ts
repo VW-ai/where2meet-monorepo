@@ -135,6 +135,16 @@ export class ParticipantNotFoundError extends AppError {
 }
 
 /**
+ * Error when a participant row cannot be claimed because someone already holds
+ * it or it belongs to the organizer.
+ */
+export class ParticipantNotClaimableError extends AppError {
+  constructor() {
+    super("This person has already been claimed", 409, "PARTICIPANT_NOT_CLAIMABLE");
+  }
+}
+
+/**
  * Error when geocoding fails for an address.
  */
 export class AddressNotFoundError extends AppError {

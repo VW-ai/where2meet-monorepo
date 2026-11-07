@@ -8,11 +8,11 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
+import { TravelModeSchema } from "../dto/directions.dto.js";
 import { createDirectionsService } from "../services/directions.js";
 import { toDirectionsResponse } from "../mappers/directions.mapper.js";
 import { createVerifyEventAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
-import type { TravelMode } from "../lib/directions/index.js";
 
 /**
  * Route parameters for directions endpoint.
@@ -42,7 +42,7 @@ const DirectionsParamsSchema = z.object({
  * Validation schema for query parameters.
  */
 const DirectionsQuerySchema = z.object({
-  travelMode: z.enum(["driving", "walking", "transit", "bicycling"]).default("driving"),
+  travelMode: TravelModeSchema.optional(),
   participantId: z.uuid().optional(),
 });
 
@@ -69,7 +69,8 @@ export function directionsRoutes(fastify: FastifyInstance): void {
    * Calculates routes for participants to a venue.
    *
    * Query Parameters:
-   * - travelMode: driving | walking | transit | bicycling (default: driving)
+   * - travelMode: driving | walking | transit | bicycling (optional - overrides everyone
+   *   returned; omitted means each participant's own mode)
    * - participantId: UUID (optional - for single participant route)
    *
    * Authentication: Requires valid participant token
@@ -98,11 +99,11 @@ export function directionsRoutes(fastify: FastifyInstance): void {
       const routes = await directionsService.getDirections(
         eventId,
         venueId,
-        travelMode as TravelMode,
+        travelMode,
         participantId
       );
 
-      const response = toDirectionsResponse(venueId, travelMode as TravelMode, routes);
+      const response = toDirectionsResponse(venueId, travelMode ?? null, routes);
 
       return reply.send(response);
     }

@@ -4,7 +4,6 @@ export type VenueFooterState =
   | { kind: 'join' }
   | { kind: 'like' }
   | { kind: 'pick' }
-  | { kind: 'confirm' }
   | { kind: 'share' }
   | { kind: 'elsewhere'; spotId: string };
 
@@ -19,19 +18,17 @@ export function venueFooterState({
   venueId,
   publishedVenueId,
   role,
-  confirming,
 }: {
   venueId: string;
   publishedVenueId: string | null;
   role: ViewerRole;
-  confirming: boolean;
 }): VenueFooterState {
   if (publishedVenueId) {
     return publishedVenueId === venueId
       ? { kind: 'share' }
       : { kind: 'elsewhere', spotId: publishedVenueId };
   }
-  return role === 'organizer' && confirming ? { kind: 'confirm' } : OPEN_FOOTER[role];
+  return OPEN_FOOTER[role];
 }
 
 /** Older events keep the server's placeholder name for their organizer. */

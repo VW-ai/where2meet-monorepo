@@ -23,9 +23,8 @@ const messages = defineMessages({
       v2: {
         unpublishing: 'Changing...',
         unpublish: 'Change the spot',
-        publish: 'Pick the spot',
       },
-    } as Record<UiVersion, { unpublishing: string; unpublish: string; publish: string }>,
+    } as Record<UiVersion, { unpublishing: string; unpublish: string; publish?: string }>,
     delete: 'Delete Event',
   },
   zh: {
@@ -33,7 +32,7 @@ const messages = defineMessages({
     edit: '编辑见面',
     publishing: {
       classic: { unpublishing: '正在撤销…', unpublish: '撤销确定地点', publish: '确定地点' },
-      v2: { unpublishing: '正在更换…', unpublish: '更换地点', publish: '就定这里' },
+      v2: { unpublishing: '正在更换…', unpublish: '更换地点' },
     },
     delete: '删除见面',
   },
@@ -149,13 +148,15 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
               <span>{isUnpublishing ? publishing.unpublishing : publishing.unpublish}</span>
             </button>
           ) : (
-            <button
-              onClick={handlePublish}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors border-t border-border"
-            >
-              <CheckCircle className="w-4 h-4 text-mint-500" />
-              <span>{publishing.publish}</span>
-            </button>
+            publishing.publish && (
+              <button
+                onClick={handlePublish}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors border-t border-border"
+              >
+                <CheckCircle className="w-4 h-4 text-mint-500" />
+                <span>{publishing.publish}</span>
+              </button>
+            )
           )}
 
           {/* Delete Event */}

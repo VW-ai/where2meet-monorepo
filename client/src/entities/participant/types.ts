@@ -2,7 +2,7 @@
  * Participant-related type definitions
  */
 
-import { Location } from '@/shared/types/map';
+import { Location, TravelMode } from '@/shared/types/map';
 
 export interface Participant {
   id: string;
@@ -11,6 +11,9 @@ export interface Participant {
   location: Location | null;
   color: string; // Tailwind color class (e.g., 'bg-coral-500')
   isOrganizer: boolean;
+  travelMode: TravelMode;
+  /** Added by the organizer and not yet taken by the person themselves */
+  claimable: boolean;
   avatarUrl?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -27,8 +30,9 @@ export interface ParticipantResponse extends Participant {
 // DTOs
 export type CreateParticipantDTO = Pick<Participant, 'name'> & {
   address?: string | null;
+  travelMode?: TravelMode;
 };
 
-export type UpdateParticipantDTO = Partial<Pick<Participant, 'name'>> & {
+export type UpdateParticipantDTO = Partial<Pick<Participant, 'name' | 'travelMode'>> & {
   address?: string | null;
 };

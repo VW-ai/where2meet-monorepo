@@ -8,6 +8,11 @@ import { participantsApi } from '@/lib/api/participants';
 export const participantClient = {
   join: participantsApi.join,
   add: participantsApi.add,
+  preview: participantsApi.preview,
   update: participantsApi.update,
   remove: participantsApi.remove,
+  claim: participantsApi.claim,
+  unclaim: participantsApi.unclaim,
 };
+
+export type { ParticipantPreview } from '@/lib/api/participants';

@@ -43,7 +43,11 @@ export function VenueCardV2({ venue, isPublishedVenue = false }: VenueCardProps)
   const rowRef = useRef<HTMLButtonElement>(null);
 
   const participants = currentEvent?.participants ?? [];
-  const { voters } = venueLikes(voteStatsByVenueId[venue.id]?.voterIds ?? [], participants, null);
+  const { voters, total } = venueLikes(
+    voteStatsByVenueId[venue.id]?.voterIds ?? [],
+    participants,
+    null
+  );
   const isTop = topLikedVenueId(voteStatsByVenueId) === venue.id;
 
   const VenueIcon = venue.types.includes('cafe')
@@ -119,7 +123,7 @@ export function VenueCardV2({ venue, isPublishedVenue = false }: VenueCardProps)
                   <ParticipantAvatar key={p.id} participant={p} small />
                 ))}
               </AvatarStack>
-              {t.likeCount(voters.length, participants.length)}
+              {t.likeCount(voters.length, total)}
             </>
           ) : (
             t.noLikes
