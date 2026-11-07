@@ -38,12 +38,18 @@
   occasion: group-dinner
 - phrase: restaurant for a big group
   occasion: group-dinner
+- phrase: where to have a group dinner
+  occasion: group-dinner
+  note: A "where to" search that wants places, added 2026-11-04 because every other group dinner phrase already has a post
 - phrase: coffee meeting spot
   occasion: coffee-catch-up
 - phrase: weekend hangout
   occasion: weekend-hangout
 - phrase: where to hang out with friends
   occasion: weekend-hangout
+- phrase: things to do with friends
+  occasion: weekend-hangout
+  note: A list search for a weekend plan with friends, added 2026-11-05 because every other weekend hangout phrase already has a post
 - phrase: family outing
   occasion: family-outing
 - phrase: team offsite location
@@ -64,6 +70,9 @@
   occasion: graduation-celebration
 - phrase: graduation party venue
   occasion: graduation-celebration
+- phrase: graduation dinner
+  occasion: graduation-celebration
+  note: The meal after the ceremony, added 2026-11-06 because every other graduation celebration phrase already has a post
 - phrase: baby shower venue
   occasion: baby-shower
 - phrase: where to have a baby shower
@@ -80,6 +89,9 @@
   occasion: study-session
 - phrase: study group meeting place
   occasion: study-session
+- phrase: group study spots
+  occasion: study-session
+  note: A search for places a study group can use, added 2026-11-07 because every other study session phrase already has a post
 - phrase: board game bar
   occasion: game-night
 - phrase: board game bar near me
