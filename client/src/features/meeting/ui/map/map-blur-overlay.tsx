@@ -1,19 +1,35 @@
 'use client';
 
 import { Lock } from 'lucide-react';
+import { useUiVersion, type UiVersion } from '@/features/meeting/model/ui-version-store';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
 
 const messages = defineMessages({
   en: {
-    publishedTitle: 'Event Published',
-    publishedBody:
-      'This event is published and no longer accepts new participants. Only existing participants can view details.',
+    locked: {
+      classic: {
+        title: 'Event Published',
+        body: 'This event is published and no longer accepts new participants. Only existing participants can view details.',
+      },
+      v2: {
+        title: "It's set",
+        body: "The spot is picked, so new people can't join. Only people already in the plan can view details.",
+      },
+    } as Record<UiVersion, { title: string; body: string }>,
     joinBelow: 'Click "Join Event" in sidebar below',
     joinLeft: 'Click "Join Event" in sidebar',
   },
   zh: {
-    publishedTitle: '见面已发布',
-    publishedBody: '这个见面已发布，不再接受新的参与者。只有已加入的参与者可以查看详情。',
+    locked: {
+      classic: {
+        title: '见面已发布',
+        body: '这个见面已发布，不再接受新的参与者。只有已加入的参与者可以查看详情。',
+      },
+      v2: {
+        title: '已定',
+        body: '地点已定，不再接受新的参与者。只有已加入的参与者可以查看详情。',
+      },
+    },
     joinBelow: '点击下方侧栏的“加入见面”',
     joinLeft: '点击侧栏中的“加入见面”',
   },
@@ -25,6 +41,7 @@ interface Props {
 
 export function MapBlurOverlay({ isPublished }: Props) {
   const t = useMessages(messages);
+  const locked = t.locked[useUiVersion()];
   if (isPublished) {
     // Show locked message for published events
     return (
@@ -34,8 +51,8 @@ export function MapBlurOverlay({ isPublished }: Props) {
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
               <Lock className="w-8 h-8 text-gray-600" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900">{t.publishedTitle}</h2>
-            <p className="text-gray-600">{t.publishedBody}</p>
+            <h2 className="text-2xl font-semibold text-gray-900">{locked.title}</h2>
+            <p className="text-gray-600">{locked.body}</p>
           </div>
         </div>
       </div>

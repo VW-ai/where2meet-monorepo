@@ -7,7 +7,7 @@ import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-sto
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
 
-const messages = defineMessages({
+export const travelModeMessages = defineMessages({
   en: {
     modes: { car: 'Car', transit: 'Transit', walk: 'Walk', bike: 'Bike' } as Record<
       UITravelMode,
@@ -21,29 +21,21 @@ const messages = defineMessages({
   },
 });
 
-const travelModes = [
+export const travelModes = [
   { value: 'car' as const, icon: Car },
   { value: 'transit' as const, icon: Bus },
   { value: 'walk' as const, icon: PersonStanding },
   { value: 'bike' as const, icon: Bike },
 ];
 
-export function TravelTypeFilter() {
+/** Sets the mode and records it in the URL, which is where a reload reads it back from. */
+export function useChangeTravelMode() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { travelMode, setTravelMode } = useMapStore();
-  const t = useMessages(messages);
+  const setTravelMode = useMapStore((state) => state.setTravelMode);
 
-  // Sync URL params with store on mount
-  useEffect(() => {
-    const modeParam = searchParams.get('travelMode') as UITravelMode;
-    if (modeParam && ['car', 'transit', 'walk', 'bike'].includes(modeParam)) {
-      setTravelMode(modeParam);
-    }
-  }, [searchParams, setTravelMode]);
-
-  const handleModeChange = (mode: UITravelMode) => {
+  return (mode: UITravelMode) => {
     // Update store (this will also trigger the flash)
     setTravelMode(mode);
 
@@ -52,6 +44,21 @@ export function TravelTypeFilter() {
     params.set('travelMode', mode);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
+}
+
+export function TravelTypeFilter() {
+  const searchParams = useSearchParams();
+  const { travelMode, setTravelMode } = useMapStore();
+  const handleModeChange = useChangeTravelMode();
+  const t = useMessages(travelModeMessages);
+
+  // Sync URL params with store on mount
+  useEffect(() => {
+    const modeParam = searchParams.get('travelMode') as UITravelMode;
+    if (modeParam && ['car', 'transit', 'walk', 'bike'].includes(modeParam)) {
+      setTravelMode(modeParam);
+    }
+  }, [searchParams, setTravelMode]);
 
   return (
     <div className="flex items-center gap-1.5 md:gap-2">

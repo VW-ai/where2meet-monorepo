@@ -5,49 +5,70 @@ import { X, CheckCircle, MapPin, AlertCircle } from 'lucide-react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { useVotingStore } from '@/features/voting/model/voting-store';
-import { eventClient } from '@/features/meeting/api';
-import { APIError } from '@/lib/api/client';
-import { defineMessages, useMessages } from '@/shared/lib/i18n';
+import { publishErrorMessage, publishVenue } from '@/features/meeting/model/publish-venue';
+import { useUiVersion, type UiVersion } from '@/features/meeting/model/ui-version-store';
+import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
 
 const messages = defineMessages({
   en: {
-    alreadyPublished: 'This event has already been published.',
-    unverifiedVenue: 'The selected venue could not be verified. Please try another venue.',
-    unexpected: 'An unexpected error occurred. Please try again.',
-    published: 'Event Published!',
-    notified: 'Participants have been notified of the final venue.',
-    title: 'Publish Event',
+    copy: {
+      classic: {
+        published: 'Event Published!',
+        notified: 'Participants have been notified of the final venue.',
+        title: 'Publish Event',
+        description:
+          'Publishing this event will finalize the meeting location and notify all participants.',
+        noVenue: 'No venue selected. Select a venue before publishing to include a location.',
+        publishing: 'Publishing...',
+      },
+      v2: {
+        published: "It's set!",
+        notified: 'Everyone in the plan can see the spot now.',
+        title: 'Pick the spot',
+        description: "Everyone in the plan sees it right away, and new people can't join.",
+        noVenue: 'No spot selected. Open a spot first, then pick it.',
+        publishing: 'Picking...',
+      },
+    } as Record<
+      UiVersion,
+      Record<'published' | 'notified' | 'title' | 'description' | 'noVenue' | 'publishing', string>
+    >,
     close: 'Close',
-    description:
-      'Publishing this event will finalize the meeting location and notify all participants.',
-    noVenue: 'No venue selected. Select a venue before publishing to include a location.',
     cancel: 'Cancel',
-    publishing: 'Publishing...',
     shareInvitation: 'Share the invitation',
   },
   zh: {
-    alreadyPublished: '这个见面已经确定地点了。',
-    unverifiedVenue: '无法核实所选地点，请换一个地点试试。',
-    unexpected: '出了点问题，请重试。',
-    published: '地点已确定！',
-    notified: '已通知所有参与者最终地点。',
-    title: '确定地点',
+    copy: {
+      classic: {
+        published: '地点已确定！',
+        notified: '已通知所有参与者最终地点。',
+        title: '确定地点',
+        description: '确定后，见面地点将定下来，并通知所有参与者。',
+        noVenue: '还没有选择地点。请先选一个地点再确定。',
+        publishing: '正在确定…',
+      },
+      v2: {
+        published: '已定！',
+        notified: '已通知所有参与者最终地点。',
+        title: '就定这里',
+        description: '确定后，见面地点将定下来，并通知所有参与者。',
+        noVenue: '还没有选择地点。请先选一个地点再确定。',
+        publishing: '正在确定…',
+      },
+    },
     close: '关闭',
-    description: '确定后，见面地点将定下来，并通知所有参与者。',
-    noVenue: '还没有选择地点。请先选一个地点再确定。',
     cancel: '取消',
-    publishing: '正在确定…',
     shareInvitation: '分享邀请',
   },
 });
 
 export function PublishEventModal() {
   const t = useMessages(messages);
-  const { isPublishModalOpen, closePublishModal, openShareModal, setActiveView } = useUIStore();
+  const locale = useLocale();
+  const copy = t.copy[useUiVersion()];
+  const { isPublishModalOpen, closePublishModal, openShareModal } = useUIStore();
   const { organizerToken } = useAuthStore();
-  const { currentEvent, selectedVenue, setCurrentEvent } = useMeetingStore();
-  const { voteForVenue, hasVotedFor } = useVotingStore();
+  const { currentEvent, selectedVenue } = useMeetingStore();
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
@@ -86,76 +107,13 @@ export function PublishEventModal() {
     setError(null);
 
     try {
-      // Step 1: Check if organizer has already voted for this venue
-      const alreadyVoted = hasVotedFor(selectedVenue.id);
-
-      // Step 2: If not voted, vote first before publishing
-      if (!alreadyVoted) {
-        try {
-          await voteForVenue(currentEvent.id, selectedVenue.id, {
-            name: selectedVenue.name,
-            address: selectedVenue.address,
-            lat: selectedVenue.location.lat,
-            lng: selectedVenue.location.lng,
-            category: selectedVenue.types?.[0],
-            rating: selectedVenue.rating ?? undefined,
-            priceLevel: selectedVenue.priceLevel ?? undefined,
-            photoUrl: selectedVenue.photoUrl ?? undefined,
-          });
-          console.log(
-            '[PublishEventModal] Organizer voted for venue before publishing:',
-            selectedVenue.id
-          );
-        } catch (voteError) {
-          // 409 Conflict means organizer already voted (race condition with local state)
-          if (voteError instanceof APIError && voteError.status === 409) {
-            console.log(
-              '[PublishEventModal] Organizer already voted (409 - continuing to publish)'
-            );
-          } else {
-            // Other vote errors are logged but don't fail the publish operation
-            console.error(
-              '[PublishEventModal] Failed to vote before publishing (continuing anyway):',
-              voteError
-            );
-          }
-        }
-      } else {
-        console.log(
-          '[PublishEventModal] Organizer already voted, proceeding to publish:',
-          selectedVenue.id
-        );
-      }
-
-      // Step 3: Now publish the event
-      const updatedEvent = await eventClient.publish(
-        currentEvent.id,
-        selectedVenue.id,
-        organizerToken
-      );
-
-      // Update local state with the returned event data
-      setCurrentEvent(updatedEvent);
-
-      // Switch to venue view to show published venue in liked venues section
-      setActiveView('venue');
+      await publishVenue(currentEvent.id, selectedVenue, organizerToken);
 
       setIsPublished(true);
 
       autoClose.current = setTimeout(closePublishModal, 2000);
     } catch (err) {
-      if (err instanceof APIError) {
-        if (err.code === 'EVENT_ALREADY_PUBLISHED') {
-          setError(t.alreadyPublished);
-        } else if (err.code === 'VALIDATION_ERROR') {
-          // The backend rejects a venue it can't verify with Google Places as invalid input
-          setError(t.unverifiedVenue);
-        } else {
-          setError(err.message);
-        }
-      } else {
-        setError(t.unexpected);
-      }
+      setError(publishErrorMessage(err, locale));
     } finally {
       setIsPublishing(false);
     }
@@ -178,8 +136,8 @@ export function PublishEventModal() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-mint-100 flex items-center justify-center">
               <CheckCircle className="w-8 h-8 text-mint-600" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">{t.published}</h2>
-            <p className="text-sm text-muted-foreground">{t.notified}</p>
+            <h2 className="text-xl font-semibold text-foreground mb-2">{copy.published}</h2>
+            <p className="text-sm text-muted-foreground">{copy.notified}</p>
             <button
               onClick={() => {
                 if (autoClose.current) clearTimeout(autoClose.current);
@@ -195,7 +153,7 @@ export function PublishEventModal() {
           <>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-foreground">{t.title}</h2>
+              <h2 className="text-xl font-semibold text-foreground">{copy.title}</h2>
               <button
                 onClick={closePublishModal}
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -207,7 +165,7 @@ export function PublishEventModal() {
 
             {/* Content */}
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">{t.description}</p>
+              <p className="text-sm text-muted-foreground">{copy.description}</p>
 
               {error && (
                 <div className="p-4 bg-red-50 rounded-xl border border-red-200">
@@ -232,7 +190,7 @@ export function PublishEventModal() {
                 </div>
               ) : (
                 <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                  <p className="text-sm text-yellow-700">{t.noVenue}</p>
+                  <p className="text-sm text-yellow-700">{copy.noVenue}</p>
                 </div>
               )}
             </div>
@@ -251,7 +209,7 @@ export function PublishEventModal() {
                 disabled={isPublishing || !selectedVenue}
                 className="flex-1 px-4 py-3 text-sm font-medium bg-mint-500 text-white rounded-full hover:bg-mint-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                {isPublishing ? t.publishing : t.title}
+                {isPublishing ? copy.publishing : copy.title}
               </button>
             </div>
           </>

@@ -10,7 +10,7 @@ import {
 import { Header } from '@/features/meeting/ui/header';
 import { Sidebar } from '@/features/meeting/ui/sidebar';
 import { MapArea } from '@/features/meeting/ui/map';
-import { VenueInfo } from '@/features/meeting/ui/sidebar/venue-info';
+import { VersionedVenuePanel } from '@/features/meeting/ui/sidebar/versioned-venue-panel';
 import { ParticipantStats } from '@/features/meeting/ui/sidebar/participant-stats';
 import { ModalProvider } from '@/features/meeting/ui/modals';
 import { TutorialProvider } from '@/features/tutorial/ui';
@@ -21,11 +21,13 @@ import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useTutorialStore } from '@/features/tutorial/model/tutorial-store';
 import { eventClient } from '@/features/meeting/api';
 import { useEventStream } from '@/features/meeting/hooks/useEventStream';
+import { useUiVersionSwitch } from '@/features/meeting/hooks/useUiVersionSwitch';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { LANGUAGE_TAGS, LocaleProvider, localeFor } from '@/shared/lib/i18n';
 
 export default function MeetPage() {
+  useUiVersionSwitch();
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const params = useParams();
   const eventId = params.id as string;
@@ -224,7 +226,7 @@ export default function MeetPage() {
     <LocaleProvider locale={locale}>
       <TutorialProvider>
         <div
-          className="meeting-screen relative h-screen w-screen overflow-hidden"
+          className="meeting-screen relative h-screen w-screen overflow-clip"
           data-expanded={sheetExpanded}
           lang={LANGUAGE_TAGS[locale]}
         >
@@ -256,7 +258,7 @@ export default function MeetPage() {
 
             {/* Venue Info Slide-out - Global overlay */}
             <div className="pointer-events-auto">
-              <VenueInfo />
+              <VersionedVenuePanel />
             </div>
 
             {/* Participant Stats Slide-out */}

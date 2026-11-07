@@ -140,6 +140,14 @@ export function ParticipantSection() {
     input?.focus({ preventScroll: true });
   };
 
+  // The venue panel's join button lands here
+  const isJoinFormRequested = useUIStore((state) => state.isJoinFormRequested);
+  useEffect(() => {
+    if (!isJoinFormRequested) return;
+    useUIStore.getState().clearJoinFormRequest();
+    setShowAddForm(true);
+  }, [isJoinFormRequested]);
+
   // Cancel delete
   const cancelDelete = useCallback(() => {
     setDeletingParticipantId(null);

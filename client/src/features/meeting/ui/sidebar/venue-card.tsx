@@ -14,7 +14,7 @@ const messages = defineMessages({
   zh: { published: '已确定', open: '营业中', closed: '已打烊' },
 });
 
-interface VenueCardProps {
+export interface VenueCardProps {
   venue: Venue;
   isPublishedVenue?: boolean;
 }
