@@ -43,6 +43,7 @@ import {
   UI_TO_TRAVEL_MODE,
   centerBesidePanels,
   clampSearchRadius,
+  commitCircleOnRelease,
   fitPadding,
   isInUncoveredMap,
   leftPanelsWidth,
@@ -297,26 +298,30 @@ export function GoogleMapArea() {
       center: defaultCenter,
       radius: DEFAULT_SEARCH_RADIUS,
     });
-
-    // Listen for radius changes
-    google.maps.event.addListener(searchCircleRef.current, 'radius_changed', () => {
-      const newRadius = searchCircleRef.current?.getRadius();
-      if (newRadius) {
-        setSearchRadius(clampSearchRadius(newRadius));
-      }
-    });
-
-    // Listen for center changes (when dragged)
-    google.maps.event.addListener(searchCircleRef.current, 'center_changed', () => {
-      const newCenter = searchCircleRef.current?.getCenter();
-      if (newCenter) {
-        setSearchCircle({
-          center: { lat: newCenter.lat(), lng: newCenter.lng() },
-          radius: searchCircleRef.current?.getRadius() || DEFAULT_SEARCH_RADIUS,
-        });
-      }
-    });
   }, [map, setSearchRadius, setMecCircle, setSearchCircle]);
+
+  // Store the dragged search circle when the user lets go, so one drag runs one venue search
+  useEffect(() => {
+    const circle = searchCircleRef.current;
+    if (!map || !circle || !window.google) return;
+
+    const release = commitCircleOnRelease(() => {
+      const center = circle.getCenter();
+      if (!center) return;
+      const radius = clampSearchRadius(circle.getRadius());
+      setSearchRadius(radius);
+      setSearchCircle({ center: { lat: center.lat(), lng: center.lng() }, radius });
+    });
+    const listeners = [
+      circle.addListener('radius_changed', release.markEdited),
+      circle.addListener('center_changed', release.markEdited),
+    ];
+
+    return () => {
+      listeners.forEach((listener) => listener.remove());
+      release.dispose();
+    };
+  }, [map, setSearchRadius, setSearchCircle]);
 
   // Track search circle position for tutorial overlay
   useEffect(() => {

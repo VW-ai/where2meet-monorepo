@@ -36,6 +36,7 @@ import {
   UI_TO_TRAVEL_MODE,
   centerBesidePanels,
   clampSearchRadius,
+  commitCircleOnRelease,
   fitPadding,
   leftPanelsWidth,
   likedVenueMarkerStyle,
@@ -271,19 +272,27 @@ export function AmapMapArea() {
     const editor = new AMap.CircleEditor(map, circle);
     editor.open();
     circleEditorRef.current = editor;
+  }, [map, setSearchRadius, setSearchCircle]);
 
-    // Radius handle dragged
-    editor.on('adjust', () => {
-      setSearchRadius(clampSearchRadius(circle.getRadius()));
-    });
+  // Store the dragged search circle when the user lets go, so one drag runs one venue search
+  useEffect(() => {
+    const circle = searchCircleRef.current;
+    const editor = circleEditorRef.current;
+    if (!map || !circle || !editor) return;
 
-    // Center handle dragged
-    editor.on('move', () => {
-      setSearchCircle({
-        center: fromAmap(circle.getCenter()),
-        radius: circle.getRadius() || DEFAULT_SEARCH_RADIUS,
-      });
+    const release = commitCircleOnRelease(() => {
+      const radius = clampSearchRadius(circle.getRadius());
+      setSearchRadius(radius);
+      setSearchCircle({ center: fromAmap(circle.getCenter()), radius });
     });
+    editor.on('adjust', release.markEdited);
+    editor.on('move', release.markEdited);
+
+    return () => {
+      editor.off('adjust', release.markEdited);
+      editor.off('move', release.markEdited);
+      release.dispose();
+    };
   }, [map, setSearchRadius, setSearchCircle]);
 
   // Track search circle position for tutorial overlay

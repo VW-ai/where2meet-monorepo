@@ -51,6 +51,27 @@ export function clampSearchRadius(radius: number): number {
   return Math.min(Math.max(radius, 500), 15000);
 }
 
+/**
+ * Runs `commit` once when the pointer comes up after the search circle was edited, so a drag
+ * runs one venue search on release instead of one per frame of the drag.
+ */
+export function commitCircleOnRelease(commit: () => void) {
+  let edited = false;
+  const release = () => {
+    if (!edited) return;
+    edited = false;
+    commit();
+  };
+  // Capture phase, because the map's own drag handling may stop the event before it bubbles
+  window.addEventListener('pointerup', release, true);
+  return {
+    markEdited: () => {
+      edited = true;
+    },
+    dispose: () => window.removeEventListener('pointerup', release, true),
+  };
+}
+
 // zIndex 200 ensures circle handles are above markers (participant: 100, venue: 50)
 // so the circle can be dragged/resized even when overlapping with markers
 export const CLASSIC_SEARCH_CIRCLE_STYLE = {
