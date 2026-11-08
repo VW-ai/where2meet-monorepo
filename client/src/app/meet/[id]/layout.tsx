@@ -24,8 +24,8 @@ type EventLookup =
  * still render with fallback metadata instead of turning an outage into 404s.
  */
 const lookupEvent = cache(async (id: string): Promise<EventLookup> => {
+  const init = { headers: forwardedClientHeaders(await headers()) };
   try {
-    const init = { headers: forwardedClientHeaders(await headers()) };
     return { status: 'found', event: await eventClient.get(id, init) };
   } catch (error) {
     if (isMissingEvent(error)) {
