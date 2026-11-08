@@ -806,6 +806,19 @@
 .pp-body .pp-empty {
   margin: 0;
 }
+.pp-bar-row[data-missing] > b {
+  font-weight: 500;
+  color: var(--pp-ink3);
+}
+.pp-bar-row[data-missing='failed'] > b {
+  color: var(--pp-brand);
+}
+.pp-trips-retry {
+  color: var(--pp-brand);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .pp-empty button {
   display: block;
   margin: 8px auto 0;

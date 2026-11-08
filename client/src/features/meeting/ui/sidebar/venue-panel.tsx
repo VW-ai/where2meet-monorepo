@@ -29,7 +29,7 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { venueClient } from '@/features/meeting/api';
 import { useSidebarVenues } from '@/features/meeting/hooks/useSidebarVenues';
 import { getMutedHexColor } from '@/features/meeting/lib/participant-colors';
-import { formatTripTime, slowestRoute } from '@/features/meeting/lib/route-summary';
+import { formatTripTime, tripClaim, tripOf } from '@/features/meeting/lib/route-summary';
 import { stepVenue, venueLikes } from '@/features/meeting/lib/venue-list';
 import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-store';
 import { useChangeParticipantMode } from '@/features/meeting/hooks/useParticipantActions';
@@ -61,6 +61,7 @@ const messages = defineMessages({
     likeCount: (n: number, total: number) => `${n} of ${total}`,
     nameSeparator: ', ',
     everyoneThere: 'Everyone there in',
+    someThere: (reached: number, total: number) => `${reached} of ${total} there in`,
     longestTrip: {
       car: (name: string) => `${name} has the longest trip, driving`,
       transit: (name: string) => `${name} has the longest trip, by transit`,
@@ -79,6 +80,11 @@ const messages = defineMessages({
     noRoutesYet: 'Trips show up once people add where they’re coming from.',
     joinForTrips: 'Join the plan to see everyone’s trip.',
     noRoute: 'No route',
+    noStart: 'No starting point',
+    tripFailed: 'Couldn’t load',
+    tripsFailed: 'Some trips didn’t load.',
+    allTripsFailed: 'Trips didn’t load.',
+    tryAgain: 'Try again',
     openIn: (provider: MapProvider) => `Open in ${mapProviderName(provider)}`,
     loadingDetails: 'Loading hours and contact details',
     noVenue: 'No venue selected',
@@ -96,6 +102,7 @@ const messages = defineMessages({
     likeCount: (n: number, total: number) => `${n} / ${total} 人`,
     nameSeparator: '、',
     everyoneThere: '全员到齐需要',
+    someThere: (reached: number, total: number) => `${total} 人中 ${reached} 人到达需要`,
     longestTrip: {
       car: (name: string) => `${name}路程最长（驾车）`,
       transit: (name: string) => `${name}路程最长（公交）`,
@@ -114,6 +121,11 @@ const messages = defineMessages({
     noRoutesYet: '大家填好出发地后，这里会显示路程。',
     joinForTrips: '加入后就能看到大家的路程。',
     noRoute: '暂无路线',
+    noStart: '未填出发地',
+    tripFailed: '加载失败',
+    tripsFailed: '部分路程没能加载。',
+    allTripsFailed: '路程没能加载。',
+    tryAgain: '重试',
     openIn: (provider: MapProvider) =>
       provider === 'amap' ? '在高德地图中打开' : '在 Google 地图中打开',
     loadingDetails: '正在加载营业时间和联系方式',
@@ -257,19 +269,29 @@ function MyModeSelector({ me }: { me: Participant }) {
   );
 }
 
-function TripRows({ myId }: { myId: string | null }) {
+function useTrips() {
+  const participants = useMeetingStore((state) => state.currentEvent?.participants) ?? [];
+  const { routes, tripRequests } = useMapStore();
+  return participants.map((person) => ({
+    person,
+    trip: tripOf(person, routes, tripRequests[person.id]),
+  }));
+}
+
+function TripRows({ myId, trips }: { myId: string | null; trips: ReturnType<typeof useTrips> }) {
   const t = useMessages(messages);
   const locale = useLocale();
-  const participants = useMeetingStore((state) => state.currentEvent?.participants) ?? [];
-  const { routes, selectedParticipantId, setSelectedParticipantId } = useMapStore();
+  const { selectedParticipantId, setSelectedParticipantId } = useMapStore();
   const modeLabels = useMessages(travelModeMessages).modes;
-  const longest = slowestRoute(routes)?.durationSeconds ?? 0;
-  const mineFirst = [...participants].sort((a, b) => Number(b.id === myId) - Number(a.id === myId));
+  const longest = tripClaim(trips.map(({ trip }) => trip))?.slowest.durationSeconds ?? 0;
+  const mineFirst = [...trips].sort(
+    (a, b) => Number(b.person.id === myId) - Number(a.person.id === myId)
+  );
+  const note = { none: t.noRoute, failed: t.tripFailed, 'no-start': t.noStart, pending: '…' };
 
   return (
     <div className="mt-2 grid gap-[3px]">
-      {mineFirst.map((participant) => {
-        const route = routes.find((r) => r.participantId === participant.id);
+      {mineFirst.map(({ person: participant, trip }) => {
         const { ui, icon: ModeIcon } = pickerMode(participant.travelMode);
         return (
           <button
@@ -292,29 +314,32 @@ function TripRows({ myId }: { myId: string | null }) {
               {participant.id === myId ? t.you : participant.name}
             </span>
             <ModeIcon className="size-3.5 text-v2-ink-2" aria-hidden="true" />
-            {route && route.travelMode !== participant.travelMode ? (
-              <span className="col-span-2 text-right text-xs text-v2-ink-3 md:col-span-3">…</span>
-            ) : route ? (
+            {trip.status === 'found' ? (
               <>
                 <span className="h-1.5 overflow-hidden rounded-md bg-v2-wash">
                   <i
                     className="block h-full rounded-md transition-[width] duration-300"
                     style={{
-                      width: `${Math.max(4, (route.durationSeconds / longest) * 100)}%`,
+                      width: `${Math.max(4, (trip.route.durationSeconds / longest) * 100)}%`,
                       backgroundColor: getMutedHexColor(participant.color),
                     }}
                   />
                 </span>
                 <strong className="whitespace-nowrap text-right font-semibold text-v2-ink">
-                  {formatTripTime(route.durationSeconds, locale)}
+                  {formatTripTime(trip.route.durationSeconds, locale)}
                 </strong>
                 <small className="hidden whitespace-nowrap text-right text-xs text-v2-ink-3 md:block">
-                  {route.distance}
+                  {trip.route.distance}
                 </small>
               </>
             ) : (
-              <span className="col-span-2 text-right text-xs text-v2-ink-3 md:col-span-3">
-                {t.noRoute}
+              <span
+                className={cn(
+                  'col-span-2 text-right text-xs md:col-span-3',
+                  trip.status === 'failed' ? 'text-v2-coral-deep' : 'text-v2-ink-3'
+                )}
+              >
+                {note[trip.status]}
               </span>
             )}
           </button>
@@ -324,15 +349,35 @@ function TripRows({ myId }: { myId: string | null }) {
   );
 }
 
+function TripsFailed({ everyone }: { everyone: boolean }) {
+  const t = useMessages(messages);
+  const retryTrips = useMapStore((state) => state.retryTrips);
+  return (
+    <p role="alert" className="mt-2 flex items-center gap-2 text-[13px] text-v2-ink-2">
+      {everyone ? t.allTripsFailed : t.tripsFailed}
+      <button
+        type="button"
+        onClick={retryTrips}
+        className="font-semibold text-v2-coral-deep underline underline-offset-2"
+      >
+        {t.tryAgain}
+      </button>
+    </p>
+  );
+}
+
 function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: boolean }) {
   const t = useMessages(messages);
   const locale = useLocale();
   const { routes, isCalculatingRoutes, selectedParticipantId } = useMapStore();
   const isPublished = useMeetingStore((state) => !!state.currentEvent?.publishedAt);
   const participants = useMeetingStore((state) => state.currentEvent?.participants) ?? [];
+  const trips = useTrips();
 
-  const slowest = isCalculatingRoutes ? null : slowestRoute(routes);
-  const slowestPerson = participants.find((p) => p.id === slowest?.participantId);
+  const claim = isCalculatingRoutes ? null : tripClaim(trips.map(({ trip }) => trip));
+  const slowestPerson = participants.find((p) => p.id === claim?.slowest.participantId);
+  const failed = trips.filter(({ trip }) => trip.status === 'failed').length;
+  const routable = trips.filter(({ trip }) => trip.status !== 'no-start').length;
   const me = participants.find((p) => p.id === myId);
   const focused = participants.find((p) => p.id === selectedParticipantId);
   // On a phone this panel covers the list, so only a wider screen can have both in view
@@ -345,19 +390,21 @@ function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: bo
   return (
     <section>
       <div className="flex items-start justify-between gap-2">
-        {slowest ? (
+        {claim ? (
           <div>
             <h3 className="m-0 text-sm font-semibold tracking-[-.01em] text-v2-ink">
-              {t.everyoneThere}{' '}
+              {claim.reached === claim.total
+                ? t.everyoneThere
+                : t.someThere(claim.reached, claim.total)}{' '}
               <em className="not-italic text-v2-coral-deep">
-                {formatTripTime(slowest.durationSeconds, locale)}
+                {formatTripTime(claim.slowest.durationSeconds, locale)}
               </em>
             </h3>
             {slowestPerson && (
               <div className="mt-px text-xs text-v2-ink-2">
                 {slowestPerson.id === myId
-                  ? t.myLongestTrip[pickerMode(slowest.travelMode).ui]
-                  : t.longestTrip[pickerMode(slowest.travelMode).ui](slowestPerson.name)}
+                  ? t.myLongestTrip[pickerMode(claim.slowest.travelMode).ui]
+                  : t.longestTrip[pickerMode(claim.slowest.travelMode).ui](slowestPerson.name)}
               </div>
             )}
           </div>
@@ -375,7 +422,8 @@ function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: bo
         </p>
       ) : hasTrips ? (
         <>
-          <TripRows myId={myId} />
+          <TripRows myId={myId} trips={trips} />
+          {failed > 0 && <TripsFailed everyone={failed === routable} />}
           {focused && (
             <div className={cn(listInView && 'md:hidden')}>
               <FocusBox person={focused} />

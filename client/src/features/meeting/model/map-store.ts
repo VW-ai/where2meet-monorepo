@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import type { Circle } from '@/shared/lib/mec';
+import type { TripRequest } from '@/features/meeting/lib/route-summary';
 import type { TravelMode } from '@/shared/types/map';
 import { useUIStore } from './ui-store';
 
@@ -34,6 +35,12 @@ interface MapState {
   routes: RouteInfo[];
   setRoutes: (routes: RouteInfo[]) => void;
   clearRoutes: () => void;
+  /** By person, for the selected venue. Someone missing here has no request outstanding. */
+  tripRequests: Record<string, TripRequest>;
+  markTripRequests: (ids: readonly string[], request: TripRequest | null) => void;
+  /** Bumped to ask the map to fetch the failed trips again. */
+  tripRetry: number;
+  retryTrips: () => void;
 
   // Selected participant for route display
   selectedParticipantId: string | null;
@@ -68,7 +75,19 @@ export const useMapStore = create<MapState>((set) => ({
   // Routes
   routes: [],
   setRoutes: (routes) => set({ routes }),
-  clearRoutes: () => set({ routes: [] }),
+  clearRoutes: () => set({ routes: [], tripRequests: {} }),
+  tripRequests: {},
+  markTripRequests: (ids, request) =>
+    set((state) => {
+      const tripRequests = { ...state.tripRequests };
+      ids.forEach((id) => {
+        if (request) tripRequests[id] = request;
+        else delete tripRequests[id];
+      });
+      return { tripRequests };
+    }),
+  tripRetry: 0,
+  retryTrips: () => set((state) => ({ tripRetry: state.tripRetry + 1 })),
 
   // Selected participant
   selectedParticipantId: null,
