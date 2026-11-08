@@ -23,6 +23,7 @@ import {
 } from "../utils/session.js";
 import { isProduction } from "../lib/config.js";
 import { UnauthorizedError } from "../types/errors.js";
+import { RATE_LIMITS } from "../lib/rateLimits.js";
 
 /**
  * Request types for route handlers.
@@ -46,48 +47,64 @@ export function authRoutes(fastify: FastifyInstance): void {
    * POST /api/auth/register
    * Creates a new user account and returns user info with session cookie.
    */
-  fastify.post("/api/auth/register", async (request: RegisterRequest, reply: FastifyReply) => {
-    // Validate request body
-    const parseResult = RegisterSchema.safeParse(request.body);
-    if (!parseResult.success) {
-      throw parseResult.error;
+  fastify.post(
+    "/api/auth/register",
+    { config: RATE_LIMITS.auth },
+    async (request: RegisterRequest, reply: FastifyReply) => {
+      // Validate request body
+      const parseResult = RegisterSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        throw parseResult.error;
+      }
+
+      const { user, sessionToken } = await authService.register(parseResult.data);
+
+      // Set session cookie
+      void reply.setCookie(
+        SESSION_COOKIE_NAME,
+        sessionToken,
+        getSessionCookieOptions(isProduction)
+      );
+
+      const response: AuthResponse = {
+        user: toUserResponse(user),
+      };
+
+      return reply.status(201).send(response);
     }
-
-    const { user, sessionToken } = await authService.register(parseResult.data);
-
-    // Set session cookie
-    void reply.setCookie(SESSION_COOKIE_NAME, sessionToken, getSessionCookieOptions(isProduction));
-
-    const response: AuthResponse = {
-      user: toUserResponse(user),
-    };
-
-    return reply.status(201).send(response);
-  });
+  );
 
   /**
    * POST /api/auth/login
    * Authenticates user and returns user info with session cookie.
    */
-  fastify.post("/api/auth/login", async (request: LoginRequest, reply: FastifyReply) => {
-    // Validate request body
-    const parseResult = LoginSchema.safeParse(request.body);
-    if (!parseResult.success) {
-      throw parseResult.error;
+  fastify.post(
+    "/api/auth/login",
+    { config: RATE_LIMITS.auth },
+    async (request: LoginRequest, reply: FastifyReply) => {
+      // Validate request body
+      const parseResult = LoginSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        throw parseResult.error;
+      }
+
+      const { email, password } = parseResult.data;
+      const { user, sessionToken } = await authService.login(email, password);
+
+      // Set session cookie
+      void reply.setCookie(
+        SESSION_COOKIE_NAME,
+        sessionToken,
+        getSessionCookieOptions(isProduction)
+      );
+
+      const response: AuthResponse = {
+        user: toUserResponse(user),
+      };
+
+      return reply.send(response);
     }
-
-    const { email, password } = parseResult.data;
-    const { user, sessionToken } = await authService.login(email, password);
-
-    // Set session cookie
-    void reply.setCookie(SESSION_COOKIE_NAME, sessionToken, getSessionCookieOptions(isProduction));
-
-    const response: AuthResponse = {
-      user: toUserResponse(user),
-    };
-
-    return reply.send(response);
-  });
+  );
 
   /**
    * POST /api/auth/logout

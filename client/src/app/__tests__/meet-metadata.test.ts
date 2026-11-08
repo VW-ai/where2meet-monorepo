@@ -4,6 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Event } from '@/entities';
 import { generateMetadata } from '@/app/meet/[id]/layout';
 
+const visitor = vi.hoisted(() => ({ headers: new Headers() }));
+vi.mock('next/headers', () => ({ headers: async () => visitor.headers }));
+
 const FRIDAY_DINNER: Event = {
   id: 'evt_1792168931306_f2UvebTGVhGJcrbK',
   title: 'Friday dinner',
@@ -33,6 +36,8 @@ async function linkPreview(event: Event) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  visitor.headers = new Headers();
 });
 
 describe('/meet/[id] link preview rendered on a UTC server', () => {
@@ -53,5 +58,17 @@ describe('/meet/[id] link preview rendered on a UTC server', () => {
       og: text,
       twitter: text,
     });
+  });
+
+  it("asks the API on the visitor's behalf, so it rate limits them rather than Vercel", async () => {
+    vi.stubEnv('RATE_LIMIT_PROXY_SECRET', 's'.repeat(40));
+    visitor.headers = new Headers({ 'x-real-ip': '203.0.113.7' });
+    const fetchMock = vi.fn(async () => Response.json(FRIDAY_DINNER));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await generateMetadata({ params: Promise.resolve({ id: 'evt_visitor_ip' }) });
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.headers).toMatchObject({ 'x-w2m-client-ip': '203.0.113.7' });
   });
 });

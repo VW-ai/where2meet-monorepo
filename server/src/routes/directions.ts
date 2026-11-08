@@ -13,6 +13,7 @@ import { createDirectionsService } from "../services/directions.js";
 import { toDirectionsResponse } from "../mappers/directions.mapper.js";
 import { createVerifyEventAccess } from "../hooks/auth.js";
 import { ValidationError } from "../types/errors.js";
+import { RATE_LIMITS } from "../lib/rateLimits.js";
 
 /**
  * Route parameters for directions endpoint.
@@ -78,6 +79,7 @@ export function directionsRoutes(fastify: FastifyInstance): void {
   fastify.get(
     "/api/events/:id/venues/:venueId/directions",
     {
+      config: RATE_LIMITS.maps,
       preHandler: [verifyEventAccess],
     },
     async (request: DirectionsRequest, reply: FastifyReply) => {

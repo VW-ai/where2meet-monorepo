@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { forwardedClientHeaders } from '@/lib/api/forwarded-client';
 
 // Read configuration from environment variables
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE || 'off';
@@ -44,7 +45,7 @@ async function proxyToBackend(request: NextRequest, endpoint: string): Promise<N
     console.warn(`[Auth Router] Proxying to backend: ${method} ${url}`);
 
     // Prepare headers
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = forwardedClientHeaders(request.headers);
 
     // Forward cookies to backend
     const cookieHeader = request.headers.get('cookie');
