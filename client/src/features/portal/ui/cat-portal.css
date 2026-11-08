@@ -68,6 +68,8 @@
 html[data-portal='cover'] .meeting-header,
 html[data-portal='cover'] .meeting-sheet,
 html[data-portal='cover'] .phone-header,
+html[data-portal='cover'] .pp-sheet,
+html[data-portal='cover'] .pp-topbar,
 html[data-portal='cover'] .phone-map-controls {
   opacity: 0;
 }
@@ -77,6 +79,7 @@ html[data-portal] .meeting-map {
 }
 
 @media (max-width: 767px) {
+  html[data-portal='settle'] .pp-topbar,
   html[data-portal='settle'] .phone-search {
     animation:
       portal-drop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
@@ -187,6 +190,7 @@ html[data-portal] .meeting-map {
   html[data-portal='settle'] .portal-right > :nth-child(2) {
     animation-delay: 270ms;
   }
+  html[data-portal='settle'] .pp-sheet,
   html[data-portal='settle'] .meeting-sheet {
     animation:
       portal-slide-in 620ms cubic-bezier(0.32, 0.72, 0, 1) 40ms both,

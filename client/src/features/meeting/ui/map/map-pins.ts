@@ -17,6 +17,7 @@ import {
 } from 'lucide';
 import { getVenueCategory, type Venue, type VenueCategory } from '@/entities/venue/types';
 import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
+import { avatarTint } from '@/features/meeting/lib/phone-plan';
 import { getMutedHexColor } from '@/features/meeting/lib/participant-colors';
 import { pathUpTo, type PathPoint } from '@/features/meeting/lib/path-up-to';
 import type { Locale } from '@/shared/lib/i18n';
@@ -43,6 +44,7 @@ export interface PersonPinLook {
   tripLabel?: string;
   selected: boolean;
   draft?: boolean;
+  round?: boolean;
 }
 
 export interface RouteChipLook {
@@ -131,12 +133,14 @@ export function personPinLook(
     isDraft?: boolean;
     tripSeconds?: number;
     locale: Locale;
+    round?: boolean;
   }
 ): PersonPinLook {
-  const { isSelf, isSelected, isDraft, tripSeconds, locale } = state;
+  const { isSelf, isSelected, isDraft, tripSeconds, locale, round } = state;
   return {
     label: personPinLabel(person.name, isSelf, locale),
-    color: getMutedHexColor(person.color),
+    color: round ? avatarTint(person.color) : getMutedHexColor(person.color),
+    ...(round ? { round } : {}),
     selected: isSelected,
     ...(tripSeconds === undefined ? {} : { tripLabel: tripLabel(tripSeconds, locale) }),
     ...(isDraft ? { draft: true } : {}),
@@ -370,10 +374,14 @@ function drawPersonPin(look: PersonPinLook, spin: boolean): PinImage {
   const fill = escapeXml(color);
   const headScale = (radius * 2) / 100;
 
+  const head = look.round
+    ? `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${fill}" stroke="${WHITE}" stroke-width="3"/>`
+    : `<path transform="translate(${cx - radius} ${cy - radius}) scale(${headScale})" d="${CAT_HEAD_PATH}" fill="${fill}" stroke="${WHITE}" stroke-width="${3 / headScale}" paint-order="stroke"/>`;
+
   const parts = [
     shadowFilter(3, 10, 0.28),
-    `<g filter="url(#shadow)"><path d="M${cx - 6} ${tailTop} L${cx + 6} ${tailTop} L${cx} ${tipY} Z" fill="${WHITE}"/><path transform="translate(${cx - radius} ${cy - radius}) scale(${headScale})" d="${CAT_HEAD_PATH}" fill="${fill}" stroke="${WHITE}" stroke-width="${3 / headScale}" paint-order="stroke"/></g>`,
-    textElement(label, { x: cx, y: cy + 7.5, size: 13, fill: WHITE }),
+    `<g filter="url(#shadow)"><path d="M${cx - 6} ${tailTop} L${cx + 6} ${tailTop} L${cx} ${tipY} Z" fill="${WHITE}"/>${head}</g>`,
+    textElement(label, { x: cx, y: look.round ? cy + 4.5 : cy + 7.5, size: 13, fill: WHITE }),
   ];
   if (draft) {
     // SMIL only keeps running in an image if the marker is drawn with `optimized: false`

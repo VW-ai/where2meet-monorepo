@@ -27,6 +27,11 @@ import { useRouteCacheStore } from '@/features/meeting/model/route-cache-store';
 import type { TravelMode } from '@/shared/types/map';
 import { useUiVersion, useUiVersionStore } from '@/features/meeting/model/ui-version-store';
 import {
+  usePhonePlanStore,
+  usePlanMapLayers,
+} from '@/features/meeting/model/phone-plan-store';
+import { fitSearchArea, offsetPoint } from '@/features/meeting/lib/phone-plan';
+import {
   CLASSIC_SEARCH_CIRCLE_STYLE,
   DEFAULT_SEARCH_RADIUS,
   MapLoadError,
@@ -91,6 +96,7 @@ interface DrawnRoute extends RouteStroke {
 }
 
 const isV2 = () => useUiVersionStore.getState().version === 'v2';
+const inPhonePlan = () => usePhonePlanStore.getState().active;
 const animatesMarkers = () => isV2() && !prefersReducedMotion();
 
 /** Fits everyone with a starting point and the selected venue. False when that's a single point. */
@@ -151,6 +157,8 @@ export function GoogleMapArea() {
   // Convert UI travel mode to the directions API travel mode
   const travelMode = UI_TO_TRAVEL_MODE[uiTravelMode];
 
+  const planLayers = usePlanMapLayers();
+  const inPlan = planLayers !== null;
   const [satellite, setSatellite] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -202,13 +210,15 @@ export function GoogleMapArea() {
 
         const mapInstance = new maps.Map(mapRef.current, {
           center,
-          zoom: 12,
+          zoom: inPhonePlan() ? 14 : 12,
           ...mapOptions,
           ...(window.matchMedia('(max-width: 767px)').matches
             ? {
-                mapTypeId: 'hybrid',
+                mapTypeId: inPhonePlan() ? 'roadmap' : 'hybrid',
                 zoomControl: false,
                 fullscreenControl: false,
+                scaleControl: !inPhonePlan(),
+                gestureHandling: inPhonePlan() ? 'greedy' : undefined,
               }
             : {}),
         });
@@ -417,7 +427,8 @@ export function GoogleMapArea() {
     setCenter(newCenter);
 
     // Calculate search radius (1.5x MEC radius, min 1km, max 10km)
-    const newSearchRadius = calculateSearchRadius(mec, 1.5, 1000, 10000);
+    const planned = inPhonePlan() ? fitSearchArea(locations) : null;
+    const newSearchRadius = planned?.radius ?? calculateSearchRadius(mec, 1.5, 1000, 10000);
     setSearchRadius(newSearchRadius);
 
     // Clear existing MEC circle
@@ -711,10 +722,53 @@ export function GoogleMapArea() {
     markerDrops,
   ]);
 
-  useSearchArea(map, searchCircleRef, mecCircleRef, version === 'v2');
+  useSearchArea(map, searchCircleRef, mecCircleRef, version === 'v2' && (planLayers?.circle ?? true));
   useVenuePins(map, version === 'v2');
   usePersonPins(map, version === 'v2');
-  useRouteChips(map, version === 'v2');
+  useRouteChips(map, version === 'v2' && !inPlan);
+
+  const circleShown = planLayers?.circle ?? true;
+  useEffect(() => {
+    searchCircleRef.current?.setVisible(circleShown);
+  }, [map, circleShown]);
+
+  const routesShown = planLayers?.routes ?? true;
+  useEffect(() => {
+    routePolylinesRef.current.forEach(({ polyline }) => polyline.setVisible(routesShown));
+  }, [routesShown]);
+
+  useEffect(() => {
+    if (!map || !inPlan) return;
+    map.setMapTypeId(usePhonePlanStore.getState().satellite ? 'hybrid' : 'roadmap');
+    usePhonePlanStore.setState({
+      api: {
+        center: () => map.getCenter()?.toJSON() ?? null,
+        zoom: () => map.getZoom() ?? 14,
+        panTo: (point) => map.panTo(point),
+        frame: (points) => {
+          const circle = usePhonePlanStore.getState().section === 'places'
+            ? searchCircleRef.current?.getBounds()
+            : null;
+          const bounds = new google.maps.LatLngBounds();
+          points.forEach((point) => bounds.extend(point));
+          if (circle) bounds.union(circle);
+          if (!bounds.isEmpty()) map.fitBounds(bounds, fitPadding(false));
+        },
+        setSatellite: (on) => map.setMapTypeId(on ? 'hybrid' : 'roadmap'),
+        setSearchArea: (center, radius) => {
+          searchCircleRef.current?.setCenter(center);
+          searchCircleRef.current?.setRadius(radius);
+          const circle = searchCircleRef.current?.getBounds();
+          if (circle) map.fitBounds(circle, fitPadding(false));
+        },
+        onIdle: (listener) => {
+          const handle = map.addListener('idle', listener);
+          return () => handle.remove();
+        },
+      },
+    });
+    return () => usePhonePlanStore.setState({ api: null });
+  }, [map, inPlan]);
 
   // Under v2 a refreshed event, a changed travel mode above all, must not move the map
   const selectedSpot = currentEvent?.participants?.find((p) => p.id === selectedParticipantId);
@@ -795,6 +849,7 @@ export function GoogleMapArea() {
           geodesic: true,
           strokeColor: color,
           map,
+          visible: !inPhonePlan() || usePhonePlanStore.getState().section === 'places' || !!useMeetingStore.getState().currentEvent?.publishedAt,
           ...style,
         }),
         path: decodedPath.map((point) => point.toJSON()),
@@ -1104,6 +1159,11 @@ export function GoogleMapArea() {
           fitPadding(isVenueInfoOpen)
         )
       ) {
+        if (inPhonePlan()) {
+          const { top, bottom } = fitPadding(false);
+          map.panTo(offsetPoint(selectedVenue.location, currentZoom, 0, (bottom - top) / 2));
+          return;
+        }
         map.panTo(
           centerBesidePanels(selectedVenue.location, currentZoom, leftPanelsWidth(isVenueInfoOpen))
         );
@@ -1158,7 +1218,7 @@ export function GoogleMapArea() {
     <main className="w-full h-full relative">
       {isLoading && <MapLoading />}
 
-      <PhoneMapControls
+      {!inPlan && <PhoneMapControls
         satellite={satellite}
         onToggleSatellite={() => {
           map?.setMapTypeId(satellite ? 'roadmap' : 'hybrid');
@@ -1171,10 +1231,10 @@ export function GoogleMapArea() {
             map?.setZoom(13);
           }
         }}
-      />
+      />}
 
       {/* Route calculating overlay */}
-      {isCalculatingRoutes && <RoutesCalculating />}
+      {isCalculatingRoutes && !inPlan && <RoutesCalculating />}
 
       {/* Map container - MUST be relative for absolute overlay positioning */}
       <div className="relative w-full h-full">
@@ -1184,7 +1244,7 @@ export function GoogleMapArea() {
         {circleOverlayPosition && <SearchCircleTutorialTarget position={circleOverlayPosition} />}
 
         {/* Blur overlay for non-participants - only show after auth initialization */}
-        {isAuthInitialized && !hasJoined && (
+        {isAuthInitialized && !hasJoined && !inPlan && (
           <MapBlurOverlay isPublished={!!currentEvent?.publishedAt} />
         )}
       </div>
