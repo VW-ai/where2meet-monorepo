@@ -98,6 +98,9 @@
   occasion: game-night
 - phrase: where to play board games
   occasion: game-night
+- phrase: game night spots
+  occasion: game-night
+  note: A search for places to play games of any kind, added 2026-11-08 because Back Bay has no board game bar and the board game phrases would promise one
 - phrase: networking event venue
   occasion: networking-meetup
 - phrase: where to host a networking event

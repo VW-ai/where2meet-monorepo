@@ -6,8 +6,8 @@ import { Check, Coffee, Heart, Navigation, Search, Utensils, Wine, X } from 'luc
 import type { Participant, Venue } from '@/entities';
 import catLogo from '@/components/cat/logo.svg';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { hasStartingPoint, personRouteKeys } from '@/features/meeting/lib/person-routes';
-import { formatTripTime, slowestRoute } from '@/features/meeting/lib/route-summary';
+import { useVenueTrips } from '@/features/meeting/hooks/useVenueTrips';
+import { formatTripTime, tripClaim } from '@/features/meeting/lib/route-summary';
 import { slideLocks, slideOffset } from '@/features/meeting/lib/slide-to-lock';
 import {
   CATEGORY_QUERY,
@@ -18,7 +18,6 @@ import {
 import { useMapStore } from '@/features/meeting/model/map-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { phonePlan, usePhonePlanStore } from '@/features/meeting/model/phone-plan-store';
-import { useRouteCacheStore } from '@/features/meeting/model/route-cache-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
@@ -37,7 +36,14 @@ const messages = defineMessages({
     open: 'Search',
     count: (n: number) => `${n} ${n === 1 ? 'place' : 'places'} · most liked first`,
     within: (minutes: number) => `Everyone within ${minutes} min`,
+    someWithin: (reached: number, total: number, minutes: number) =>
+      `${reached} of ${total} within ${minutes} min`,
     withinShort: (minutes: number) => `Within ${minutes} min`,
+    tripsFailed: 'Trips didn’t load.',
+    someTripsFailed: 'Some trips didn’t load.',
+    noRoute: 'No route',
+    tripFailed: 'Couldn’t load',
+    noStart: 'No starting point',
     joinTrips: 'Join to see trip times',
     findingTrips: 'Finding trip times',
     finding: 'Finding places',
@@ -68,7 +74,14 @@ const messages = defineMessages({
     open: '搜索',
     count: (n: number) => `${n} 个地点 · 喜欢多的在前`,
     within: (minutes: number) => `所有人 ${minutes} 分钟内可到`,
+    someWithin: (reached: number, total: number, minutes: number) =>
+      `${total} 人中 ${reached} 人 ${minutes} 分钟内可到`,
     withinShort: (minutes: number) => `${minutes} 分钟内`,
+    tripsFailed: '路程没能加载。',
+    someTripsFailed: '部分路程没能加载。',
+    noRoute: '暂无路线',
+    tripFailed: '加载失败',
+    noStart: '未填出发地',
     joinTrips: '加入后可看路程时间',
     findingTrips: '正在计算路程',
     finding: '正在找地点',
@@ -98,34 +111,33 @@ const CATEGORIES: ReadonlyArray<{ id: PlaceCategory; icon?: typeof Coffee }> = [
   { id: 'drinks', icon: Wine },
 ];
 
-interface Trip {
+interface FoundTrip {
   person: Participant;
   seconds: number;
 }
 
-/** A venue's trips: the live routes for the selected one, or what the cache remembers for others. */
+/** A venue's trips, and the most that can honestly be said about getting the group there. */
 function useTrips(venue: Venue | null) {
-  const participants = useMeetingStore((state) => state.currentEvent?.participants);
-  const selectedId = useMeetingStore((state) => state.selectedVenue?.id);
-  const routes = useMapStore((state) => state.routes);
-  const entries = useRouteCacheStore((state) => state.entries);
   const hasToken = useAuthStore((state) => !!(state.organizerToken || state.participantToken));
-  const located = (participants ?? []).filter(hasStartingPoint);
-  if (!venue || !hasToken) return { trips: [] as Trip[], status: 'join' as const };
-  const keys = personRouteKeys(venue.id, located);
-  const trips = located.flatMap((person): Trip[] => {
-    const live = venue.id === selectedId && routes.find((r) => r.participantId === person.id);
-    if (live) return [{ person, seconds: live.durationSeconds }];
-    const key = keys.get(person.id);
-    const cached = key ? entries[key] : undefined;
-    return cached?.status === 'found' ? [{ person, seconds: cached.route.durationSeconds }] : [];
-  });
+  const people = useMeetingStore((state) => state.currentEvent?.participants) ?? [];
+  const all = useVenueTrips(venue?.id ?? null);
+  const rows = people.map((person, i) => ({
+    person,
+    trip: all[i] ?? { status: 'pending' as const },
+  }));
+  const trips = rows.flatMap(({ person, trip }): FoundTrip[] =>
+    trip.status === 'found' ? [{ person, seconds: trip.route.durationSeconds }] : []
+  );
+  const claim = tripClaim(all);
+  const failed = all.filter((trip) => trip.status === 'failed').length;
+  const routable = all.filter((trip) => trip.status !== 'no-start').length;
+  const status = !venue || !hasToken ? 'join' : failed ? 'failed' : claim ? 'ready' : 'finding';
   return {
+    rows,
     trips,
-    status:
-      trips.length >= located.length && trips.length > 0
-        ? ('ready' as const)
-        : ('finding' as const),
+    claim,
+    allFailed: failed === routable,
+    status: status as 'join' | 'failed' | 'ready' | 'finding',
   };
 }
 
@@ -176,10 +188,10 @@ function metaLine(venue: Venue) {
 
 function TripChips({ venue }: { venue: Venue }) {
   const t = useMessages(messages);
-  const { trips, status } = useTrips(venue);
+  const { trips, claim, allFailed, status } = useTrips(venue);
   const myId = useMyId();
   const likers = useLikers(venue.id);
-  const slowest = slowestRoute(trips.map((trip) => ({ ...trip, durationSeconds: trip.seconds })));
+  const slowestId = claim?.slowest.participantId;
   return (
     <>
       {trips.length > 0 && (
@@ -187,7 +199,7 @@ function TripChips({ venue }: { venue: Venue }) {
           {trips.map((trip) => (
             <span
               key={trip.person.id}
-              className={cn('pp-trip-chip', trip.person.id === slowest?.person.id && 'pp-slowest')}
+              className={cn('pp-trip-chip', trip.person.id === slowestId && 'pp-slowest')}
             >
               <Avatar person={trip.person} size={22} isYou={trip.person.id === myId} />
               {minutesOf(trip.seconds)}m
@@ -197,11 +209,29 @@ function TripChips({ venue }: { venue: Venue }) {
       )}
       <div className="pp-card-foot">
         <span>
-          {status === 'join'
-            ? t.joinTrips
-            : status === 'finding'
-              ? t.findingTrips
-              : t.within(minutesOf(slowest?.seconds ?? 0))}
+          {status === 'join' ? (
+            t.joinTrips
+          ) : status === 'failed' ? (
+            <>
+              {allFailed ? t.tripsFailed : t.someTripsFailed}{' '}
+              <button
+                type="button"
+                className="pp-trips-retry"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  useMapStore.getState().retryTrips();
+                }}
+              >
+                {t.retry}
+              </button>
+            </>
+          ) : !claim ? (
+            t.findingTrips
+          ) : claim.reached === claim.total ? (
+            t.within(minutesOf(claim.slowest.durationSeconds))
+          ) : (
+            t.someWithin(claim.reached, claim.total, minutesOf(claim.slowest.durationSeconds))
+          )}
         </span>
         <AvatarStack people={likers} size={22} max={4} myId={myId} />
       </div>
@@ -317,13 +347,15 @@ function Carousel({ venues }: { venues: readonly Venue[] }) {
 
 function ListRow({ venue, expanded }: { venue: Venue; expanded: boolean }) {
   const t = useMessages(messages);
-  const { trips } = useTrips(venue);
+  const { claim } = useTrips(venue);
   const myId = useMyId();
   const likers = useLikers(venue.id);
-  const slowest = slowestRoute(trips.map((trip) => ({ ...trip, durationSeconds: trip.seconds })));
-  const parts = [slowest && t.withinShort(minutesOf(slowest.seconds)), metaLine(venue)].filter(
-    Boolean
-  );
+  const within =
+    claim &&
+    (claim.reached === claim.total
+      ? t.withinShort(minutesOf(claim.slowest.durationSeconds))
+      : t.someWithin(claim.reached, claim.total, minutesOf(claim.slowest.durationSeconds)));
+  const parts = [within, metaLine(venue)].filter(Boolean);
   const provider = useMeetingStore((state) => state.currentEvent?.mapProvider) ?? 'google';
   return (
     <div className="pp-list-item" data-expanded={expanded || undefined}>
@@ -369,7 +401,7 @@ function ListRow({ venue, expanded }: { venue: Venue; expanded: boolean }) {
   );
 }
 
-function TripBarRow({ trip, longest }: { trip: Trip; longest: number }) {
+function TripBarRow({ trip, longest }: { trip: FoundTrip; longest: number }) {
   const t = useMessages(messages);
   const locale = useLocale();
   const myId = useMyId();
@@ -405,13 +437,32 @@ function TripBarRow({ trip, longest }: { trip: Trip; longest: number }) {
 }
 
 function TripBars({ venue }: { venue: Venue }) {
-  const { trips } = useTrips(venue);
+  const t = useMessages(messages);
+  const myId = useMyId();
+  const { rows, trips } = useTrips(venue);
   const longest = Math.max(...trips.map((trip) => trip.seconds), 1);
+  const note = { none: t.noRoute, failed: t.tripFailed, 'no-start': t.noStart, pending: '…' };
   return (
     <div className="pp-bars">
-      {trips.map((trip) => (
-        <TripBarRow key={trip.person.id} trip={trip} longest={longest} />
-      ))}
+      {rows.map(({ person, trip }) =>
+        trip.status === 'found' ? (
+          <TripBarRow
+            key={person.id}
+            trip={{ person, seconds: trip.route.durationSeconds }}
+            longest={longest}
+          />
+        ) : (
+          <div key={person.id} className="pp-bar-item">
+            <div className="pp-bar-row" data-missing={trip.status}>
+              <Avatar person={person} size={30} isYou={person.id === myId} />
+              <span className="pp-bar-mid">
+                <small>{person.id === myId ? t.you : person.name}</small>
+              </span>
+              <b>{note[trip.status]}</b>
+            </div>
+          </div>
+        )
+      )}
     </div>
   );
 }
