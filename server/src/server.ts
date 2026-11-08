@@ -30,6 +30,7 @@ import { sseRoutes } from "./routes/sse.js";
 import { authRoutes } from "./routes/auth.js";
 import { userRoutes } from "./routes/users.js";
 import { amapRoutes } from "./routes/amap.js";
+import { rateLimitKey } from "./lib/rateLimitKey.js";
 
 /**
  * Creates and configures a Fastify server instance.
@@ -62,6 +63,7 @@ export async function buildServer() {
               "req.headers.authorization",
               "res.headers.authorization",
               "req.headers.cookie",
+              'req.headers["x-w2m-proxy-secret"]',
               "res.headers['set-cookie']",
               "req.body.password",
               "req.body.passwordHash",
@@ -129,6 +131,7 @@ export async function buildServer() {
     await server.register(rateLimit, {
       max: config.RATE_LIMIT_MAX,
       timeWindow: config.RATE_LIMIT_WINDOW_MS,
+      keyGenerator: (request) => rateLimitKey(request, config.RATE_LIMIT_PROXY_SECRET),
       errorResponseBuilder: () => ({
         error: {
           code: "RATE_LIMIT_EXCEEDED",

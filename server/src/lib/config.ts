@@ -40,6 +40,9 @@ const envSchema = z.object({
   // Rate Limiting
   RATE_LIMIT_MAX: stringToNumber(100).pipe(z.number().min(1)),
   RATE_LIMIT_WINDOW_MS: stringToNumber(900000).pipe(z.number().min(1000)),
+  // Shared with the Next.js server, which calls the API on visitors' behalf
+  // from Vercel's IPs and forwards each visitor's IP alongside this secret.
+  RATE_LIMIT_PROXY_SECRET: z.string().min(32).optional(),
 
   // Google Maps
   GOOGLE_MAPS_API_KEY: z.string().default(""),

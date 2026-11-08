@@ -16,7 +16,7 @@ export const eventsApi = {
       body: JSON.stringify(data),
     }),
 
-  get: (id: string) => backendCall<Event>(`/api/events/${id}`),
+  get: (id: string, init?: RequestInit) => backendCall<Event>(`/api/events/${id}`, init),
 
   update: (id: string, data: UpdateEventDTO, token: string) =>
     backendCall<Event>(`/api/events/${id}`, {

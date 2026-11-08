@@ -36,5 +36,6 @@ export const venuesApi = {
   /**
    * Get detailed information about a specific venue
    */
-  get: (placeId: string) => backendCall<VenueDetailsResponse>(`/api/venues/${placeId}`),
+  get: (placeId: string, init?: RequestInit) =>
+    backendCall<VenueDetailsResponse>(`/api/venues/${placeId}`, init),
 };
