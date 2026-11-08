@@ -67,4 +67,16 @@ describe('venueLikes', () => {
   it('ignores votes from people no longer in the plan', () => {
     expect(venueLikes(['gone'], people, null).voters).toEqual([]);
   });
+
+  it('counts only people who can like: unclaimed rows are neither others nor in the total', () => {
+    const mom = { ...person('mom'), claimable: true };
+    const { others, total } = venueLikes(['maya'], [...people, mom], null);
+    expect(total).toBe(4);
+    expect(others.map((p) => p.id)).toEqual(['sam', 'jun', 'theo']);
+  });
+
+  it('counts someone once they claim their row', () => {
+    const mom = { ...person('mom'), claimable: false };
+    expect(venueLikes([], [...people, mom], null).total).toBe(5);
+  });
 });

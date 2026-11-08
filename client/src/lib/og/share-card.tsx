@@ -439,7 +439,7 @@ export async function renderInvitation({
       <div style={{ display: 'flex', flexShrink: 0 }}>
         <Ticket
           invitation={invitation}
-          u={portrait ? 2.3 : 1.45}
+          u={portrait ? 2.3 : 1.3}
           photo={photoSrc}
           cat={svgDataUri(logo)}
         />
@@ -486,8 +486,8 @@ function invitationText(invitation: Invitation): string {
     invitation.host && t.hostedBy(invitation.host),
     invitation.venue?.name,
     invitation.venue?.address,
-    invitation.when?.date,
-    invitation.when?.time,
+    invitation.when?.date ?? t.dateToBeSet,
+    invitation.when?.time ?? t.timeToBeSet,
     invitation.issued,
     t.invited,
     t.when,

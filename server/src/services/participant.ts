@@ -7,6 +7,7 @@
  */
 
 import type { MapProvider, PrismaClient, Participant } from "@prisma/client";
+import type { ParticipantAuthContext } from "../hooks/auth.js";
 import {
   createParticipantRepository,
   type ParticipantRepository,
@@ -21,6 +22,7 @@ import {
   AddressNotFoundError as BusinessAddressNotFoundError,
   ExternalServiceError,
   ForbiddenError,
+  ParticipantNotClaimableError,
   ValidationError,
 } from "../types/errors.js";
 import { AddressNotFoundError, GeocodingApiError } from "../lib/maps.js";
@@ -28,6 +30,7 @@ import { providerFor } from "../lib/providers/index.js";
 import { assignColor } from "../utils/colors.js";
 import { createLogger } from "../lib/logger.js";
 import { generateParticipantToken, verifyToken, hashToken } from "../utils/token.js";
+import { isClaimable } from "../utils/claimable.js";
 
 /**
  * Result of adding a participant, optionally includes token for self-registration.
@@ -50,7 +53,7 @@ const HIDE_ADDRESS_UNAVAILABLE =
  * @throws BusinessAddressNotFoundError if address not found
  * @throws ExternalServiceError on API failures
  */
-async function geocodeWithBusinessErrors(
+export async function geocodeWithBusinessErrors(
   mapProvider: MapProvider,
   address: string
 ): Promise<{ lat: number; lng: number; formattedAddress: string }> {
@@ -67,6 +70,17 @@ async function geocodeWithBusinessErrors(
     }
     throw error;
   }
+}
+
+/**
+ * People own their travel mode. The organizer picks it only for rows nobody has
+ * claimed, so a row that holds its own token is off limits to them.
+ * @param actor - Who is making the change
+ * @param target - Participant whose mode would change
+ * @returns True if the actor may set the target's travel mode
+ */
+function canSetTravelMode(actor: ParticipantAuthContext, target: Participant): boolean {
+  return actor.participantId === target.id || (actor.isOrganizer && isClaimable(target));
 }
 
 /**
@@ -151,6 +165,7 @@ export class ParticipantService {
       lng,
       color,
       tokenHash,
+      travelMode: input.travelMode,
     });
 
     logger.info(
@@ -166,17 +181,20 @@ export class ParticipantService {
    * @param eventId - Event ID
    * @param participantId - Participant ID
    * @param input - Fields to update
+   * @param actor - Authenticated participant making the change
    * @returns Updated participant entity
    * @throws EventNotFoundError if event doesn't exist
    * @throws ParticipantNotFoundError if participant doesn't exist
    * @throws EventAlreadyPublishedError if event is published
    * @throws ValidationError if the input sets fuzzyLocation to true
+   * @throws ForbiddenError if the actor may not set this participant's travel mode
    * @throws BusinessAddressNotFoundError if new address cannot be geocoded
    */
   async updateParticipant(
     eventId: string,
     participantId: string,
-    input: UpdateParticipantInput
+    input: UpdateParticipantInput,
+    actor: ParticipantAuthContext
   ): Promise<Participant> {
     // Check event exists and is not published
     const mapProvider = await this.ensureEventModifiable(eventId);
@@ -196,9 +214,13 @@ export class ParticipantService {
       throw new ParticipantNotFoundError(participantId);
     }
 
+    if (input.travelMode !== undefined && !canSetTravelMode(actor, current)) {
+      throw new ForbiddenError("This person chooses their own travel mode");
+    }
+
     const newAddress =
       input.address !== undefined && input.address !== current.address ? input.address : undefined;
-    const updateData: UpdateParticipantData = { name: input.name };
+    const updateData: UpdateParticipantData = { name: input.name, travelMode: input.travelMode };
     if (newAddress !== undefined) {
       const { lat, lng, formattedAddress } = await geocodeWithBusinessErrors(
         mapProvider,
@@ -241,6 +263,65 @@ export class ParticipantService {
     await this.participantRepo.delete(participantId);
 
     logger.info({ eventId, participantId }, "Participant deleted");
+  }
+
+  /**
+   * Claims a row the organizer added. Open to anyone with the event link, by design.
+   * @param eventId - Event ID
+   * @param participantId - Participant ID
+   * @returns Claimed participant and its new token
+   * @throws EventNotFoundError if event doesn't exist
+   * @throws EventAlreadyPublishedError if event is published
+   * @throws ParticipantNotFoundError if participant isn't in this event
+   * @throws ParticipantNotClaimableError if the row has a token holder or is the organizer's
+   */
+  async claimParticipant(
+    eventId: string,
+    participantId: string
+  ): Promise<Required<AddParticipantResult>> {
+    await this.ensureEventModifiable(eventId);
+
+    const { token, hash } = generateParticipantToken();
+    const participant = await this.participantRepo.claim(participantId, eventId, hash);
+    if (!participant) {
+      const exists = await this.participantRepo.belongsToEvent(participantId, eventId);
+      throw exists
+        ? new ParticipantNotClaimableError()
+        : new ParticipantNotFoundError(participantId);
+    }
+
+    logger.info({ eventId, participantId }, "Participant claimed");
+
+    return { participant, participantToken: token };
+  }
+
+  /**
+   * Undoes a claim. The holder's token stops working and their votes are removed,
+   * so a claimable row never carries votes.
+   * @param eventId - Event ID
+   * @param participantId - Participant ID, already verified as the caller's own row
+   * @returns Updated participant entity
+   * @throws EventNotFoundError if event doesn't exist
+   * @throws EventAlreadyPublishedError if event is published
+   * @throws ParticipantNotFoundError if participant isn't in this event
+   * @throws ForbiddenError if participant is the organizer
+   */
+  async unclaimParticipant(eventId: string, participantId: string): Promise<Participant> {
+    await this.ensureEventModifiable(eventId);
+
+    const participant = await this.participantRepo.findById(participantId);
+    if (participant?.eventId !== eventId) {
+      throw new ParticipantNotFoundError(participantId);
+    }
+    if (participant.isOrganizer) {
+      throw new ForbiddenError("The organizer cannot give up their own row");
+    }
+
+    const unclaimed = await this.participantRepo.unclaim(participantId);
+
+    logger.info({ eventId, participantId }, "Participant unclaimed");
+
+    return unclaimed;
   }
 
   /**

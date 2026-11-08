@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import {
   PhoneHeader,
@@ -13,22 +13,28 @@ import { MapArea } from '@/features/meeting/ui/map';
 import { VersionedVenuePanel } from '@/features/meeting/ui/sidebar/versioned-venue-panel';
 import { ParticipantStats } from '@/features/meeting/ui/sidebar/participant-stats';
 import { ModalProvider } from '@/features/meeting/ui/modals';
+import { ToastHost } from '@/features/meeting/ui/toast-host';
 import { TutorialProvider } from '@/features/tutorial/ui';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
+import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
 import { useTutorialStore } from '@/features/tutorial/model/tutorial-store';
 import { eventClient } from '@/features/meeting/api';
 import { useEventStream } from '@/features/meeting/hooks/useEventStream';
 import { useUiVersionSwitch } from '@/features/meeting/hooks/useUiVersionSwitch';
+import { usePhonePlan } from '@/features/meeting/hooks/usePhonePlan';
+import { PhonePlan } from '@/features/meeting/ui/mobile/phone-plan';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { LANGUAGE_TAGS, LocaleProvider, localeFor } from '@/shared/lib/i18n';
 
 export default function MeetPage() {
   useUiVersionSwitch();
-  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const phonePlan = usePhonePlan();
+  const sheetExpanded = useUIStore((state) => state.isSheetExpanded);
+  const setSheetExpanded = useUIStore((state) => state.setSheetExpanded);
   const params = useParams();
   const eventId = params.id as string;
   const {
@@ -66,11 +72,8 @@ export default function MeetPage() {
 
   // Set participant ID for voting (organizer's participant ID takes precedence)
   useEffect(() => {
-    const participantId = organizerParticipantId || currentParticipantId;
-    if (participantId) {
-      console.log('[MeetPage] Setting myParticipantId for voting:', participantId);
-      setMyParticipantId(participantId);
-    }
+    // Null too: undoing a claim makes the viewer nobody again
+    setMyParticipantId(organizerParticipantId || currentParticipantId || null);
   }, [organizerParticipantId, currentParticipantId, setMyParticipantId]);
 
   // Restore user identity using /me endpoint after page refresh
@@ -162,6 +165,9 @@ export default function MeetPage() {
     // Only for organizers (has organizer token)
     if (!organizerToken) return;
 
+    // The phone flow leads with its own first step
+    if (phonePlan) return;
+
     if (arriving) return;
 
     // Check if first time
@@ -180,6 +186,7 @@ export default function MeetPage() {
     startTutorial,
     eventId,
     arriving,
+    phonePlan,
   ]);
 
   // Loading state
@@ -228,6 +235,7 @@ export default function MeetPage() {
         <div
           className="meeting-screen relative h-screen w-screen overflow-clip"
           data-expanded={sheetExpanded}
+          data-plan={phonePlan || undefined}
           lang={LANGUAGE_TAGS[locale]}
         >
           {/* Map - Full Screen Background */}
@@ -235,40 +243,44 @@ export default function MeetPage() {
             <MapArea />
           </div>
 
-          {/* Floating UI Components */}
-          <div className="relative z-10 h-full w-full pointer-events-none">
-            {/* Header - Floating at top */}
-            <div className="meeting-header pointer-events-auto hidden md:block">
-              <Header eventId={eventId} />
-            </div>
-
-            <PhoneHeader eventId={eventId} />
-
-            {/* Sidebar - Floating overlay (bottom on mobile, left on desktop) */}
-            <div className="meeting-sheet pointer-events-auto md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
-              <PhoneSheetHeading
-                expanded={sheetExpanded}
-                onToggle={() => setSheetExpanded(!sheetExpanded)}
-              />
-              <div id="meeting-sheet-content" className="meeting-sheet-content md:h-full">
-                <Sidebar />
+          {phonePlan ? (
+            <PhonePlan />
+          ) : (
+            <div className="relative z-10 h-full w-full pointer-events-none">
+              {/* Header - Floating at top */}
+              <div className="meeting-header pointer-events-auto hidden md:block">
+                <Header eventId={eventId} />
               </div>
-              <PhoneShareButton />
-            </div>
 
-            {/* Venue Info Slide-out - Global overlay */}
-            <div className="pointer-events-auto">
-              <VersionedVenuePanel />
-            </div>
+              <PhoneHeader eventId={eventId} />
 
-            {/* Participant Stats Slide-out */}
-            <div className="pointer-events-auto">
-              <ParticipantStats />
+              {/* Sidebar - Floating overlay (bottom on mobile, left on desktop) */}
+              <div className="meeting-sheet pointer-events-auto md:absolute md:top-[10vh] md:left-0 md:bottom-3 md:right-auto md:h-auto md:max-h-[calc(90vh-1rem)]">
+                <PhoneSheetHeading
+                  expanded={sheetExpanded}
+                  onToggle={() => setSheetExpanded(!sheetExpanded)}
+                />
+                <div id="meeting-sheet-content" className="meeting-sheet-content md:h-full">
+                  <Sidebar />
+                </div>
+                <PhoneShareButton />
+              </div>
+
+              {/* Venue Info Slide-out - Global overlay */}
+              <div className="pointer-events-auto">
+                <VersionedVenuePanel />
+              </div>
+
+              {/* Participant Stats Slide-out */}
+              <div className="pointer-events-auto">
+                <ParticipantStats />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Modals */}
           <ModalProvider />
+          {!phonePlan && <ToastHost />}
         </div>
       </TutorialProvider>
     </LocaleProvider>

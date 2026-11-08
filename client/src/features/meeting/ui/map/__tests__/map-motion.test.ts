@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMarkerDrops, revealStrokes, routePillImage, type RouteStroke } from '../map-motion';
+import {
+  createMarkerDrops,
+  drawStroke,
+  revealStrokes,
+  routeStrokeStyle,
+  type RouteStroke,
+} from '../map-motion';
 
 const PATH = [
   { lat: 0, lng: 0 },
@@ -36,37 +42,31 @@ describe('revealStrokes', () => {
 
   it('starts every stroke at its first point with a head dot', () => {
     const polyline = fakePolyline();
-    revealStrokes([{ polyline, path: PATH, color: '#f00' }], () => {});
+    revealStrokes([{ polyline, path: PATH, color: '#f00' }]);
     expect(polyline.setPath).toHaveBeenCalledWith([{ lat: 0, lng: 0 }]);
     expect(polyline.setOptions.mock.lastCall?.[0].icons[0].offset).toBe('100%');
   });
 
-  it('ends on the whole path with no dot, and arrives once', () => {
+  it('ends on the whole path with no dot, and stops', () => {
     const polyline = fakePolyline();
     const stroke: RouteStroke = { polyline, path: PATH, color: '#f00' };
-    const onArrive = vi.fn();
-    revealStrokes([stroke], onArrive);
+    revealStrokes([stroke]);
 
     runFrame(0);
     runFrame(5000);
 
     expect(lastPath(polyline)).toEqual(PATH);
     expect(polyline.setOptions).toHaveBeenLastCalledWith({ icons: [] });
-    expect(onArrive).toHaveBeenCalledTimes(1);
-    expect(onArrive).toHaveBeenCalledWith(stroke);
     expect(frames).toEqual([]);
   });
 
   it('staggers: a later stroke is still at the start when the first has moved', () => {
     const first = fakePolyline();
     const second = fakePolyline();
-    revealStrokes(
-      [
-        { polyline: first, path: PATH, color: '#f00' },
-        { polyline: second, path: PATH, color: '#0f0' },
-      ],
-      () => {}
-    );
+    revealStrokes([
+      { polyline: first, path: PATH, color: '#f00' },
+      { polyline: second, path: PATH, color: '#0f0' },
+    ]);
 
     runFrame(0);
     runFrame(200);
@@ -77,14 +77,12 @@ describe('revealStrokes', () => {
 
   it('stops moving after cancel', () => {
     const polyline = fakePolyline();
-    const onArrive = vi.fn();
-    const cancel = revealStrokes([{ polyline, path: PATH, color: '#f00' }], onArrive);
+    const cancel = revealStrokes([{ polyline, path: PATH, color: '#f00' }]);
 
     runFrame(0);
     cancel();
     runFrame(5000);
 
-    expect(onArrive).not.toHaveBeenCalled();
     expect(lastPath(polyline)).not.toEqual(PATH);
   });
 });
@@ -168,18 +166,47 @@ describe('createMarkerDrops', () => {
   });
 });
 
-describe('routePillImage', () => {
-  it('draws the label in a pill bordered in the participant colour', () => {
-    const { url, height } = routePillImage('11 min', '#847ce1');
-    const svg = decodeURIComponent(url.replace('data:image/svg+xml,', ''));
-    expect(height).toBe(24);
-    expect(svg).toContain('stroke="#847ce1"');
-    expect(svg).toContain('>11 min</text>');
+describe('routeStrokeStyle', () => {
+  beforeEach(() => {
+    vi.stubGlobal('google', { maps: { SymbolPath: { CIRCLE: 0 } } });
+    vi.stubGlobal('requestAnimationFrame', () => 0);
   });
 
-  it('leaves more room for Chinese than for the same count of Latin characters', () => {
-    expect(routePillImage('十一分钟', '#000').width).toBeGreaterThan(
-      routePillImage('abcd', '#000').width
-    );
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps a solid line for classic', () => {
+    expect(routeStrokeStyle('solid', true)).toEqual({
+      strokeOpacity: 0.9,
+      strokeWeight: 5,
+      zIndex: 20,
+      icons: [],
+    });
+  });
+
+  it.each([
+    ['driving', '27px'],
+    ['transit', '19px'],
+    ['bicycling', '10px'],
+    ['walking', '8px'],
+  ] as const)('draws %s with its own repeat and no stroke of its own', (mode, repeat) => {
+    const style = routeStrokeStyle(mode, true);
+    expect(style.strokeOpacity).toBe(0);
+    expect(style.icons[0].repeat).toBe(repeat);
+  });
+
+  it('fades a dashed line that is out of focus', () => {
+    expect(routeStrokeStyle('transit', false).icons[0].icon.strokeOpacity).toBe(0.3);
+    expect(routeStrokeStyle('walking', false).icons[0].icon.fillOpacity).toBe(0.3);
+  });
+
+  it('keeps the dashes showing while a line reveals, then after it lands', () => {
+    const stroke = { polyline: { setPath: vi.fn(), setOptions: vi.fn() }, path: [], color: '#000' };
+    const { icons } = routeStrokeStyle('transit', true);
+    revealStrokes([{ ...stroke, icons }]);
+    expect(stroke.polyline.setOptions.mock.lastCall?.[0].icons[0]).toBe(icons[0]);
+    drawStroke({ ...stroke, icons });
+    expect(stroke.polyline.setOptions).toHaveBeenLastCalledWith({ icons });
   });
 });

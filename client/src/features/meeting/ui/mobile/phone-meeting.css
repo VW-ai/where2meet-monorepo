@@ -261,6 +261,10 @@
     outline: 3px solid #b73540;
     outline-offset: 2px;
   }
+  .meeting-sheet [data-own-focus-ring] input:focus-visible,
+  .meeting-sheet [data-own-focus-ring] button[type='submit']:focus-visible {
+    outline: none;
+  }
   @media (max-height: 550px) {
     .meeting-screen {
       --sheet-height: 45dvh;

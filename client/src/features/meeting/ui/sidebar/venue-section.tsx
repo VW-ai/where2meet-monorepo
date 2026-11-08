@@ -71,7 +71,8 @@ const VENUE_LIST: Record<UiVersion, { Card: ComponentType<VenueCardProps>; class
 };
 
 export function VenueSection() {
-  const { Card, className: listClassName } = VENUE_LIST[useUiVersion()];
+  const version = useUiVersion();
+  const { Card, className: listClassName } = VENUE_LIST[version];
   const { currentEvent, searchedVenues, setSearchedVenues, venueById, setSelectedVenue } =
     useMeetingStore();
   const { getAllVotedVenueIds, voteStatsByVenueId } = useVotingStore();
@@ -333,7 +334,7 @@ export function VenueSection() {
         </div>
 
         {/* Travel Type Filter */}
-        {!isPublished && <TravelTypeFilter />}
+        {!isPublished && version === 'classic' && <TravelTypeFilter />}
 
         {/* Search + Liked Filter */}
         <div className="flex items-center gap-2">

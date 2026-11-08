@@ -31,6 +31,11 @@ export interface RouteResult {
   polyline: string | null;
 }
 
+/** A participant's route with the travel mode it was calculated for */
+export interface ModeRouteResult extends RouteResult {
+  travelMode: TravelMode;
+}
+
 /** Batch directions result for all participants to a venue */
 export interface DirectionsResult {
   venueId: string;

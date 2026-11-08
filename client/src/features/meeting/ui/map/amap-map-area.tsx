@@ -5,15 +5,24 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
-import { useMapStore } from '@/features/meeting/model/map-store';
+import { useMapStore, type RouteInfo } from '@/features/meeting/model/map-store';
 import { hasAmapKey, loadAmap } from '@/shared/lib/amap/loader';
 import { gcj02ToWgs84, wgs84ToGcj02 } from '@/shared/lib/geo/coords';
 import { decodePolyline } from '@/shared/lib/geo/polyline';
+import { toRouteInfo } from '@/features/meeting/lib/person-routes';
+import { useUiVersion } from '@/features/meeting/model/ui-version-store';
 import { calculateMEC, calculateSearchRadius } from '@/shared/lib/mec';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { personColor } from '@/features/meeting/lib/participant-colors';
 import { directionsClient } from '@/features/meeting/api';
 import type { Location } from '@/shared/types/map';
+import { fitSearchArea, offsetPoint } from '@/features/meeting/lib/phone-plan';
+import {
+  phonePlan,
+  usePhonePlanStore,
+  usePlanMapLayers,
+} from '@/features/meeting/model/phone-plan-store';
 import { MapBlurOverlay } from './map-blur-overlay';
+import { personPinLabel, personPinLook } from './map-pins';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { useLocale } from '@/shared/lib/i18n';
 import {
@@ -27,6 +36,7 @@ import {
   UI_TO_TRAVEL_MODE,
   centerBesidePanels,
   clampSearchRadius,
+  fitPadding,
   leftPanelsWidth,
   likedVenueMarkerStyle,
   likedVenueMarkerTitle,
@@ -73,6 +83,18 @@ function shapeContent(style: ReturnType<typeof likedVenueMarkerStyle>): string {
   return `<svg width="${size}" height="${size}" viewBox="${-1 - pad} ${-1 - pad} ${extent} ${extent}" style="display:block"><path d="${style.path}" fill="${style.fillColor}" stroke="${style.strokeColor}" stroke-width="${style.strokeWeight}" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
 }
 
+function roundPinContent(label: string, color: string): string {
+  const safe = label.replace(/[&<>"]/g, (char) => `&#${char.charCodeAt(0)};`);
+  return `<div style="width:42px;height:42px;display:grid;place-items:center;box-sizing:border-box;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 3px 10px rgb(0 0 0 / .28);color:#fff;font:700 13px/1 system-ui">${safe}</div>`;
+}
+
+const inPhonePlan = () => usePhonePlanStore.getState().active;
+
+const ROUTE_DASH: Pick<AMap.PolylineOptions, 'strokeStyle' | 'strokeDasharray'> = {
+  strokeStyle: 'dashed',
+  strokeDasharray: [12, 8],
+};
+
 export function AmapMapArea() {
   const locale = useLocale();
   const { currentEvent, selectedVenue, searchedVenues, setSelectedVenue, venueById } =
@@ -107,6 +129,11 @@ export function AmapMapArea() {
   const hasJoined = isOrganizerMode || isParticipantMode;
 
   const travelMode = UI_TO_TRAVEL_MODE[uiTravelMode];
+  const version = useUiVersion();
+  const planLayers = usePlanMapLayers();
+  const inPlan = planLayers !== null;
+  const venueLayer = planLayers?.venues ?? 'all';
+  const myId = useAuthStore((state) => state.organizerParticipantId || state.currentParticipantId);
 
   const [satellite, setSatellite] = useState(true);
   const [map, setMap] = useState<AMap.Map | null>(null);
@@ -141,7 +168,7 @@ export function AmapMapArea() {
 
         instance = new amap.Map(mapRef.current, {
           center: toAmap(defaultCenter),
-          zoom: 12,
+          zoom: inPhonePlan() ? 14 : 12,
           // No place labels, like the Google map's style
           features: ['bg', 'road', 'building'],
         });
@@ -152,7 +179,7 @@ export function AmapMapArea() {
         // Satellite with road names on top, like Google's hybrid view
         satelliteLayersRef.current = [new amap.TileLayer.Satellite(), new amap.TileLayer.RoadNet()];
         if (window.matchMedia('(max-width: 767px)').matches) {
-          instance.add(satelliteLayersRef.current);
+          if (!inPhonePlan()) instance.add(satelliteLayersRef.current);
         } else {
           instance.addControl(new amap.ToolBar({ position: 'RB' }));
           instance.addControl(new amap.Scale({ position: 'LB' }));
@@ -230,10 +257,6 @@ export function AmapMapArea() {
     map.add(circle);
     searchCircleRef.current = circle;
 
-    const editor = new AMap.CircleEditor(map, circle);
-    editor.open();
-    circleEditorRef.current = editor;
-
     // Set initial search radius in store
     setSearchRadius(DEFAULT_SEARCH_RADIUS);
 
@@ -242,6 +265,12 @@ export function AmapMapArea() {
       center: defaultCenter,
       radius: DEFAULT_SEARCH_RADIUS,
     });
+
+    if (inPhonePlan()) return;
+
+    const editor = new AMap.CircleEditor(map, circle);
+    editor.open();
+    circleEditorRef.current = editor;
 
     // Radius handle dragged
     editor.on('adjust', () => {
@@ -314,10 +343,11 @@ export function AmapMapArea() {
     const mec = calculateMEC(locations);
     setMecCircle(mec);
 
-    const newCenter = mec.center;
+    const planned = inPhonePlan() ? fitSearchArea(locations) : null;
+    const newCenter = planned?.center ?? mec.center;
 
     // Calculate search radius (1.5x MEC radius, min 1km, max 10km)
-    const newSearchRadius = calculateSearchRadius(mec, 1.5, 1000, 10000);
+    const newSearchRadius = planned?.radius ?? calculateSearchRadius(mec, 1.5, 1000, 10000);
     setSearchRadius(newSearchRadius);
 
     // Clear existing MEC circle
@@ -327,7 +357,7 @@ export function AmapMapArea() {
     }
 
     // Only show MEC circle if we have 2+ participants
-    if (validParticipants.length >= 2) {
+    if (validParticipants.length >= 2 && !planned) {
       // MEC circle (yellow, very low visibility)
       mecCircleRef.current = new AMap.Circle({
         center: toAmap(newCenter),
@@ -357,6 +387,8 @@ export function AmapMapArea() {
         radius: newSearchRadius,
       });
     }
+
+    if (planned) return;
 
     // Smoothly pan to MEC center with offset for sidebar
     const targetZoom = validParticipants.length === 1 ? 14 : 13;
@@ -388,10 +420,23 @@ export function AmapMapArea() {
       }
 
       const style = participantMarkerStyle(selectedParticipantId === participant.id);
+      const roundLook = inPlan
+        ? personPinLook(participant, {
+            isSelf: participant.id === myId,
+            isSelected: selectedParticipantId === participant.id,
+            locale,
+            round: true,
+          })
+        : null;
 
       const marker = new AMap.Marker({
         position: toAmap({ lat: participant.location.lat, lng: participant.location.lng }),
-        content: dotContent(style.scale, getHexColor(participant.color), style.strokeWeight),
+        content: roundLook
+          ? roundPinContent(
+              personPinLabel(participant.name, participant.id === myId, locale),
+              roundLook.color
+            )
+          : dotContent(style.scale, personColor(participant.color), style.strokeWeight),
         anchor: 'center',
         title: participant.name,
         zIndex: style.zIndex,
@@ -399,13 +444,25 @@ export function AmapMapArea() {
 
       // Click handler to toggle participant selection (panning handled by separate useEffect)
       marker.on('click', () => {
+        if (inPhonePlan()) {
+          phonePlan.showPeople();
+          return;
+        }
         setSelectedParticipantId(selectedParticipantId === participant.id ? null : participant.id);
       });
 
       participantMarkersRef.current.push(marker);
     });
     map.add(participantMarkersRef.current);
-  }, [map, currentEvent?.participants, selectedParticipantId, setSelectedParticipantId]);
+  }, [
+    map,
+    currentEvent?.participants,
+    selectedParticipantId,
+    setSelectedParticipantId,
+    inPlan,
+    myId,
+    locale,
+  ]);
 
   // Update venue markers (searched venues that are NOT liked)
   useEffect(() => {
@@ -416,7 +473,13 @@ export function AmapMapArea() {
     venueMarkersRef.current = [];
 
     // Add markers for searched venues that are NOT liked
-    searchedVenues.forEach((venue) => {
+    const pinned =
+      venueLayer === 'all'
+        ? searchedVenues
+        : venueLayer === 'selected'
+          ? searchedVenues.filter((venue) => venue.id === selectedVenue?.id)
+          : [];
+    pinned.forEach((venue) => {
       // Skip if this venue is liked (it will be rendered as a star)
       if (savedVenues.includes(venue.id)) return;
 
@@ -435,6 +498,10 @@ export function AmapMapArea() {
 
       // Click handler to select venue and open info
       marker.on('click', () => {
+        if (inPhonePlan()) {
+          phonePlan.tapVenuePin(venue);
+          return;
+        }
         setSelectedVenue(venue);
         openVenueInfo(venue.id);
       });
@@ -450,6 +517,7 @@ export function AmapMapArea() {
     savedVenues,
     setSelectedVenue,
     openVenueInfo,
+    venueLayer,
   ]);
 
   // Update liked venue markers (star markers that persist across searches)
@@ -458,7 +526,9 @@ export function AmapMapArea() {
 
     // Remove markers for venues that are no longer liked
     likedVenueMarkersRef.current.forEach((marker, venueId) => {
-      if (!savedVenues.includes(venueId)) {
+      const visible =
+        venueLayer === 'all' || (venueLayer === 'selected' && venueId === selectedVenue?.id);
+      if (!savedVenues.includes(venueId) || !visible) {
         map.remove(marker);
         likedVenueMarkersRef.current.delete(venueId);
       }
@@ -466,6 +536,10 @@ export function AmapMapArea() {
 
     // Get all liked venues - use venueById for details, fallback to searchedVenues
     const allLikedVenues = savedVenues
+      .filter(
+        (venueId) =>
+          venueLayer === 'all' || (venueLayer === 'selected' && venueId === selectedVenue?.id)
+      )
       .map((venueId) => venueById[venueId] ?? searchedVenues.find((v) => v.id === venueId))
       .filter((v): v is (typeof searchedVenues)[0] => v !== undefined);
 
@@ -497,6 +571,10 @@ export function AmapMapArea() {
         });
 
         marker.on('click', () => {
+          if (inPhonePlan()) {
+            phonePlan.tapVenuePin(venue);
+            return;
+          }
           setSelectedVenue(venue);
           openVenueInfo(venue.id);
         });
@@ -517,6 +595,7 @@ export function AmapMapArea() {
     setSelectedVenue,
     openVenueInfo,
     locale,
+    venueLayer,
   ]);
 
   // Pan to selected participant when selection changes (from sidebar or map marker click)
@@ -537,6 +616,78 @@ export function AmapMapArea() {
       )
     );
   }, [selectedParticipantId, map, currentEvent?.participants, isVenueInfoOpen]);
+
+  const routesShown = planLayers?.routes ?? true;
+  const routesShownRef = useRef(routesShown);
+  useEffect(() => {
+    routesShownRef.current = routesShown;
+    if (!map) return;
+    const lines = routePolylinesRef.current.map(({ polyline }) => polyline);
+    if (routesShown) map.add(lines);
+    else map.remove(lines);
+  }, [map, routesShown]);
+
+  const circleShown = planLayers?.circle ?? true;
+  useEffect(() => {
+    if (circleShown) searchCircleRef.current?.show();
+    else searchCircleRef.current?.hide();
+  }, [map, circleShown]);
+
+  useEffect(() => {
+    if (!map || !inPlan) return;
+    const setSatelliteLayers = (on: boolean) => {
+      map.remove(satelliteLayersRef.current);
+      if (on) map.add(satelliteLayersRef.current);
+    };
+    setSatelliteLayers(usePhonePlanStore.getState().satellite);
+    const fitTo = (points: readonly Location[]) => {
+      if (points.length === 0) return;
+      const lats = points.map((point) => point.lat);
+      const lngs = points.map((point) => point.lng);
+      const { top, right, bottom, left } = fitPadding(false);
+      map.setBounds(
+        new AMap.Bounds(
+          toAmap({ lat: Math.min(...lats), lng: Math.min(...lngs) }),
+          toAmap({ lat: Math.max(...lats), lng: Math.max(...lngs) })
+        ),
+        false,
+        [top, right, bottom, left]
+      );
+    };
+    const circlePoints = () => {
+      const circle = searchCircleRef.current;
+      if (!circle) return [];
+      const center = fromAmap(circle.getCenter());
+      const dLat = circle.getRadius() / 111320;
+      const dLng = dLat / Math.cos((center.lat * Math.PI) / 180);
+      return [
+        { lat: center.lat - dLat, lng: center.lng - dLng },
+        { lat: center.lat + dLat, lng: center.lng + dLng },
+      ];
+    };
+    usePhonePlanStore.setState({
+      api: {
+        center: () => fromAmap(map.getCenter()),
+        zoom: () => map.getZoom() ?? 14,
+        panTo: (point) => map.panTo(toAmap(point)),
+        frame: (points) => {
+          const inPlaces = usePhonePlanStore.getState().section === 'places';
+          fitTo(inPlaces ? [...points, ...circlePoints()] : points);
+        },
+        setSatellite: setSatelliteLayers,
+        setSearchArea: (center, radius) => {
+          searchCircleRef.current?.setCenter(toAmap(center));
+          searchCircleRef.current?.setRadius(radius);
+          fitTo(circlePoints());
+        },
+        onIdle: (listener) => {
+          map.on('moveend', listener);
+          return () => map.off('moveend', listener);
+        },
+      },
+    });
+    return () => usePhonePlanStore.setState({ api: null });
+  }, [map, inPlan]);
 
   const removeRoutes = useCallback(() => {
     if (map) map.remove(routePolylinesRef.current.map(({ polyline }) => polyline));
@@ -572,19 +723,15 @@ export function AmapMapArea() {
       const response = await directionsClient.getDirections(
         currentEvent.id,
         selectedVenue.id,
-        travelMode,
-        authToken
+        authToken,
+        // Under v2 each person travels by their own mode. Every event update lands here already,
+        // so a changed mode refetches without any per-person bookkeeping.
+        version === 'v2' ? {} : { travelMode }
       );
 
       removeRoutes();
 
-      const routeInfos: Array<{
-        participantId: string;
-        distance: string;
-        duration: string;
-        durationSeconds: number;
-        polyline: string;
-      }> = [];
+      const routeInfos: RouteInfo[] = [];
 
       response.routes.forEach((route) => {
         const participant = validParticipants.find((p) => p.id === route.participantId);
@@ -597,22 +744,17 @@ export function AmapMapArea() {
         // The backend encodes WGS-84 points in Google's polyline format for both providers
         const polyline = new AMap.Polyline({
           path: decodePolyline(route.polyline).map(toAmap),
-          strokeColor: getHexColor(participant.color),
+          strokeColor: personColor(participant.color),
           strokeOpacity: isSelected ? 0.9 : 0.3,
           strokeWeight: isSelected ? 5 : 3,
           zIndex: isSelected ? 20 : 5,
           bubble: true,
+          ...(inPhonePlan() ? ROUTE_DASH : {}),
         });
-        map.add(polyline);
+        if (routesShownRef.current) map.add(polyline);
         routePolylinesRef.current.push({ participantId: participant.id, polyline });
 
-        routeInfos.push({
-          participantId: route.participantId,
-          distance: route.distance.text,
-          duration: route.duration.text,
-          durationSeconds: route.duration.value,
-          polyline: route.polyline,
-        });
+        routeInfos.push(toRouteInfo(route));
       });
 
       setRoutes(routeInfos);
@@ -627,6 +769,7 @@ export function AmapMapArea() {
     selectedVenue,
     currentEvent,
     travelMode,
+    version,
     selectedParticipantId,
     organizerToken,
     participantToken,
@@ -667,6 +810,12 @@ export function AmapMapArea() {
 
     const currentZoom = map.getZoom() || 14;
 
+    if (inPhonePlan()) {
+      const { top, bottom } = fitPadding(false);
+      map.panTo(toAmap(offsetPoint(selectedVenue.location, currentZoom, 0, (bottom - top) / 2)));
+      return;
+    }
+
     // Show the venue in the middle of the map area beside the sidebar/panels
     map.panTo(
       toAmap(
@@ -694,27 +843,29 @@ export function AmapMapArea() {
     <main className="w-full h-full relative">
       {isLoading && <MapLoading />}
 
-      <PhoneMapControls
-        satellite={satellite}
-        onToggleSatellite={() => {
-          if (satellite) {
-            map?.remove(satelliteLayersRef.current);
-          } else {
-            map?.add(satelliteLayersRef.current);
-          }
-          setSatellite(!satellite);
-        }}
-        onRecenter={() => {
-          const circle = useMapStore.getState().searchCircle;
-          if (circle) {
-            map?.panTo(toAmap(circle.center));
-            map?.setZoom(13);
-          }
-        }}
-      />
+      {!inPlan && (
+        <PhoneMapControls
+          satellite={satellite}
+          onToggleSatellite={() => {
+            if (satellite) {
+              map?.remove(satelliteLayersRef.current);
+            } else {
+              map?.add(satelliteLayersRef.current);
+            }
+            setSatellite(!satellite);
+          }}
+          onRecenter={() => {
+            const circle = useMapStore.getState().searchCircle;
+            if (circle) {
+              map?.panTo(toAmap(circle.center));
+              map?.setZoom(13);
+            }
+          }}
+        />
+      )}
 
       {/* Route calculating overlay */}
-      {isCalculatingRoutes && <RoutesCalculating />}
+      {isCalculatingRoutes && !inPlan && <RoutesCalculating />}
 
       {/* Map container - MUST be relative for absolute overlay positioning */}
       <div className="relative w-full h-full">
@@ -724,7 +875,7 @@ export function AmapMapArea() {
         {circleOverlayPosition && <SearchCircleTutorialTarget position={circleOverlayPosition} />}
 
         {/* Blur overlay for non-participants - only show after auth initialization */}
-        {isAuthInitialized && !hasJoined && (
+        {isAuthInitialized && !hasJoined && !inPlan && (
           <MapBlurOverlay isPublished={!!currentEvent?.publishedAt} />
         )}
       </div>

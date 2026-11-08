@@ -41,15 +41,20 @@ export function topLikedVenueId(stats: Record<string, { voteCount: number }>): s
   return top;
 }
 
-/** Who liked a venue, viewer first, and who hasn't. Votes from people who left don't count. */
+/**
+ * Who liked a venue, viewer first, and who hasn't. Votes from people who left don't count.
+ * Nobody can like on behalf of an unclaimed row, so those people aren't waited on either.
+ */
 export function venueLikes(
   voterIds: readonly string[],
   participants: readonly Participant[],
   myId: string | null
 ) {
-  const voted = participants.filter((p) => voterIds.includes(p.id));
+  const eligible = participants.filter((p) => !p.claimable);
+  const voted = eligible.filter((p) => voterIds.includes(p.id));
   return {
     voters: [...voted].sort((a, b) => Number(b.id === myId) - Number(a.id === myId)),
-    others: participants.filter((p) => !voterIds.includes(p.id)),
+    others: eligible.filter((p) => !voterIds.includes(p.id)),
+    total: eligible.length,
   };
 }

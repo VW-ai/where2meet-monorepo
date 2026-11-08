@@ -21,6 +21,9 @@ import { missingDetailsMessage } from '@/features/landing/lib/meeting-draft';
 import { HOME_OCCASIONS } from '@/features/landing/lib/occasions';
 import { isMainlandChinaTimeZone } from '@/shared/lib/map-provider';
 import type { MapProvider } from '@/shared/types/map';
+import { useUiVersionSwitch } from '@/features/meeting/hooks/useUiVersionSwitch';
+import { useUiVersion } from '@/features/meeting/model/ui-version-store';
+import { PhoneCreate } from './phone-create';
 import { LANGUAGE_TAGS, LocaleProvider, defineMessages, localeFor } from '@/shared/lib/i18n';
 
 const messages = defineMessages({
@@ -35,6 +38,8 @@ const messages = defineMessages({
 });
 
 export function LandingView({ children }: { children: ReactNode }) {
+  useUiVersionSwitch();
+  const version = useUiVersion();
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const [title, setTitle] = useState('');
@@ -228,8 +233,11 @@ export function LandingView({ children }: { children: ReactNode }) {
       className="flex min-h-screen flex-col text-[#21252b]"
       data-portal-leaving={leaving || undefined}
     >
+      {version === 'v2' && <PhoneCreate />}
       <LandingBackdrop />
-      <header className="mx-auto flex w-full max-w-xl items-center justify-between px-4 pt-4 sm:pt-5 lg:max-w-5xl lg:px-8 lg:pt-6">
+      <header
+        className={`${version === 'v2' ? 'pp-desktop-landing-first ' : ''}mx-auto flex w-full max-w-xl items-center justify-between px-4 pt-4 sm:pt-5 lg:max-w-5xl lg:px-8 lg:pt-6`}
+      >
         <div
           className="rounded-full bg-white p-1.5 shadow-[0_3px_16px_rgba(23,37,45,0.15)]"
           data-leave="60"
@@ -254,7 +262,9 @@ export function LandingView({ children }: { children: ReactNode }) {
 
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-8 lg:max-w-5xl lg:px-8 lg:py-10">
         {/* On wide screens the form fills the first view, so the sections below it start under the fold. */}
-        <div className="lg:grid lg:min-h-[calc(100svh-10rem)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:content-center lg:items-stretch lg:gap-10">
+        <div
+          className={`${version === 'v2' ? 'pp-desktop-landing-first ' : ''}lg:grid lg:min-h-[calc(100svh-10rem)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:content-center lg:items-stretch lg:gap-10`}
+        >
           <div className="flex flex-col">
             <h1
               data-leave="140"

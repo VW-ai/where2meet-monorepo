@@ -16,6 +16,7 @@ export interface DirectionsRoute {
   distance: Distance;
   duration: Duration;
   polyline: string;
+  travelMode: TravelMode;
 }
 
 /**
@@ -23,29 +24,62 @@ export interface DirectionsRoute {
  */
 export interface DirectionsResponse {
   venueId: string;
-  travelMode: string;
+  travelMode: TravelMode | null;
   routes: DirectionsRoute[];
+}
+
+type RawRoute = Omit<DirectionsRoute, 'distance' | 'duration' | 'polyline' | 'travelMode'> & {
+  distance: Distance | null;
+  duration: Duration | null;
+  polyline: string | null;
+  travelMode?: TravelMode;
+};
+
+type RawResponse = Omit<DirectionsResponse, 'routes' | 'travelMode'> & {
+  travelMode?: TravelMode | null;
+  routes: RawRoute[];
+};
+
+/** Someone with no starting point comes back as nulls: past here, a route is always a real one. */
+export function parseDirections(raw: RawResponse): DirectionsResponse {
+  const routes = raw.routes.flatMap(({ distance, duration, polyline, travelMode, ...route }) =>
+    distance && duration && polyline
+      ? [
+          {
+            ...route,
+            distance,
+            duration,
+            polyline,
+            travelMode: travelMode ?? raw.travelMode ?? 'driving',
+          },
+        ]
+      : []
+  );
+  return { ...raw, travelMode: raw.travelMode ?? null, routes };
 }
 
 export const directionsApi = {
   /**
-   * Get directions from all participants to a venue
+   * Get directions to a venue
    *
    * @param eventId - The event ID
    * @param venueId - The venue (place) ID
-   * @param travelMode - Travel mode (driving, walking, transit, bicycling)
    * @param token - Authorization token (organizer or participant)
+   * @param options.travelMode - Overrides everyone's mode. Omit to use each person's own
+   * @param options.participantId - Only this person. Omit for everyone
    */
   getDirections: (
     eventId: string,
     venueId: string,
-    travelMode: TravelMode,
-    token: string
-  ): Promise<DirectionsResponse> =>
-    backendCall<DirectionsResponse>(
-      `/api/events/${eventId}/venues/${venueId}/directions?travelMode=${travelMode}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    ),
+    token: string,
+    options: { travelMode?: TravelMode; participantId?: string } = {}
+  ): Promise<DirectionsResponse> => {
+    const params = new URLSearchParams();
+    if (options.travelMode) params.set('travelMode', options.travelMode);
+    if (options.participantId) params.set('participantId', options.participantId);
+    const query = params.size > 0 ? `?${params}` : '';
+    return backendCall<RawResponse>(`/api/events/${eventId}/venues/${venueId}/directions${query}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(parseDirections);
+  },
 };

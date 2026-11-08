@@ -5,19 +5,34 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useVotingStore } from '@/features/voting/model/voting-store';
-import { useMapStore } from '@/features/meeting/model/map-store';
+import { useMapStore, type RouteInfo } from '@/features/meeting/model/map-store';
+import { useDraftPersonStore } from '@/features/meeting/model/draft-person-store';
+import { DRAFT_PERSON_ID } from '@/features/meeting/lib/add-person-form';
 import { loadGoogleMaps } from '@/shared/lib/google-maps/loader';
 import { calculateMEC, calculateSearchRadius } from '@/shared/lib/mec';
-import { getHexColor } from '@/features/meeting/lib/participant-colors';
+import { getHexColor, personColor } from '@/features/meeting/lib/participant-colors';
 import { directionsClient } from '@/features/meeting/api';
 import { MapBlurOverlay } from './map-blur-overlay';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import { useLocale } from '@/shared/lib/i18n';
 import { participantPositionsKey } from '@/features/meeting/lib/participant-positions';
-import { pathUpTo } from '@/features/meeting/lib/path-up-to';
-import { formatTripTime } from '@/features/meeting/lib/route-summary';
+import {
+  hasStartingPoint,
+  mergeRoutes,
+  personRouteKeys,
+  planRouteFetch,
+  toRouteInfo,
+} from '@/features/meeting/lib/person-routes';
+import { useRouteCacheStore } from '@/features/meeting/model/route-cache-store';
+import type { TravelMode } from '@/shared/types/map';
 import { useUiVersion, useUiVersionStore } from '@/features/meeting/model/ui-version-store';
 import {
+  usePhonePlanStore,
+  usePlanMapLayers,
+} from '@/features/meeting/model/phone-plan-store';
+import { fitSearchArea, offsetPoint } from '@/features/meeting/lib/phone-plan';
+import {
+  CLASSIC_SEARCH_CIRCLE_STYLE,
   DEFAULT_SEARCH_RADIUS,
   MapLoadError,
   MapLoading,
@@ -28,6 +43,8 @@ import {
   UI_TO_TRAVEL_MODE,
   centerBesidePanels,
   clampSearchRadius,
+  fitPadding,
+  isInUncoveredMap,
   leftPanelsWidth,
   likedVenueMarkerStyle,
   likedVenueMarkerTitle,
@@ -36,13 +53,16 @@ import {
 } from './map-common';
 import {
   createMarkerDrops,
-  drawStroke,
   prefersReducedMotion,
   pulseAt,
   revealStrokes,
-  routePillImage,
+  routeStrokeStyle,
+  type RouteLine,
   type RouteStroke,
 } from './map-motion';
+import { usePersonPins, useVenuePins } from './use-map-pins';
+import { useRouteChips } from './use-route-chips';
+import { useSearchArea } from './use-search-area';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
@@ -72,12 +92,27 @@ interface DrawnRoute extends RouteStroke {
   participantId: string;
   polyline: google.maps.Polyline;
   durationSeconds: number;
+  lineMode: RouteLine;
 }
 
 const isV2 = () => useUiVersionStore.getState().version === 'v2';
+const inPhonePlan = () => usePhonePlanStore.getState().active;
 const animatesMarkers = () => isV2() && !prefersReducedMotion();
+
+/** Fits everyone with a starting point and the selected venue. False when that's a single point. */
+function frameGroup(map: google.maps.Map, extra?: { lat: number; lng: number }): boolean {
+  const { currentEvent: event, selectedVenue: venue } = useMeetingStore.getState();
+  const points = (event?.participants ?? []).filter(hasStartingPoint).map((p) => p.location!);
+  if (venue) points.push(venue.location);
+  if (extra) points.push(extra);
+  if (points.length < 2) return false;
+  const bounds = new google.maps.LatLngBounds();
+  points.forEach((point) => bounds.extend(point));
+  map.fitBounds(bounds, fitPadding(useUIStore.getState().isVenueInfoOpen));
+  return true;
+}
 const routeFocused = (participantId: string, selectedId: string | null) =>
-  selectedId === participantId || selectedId === null;
+  participantId === DRAFT_PERSON_ID || selectedId === participantId || selectedId === null;
 
 export function GoogleMapArea() {
   const locale = useLocale();
@@ -107,6 +142,12 @@ export function GoogleMapArea() {
     travelMode: uiTravelMode,
   } = useMapStore();
 
+  const draft = useDraftPersonStore((state) => state.draft);
+  const draftLat = draft?.location.lat;
+  const draftLng = draft?.location.lng;
+  const draftColor = draft?.color;
+  const draftRoute = draft?.route ?? null;
+
   // Get ALL voted venue IDs from voting-store (from any participant)
   const savedVenues = getAllVotedVenueIds();
 
@@ -116,6 +157,8 @@ export function GoogleMapArea() {
   // Convert UI travel mode to the directions API travel mode
   const travelMode = UI_TO_TRAVEL_MODE[uiTravelMode];
 
+  const planLayers = usePlanMapLayers();
+  const inPlan = planLayers !== null;
   const [satellite, setSatellite] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,17 +177,12 @@ export function GoogleMapArea() {
   const mecCircleRef = useRef<google.maps.Circle | null>(null);
   const searchCircleRef = useRef<google.maps.Circle | null>(null);
   const routePolylinesRef = useRef<DrawnRoute[]>([]);
-  const routePillsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const cancelRevealRef = useRef<(() => void) | null>(null);
-  // Which routes have played their reveal for the current venue and travel mode
-  const revealedRoutesRef = useRef<{ key: string | null; participantIds: Set<string> }>({
-    key: null,
-    participantIds: new Set(),
-  });
   const routeRequestRef = useRef(0);
   const positionsKey = participantPositionsKey(currentEvent?.participants ?? []);
   const pannedPositionsRef = useRef<string | null>(null);
-  const fetchedRoutesRef = useRef<string | null>(null);
+  // Under v2, the trip already asked for per person, whether or not the answer is back
+  const fetchedRoutesRef = useRef<Map<string, string>>(new Map());
   const [markerDrops] = useState(() => ({
     participant: createMarkerDrops(),
     venue: createMarkerDrops(),
@@ -172,13 +210,15 @@ export function GoogleMapArea() {
 
         const mapInstance = new maps.Map(mapRef.current, {
           center,
-          zoom: 12,
+          zoom: inPhonePlan() ? 14 : 12,
           ...mapOptions,
           ...(window.matchMedia('(max-width: 767px)').matches
             ? {
-                mapTypeId: 'hybrid',
+                mapTypeId: inPhonePlan() ? 'roadmap' : 'hybrid',
                 zoomControl: false,
                 fullscreenControl: false,
+                scaleControl: !inPhonePlan(),
+                gestureHandling: inPhonePlan() ? 'greedy' : undefined,
               }
             : {}),
         });
@@ -241,20 +281,12 @@ export function GoogleMapArea() {
     if (searchCircleRef.current) return;
 
     // Create search radius circle (black/dark, editable) at default center
-    // zIndex 200 ensures circle handles are above markers (participant: 100, venue: 50)
-    // so the circle can be dragged/resized even when overlapping with markers
     searchCircleRef.current = new google.maps.Circle({
       center: defaultCenter,
       radius: DEFAULT_SEARCH_RADIUS,
       map,
-      fillColor: '#1F2937', // gray-800
-      fillOpacity: 0.05,
-      strokeColor: '#374151', // gray-700
-      strokeOpacity: 0.5,
-      strokeWeight: 2,
-      editable: true,
+      ...CLASSIC_SEARCH_CIRCLE_STYLE,
       draggable: true, // Allow dragging when no participants
-      zIndex: 200,
     });
 
     // Set initial search radius in store
@@ -375,7 +407,7 @@ export function GoogleMapArea() {
     // If no valid participants, keep the default search circle
     if (validParticipants.length === 0) {
       // Ensure search circle is draggable when no participants
-      if (searchCircleRef.current) {
+      if (searchCircleRef.current && !isV2()) {
         searchCircleRef.current.setDraggable(true);
       }
       return;
@@ -395,7 +427,8 @@ export function GoogleMapArea() {
     setCenter(newCenter);
 
     // Calculate search radius (1.5x MEC radius, min 1km, max 10km)
-    const newSearchRadius = calculateSearchRadius(mec, 1.5, 1000, 10000);
+    const planned = inPhonePlan() ? fitSearchArea(locations) : null;
+    const newSearchRadius = planned?.radius ?? calculateSearchRadius(mec, 1.5, 1000, 10000);
     setSearchRadius(newSearchRadius);
 
     // Clear existing MEC circle
@@ -408,6 +441,7 @@ export function GoogleMapArea() {
     if (validParticipants.length >= 2) {
       // Create MEC circle (yellow, very low visibility)
       mecCircleRef.current = new google.maps.Circle({
+        visible: !isV2(),
         center: newCenter,
         radius: mec.radius,
         map,
@@ -425,7 +459,7 @@ export function GoogleMapArea() {
       searchCircleRef.current.setCenter(newCenter);
       searchCircleRef.current.setRadius(newSearchRadius);
       // Disable dragging when we have participants (circle follows MEC)
-      searchCircleRef.current.setDraggable(false);
+      if (!isV2()) searchCircleRef.current.setDraggable(false);
 
       // Also update search circle store state
       setSearchCircle({
@@ -438,8 +472,11 @@ export function GoogleMapArea() {
     const positionsMoved = pannedPositionsRef.current !== positionsKey;
     pannedPositionsRef.current = positionsKey;
 
-    // Smoothly pan to MEC center with offset for sidebar
-    if (map && (positionsMoved || !isV2())) {
+    if (map && positionsMoved && isV2() && validParticipants.length >= 2) {
+      // Someone new must land in view, and the group can be wider than a fixed zoom shows
+      frameGroup(map);
+    } else if (map && (positionsMoved || !isV2())) {
+      // Smoothly pan to MEC center with offset for sidebar
       // Get or set zoom level
       const targetZoom = validParticipants.length === 1 ? 14 : 13;
       const currentZoom = map.getZoom() || targetZoom;
@@ -478,6 +515,7 @@ export function GoogleMapArea() {
     markerDrops.participant.cancelPending();
     participantMarkersRef.current.forEach((marker) => marker.setMap(null));
     participantMarkersRef.current = [];
+    if (version === 'v2') return;
 
     // Add participant markers with matching colors
     currentEvent?.participants.forEach((participant) => {
@@ -528,6 +566,7 @@ export function GoogleMapArea() {
     });
   }, [
     map,
+    version,
     currentEvent?.participants,
     selectedParticipantId,
     setSelectedParticipantId,
@@ -542,6 +581,7 @@ export function GoogleMapArea() {
     markerDrops.venue.cancelPending();
     venueMarkersRef.current.forEach((marker) => marker.setMap(null));
     venueMarkersRef.current = [];
+    if (version === 'v2') return;
 
     // Add markers for searched venues that are NOT liked
     searchedVenues.forEach((venue) => {
@@ -585,6 +625,7 @@ export function GoogleMapArea() {
     });
   }, [
     map,
+    version,
     searchedVenues,
     selectedVenue,
     hoveredVenueId,
@@ -600,12 +641,14 @@ export function GoogleMapArea() {
 
     // Remove markers for venues that are no longer liked
     likedVenueMarkersRef.current.forEach((marker, venueId) => {
-      if (!savedVenues.includes(venueId)) {
+      if (version === 'v2' || !savedVenues.includes(venueId)) {
         markerDrops.liked.forget(venueId);
         marker.setMap(null);
         likedVenueMarkersRef.current.delete(venueId);
       }
     });
+
+    if (version === 'v2') return;
 
     // Get all liked venues - use venueById for details, fallback to searchedVenues
     const allLikedVenues = savedVenues
@@ -666,6 +709,7 @@ export function GoogleMapArea() {
     });
   }, [
     map,
+    version,
     searchedVenues,
     selectedVenue,
     hoveredVenueId,
@@ -678,6 +722,61 @@ export function GoogleMapArea() {
     markerDrops,
   ]);
 
+  useSearchArea(map, searchCircleRef, mecCircleRef, version === 'v2' && (planLayers?.circle ?? true));
+  useVenuePins(map, version === 'v2');
+  usePersonPins(map, version === 'v2');
+  useRouteChips(map, version === 'v2' && !inPlan);
+
+  const circleShown = planLayers?.circle ?? true;
+  useEffect(() => {
+    searchCircleRef.current?.setVisible(circleShown);
+  }, [map, circleShown]);
+
+  const routesShown = planLayers?.routes ?? true;
+  useEffect(() => {
+    routePolylinesRef.current.forEach(({ polyline }) => polyline.setVisible(routesShown));
+  }, [routesShown]);
+
+  useEffect(() => {
+    if (!map || !inPlan) return;
+    map.setMapTypeId(usePhonePlanStore.getState().satellite ? 'hybrid' : 'roadmap');
+    usePhonePlanStore.setState({
+      api: {
+        center: () => map.getCenter()?.toJSON() ?? null,
+        zoom: () => map.getZoom() ?? 14,
+        panTo: (point) => map.panTo(point),
+        frame: (points) => {
+          const circle = usePhonePlanStore.getState().section === 'places'
+            ? searchCircleRef.current?.getBounds()
+            : null;
+          const bounds = new google.maps.LatLngBounds();
+          points.forEach((point) => bounds.extend(point));
+          if (circle) bounds.union(circle);
+          if (!bounds.isEmpty()) map.fitBounds(bounds, fitPadding(false));
+        },
+        setSatellite: (on) => map.setMapTypeId(on ? 'hybrid' : 'roadmap'),
+        setSearchArea: (center, radius) => {
+          searchCircleRef.current?.setCenter(center);
+          searchCircleRef.current?.setRadius(radius);
+          const circle = searchCircleRef.current?.getBounds();
+          if (circle) map.fitBounds(circle, fitPadding(false));
+        },
+        onIdle: (listener) => {
+          const handle = map.addListener('idle', listener);
+          return () => handle.remove();
+        },
+      },
+    });
+    return () => usePhonePlanStore.setState({ api: null });
+  }, [map, inPlan]);
+
+  // Under v2 a refreshed event, a changed travel mode above all, must not move the map
+  const selectedSpot = currentEvent?.participants?.find((p) => p.id === selectedParticipantId);
+  const panSelectedOn =
+    version === 'v2'
+      ? `${selectedSpot?.location?.lat},${selectedSpot?.location?.lng}`
+      : currentEvent?.participants;
+
   // Pan to selected participant when selection changes (from sidebar or map marker click)
   useEffect(() => {
     if (!map || !window.google || !selectedParticipantId) return;
@@ -687,6 +786,19 @@ export function GoogleMapArea() {
 
     if (!participant?.location || !participant.location.lat || !participant.location.lng) return;
 
+    // A pin the viewer can already see stays put, so opening a row doesn't undo the group's framing
+    if (
+      version === 'v2' &&
+      isInUncoveredMap(
+        participant.location,
+        map.getBounds(),
+        map.getDiv(),
+        fitPadding(isVenueInfoOpen)
+      )
+    ) {
+      return;
+    }
+
     // Offset for sidebar (and venue detail panel if open)
     map.panTo(
       centerBesidePanels(
@@ -695,68 +807,74 @@ export function GoogleMapArea() {
         leftPanelsWidth(isVenueInfoOpen)
       )
     );
-  }, [selectedParticipantId, map, currentEvent?.participants, isVenueInfoOpen]);
+  }, [selectedParticipantId, map, panSelectedOn, isVenueInfoOpen]);
 
   const clearRouteDrawings = useCallback(() => {
     cancelRevealRef.current?.();
     cancelRevealRef.current = null;
-    routePillsRef.current.forEach((pill) => pill.setMap(null));
-    routePillsRef.current.clear();
     routePolylinesRef.current.forEach(({ polyline }) => polyline.setMap(null));
     routePolylinesRef.current = [];
   }, []);
 
-  const addRoutePill = useCallback(
-    (route: DrawnRoute) => {
-      if (!map || route.path.length === 0) return;
-      const image = routePillImage(formatTripTime(route.durationSeconds, locale), route.color);
-      const midpoint = pathUpTo(route.path, 0.5).at(-1)!;
-      const { selectedParticipantId: selectedId } = useMapStore.getState();
-      routePillsRef.current.set(
-        route.participantId,
-        new google.maps.Marker({
-          position: midpoint,
-          map,
-          clickable: false,
-          opacity: routeFocused(route.participantId, selectedId) ? 1 : 0.45,
-          zIndex: 30,
-          icon: {
-            url: image.url,
-            anchor: new google.maps.Point(image.width / 2, image.height / 2),
-          },
-        })
+  const removeRouteDrawing = useCallback((participantId: string) => {
+    routePolylinesRef.current = routePolylinesRef.current.filter((route) => {
+      if (route.participantId !== participantId) return true;
+      route.polyline.setMap(null);
+      return false;
+    });
+  }, []);
+
+  const revealRoutes = useCallback((routes: DrawnRoute[]) => {
+    if (prefersReducedMotion()) return;
+    const cancelEarlier = cancelRevealRef.current;
+    // Someone else's reveal may still be playing, and only this person's line should start over
+    const cancelThese = revealStrokes(routes);
+    cancelRevealRef.current = () => {
+      cancelEarlier?.();
+      cancelThese();
+    };
+  }, []);
+
+  const drawRouteLine = useCallback(
+    (route: RouteInfo, color: string): DrawnRoute => {
+      const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline);
+      const style = routeStrokeStyle(
+        route.travelMode,
+        routeFocused(route.participantId, useMapStore.getState().selectedParticipantId)
       );
-    },
-    [map, locale]
-  );
-
-  // Plays the reveal for routes that haven't had one under this venue and mode, so a refetch
-  // from an unrelated event update redraws in place instead of replaying.
-  const revealRoutes = useCallback(
-    (key: string) => {
-      const previous = revealedRoutesRef.current;
-      const alreadyRevealed = previous.key === key ? previous.participantIds : new Set<string>();
-      const routes = routePolylinesRef.current;
-      revealedRoutesRef.current = {
-        key,
-        participantIds: new Set(routes.map((route) => route.participantId)),
+      const drawn: DrawnRoute = {
+        participantId: route.participantId,
+        polyline: new google.maps.Polyline({
+          path: decodedPath,
+          geodesic: true,
+          strokeColor: color,
+          map,
+          visible: !inPhonePlan() || usePhonePlanStore.getState().section === 'places' || !!useMeetingStore.getState().currentEvent?.publishedAt,
+          ...style,
+        }),
+        path: decodedPath.map((point) => point.toJSON()),
+        color,
+        icons: style.icons,
+        durationSeconds: route.durationSeconds,
+        lineMode: route.travelMode,
       };
-
-      const fresh = routes.filter((route) => !alreadyRevealed.has(route.participantId));
-      routes.filter((route) => alreadyRevealed.has(route.participantId)).forEach(addRoutePill);
-
-      if (prefersReducedMotion()) fresh.forEach(addRoutePill);
-      else cancelRevealRef.current = revealStrokes(fresh, addRoutePill);
+      routePolylinesRef.current.push(drawn);
+      return drawn;
     },
-    [addRoutePill]
+    [map]
   );
 
-  // Under v2 a selection only restyles the routes, so it must not refetch. Classic keeps
-  // refetching on every toggle, as it always has.
-  const refetchOnSelection = version === 'v2' ? null : selectedParticipantId;
+  const resetRoutes = useCallback(() => {
+    // Whatever is on its way is for a venue, viewer or version that no longer applies
+    routeRequestRef.current++;
+    fetchedRoutesRef.current = new Map();
+    clearRouteDrawings();
+    clearRoutes();
+    setCalculatingRoutes(false);
+  }, [clearRouteDrawings, clearRoutes, setCalculatingRoutes]);
 
-  // Calculate and display routes when venue is selected
-  const calculateRoutes = useCallback(async () => {
+  // Classic: one global mode for everyone, with a full refetch whenever anything changes
+  const calculateClassicRoutes = useCallback(async () => {
     if (!map || !window.google || !selectedVenue || !currentEvent) {
       clearRoutes();
       return;
@@ -770,57 +888,36 @@ export function GoogleMapArea() {
       return;
     }
 
-    const validParticipants = currentEvent.participants.filter(
-      (p) => p.location !== null && p.location.lat !== null && p.location.lng !== null
-    );
+    const validParticipants = currentEvent.participants.filter(hasStartingPoint);
 
     if (validParticipants.length === 0) {
       clearRoutes();
       return;
     }
 
-    // A refreshed event with the same people in the same places has the same trips
-    const routeInputs = `${selectedVenue.id}|${travelMode}|${positionsKey}`;
-    if (isV2() && fetchedRoutesRef.current === routeInputs) return;
-    fetchedRoutesRef.current = routeInputs;
-
     setCalculatingRoutes(true);
     const request = ++routeRequestRef.current;
-    const isCurrentRequest = () => !isV2() || request === routeRequestRef.current;
 
     try {
       // Call backend directions API
       const response = await directionsClient.getDirections(
         currentEvent.id,
         selectedVenue.id,
-        travelMode,
-        authToken
+        authToken,
+        { travelMode }
       );
 
-      // Stepping through venues quickly can land an older response after a newer one
-      if (!isCurrentRequest()) return;
+      // A switch to v2 while this was on its way must not draw over v2's routes
+      if (request !== routeRequestRef.current) return;
 
       // Clear existing polylines
       clearRouteDrawings();
 
-      // Draw route polylines and build route infos
-      const routeInfos: Array<{
-        participantId: string;
-        distance: string;
-        duration: string;
-        durationSeconds: number;
-        polyline: string;
-      }> = [];
+      const routeInfos: RouteInfo[] = [];
 
       response.routes.forEach((route) => {
         const participant = validParticipants.find((p) => p.id === route.participantId);
         if (!participant) return;
-
-        const participantColor = getHexColor(participant.color);
-        const isSelected = routeFocused(
-          participant.id,
-          refetchOnSelection ?? useMapStore.getState().selectedParticipantId
-        );
 
         // Decode the encoded polyline from backend
         const decodedPath = google.maps.geometry.encoding.decodePath(route.polyline);
@@ -828,109 +925,188 @@ export function GoogleMapArea() {
         const polyline = new google.maps.Polyline({
           path: decodedPath,
           geodesic: true,
-          strokeColor: participantColor,
-          strokeOpacity: isSelected ? 0.9 : 0.3,
-          strokeWeight: isSelected ? 5 : 3,
+          strokeColor: personColor(participant.color),
           map,
-          zIndex: isSelected ? 20 : 5,
+          ...routeStrokeStyle('solid', routeFocused(participant.id, selectedParticipantId)),
         });
 
         routePolylinesRef.current.push({
           participantId: participant.id,
           polyline,
           path: decodedPath.map((point) => point.toJSON()),
-          color: participantColor,
+          color: personColor(participant.color),
           durationSeconds: route.duration.value,
+          lineMode: 'solid',
         });
 
-        routeInfos.push({
-          participantId: route.participantId,
-          distance: route.distance.text,
-          duration: route.duration.text,
-          durationSeconds: route.duration.value,
-          polyline: route.polyline,
-        });
+        routeInfos.push(toRouteInfo(route));
       });
 
       setRoutes(routeInfos);
-      if (isV2()) revealRoutes(`${selectedVenue.id}|${travelMode}`);
     } catch (error) {
       console.error('[Map] Error calculating routes:', error);
-      fetchedRoutesRef.current = null;
-      clearRoutes();
+      if (request === routeRequestRef.current) clearRoutes();
     } finally {
-      if (isCurrentRequest()) setCalculatingRoutes(false);
+      if (request === routeRequestRef.current) setCalculatingRoutes(false);
     }
   }, [
     map,
     selectedVenue,
     currentEvent,
     travelMode,
-    positionsKey,
-    refetchOnSelection,
+    selectedParticipantId,
     organizerToken,
     participantToken,
     clearRoutes,
     setRoutes,
     setCalculatingRoutes,
     clearRouteDrawings,
-    revealRoutes,
   ]);
+
+  // v2: each person's line is their own, and only a person whose trip changed is touched
+  const syncPersonRoutes = useCallback(async () => {
+    const authToken = organizerToken || participantToken;
+    if (!map || !window.google || !selectedVenue || !currentEvent || !authToken) {
+      resetRoutes();
+      return;
+    }
+    const venueId = selectedVenue.id;
+    const eventId = currentEvent.id;
+    const peopleById = new Map(currentEvent.participants.map((p) => [p.id, p]));
+
+    const wanted = personRouteKeys(venueId, currentEvent.participants);
+    const { changed, gone, everyone } = planRouteFetch(fetchedRoutesRef.current, wanted);
+    if (changed.length === 0 && gone.length === 0) return;
+    fetchedRoutesRef.current = new Map(wanted);
+
+    const putRoutes = (ids: string[], fresh: RouteInfo[]) => {
+      useMapStore.getState().setRoutes(mergeRoutes(useMapStore.getState().routes, ids, fresh));
+    };
+    const stillWanted = (id: string) => fetchedRoutesRef.current.get(id) === wanted.get(id);
+
+    gone.forEach(removeRouteDrawing);
+    if (gone.length > 0) putRoutes(gone, []);
+
+    const draw = (ids: string[], routes: RouteInfo[]) => {
+      const current = ids.filter(stillWanted);
+      if (current.length === 0) return;
+      const fresh = routes.filter((route) => current.includes(route.participantId));
+      current.forEach(removeRouteDrawing);
+      putRoutes(current, fresh);
+      revealRoutes(
+        fresh.map((route) =>
+          drawRouteLine(route, personColor(peopleById.get(route.participantId)?.color ?? ''))
+        )
+      );
+    };
+
+    const modeOf = (id: string) => peopleById.get(id)?.travelMode;
+    // The mode goes along because a change being saved hasn't reached the server yet
+    const fetchOne = (id: string) =>
+      fetchRoutes([id], { participantId: id, travelMode: modeOf(id) });
+    const fetchRoutes = async (
+      ids: string[],
+      options: { participantId?: string; travelMode?: TravelMode }
+    ): Promise<void> => {
+      try {
+        const response = await directionsClient.getDirections(eventId, venueId, authToken, options);
+        const routes = response.routes.map(toRouteInfo);
+        // With no override the server uses the mode it has, which can lag a change still being
+        // saved. Those trips are for a different key: ask again for the mode that's wanted.
+        const lagging = routes.filter((route) => route.travelMode !== modeOf(route.participantId));
+        useRouteCacheStore
+          .getState()
+          .record(
+            ids
+              .filter((id) => !lagging.some((route) => route.participantId === id))
+              .map((id) => [wanted.get(id)!, routes.find((route) => route.participantId === id)])
+          );
+        draw(ids, routes);
+        lagging.forEach((route) => {
+          if (stillWanted(route.participantId)) void fetchOne(route.participantId);
+        });
+      } catch (error) {
+        console.error('[Map] Error calculating routes:', error);
+        const current = ids.filter(stillWanted);
+        current.forEach((id) => {
+          fetchedRoutesRef.current.delete(id);
+          removeRouteDrawing(id);
+        });
+        putRoutes(current, []);
+      }
+    };
+
+    if (everyone) {
+      setCalculatingRoutes(true);
+      const request = ++routeRequestRef.current;
+      await fetchRoutes(changed, {});
+      if (request === routeRequestRef.current) setCalculatingRoutes(false);
+      return;
+    }
+
+    // A trip the picker already compared needs no call
+    const lookups = useRouteCacheStore.getState().entries;
+    const known = changed.flatMap((id) => {
+      const lookup = lookups[wanted.get(id)!];
+      return lookup?.status === 'found' ? [lookup.route] : [];
+    });
+    if (known.length > 0) {
+      draw(
+        known.map((route) => route.participantId),
+        known
+      );
+    }
+    await Promise.all(
+      changed
+        .filter((id) => !known.some((route) => route.participantId === id))
+        .map((id) => fetchOne(id))
+    );
+  }, [
+    map,
+    selectedVenue,
+    currentEvent,
+    organizerToken,
+    participantToken,
+    resetRoutes,
+    setCalculatingRoutes,
+    removeRouteDrawing,
+    revealRoutes,
+    drawRouteLine,
+  ]);
+
+  // Each version's routes are its own: switching drops what's drawn, and the other kind fetches
+  const drawnVersionRef = useRef(version);
+  useEffect(() => {
+    if (drawnVersionRef.current === version) return;
+    drawnVersionRef.current = version;
+    resetRoutes();
+  }, [version, resetRoutes]);
+
+  const calculateRoutes = version === 'v2' ? syncPersonRoutes : calculateClassicRoutes;
 
   // Trigger route calculation when venue changes
   useEffect(() => {
     if (selectedVenue) {
       calculateRoutes();
     } else {
-      // Clear routes when no venue selected
-      clearRouteDrawings();
-      clearRoutes();
-      revealedRoutesRef.current = { key: null, participantIds: new Set() };
-      fetchedRoutesRef.current = null;
-      if (isV2()) {
-        // An answer still on its way is for a venue that's no longer selected
-        routeRequestRef.current++;
-        setCalculatingRoutes(false);
-      }
+      resetRoutes();
     }
-  }, [selectedVenue, calculateRoutes, clearRoutes, clearRouteDrawings, setCalculatingRoutes]);
-
-  // Cutting between versions keeps the routes on screen and spends no directions call
-  const drawnVersionRef = useRef(version);
-  useEffect(() => {
-    if (drawnVersionRef.current === version) return;
-    drawnVersionRef.current = version;
-    const routes = routePolylinesRef.current;
-    if (routes.length === 0) return;
-    cancelRevealRef.current?.();
-    cancelRevealRef.current = null;
-    routePillsRef.current.forEach((pill) => pill.setMap(null));
-    routePillsRef.current.clear();
-    if (version === 'v2') {
-      const key = revealedRoutesRef.current.key ?? 'replay';
-      revealedRoutesRef.current = { key, participantIds: new Set() };
-      revealRoutes(key);
-    } else {
-      routes.forEach(drawStroke);
-    }
-  }, [version, revealRoutes]);
+  }, [selectedVenue, calculateRoutes, resetRoutes]);
 
   // Update route visibility when selected participant changes
   useEffect(() => {
     if (!selectedVenue) return;
 
-    routePolylinesRef.current.forEach(({ participantId, polyline }, index) => {
+    routePolylinesRef.current.forEach((route, index) => {
       // Classic pairs polylines with participants by position, which drifts when a route is skipped
-      const ownerId = version === 'v2' ? participantId : currentEvent?.participants[index]?.id;
+      const ownerId =
+        version === 'v2' ? route.participantId : currentEvent?.participants[index]?.id;
       if (!ownerId) return;
 
       const isSelected = routeFocused(ownerId, selectedParticipantId);
-      polyline.setOptions({
-        strokeOpacity: isSelected ? 0.9 : 0.3,
-        strokeWeight: isSelected ? 5 : 3,
-        zIndex: isSelected ? 20 : 5,
-      });
-      routePillsRef.current.get(ownerId)?.setOpacity(isSelected ? 1 : 0.45);
+      const style = routeStrokeStyle(route.lineMode, isSelected);
+      route.icons = style.icons;
+      route.polyline.setOptions(style);
     });
   }, [selectedParticipantId, currentEvent?.participants, selectedVenue, version]);
 
@@ -942,12 +1118,50 @@ export function GoogleMapArea() {
     return pulseAt(map, selectedVenueLocation);
   }, [map, selectedVenueId, version]);
 
+  useEffect(() => {
+    if (!map || !window.google || !draftRoute) return;
+    revealRoutes([drawRouteLine(draftRoute, personColor(draftColor))]);
+    return () => removeRouteDrawing(DRAFT_PERSON_ID);
+  }, [map, draftRoute, draftColor, drawRouteLine, revealRoutes, removeRouteDrawing]);
+
+  // The new place may be off-screen. Only a new place moves the map, with everyone left in view.
+  useEffect(() => {
+    if (!map || !window.google || draftLat == null || draftLng == null) return;
+    const pin = { lat: draftLat, lng: draftLng };
+    if (!frameGroup(map, pin)) {
+      const venueOpen = useUIStore.getState().isVenueInfoOpen;
+      map.panTo(centerBesidePanels(pin, map.getZoom() || 14, leftPanelsWidth(venueOpen)));
+    }
+  }, [map, draftLat, draftLng]);
+
   // Smoothly pan to selected venue and center it in the visible area
   useEffect(() => {
     if (!map || !selectedVenue || !window.google) return;
 
     // Get the current zoom level
     const currentZoom = map.getZoom() || 14;
+
+    if (isV2()) {
+      // Picking a place keeps the group's framing: a zoom change would throw everyone off-screen
+      if (
+        !isInUncoveredMap(
+          selectedVenue.location,
+          map.getBounds(),
+          map.getDiv(),
+          fitPadding(isVenueInfoOpen)
+        )
+      ) {
+        if (inPhonePlan()) {
+          const { top, bottom } = fitPadding(false);
+          map.panTo(offsetPoint(selectedVenue.location, currentZoom, 0, (bottom - top) / 2));
+          return;
+        }
+        map.panTo(
+          centerBesidePanels(selectedVenue.location, currentZoom, leftPanelsWidth(isVenueInfoOpen))
+        );
+      }
+      return;
+    }
 
     // Show the venue in the middle of the map area beside the sidebar/panels
     map.panTo(
@@ -996,7 +1210,7 @@ export function GoogleMapArea() {
     <main className="w-full h-full relative">
       {isLoading && <MapLoading />}
 
-      <PhoneMapControls
+      {!inPlan && <PhoneMapControls
         satellite={satellite}
         onToggleSatellite={() => {
           map?.setMapTypeId(satellite ? 'roadmap' : 'hybrid');
@@ -1009,10 +1223,10 @@ export function GoogleMapArea() {
             map?.setZoom(13);
           }
         }}
-      />
+      />}
 
       {/* Route calculating overlay */}
-      {isCalculatingRoutes && <RoutesCalculating />}
+      {isCalculatingRoutes && !inPlan && <RoutesCalculating />}
 
       {/* Map container - MUST be relative for absolute overlay positioning */}
       <div className="relative w-full h-full">
@@ -1022,7 +1236,7 @@ export function GoogleMapArea() {
         {circleOverlayPosition && <SearchCircleTutorialTarget position={circleOverlayPosition} />}
 
         {/* Blur overlay for non-participants - only show after auth initialization */}
-        {isAuthInitialized && !hasJoined && (
+        {isAuthInitialized && !hasJoined && !inPlan && (
           <MapBlurOverlay isPublished={!!currentEvent?.publishedAt} />
         )}
       </div>
