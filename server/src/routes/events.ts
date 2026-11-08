@@ -31,6 +31,7 @@ import { ValidationError } from "../types/errors.js";
 import type { EventUpdatedPayload, EventPublishedPayload } from "../types/sse.js";
 import type { ParticipantMeResponse } from "../dto/participant.dto.js";
 import { createVenueService } from "../services/venue.js";
+import { RATE_LIMITS } from "../lib/rateLimits.js";
 
 /**
  * Request types for route handlers.
@@ -57,20 +58,24 @@ export function eventRoutes(fastify: FastifyInstance): void {
    * POST /api/events
    * Creates a new event and returns it with the participantToken for the organizer.
    */
-  fastify.post("/api/events", async (request: CreateEventRequest, reply: FastifyReply) => {
-    // Validate request body
-    const parseResult = CreateEventSchema.safeParse(request.body);
-    if (!parseResult.success) {
-      throw parseResult.error;
+  fastify.post(
+    "/api/events",
+    { config: RATE_LIMITS.eventCreate },
+    async (request: CreateEventRequest, reply: FastifyReply) => {
+      // Validate request body
+      const parseResult = CreateEventSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        throw parseResult.error;
+      }
+
+      const { event, participantToken, organizerParticipantId } = await eventService.createEvent(
+        parseResult.data
+      );
+      const response = toCreateEventResponse(event, participantToken, organizerParticipantId);
+
+      return reply.status(201).send(response);
     }
-
-    const { event, participantToken, organizerParticipantId } = await eventService.createEvent(
-      parseResult.data
-    );
-    const response = toCreateEventResponse(event, participantToken, organizerParticipantId);
-
-    return reply.status(201).send(response);
-  });
+  );
 
   /**
    * GET /api/events/:id

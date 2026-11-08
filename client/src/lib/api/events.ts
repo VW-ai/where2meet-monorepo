@@ -17,7 +17,8 @@ export const eventsApi = {
       body: JSON.stringify(data),
     }).then(parseEventParticipants),
 
-  get: (id: string) => backendCall<Event>(`/api/events/${id}`).then(parseEventParticipants),
+  get: (id: string, init?: RequestInit) =>
+    backendCall<Event>(`/api/events/${id}`, init).then(parseEventParticipants),
 
   update: (id: string, data: UpdateEventDTO, token: string) =>
     backendCall<Event>(`/api/events/${id}`, {

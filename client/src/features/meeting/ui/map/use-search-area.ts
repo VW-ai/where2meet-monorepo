@@ -1,3 +1,4 @@
+import { usePhonePlanStore } from '@/features/meeting/model/phone-plan-store';
 import { useEffect, type RefObject } from 'react';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
@@ -79,13 +80,16 @@ export function useSearchArea(
         repeat: '13px',
       },
     ];
+    const solid = usePhonePlanStore.getState().active;
+    const restingIcons = solid ? [] : dashes;
+    const restingOpacity = solid ? OUTLINE_OPACITY : 0;
     const outline = new google.maps.Polyline({
       map,
       clickable: false,
       strokeColor: SEARCH_AREA_RED,
-      strokeOpacity: 0,
+      strokeOpacity: restingOpacity,
       strokeWeight: 2,
-      icons: dashes,
+      icons: restingIcons,
       zIndex: 3,
     });
 
@@ -141,7 +145,7 @@ export function useSearchArea(
     };
     const endDrag = () => {
       dragging = null;
-      outline.setOptions({ icons: dashes, strokeOpacity: 0 });
+      outline.setOptions({ icons: restingIcons, strokeOpacity: restingOpacity });
       redraw();
     };
     const dragTo = (handle: Handle, position: google.maps.LatLng) => {

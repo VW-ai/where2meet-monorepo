@@ -42,7 +42,7 @@ const messages = defineMessages({
   },
 });
 
-function patchParticipant(id: string, fields: Partial<Participant>) {
+export function patchParticipant(id: string, fields: Partial<Participant>) {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
   useParticipantStore.getState().updateParticipant(id, fields);
   if (!currentEvent) return;
@@ -53,14 +53,14 @@ function patchParticipant(id: string, fields: Partial<Participant>) {
 }
 
 // The stream may already have brought either change
-function putInEvent(person: Participant) {
+export function putInEvent(person: Participant) {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
   if (!currentEvent || currentEvent.participants.some((p) => p.id === person.id)) return;
   useParticipantStore.getState().addParticipant(person);
   setCurrentEvent({ ...currentEvent, participants: [...currentEvent.participants, person] });
 }
 
-function takeOutOfEvent(id: string) {
+export function removeFromEvent(id: string) {
   const { currentEvent, setCurrentEvent } = useMeetingStore.getState();
   useParticipantStore.getState().removeParticipant(id);
   if (currentEvent) {
@@ -217,7 +217,7 @@ export function useRemoveAddedPerson() {
       }
       try {
         await participantClient.remove(eventId, person.id, token);
-        takeOutOfEvent(person.id);
+        removeFromEvent(person.id);
       } catch (error) {
         console.error('Error undoing an add:', error);
         showToast({ message: t.undoFailed });
@@ -251,7 +251,7 @@ export function useRemoveAddedPerson() {
 
       try {
         await participantClient.remove(eventId, person.id, token);
-        takeOutOfEvent(person.id);
+        removeFromEvent(person.id);
         showToast({
           message: t.removed(person.name),
           action: { label: t.undo, run: () => void putBack() },

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import type { Event, Venue } from '@/entities';
@@ -7,6 +8,7 @@ import { invitationFor, isPublished, shareText } from '@/features/invitation/mod
 import { eventClient, venueClient } from '@/features/meeting/api';
 import { isMissingEvent } from '@/features/meeting/lib/is-missing-event';
 import { meetingWhen } from '@/shared/lib/meeting-times';
+import { forwardedClientHeaders } from '@/lib/api/forwarded-client';
 
 type EventLookup =
   | { status: 'found'; event: Event }
@@ -22,8 +24,9 @@ type EventLookup =
  * still render with fallback metadata instead of turning an outage into 404s.
  */
 const lookupEvent = cache(async (id: string): Promise<EventLookup> => {
+  const init = { headers: forwardedClientHeaders(await headers()) };
   try {
-    return { status: 'found', event: await eventClient.get(id) };
+    return { status: 'found', event: await eventClient.get(id, init) };
   } catch (error) {
     if (isMissingEvent(error)) {
       return { status: 'not-found' };
@@ -34,7 +37,8 @@ const lookupEvent = cache(async (id: string): Promise<EventLookup> => {
 
 /** The published venue, or null when it cannot be loaded, so the page keeps its draft text. */
 const lookupVenue = cache(
-  (id: string): Promise<Venue | null> => venueClient.get(id).catch(() => null)
+  async (id: string): Promise<Venue | null> =>
+    venueClient.get(id, { headers: forwardedClientHeaders(await headers()) }).catch(() => null)
 );
 
 /**
