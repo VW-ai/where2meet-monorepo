@@ -9,7 +9,6 @@ import {
   searchNearbyPlaces,
   textSearchPlaces,
   getPlaceDetails,
-  buildPhotoUrl,
   isPlacesConfigured,
   PlaceNotFoundError,
   PlacesApiError,
@@ -521,22 +520,6 @@ describe("Places Module", () => {
       expect(details.formattedPhoneNumber).toBeNull();
       expect(details.website).toBeNull();
       expect(details.openingHours).toBeNull();
-    });
-  });
-
-  describe("buildPhotoUrl", () => {
-    it("builds correct photo URL with default width", () => {
-      const url = buildPhotoUrl("photo_reference_123");
-
-      expect(url).toContain("photoreference=photo_reference_123");
-      expect(url).toContain("maxwidth=400");
-      expect(url).toContain("key=test-api-key");
-    });
-
-    it("builds correct photo URL with custom width", () => {
-      const url = buildPhotoUrl("photo_ref", 800);
-
-      expect(url).toContain("maxwidth=800");
     });
   });
 

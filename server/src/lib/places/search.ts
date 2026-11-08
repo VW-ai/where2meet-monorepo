@@ -182,21 +182,6 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
 }
 
 /**
- * Builds a Google Places photo URL.
- * @param photoReference - Photo reference from Places API
- * @param maxWidth - Maximum width in pixels (default 400)
- * @returns Photo URL
- */
-export function buildPhotoUrl(photoReference: string, maxWidth = 400): string {
-  const params = new URLSearchParams({
-    photoreference: photoReference,
-    maxwidth: String(maxWidth),
-    key: config.GOOGLE_MAPS_API_KEY,
-  });
-  return `https://maps.googleapis.com/maps/api/place/photo?${params.toString()}`;
-}
-
-/**
  * Checks if the Places service is configured and ready.
  * @returns True if API key is configured
  */

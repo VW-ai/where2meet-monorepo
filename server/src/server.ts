@@ -30,6 +30,7 @@ import { sseRoutes } from "./routes/sse.js";
 import { authRoutes } from "./routes/auth.js";
 import { userRoutes } from "./routes/users.js";
 import { amapRoutes } from "./routes/amap.js";
+import { placesRoutes } from "./routes/places.js";
 import { rateLimitKey } from "./lib/rateLimitKey.js";
 
 /**
@@ -165,6 +166,7 @@ export async function buildServer({ rateLimits = isProduction } = {}) {
   await server.register(authRoutes);
   await server.register(userRoutes);
   await server.register(amapRoutes);
+  await server.register(placesRoutes);
 
   return server;
 }

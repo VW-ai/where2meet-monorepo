@@ -31,6 +31,7 @@ function firstLimited(codes: number[]) {
 
 const search: InjectOptions = { method: "POST", url: "/api/venues/search", payload: {} };
 const reverseGeocode: InjectOptions = { method: "GET", url: "/api/amap/reverse-geocode" };
+const photo: InjectOptions = { method: "GET", url: "/api/places/photo" };
 const login: InjectOptions = { method: "POST", url: "/api/auth/login", payload: {} };
 const register: InjectOptions = { method: "POST", url: "/api/auth/register", payload: {} };
 const createEvent: InjectOptions = { method: "POST", url: "/api/events", payload: {} };
@@ -45,6 +46,11 @@ describe("per-route rate limits", () => {
     const server = await limitedServer();
     await statuses(server, search, 61);
     expect(await statuses(server, reverseGeocode, 3)).not.toContain(429);
+  });
+
+  it("limits venue photos after 300 requests", async () => {
+    const server = await limitedServer();
+    expect(firstLimited(await statuses(server, photo, 301))).toBe(301);
   });
 
   it("limits login and register after 10 requests each", async () => {
