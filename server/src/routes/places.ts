@@ -18,7 +18,7 @@ const PhotoQuerySchema = z.object({
     .min(1)
     .max(2000)
     .regex(/^[A-Za-z0-9_-]+$/),
-  w: z.coerce.number().int().min(1).max(1600).default(PHOTO_WIDTH),
+  maxwidth: z.coerce.number().int().min(1).max(1600).default(PHOTO_WIDTH),
 });
 
 type PhotoRequest = FastifyRequest<{ Querystring: Record<string, string> }>;
@@ -30,7 +30,7 @@ const PHOTO_CACHE_CONTROL = "public, max-age=86400";
  * Registers the photo route.
  *
  * Endpoints:
- * - GET /api/places/photo?ref=...&w=... - Redirects to the photo image
+ * - GET /api/places/photo?ref=...&maxwidth=... - Redirects to the photo image
  */
 export function placesRoutes(fastify: FastifyInstance): void {
   fastify.get(
@@ -41,8 +41,8 @@ export function placesRoutes(fastify: FastifyInstance): void {
       if (!parseResult.success) {
         throw new ValidationError("ref must be a Google photo reference");
       }
-      const { ref, w } = parseResult.data;
-      const location = await resolvePlacePhoto(ref, w);
+      const { ref, maxwidth } = parseResult.data;
+      const location = await resolvePlacePhoto(ref, maxwidth);
       if (!location) {
         throw new NotFoundError("Photo");
       }

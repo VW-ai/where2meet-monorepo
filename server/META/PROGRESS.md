@@ -998,7 +998,7 @@ The organizer now sees where someone would start, and each way there, before add
 
 Venue `photoUrl` used to be Google's photo URL with the server key in it, so every browser and the iOS app could read the key and spend its quota.
 
-- New `GET /api/places/photo?ref=&w=` looks the photo up with the key and 302s to Google's keyless image host, cached for a day. Rate limited with `RATE_LIMITS.maps`.
+- New `GET /api/places/photo?ref=&maxwidth=` looks the photo up with the key and 302s to Google's keyless image host, cached for a day. Rate limited with `RATE_LIMITS.maps`.
 - The Google provider now returns that URL (`photoProxyUrl`, absolute, from `PUBLIC_API_URL`, else Railway's `RAILWAY_PUBLIC_DOMAIN`, else localhost).
 - Venues stored with the old URL are rewritten on the way out (`publicPhotoUrl` in the vote mapper), so no data migration.
 - `buildPhotoUrl` removed.

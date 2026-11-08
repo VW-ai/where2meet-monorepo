@@ -44,7 +44,7 @@ describe("GET /api/places/photo", () => {
 
     const response = await server.inject({
       method: "GET",
-      url: "/api/places/photo?ref=Ab_c-1&w=800",
+      url: "/api/places/photo?ref=Ab_c-1&maxwidth=800",
     });
 
     expect(response.statusCode).toBe(302);
@@ -93,12 +93,14 @@ describe("photo URLs sent to clients", () => {
     "https://maps.googleapis.com/maps/api/place/photo?photoreference=Ab_c-1&maxwidth=400&key=AIzaSECRET";
 
   it("points new photos at this API", () => {
-    expect(photoProxyUrl("Ab_c-1")).toBe("http://localhost:3001/api/places/photo?ref=Ab_c-1&w=400");
+    expect(photoProxyUrl("Ab_c-1")).toBe(
+      "http://localhost:3001/api/places/photo?ref=Ab_c-1&maxwidth=400"
+    );
   });
 
   it("rewrites a stored Google URL to this API, dropping the key", () => {
     expect(publicPhotoUrl(legacyUrl)).toBe(
-      "http://localhost:3001/api/places/photo?ref=Ab_c-1&w=400"
+      "http://localhost:3001/api/places/photo?ref=Ab_c-1&maxwidth=400"
     );
   });
 
@@ -125,7 +127,7 @@ describe("photo URLs sent to clients", () => {
     } as Venue;
 
     expect(toVenueWithVotesResponse(venue, 1, []).photoUrl).toBe(
-      "http://localhost:3001/api/places/photo?ref=Ab_c-1&w=400"
+      "http://localhost:3001/api/places/photo?ref=Ab_c-1&maxwidth=400"
     );
   });
 });

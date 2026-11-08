@@ -12,9 +12,12 @@ export const PHOTO_WIDTH = 400;
 
 const GOOGLE_PHOTO_URL = "https://maps.googleapis.com/maps/api/place/photo";
 
-/** The URL clients load for a Google photo reference. */
+/**
+ * The URL clients load for a Google photo reference. The width keeps Google's
+ * name because the iOS ticket raises `maxwidth` for a full-screen photo.
+ */
 export function photoProxyUrl(photoReference: string, maxWidth = PHOTO_WIDTH): string {
-  const params = new URLSearchParams({ ref: photoReference, w: String(maxWidth) });
+  const params = new URLSearchParams({ ref: photoReference, maxwidth: String(maxWidth) });
   return `${publicApiUrl}/api/places/photo?${params.toString()}`;
 }
 
