@@ -8,6 +8,11 @@ import { DRAFT_PERSON_ID } from '@/features/meeting/lib/add-person-form';
 import { participantRights, viewerFromAuth } from '@/features/meeting/lib/participant-rights';
 import { hasStartingPoint } from '@/features/meeting/lib/person-routes';
 import { useMapStore } from '@/features/meeting/model/map-store';
+import {
+  phonePlan,
+  usePhonePlanStore,
+  usePlanMapLayers,
+} from '@/features/meeting/model/phone-plan-store';
 import { useLocale } from '@/shared/lib/i18n';
 import type { Venue } from '@/entities/venue/types';
 import type { Location } from '@/shared/types/map';
@@ -55,6 +60,8 @@ export function useVenuePins(map: google.maps.Map | null, enabled: boolean) {
   const openVenueInfo = useUIStore((state) => state.openVenueInfo);
   const voteStats = useVotingStore((state) => state.voteStatsByVenueId);
   const hoveredId = useMapStore((state) => state.hoveredVenueId);
+  const layers = usePlanMapLayers();
+  const venueLayer = layers?.venues ?? 'all';
 
   const [drops] = useState(() => createMarkerDrops());
   const pinsRef = useRef(new Map<string, VenuePin>());
@@ -72,13 +79,20 @@ export function useVenuePins(map: google.maps.Map | null, enabled: boolean) {
   useEffect(() => {
     if (!map || !enabled) return;
     const pins = pinsRef.current;
-    const venues = venuesOnMap({
-      searched,
-      venueById,
-      likedIds: Object.keys(voteStats),
-      selected,
-      publishedId,
-    });
+    const venues =
+      venueLayer === 'none'
+        ? []
+        : venueLayer === 'selected'
+          ? selected
+            ? [selected]
+            : []
+          : venuesOnMap({
+              searched,
+              venueById,
+              likedIds: Object.keys(voteStats),
+              selected,
+              publishedId,
+            });
 
     const wanted = new Set(venues.map(({ id }) => id));
     pins.forEach(({ marker }, id) => {
@@ -114,6 +128,10 @@ export function useVenuePins(map: google.maps.Map | null, enabled: boolean) {
         });
         marker.addListener('click', () => {
           const current = pinsRef.current.get(venue.id)?.venue ?? venue;
+          if (usePhonePlanStore.getState().active) {
+            phonePlan.tapVenuePin(current);
+            return;
+          }
           setSelectedVenue(current);
           openVenueInfo(current.id);
         });
@@ -141,6 +159,7 @@ export function useVenuePins(map: google.maps.Map | null, enabled: boolean) {
     setSelectedVenue,
     openVenueInfo,
     drops,
+    venueLayer,
   ]);
 }
 
@@ -160,6 +179,9 @@ export function usePersonPins(map: google.maps.Map | null, enabled: boolean) {
   const routes = useMapStore((state) => state.routes);
   const selectedId = useMapStore((state) => state.selectedParticipantId);
   const draft = useDraftPersonStore((state) => state.draft);
+  const layers = usePlanMapLayers();
+  const inPlan = layers !== null;
+  const showTrips = layers?.routes ?? true;
 
   const [drops] = useState(() => createMarkerDrops());
   const pinsRef = useRef(new Map<string, PersonPin>());
@@ -186,8 +208,9 @@ export function usePersonPins(map: google.maps.Map | null, enabled: boolean) {
       const look = personPinLook(person, {
         isSelf: participantRights(viewer, person, { isPublished: false, hostName: null }).isSelf,
         isSelected: selectedId === person.id,
-        tripSeconds: route?.durationSeconds,
+        tripSeconds: showTrips ? route?.durationSeconds : undefined,
         locale,
+        round: inPlan,
       });
       return {
         id: person.id,
@@ -239,6 +262,10 @@ export function usePersonPins(map: google.maps.Map | null, enabled: boolean) {
         pins.set(id, { marker, image, location });
         if (isDraft) return;
         marker.addListener('click', () => {
+          if (usePhonePlanStore.getState().active) {
+            phonePlan.showPeople();
+            return;
+          }
           const { selectedParticipantId, setSelectedParticipantId } = useMapStore.getState();
           setSelectedParticipantId(selectedParticipantId === id ? null : id);
         });
@@ -267,5 +294,7 @@ export function usePersonPins(map: google.maps.Map | null, enabled: boolean) {
     draft,
     locale,
     drops,
+    inPlan,
+    showTrips,
   ]);
 }

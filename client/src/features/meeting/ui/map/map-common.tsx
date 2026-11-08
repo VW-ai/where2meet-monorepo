@@ -5,6 +5,7 @@
 
 import { Layers, Loader2, LocateFixed } from 'lucide-react';
 import type { UITravelMode } from '@/features/meeting/model/map-store';
+import { usePhonePlanStore } from '@/features/meeting/model/phone-plan-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import type { Location, TravelMode } from '@/shared/types/map';
 import { defineMessages, useMessages, type Locale } from '@/shared/lib/i18n';
@@ -85,6 +86,10 @@ export function leftPanelsWidth(includeVenuePanel: boolean): number {
 export function fitPadding(includeVenuePanel: boolean): Required<google.maps.Padding> {
   if (window.innerWidth >= 768) {
     return { top: 96, right: 48, bottom: 48, left: leftPanelsWidth(includeVenuePanel) + 48 };
+  }
+  const plan = usePhonePlanStore.getState();
+  if (plan.active) {
+    return { top: 84, right: 32, bottom: plan.panelHeight + 24, left: 32 };
   }
   const top = 130;
   const mapBox = document.querySelector('.meeting-map')?.getBoundingClientRect();

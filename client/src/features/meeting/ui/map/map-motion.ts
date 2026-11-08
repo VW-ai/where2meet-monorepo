@@ -1,4 +1,5 @@
 import { pathUpTo, type PathPoint } from '@/features/meeting/lib/path-up-to';
+import { usePhonePlanStore } from '@/features/meeting/model/phone-plan-store';
 import type { TravelMode } from '@/shared/types/map';
 
 const REVEAL_LEAD_MS = 120;
@@ -40,12 +41,15 @@ const ROUTE_DASH: Record<RouteLine, readonly [dash: number, gap: number] | null>
   walking: [0, 8],
 };
 
+const PHONE_ROUTE_DASH = [12, 8] as const;
+
 /** Google polylines have no dash option: a dashed line is a hidden stroke with a repeating symbol. */
 export function routeStrokeStyle(line: RouteLine, focused: boolean) {
   const strokeOpacity = focused ? 0.9 : 0.3;
   const strokeWeight = focused ? 5 : 3;
   const zIndex = focused ? 20 : 5;
-  const dash = ROUTE_DASH[line];
+  // The phone flow draws everyone's line the same way, whatever the mode
+  const dash = usePhonePlanStore.getState().active ? PHONE_ROUTE_DASH : ROUTE_DASH[line];
   if (!dash) return { strokeOpacity, strokeWeight, zIndex, icons: [] };
 
   const [length, gap] = dash;
