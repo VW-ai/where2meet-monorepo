@@ -622,6 +622,23 @@ GET /api/amap/reverse-geocode?lat=<纬度>&lng=<经度>
 
 ---
 
+### 4.5 场所照片
+
+```
+GET /api/places/photo?ref=<Google photo_reference>&w=<宽度，默认 400，最大 1600>
+```
+
+**说明**：Google 场所的 `photoUrl` 指向这里。服务器带着自己的 key 问 Google，然后 302 跳到 Google 的图片地址（不含 key），`Cache-Control: public, max-age=86400`。限流同地图接口（每个 IP 每分钟 60 次）。库里旧的 `maps.googleapis.com/.../place/photo?...&key=` 地址在返回前会改写成这个地址，所以 API 不会把 key 发给客户端。
+
+**错误响应：**
+| 状态码 | code | 说明 |
+|--------|------|------|
+| 400 | VALIDATION_ERROR | ref 不是 Google 照片引用 |
+| 404 | NOT_FOUND | Google 没有这张照片 |
+| 429 | | 超过限流 |
+
+---
+
 ## 五、Vote 模块
 
 ### 5.1 投票

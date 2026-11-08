@@ -31,6 +31,11 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().optional(),
   CORS_ORIGIN: z.string().default("*"),
 
+  // Public origin of this API, for URLs the API hands to clients (venue photos).
+  // Defaults to the domain Railway injects, then to localhost.
+  PUBLIC_API_URL: z.url().optional(),
+  RAILWAY_PUBLIC_DOMAIN: z.string().optional(),
+
   // Database
   DATABASE_URL: z.string().min(1),
 
@@ -100,6 +105,14 @@ function loadConfig(): Env {
  * ```
  */
 export const config = loadConfig();
+
+/** Origin clients use to reach this API, without a trailing slash. */
+export const publicApiUrl = (
+  config.PUBLIC_API_URL ??
+  (config.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${config.RAILWAY_PUBLIC_DOMAIN}`
+    : `http://localhost:${String(config.PORT)}`)
+).replace(/\/+$/, "");
 
 /** True when NODE_ENV is "development" */
 export const isDevelopment = config.NODE_ENV === "development";

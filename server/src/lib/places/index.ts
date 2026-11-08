@@ -17,6 +17,8 @@ export {
   searchNearbyPlaces,
   textSearchPlaces,
   getPlaceDetails,
-  buildPhotoUrl,
   isPlacesConfigured,
 } from "./search.js";
+
+// Photos
+export { photoProxyUrl, publicPhotoUrl, resolvePlacePhoto, PHOTO_WIDTH } from "./photo.js";

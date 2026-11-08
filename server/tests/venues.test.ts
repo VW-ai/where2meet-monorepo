@@ -263,8 +263,7 @@ describe("Venue Endpoints", () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.photoUrl).toContain("maps.googleapis.com");
-      expect(body.photoUrl).toContain("photo_ref_123");
+      expect(body.photoUrl).toBe("http://localhost:3001/api/places/photo?ref=photo_ref_123&w=400");
     });
   });
 });
