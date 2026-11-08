@@ -17,16 +17,10 @@ import {
 import { suggestPlaces, reverseGeocodePoint } from "../services/amap.js";
 import { toAmapSuggestResponse, toAmapReverseGeocodeResponse } from "../mappers/amap.mapper.js";
 import { ValidationError } from "../types/errors.js";
+import { RATE_LIMITS } from "../lib/rateLimits.js";
 
 type SuggestRequest = FastifyRequest<{ Querystring: AmapSuggestQuery }>;
 type ReverseGeocodeRequest = FastifyRequest<{ Querystring: AmapReverseGeocodeQuery }>;
-
-/**
- * Suggestions use AMap's small search quota (5,000 calls a month on a personal
- * key), so each client gets far fewer than the global limit. Applies when the
- * rate-limit plugin is registered (production).
- */
-const SUGGEST_RATE_LIMIT = { rateLimit: { max: 60, timeWindow: 60_000 } };
 
 /**
  * Registers AMap lookup routes on the Fastify instance.
@@ -42,7 +36,7 @@ export function amapRoutes(fastify: FastifyInstance): void {
    */
   fastify.get(
     "/api/amap/suggest",
-    { config: SUGGEST_RATE_LIMIT },
+    { config: RATE_LIMITS.maps },
     async (request: SuggestRequest, reply: FastifyReply) => {
       const parseResult = AmapSuggestQuerySchema.safeParse(request.query);
       if (!parseResult.success) {
@@ -61,6 +55,7 @@ export function amapRoutes(fastify: FastifyInstance): void {
    */
   fastify.get(
     "/api/amap/reverse-geocode",
+    { config: RATE_LIMITS.maps },
     async (request: ReverseGeocodeRequest, reply: FastifyReply) => {
       const parseResult = AmapReverseGeocodeQuerySchema.safeParse(request.query);
       if (!parseResult.success) {

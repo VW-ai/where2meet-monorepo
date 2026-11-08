@@ -37,9 +37,11 @@ import { rateLimitKey } from "./lib/rateLimitKey.js";
  *
  * Configuration includes:
  * - Structured logging with Pino (disabled in tests)
- * - Rate limiting based on environment configuration
+ * - Per-route rate limits (on in production; tests opt in with `rateLimits: true`)
  * - Global error handler for consistent error responses
  * - Health check endpoints
+ * @param options - Build options
+ * @param options.rateLimits - Register the rate limiter (default: production only)
  * @returns Configured Fastify server instance (not yet listening)
  * @example
  * ```typescript
@@ -52,7 +54,7 @@ import { rateLimitKey } from "./lib/rateLimitKey.js";
  * await server.listen({ port: 3000 });
  * ```
  */
-export async function buildServer() {
+export async function buildServer({ rateLimits = isProduction } = {}) {
   const server = Fastify({
     logger: isTest
       ? false
@@ -126,11 +128,10 @@ export async function buildServer() {
     methods: ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   });
 
-  // Register rate limiting (production only)
-  if (isProduction) {
+  // Only routes with `config.rateLimit` (see lib/rateLimits.ts) are limited.
+  if (rateLimits) {
     await server.register(rateLimit, {
-      max: config.RATE_LIMIT_MAX,
-      timeWindow: config.RATE_LIMIT_WINDOW_MS,
+      global: false,
       keyGenerator: (request) => rateLimitKey(request, config.RATE_LIMIT_PROXY_SECRET),
       errorResponseBuilder: () => ({
         error: {

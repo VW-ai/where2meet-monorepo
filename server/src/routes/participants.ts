@@ -38,6 +38,7 @@ import type {
   ParticipantUpdatedPayload,
   ParticipantRemovedPayload,
 } from "../types/sse.js";
+import { RATE_LIMITS } from "../lib/rateLimits.js";
 
 /**
  * Route parameter types.
@@ -107,6 +108,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
   fastify.post<{ Params: EventParams; Body: CreateParticipantInput }>(
     "/api/events/:id/participants",
     {
+      config: RATE_LIMITS.maps,
       preHandler: [createVerifyToken({ optional: true, requireOrganizer: true })],
     },
     async (
@@ -162,6 +164,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
   fastify.post<{ Params: EventParams; Body: ParticipantPreviewInput }>(
     "/api/events/:id/participant-preview",
     {
+      config: RATE_LIMITS.maps,
       preHandler: [createVerifyToken({ requireOrganizer: true })],
     },
     async (request, reply) => {
@@ -193,6 +196,7 @@ export function participantRoutes(fastify: FastifyInstance): void {
   fastify.patch<{ Params: ParticipantParams; Body: UpdateParticipantInput }>(
     "/api/events/:id/participants/:participantId",
     {
+      config: RATE_LIMITS.maps,
       preHandler: [createVerifyParticipantAccess()],
     },
     async (

@@ -18,6 +18,7 @@ import {
 import { toVenueSearchResponse, toVenueDetailsResponse } from "../mappers/venue.mapper.js";
 import { ValidationError } from "../types/errors.js";
 import { extractBearerToken } from "../utils/auth.js";
+import { RATE_LIMITS } from "../lib/rateLimits.js";
 
 /**
  * Request types for route handlers.
@@ -42,51 +43,59 @@ export function venueRoutes(fastify: FastifyInstance): void {
    * response. When the token belongs to someone in that meeting, the search is recorded for
    * the owner's usage panel in the background, so the response never waits on the database.
    */
-  fastify.post("/api/venues/search", async (request: SearchVenuesRequest, reply: FastifyReply) => {
-    // Validate request body
-    const parseResult = SearchVenuesSchema.safeParse(request.body);
-    if (!parseResult.success) {
-      throw parseResult.error;
-    }
+  fastify.post(
+    "/api/venues/search",
+    { config: RATE_LIMITS.maps },
+    async (request: SearchVenuesRequest, reply: FastifyReply) => {
+      // Validate request body
+      const parseResult = SearchVenuesSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        throw parseResult.error;
+      }
 
-    const { center, searchRadius, query, categories, mapProvider, eventId } = parseResult.data;
-    const token = extractBearerToken(request.headers.authorization);
+      const { center, searchRadius, query, categories, mapProvider, eventId } = parseResult.data;
+      const token = extractBearerToken(request.headers.authorization);
 
-    const { places, searchCenter } = await venueService.searchVenues(center, searchRadius, {
-      query,
-      categories,
-      mapProvider,
-    });
-
-    const response = toVenueSearchResponse(places, searchCenter);
-
-    if (eventId && query && token) {
-      void recordVenueSearch(fastify.db, {
-        eventId,
-        token,
+      const { places, searchCenter } = await venueService.searchVenues(center, searchRadius, {
         query,
-        resultCount: places.length,
+        categories,
+        mapProvider,
       });
-    }
 
-    return reply.send(response);
-  });
+      const response = toVenueSearchResponse(places, searchCenter);
+
+      if (eventId && query && token) {
+        void recordVenueSearch(fastify.db, {
+          eventId,
+          token,
+          query,
+          resultCount: places.length,
+        });
+      }
+
+      return reply.send(response);
+    }
+  );
 
   /**
    * GET /api/venues/:id
    * Returns detailed information about a venue.
    * No authentication required.
    */
-  fastify.get("/api/venues/:id", async (request: GetVenueDetailsRequest, reply: FastifyReply) => {
-    // Validate params
-    const parseResult = VenueIdSchema.safeParse(request.params);
-    if (!parseResult.success) {
-      throw new ValidationError("Invalid venue ID");
+  fastify.get(
+    "/api/venues/:id",
+    { config: RATE_LIMITS.maps },
+    async (request: GetVenueDetailsRequest, reply: FastifyReply) => {
+      // Validate params
+      const parseResult = VenueIdSchema.safeParse(request.params);
+      if (!parseResult.success) {
+        throw new ValidationError("Invalid venue ID");
+      }
+
+      const details = await venueService.getVenueDetails(parseResult.data.id);
+      const response = toVenueDetailsResponse(details);
+
+      return reply.send(response);
     }
-
-    const details = await venueService.getVenueDetails(parseResult.data.id);
-    const response = toVenueDetailsResponse(details);
-
-    return reply.send(response);
-  });
+  );
 }
