@@ -10,7 +10,7 @@ import {
   searchNearbyPlaces,
   textSearchPlaces,
   getPlaceDetails,
-  buildPhotoUrl,
+  photoProxyUrl,
   CATEGORY_TO_PLACE_TYPE,
 } from "../places/index.js";
 import { calculateBatchRoutes } from "../directions/index.js";
@@ -24,6 +24,6 @@ export const googleProvider: MapProviderClient = {
     searchNearbyPlaces(center, radiusMeters, { type: CATEGORY_TO_PLACE_TYPE[category] }),
   textSearch: textSearchPlaces,
   getDetails: getPlaceDetails,
-  photoUrl: (photoReference) => buildPhotoUrl(photoReference),
+  photoUrl: (photoReference) => photoProxyUrl(photoReference),
   calculateBatchRoutes,
 };

@@ -9,6 +9,7 @@
 import type { Vote, Venue } from "@prisma/client";
 import type { VoteStats } from "../repositories/vote.js";
 import type { VoteStatisticsPayload } from "../types/sse.js";
+import { publicPhotoUrl } from "../lib/places/index.js";
 import {
   VoteResponseSchema,
   VenueWithVotesSchema,
@@ -55,7 +56,7 @@ export function toVenueWithVotesResponse(
     category: venue.category,
     rating: venue.rating ? Number(venue.rating) : null,
     priceLevel: venue.priceLevel,
-    photoUrl: venue.photoUrl,
+    photoUrl: publicPhotoUrl(venue.photoUrl),
     voteCount,
     voters: voterIds,
   };
