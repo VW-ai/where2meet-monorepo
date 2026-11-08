@@ -12,6 +12,8 @@ import { useVotingStore } from '@/features/voting/model/voting-store';
 import type { TravelMode } from '@/shared/types/map';
 import { ParticipantSection } from '../participant-section';
 import { PlanTicket, isPublishMoment } from '../plan-ticket';
+import { PlacesPanel } from '../../mobile/phone-places';
+import { usePhonePlanStore } from '@/features/meeting/model/phone-plan-store';
 import { VenueSection } from '../venue-section';
 import { VersionedVenuePanel } from '../versioned-venue-panel';
 
@@ -627,6 +629,47 @@ describe('PlanTicket', () => {
   it('offers the organizer a way to change the spot', () => {
     arrange({ event: published, role: 'organizer' });
     expect(ticket()).toContain('Change the spot');
+  });
+});
+
+describe('phone places trip line', () => {
+  const places = (detent: 'small' | 'mid' = 'small') => {
+    usePhonePlanStore.setState({ detent, searchOpen: false });
+    useAuthStore.setState({ participantToken: 'token' });
+    return textOf(renderToStaticMarkup(<PlacesPanel lockable={false} />));
+  };
+  const allFour = ['sam', 'maya', 'jun', 'theo'].map((id, i) => route(id, 600 + i * 300));
+
+  beforeEach(() => usePhonePlanStore.setState({ expandedVenueId: null }));
+
+  it('says everyone only when everyone has a route', () => {
+    arrange({ routes: allFour });
+    expect(places()).toContain('Everyone within 25 min');
+  });
+
+  it('counts the people with a route instead of waiting forever', () => {
+    arrange({ routes: allFour.slice(0, 2) });
+    const text = places();
+    expect(text).not.toContain('Everyone within');
+    expect(text).not.toContain('Finding trip times');
+    expect(text).toContain('2 of 4 within 15 min');
+  });
+
+  it('says a failed request failed and offers a retry', () => {
+    arrange({ routes: allFour.slice(0, 3) });
+    useMapStore.setState({ tripRequests: { theo: 'failed' } });
+    const text = places();
+    expect(text).toContain('Some trips didn’t load. Try again');
+    expect(text).not.toContain('within');
+  });
+
+  it('lists who has no route or a failed trip in the expanded bars', () => {
+    arrange({ routes: allFour.slice(0, 2) });
+    useMapStore.setState({ tripRequests: { jun: 'failed' } });
+    usePhonePlanStore.setState({ expandedVenueId: KETTLE.id });
+    const text = places('mid');
+    expect(text).toContain('Jun Couldn’t load');
+    expect(text).toContain('Theo No route');
   });
 });
 

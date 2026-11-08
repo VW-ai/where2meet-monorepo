@@ -8,8 +8,8 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { invitationFor, isPublished } from '@/features/invitation/model/invitation';
 import type { Event } from '@/entities';
 import { hasStartingPoint, routeKey } from '@/features/meeting/lib/person-routes';
-import { formatTripTime, tripClaim, tripOf, type Trip } from '@/features/meeting/lib/route-summary';
-import { useMapStore, type RouteInfo } from '@/features/meeting/model/map-store';
+import { formatTripTime, tripClaim } from '@/features/meeting/lib/route-summary';
+import { useVenueTrips } from '@/features/meeting/hooks/useVenueTrips';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useRouteCacheStore } from '@/features/meeting/model/route-cache-store';
 import { unpublishVenue } from '@/features/meeting/model/publish-venue';
@@ -64,18 +64,14 @@ function usePublishStamp(sighting: PublishSighting) {
   return stamp;
 }
 
-/**
- * Everyone's trip to the spot. The map only holds routes for the selected venue, so when the spot
- * isn't selected, as after a reload, the ticket looks the trips up itself.
- */
+/** The map has no routes for the spot after a reload, so the ticket asks for the ones it lacks. */
 function useSpotTrips(event: Event | null, spotId: string | null) {
   const spotSelected = useMeetingStore((state) => !!spotId && state.selectedVenue?.id === spotId);
-  const { routes, tripRequests, isCalculatingRoutes } = useMapStore();
   const entries = useRouteCacheStore((state) => state.entries);
   const token = useAuthStore((state) => state.organizerToken || state.participantToken);
-  const people = event?.participants ?? [];
+  const trips = useVenueTrips(spotId);
   const unknown = spotId
-    ? people
+    ? (event?.participants ?? [])
         .filter(hasStartingPoint)
         .map((person) => routeKey(spotId, person))
         .filter((key) => !entries[key])
@@ -90,18 +86,7 @@ function useSpotTrips(event: Event | null, spotId: string | null) {
     // Only a person whose trip isn't known yet is worth a request, so `event` itself isn't a dep
   }, [spotSelected, unknown, spotId, token]);
 
-  if (!spotId) return null;
-  if (spotSelected) {
-    return isCalculatingRoutes
-      ? null
-      : people.map((person) => tripOf(person, routes, tripRequests[person.id]));
-  }
-  return people.map((person): Trip<RouteInfo> => {
-    if (!hasStartingPoint(person)) return { status: 'no-start' };
-    const lookup = entries[routeKey(spotId, person)];
-    if (lookup?.status === 'found') return { status: 'found', route: lookup.route };
-    return lookup?.status === 'none' ? { status: 'none' } : { status: 'pending' };
-  });
+  return trips;
 }
 
 export function PlanTicket() {
@@ -132,7 +117,7 @@ export function PlanTicket() {
 
   const venue = selectedVenue?.id === spotId ? selectedVenue : (venueById[spotId] ?? null);
   const { title, when } = invitationFor(event, venue, '');
-  const claim = trips && tripClaim(trips);
+  const claim = tripClaim(trips);
 
   const changeSpot = async () => {
     if (!organizerToken) return;
