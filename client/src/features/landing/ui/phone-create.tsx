@@ -253,6 +253,7 @@ export function PhoneCreate() {
   const locale = localeFor(mapProvider);
   const [title, setTitle] = useState('');
   const [when, setWhen] = useState<Date | null>(null);
+  const [today, setToday] = useState<Date | null>(null);
   const [focused, setFocused] = useState(false);
   const [picking, setPicking] = useState(false);
   const [shake, setShake] = useState(false);
@@ -268,7 +269,9 @@ export function PhoneCreate() {
   const t = messages[locale];
 
   useEffect(() => {
-    setWhen(defaultMeetingDate(new Date()));
+    const now = new Date();
+    setToday(now);
+    setWhen(defaultMeetingDate(now));
     if (isMainlandChinaTimeZone(browserTimeZone())) setMapProvider('amap');
   }, []);
 
@@ -331,7 +334,6 @@ export function PhoneCreate() {
   const word = trimmed || idea;
   const shortPick = picking && window.innerHeight < SHORT_SCREEN;
   const nameSize = trimmed.length > 26 ? 22 : trimmed.length > 16 ? 26 : 32;
-  const now = new Date();
 
   return (
     <LocaleProvider locale={locale}>
@@ -425,7 +427,7 @@ export function PhoneCreate() {
               </div>
               {!focused && !shortPick && (
                 <div className="pp-ticket-foot">
-                  <span>{t.issued(whenText.issued(now, locale))}</span>
+                  <span>{today ? t.issued(whenText.issued(today, locale)) : ' '}</span>
                   <span>{t.draft}</span>
                 </div>
               )}
