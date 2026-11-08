@@ -172,12 +172,11 @@ describe("SSE Stream Endpoint", () => {
     };
 
     beforeEach(async () => {
-      // Get the organizer participant ID
-      const eventData = await server.db.event.findUnique({
-        where: { id: testEventId },
-        include: { participants: true },
+      // The event also has guests added by earlier tests, and Postgres returns rows in no fixed order.
+      const organizer = await server.db.participant.findFirstOrThrow({
+        where: { eventId: testEventId, isOrganizer: true },
       });
-      testParticipantId = eventData!.participants[0].id;
+      testParticipantId = organizer.id;
     });
 
     it("should trigger vote:changed broadcast when casting a vote", async () => {

@@ -992,6 +992,13 @@ The organizer now sees where someone would start, and each way there, before add
 #### Test Summary
 - New: `tests/participant-preview.test.ts`
 
+### Account Deletion
+
+`DELETE /api/users/me` deletes the account and ends the session. A meeting the person organized that nobody else joined is deleted. In any other meeting, their participant row keeps its place as "Former guest", and its name, starting point, token, visits and searches are removed.
+
+#### Test Summary
+- New: 5 cases in `tests/users.test.ts`, run against the local Postgres and Redis.
+
 ## 2026-11-08
 
 ### Venue photos through the API
