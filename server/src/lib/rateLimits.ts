@@ -11,6 +11,11 @@ export const RATE_LIMITS = {
    * opening a venue every six seconds.
    */
   maps: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+  /**
+   * Venue photos. Every search shows a photo per result card, so a few
+   * searches on one Wi-Fi pass 60 quickly. Google's daily photo cap bounds spend.
+   */
+  photos: { rateLimit: { max: 300, timeWindow: "1 minute" } },
   /** Password guessing and account spam. */
   auth: { rateLimit: { max: 10, timeWindow: "15 minutes" } },
   /** Meeting spam. A real organizer creates a handful a day. */

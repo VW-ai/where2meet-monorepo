@@ -35,7 +35,7 @@ const PHOTO_CACHE_CONTROL = "public, max-age=86400";
 export function placesRoutes(fastify: FastifyInstance): void {
   fastify.get(
     "/api/places/photo",
-    { config: RATE_LIMITS.maps },
+    { config: RATE_LIMITS.photos },
     async (request: PhotoRequest, reply: FastifyReply) => {
       const parseResult = PhotoQuerySchema.safeParse(request.query);
       if (!parseResult.success) {

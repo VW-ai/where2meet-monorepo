@@ -48,9 +48,9 @@ describe("per-route rate limits", () => {
     expect(await statuses(server, reverseGeocode, 3)).not.toContain(429);
   });
 
-  it("limits venue photos like other map routes", async () => {
+  it("limits venue photos after 300 requests", async () => {
     const server = await limitedServer();
-    expect(firstLimited(await statuses(server, photo, 61))).toBe(61);
+    expect(firstLimited(await statuses(server, photo, 301))).toBe(301);
   });
 
   it("limits login and register after 10 requests each", async () => {
