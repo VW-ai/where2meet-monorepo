@@ -27,6 +27,9 @@
 - phrase: date night bars
   occasion: date-night
   note: Bars for a date night, as searched with a city or neighborhood
+- phrase: date night spots
+  occasion: date-night
+  note: A "where to" search for date night places of any kind, added 2026-11-09 because every other date night phrase already has a post
 - phrase: team meeting location
   occasion: team-meeting
 - phrase: where to hold a team meeting
