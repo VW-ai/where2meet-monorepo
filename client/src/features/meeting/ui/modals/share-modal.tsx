@@ -8,6 +8,7 @@ import { invitationFor, isPublished } from '@/features/invitation/model/invitati
 import { InvitationScreen } from '@/features/invitation/ui/invitation-screen';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
+import { meetingShareUrl } from '@/shared/lib/meeting-link';
 
 const messages = defineMessages({
   en: {
@@ -88,7 +89,9 @@ function LinkShareModal() {
   }, [isShareModalOpen, handleEscape]);
 
   const shareUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/meet/${currentEvent?.id || ''}` : '';
+    typeof window !== 'undefined' && currentEvent
+      ? meetingShareUrl(window.location.origin, currentEvent.id)
+      : '';
 
   const handleCopy = async () => {
     try {

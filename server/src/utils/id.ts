@@ -132,3 +132,21 @@ export function generateSessionId(): string {
 export function generateUserEventId(): string {
   return `ue_${generateHexId(HEX_ID_LENGTH)}`;
 }
+
+/**
+ * Length of the code in a short meeting link (where2meet.org/m/<code>). It is
+ * the start of the ID's random part: about 59 bits, too many to guess.
+ */
+const SHORT_CODE_LENGTH = 10;
+
+/** Matches a short link code. */
+export const SHORT_CODE_PATTERN = new RegExp(`^[a-zA-Z0-9]{${String(SHORT_CODE_LENGTH)}}$`);
+
+/**
+ * The short link code for an event ID.
+ * @example
+ * shortCodeOf("evt_1702000000000_a8K3mX2pQrS7nBvW") // "a8K3mX2pQr"
+ */
+export function shortCodeOf(eventId: string): string {
+  return (eventId.split("_")[2] ?? "").slice(0, SHORT_CODE_LENGTH);
+}

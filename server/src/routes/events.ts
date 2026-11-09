@@ -27,7 +27,9 @@ import {
 } from "../mappers/event.mapper.js";
 import { createDeleteSuccessResponse } from "../dto/index.js";
 import { createVerifyToken } from "../hooks/auth.js";
-import { ValidationError } from "../types/errors.js";
+import { NotFoundError, ValidationError } from "../types/errors.js";
+import { SHORT_CODE_PATTERN } from "../utils/id.js";
+import { createEventRepository } from "../repositories/event.js";
 import type { EventUpdatedPayload, EventPublishedPayload } from "../types/sse.js";
 import type { ParticipantMeResponse } from "../dto/participant.dto.js";
 import { createVenueService } from "../services/venue.js";
@@ -45,6 +47,7 @@ type GetEventRequest = FastifyRequest<{ Params: EventIdParam }>;
  * Endpoints:
  * - POST /api/events - Create a new event
  * - GET /api/events/:id - Get event details
+ * - GET /api/events/short/:code - Get the event ID a short link points to
  * - GET /api/events/:id/mec - Get MEC (Minimum Enclosing Circle) for event
  * - PATCH /api/events/:id - Update event (requires auth)
  * - DELETE /api/events/:id - Delete event (requires auth)
@@ -53,6 +56,7 @@ type GetEventRequest = FastifyRequest<{ Params: EventIdParam }>;
  */
 export function eventRoutes(fastify: FastifyInstance): void {
   const eventService = createEventService(fastify.db);
+  const eventRepository = createEventRepository(fastify.db);
 
   /**
    * POST /api/events
@@ -92,6 +96,22 @@ export function eventRoutes(fastify: FastifyInstance): void {
     const response = toEventResponse(event);
 
     return reply.send(response);
+  });
+
+  /**
+   * GET /api/events/short/:code
+   * Resolves a short meeting link (where2meet.org/m/<code>) to its event ID.
+   */
+  fastify.get<{ Params: { code: string } }>("/api/events/short/:code", async (request, reply) => {
+    const { code } = request.params;
+    if (!SHORT_CODE_PATTERN.test(code)) {
+      throw new ValidationError("Invalid short link code");
+    }
+    const id = await eventRepository.findIdByShortCode(code);
+    if (!id) {
+      throw new NotFoundError("Event");
+    }
+    return reply.send({ id });
   });
 
   /**

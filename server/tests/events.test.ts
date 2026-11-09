@@ -268,6 +268,49 @@ describe("Event Endpoints", () => {
     });
   });
 
+  describe("GET /api/events/short/:code", () => {
+    it("resolves a meeting's short link code to its ID", async () => {
+      const created = await server.inject({
+        method: "POST",
+        url: "/api/events",
+        payload: { title: "Short link" },
+      });
+      const id = created.json<{ id: string }>().id;
+      const code = id.split("_")[2]?.slice(0, 10);
+
+      const response = await server.inject({ method: "GET", url: `/api/events/short/${code}` });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ id });
+    });
+
+    it("answers 404 for a code no meeting has", async () => {
+      const response = await server.inject({ method: "GET", url: "/api/events/short/zzzzzzzzzz" });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("does not match a code against the timestamp", async () => {
+      const created = await server.inject({
+        method: "POST",
+        url: "/api/events",
+        payload: { title: "Timestamp" },
+      });
+      const timestamp = created.json<{ id: string }>().id.split("_")[1]?.slice(0, 10);
+
+      const response = await server.inject({
+        method: "GET",
+        url: `/api/events/short/${timestamp}`,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("rejects a code of the wrong shape", async () => {
+      const response = await server.inject({ method: "GET", url: "/api/events/short/abc" });
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
   describe("PATCH /api/events/:id", () => {
     let createdEventId: string;
     let participantToken: string;

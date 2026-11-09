@@ -26,6 +26,7 @@ import { ClaimList } from '../sidebar/claim-list';
 import { PICKER_MODES, pickerMode } from '../sidebar/transport-parts';
 import { travelModeMessages } from '../sidebar/travel-type-filter';
 import { Avatar, Cta } from './phone-parts';
+import { meetingShareUrl } from '@/shared/lib/meeting-link';
 
 const messages = defineMessages({
   en: {
@@ -308,7 +309,7 @@ function PersonRow({
 
 export async function shareMeeting(eventId: string | undefined, title: string | undefined) {
   if (!eventId) return;
-  const url = `${window.location.origin}/meet/${eventId}`;
+  const url = meetingShareUrl(window.location.origin, eventId);
   phonePlan.invite();
   if (typeof navigator.share === 'function') {
     try {
@@ -320,11 +321,9 @@ export async function shareMeeting(eventId: string | undefined, title: string | 
   }
   try {
     await navigator.clipboard.writeText(url);
-    useToastStore
-      .getState()
-      .showToast({
-        message: document.documentElement.lang === 'zh' ? '链接已复制' : 'Link copied',
-      });
+    useToastStore.getState().showToast({
+      message: document.documentElement.lang === 'zh' ? '链接已复制' : 'Link copied',
+    });
   } catch {
     useToastStore.getState().showToast({ message: url });
   }

@@ -20,6 +20,9 @@ export const eventsApi = {
   get: (id: string, init?: RequestInit) =>
     backendCall<Event>(`/api/events/${id}`, init).then(parseEventParticipants),
 
+  resolveShortCode: (code: string, init?: RequestInit) =>
+    backendCall<{ id: string }>(`/api/events/short/${code}`, init).then(({ id }) => id),
+
   update: (id: string, data: UpdateEventDTO, token: string) =>
     backendCall<Event>(`/api/events/${id}`, {
       method: 'PATCH',

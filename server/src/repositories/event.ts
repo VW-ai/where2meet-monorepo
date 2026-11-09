@@ -8,7 +8,7 @@
 import type { PrismaClient, Event, MapProvider, Participant } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import type { CreateEventInput, UpdateEventInput } from "../schemas/event.js";
-import { generateEventId } from "../utils/id.js";
+import { generateEventId, shortCodeOf } from "../utils/id.js";
 import { createLogger } from "../lib/logger.js";
 
 const logger = createLogger("EventRepository");
@@ -96,6 +96,21 @@ export class EventRepository {
     throw new Error(
       `Failed to generate unique event ID after ${String(MAX_ID_GENERATION_RETRIES)} attempts`
     );
+  }
+
+  /**
+   * Finds the event a short link code points to.
+   * @param code - Short link code (see shortCodeOf)
+   * @returns The event ID, or null when no single event has that code
+   */
+  async findIdByShortCode(code: string): Promise<string | null> {
+    const candidates = await this.db.event.findMany({
+      where: { id: { contains: `_${code}` } },
+      select: { id: true },
+      take: 2,
+    });
+    const matches = candidates.filter(({ id }) => shortCodeOf(id) === code);
+    return matches.length === 1 ? (matches[0]?.id ?? null) : null;
   }
 
   /**
