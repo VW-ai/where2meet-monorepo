@@ -237,6 +237,23 @@ POST /api/events/:id/publish
 
 ---
 
+### 2.5.1 短链接解析
+
+```
+GET /api/events/short/:code
+```
+
+`code` 是活动 ID 随机部分的前 10 个字符。网站的 `/m/<code>` 用它跳转到 `/meet/<id>`。无需认证，不限流（约 59 bits，无法猜中）。
+
+**Response (200)**: `{ "id": "evt_1702000000000_a8K3mX2pQrS7nBvW" }`
+
+| Status | Code | 说明 |
+|--------|------|------|
+| 400 | VALIDATION_ERROR | code 不是 10 位字母数字 |
+| 404 | NOT_FOUND | 没有对应的活动 |
+
+---
+
 ### 2.6 获取最小外接圆 (MEC)
 
 ```

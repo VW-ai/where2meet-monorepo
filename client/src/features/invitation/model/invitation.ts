@@ -2,6 +2,7 @@ import { Coffee, MapPin, Utensils, Wine, type IconNode } from 'lucide';
 import { getVenueCategory, type Event, type Venue, type VenueCategory } from '@/entities';
 import { getMutedHexColor } from '@/features/meeting/lib/participant-colors';
 import { LANGUAGE_TAGS, localeFor, type Locale } from '@/shared/lib/locale';
+import { meetingShareUrl } from '@/shared/lib/meeting-link';
 
 export type PublishedEvent = Event & { publishedAt: string; publishedVenueId: string };
 
@@ -61,7 +62,7 @@ export function invitationFor(
     locale,
     title: event.title,
     host: event.participants.find((p) => p.isOrganizer)?.name ?? null,
-    url: `${origin}/meet/${event.id}`,
+    url: meetingShareUrl(origin, event.id),
     code: invitationCode(event.id),
     kind: (venue && KIND_BY_CATEGORY[getVenueCategory(venue.types)]) ?? 'place',
     when: event.meetingTime

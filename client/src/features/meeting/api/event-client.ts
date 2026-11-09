@@ -8,6 +8,7 @@ import { eventsApi } from '@/lib/api/events';
 export const eventClient = {
   create: eventsApi.create,
   get: eventsApi.get,
+  resolveShortCode: eventsApi.resolveShortCode,
   update: eventsApi.update,
   delete: eventsApi.delete,
   publish: eventsApi.publish,

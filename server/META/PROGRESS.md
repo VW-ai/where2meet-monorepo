@@ -1012,3 +1012,10 @@ Venue `photoUrl` used to be Google's photo URL with the server key in it, so eve
 
 #### Test Summary
 - New: `tests/places-photo.test.ts`; photo route added to `tests/rate-limits.test.ts`.
+
+### Short meeting links
+
+Copied meeting links were `where2meet.org/meet/evt_<13-digit timestamp>_<16 random>`, which people read as gibberish. Shared links are now `where2meet.org/m/<code>`, where the code is the first 10 characters of the ID's random part (about 59 bits, so not guessable). `GET /api/events/short/:code` resolves it; the website's `/m/[code]` page redirects to `/meet/<id>`. No migration: the code comes from existing IDs, so every old meeting has a short link too. Old `/meet/<id>` links keep working.
+
+#### Test Summary
+- New: 4 cases in `tests/events.test.ts` (resolve, unknown code, timestamp is not matched, bad shape).
