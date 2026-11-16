@@ -21,6 +21,7 @@ import { participantErrorMessage } from '@/features/meeting/lib/participant-erro
 import { hasStartingPoint } from '@/features/meeting/lib/person-routes';
 import { venueSearchFilters } from '@/features/meeting/lib/venue-search-filters';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { requestSignInNudge } from '@/features/auth/model/sign-in-nudge';
 import { reverseGeocodePoint } from '@/shared/lib/map-provider';
 import { localeFor } from '@/shared/lib/locale';
 import type { Location, TravelMode } from '@/shared/types/map';
@@ -358,11 +359,13 @@ export const phonePlan = {
             travelMode: draft.travelMode,
           });
           analyticsEvents.joinEvent(eventId, response.id);
+          requestSignInNudge('join');
           putInEvent(signInAsParticipant(eventId, response));
           break;
         }
       }
       analyticsEvents.addLocation(eventId, address);
+      requestSignInNudge('location');
     } catch (error) {
       console.error('Error saving a person:', error);
       const locale = localeFor(useMeetingStore.getState().currentEvent?.mapProvider);

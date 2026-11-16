@@ -15,6 +15,7 @@ import { votingClient } from '@/features/voting/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { requestSignInNudge } from '@/features/auth/model/sign-in-nudge';
 
 interface VotingState {
   // Vote statistics from backend (indexed by venue ID)
@@ -136,6 +137,7 @@ export const useVotingStore = create<VotingState>((set, get) => ({
 
       // Track upvote in analytics
       analyticsEvents.voteVenue(eventId, venueId, 'up');
+      requestSignInNudge('vote');
 
       // Load fresh statistics from backend to reconcile
       await get().loadVoteStatistics(eventId);
