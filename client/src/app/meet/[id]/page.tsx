@@ -15,6 +15,7 @@ import { ParticipantStats } from '@/features/meeting/ui/sidebar/participant-stat
 import { ModalProvider } from '@/features/meeting/ui/modals';
 import { ToastHost } from '@/features/meeting/ui/toast-host';
 import { SignInNudge } from '@/features/auth/ui/sign-in-nudge';
+import { InviteLanding } from '@/features/meeting/ui/invite-landing';
 import { TutorialProvider } from '@/features/tutorial/ui';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { useParticipantStore } from '@/features/meeting/model/participant-store';
@@ -281,6 +282,7 @@ export default function MeetPage() {
 
           {/* Modals */}
           <ModalProvider />
+          <InviteLanding eventId={eventId} phone={phonePlan} />
           <SignInNudge eventId={eventId} />
           {!phonePlan && <ToastHost />}
         </div>

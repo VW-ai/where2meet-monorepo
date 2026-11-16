@@ -135,7 +135,9 @@ export function AddPersonForm({
   const defaultPlaceId = useAuthStore((state) => state.user?.defaultPlaceId);
   const openShareModal = useUIStore((state) => state.openShareModal);
 
-  const [name, setName] = useState('');
+  const profileName = useAuthStore((state) => state.user?.name);
+  // A signed-in person joining starts with their profile name
+  const [name, setName] = useState(kind === 'join' ? (profileName ?? '') : '');
   const [query, setQuery] = useState('');
   const [place, setPlace] = useState<PickedPlace | null>(null);
   const [mode, setMode] = useState<TravelMode>('driving');
