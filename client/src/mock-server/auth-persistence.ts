@@ -7,8 +7,6 @@ import {
   SessionsData,
   UserEventsData,
   PasswordResetTokensData,
-  OAuthStatesData,
-  OAuthState,
 } from '@/features/auth/types';
 
 const MOCK_DATA_DIR = path.join(process.cwd(), '.mock-data');
@@ -32,7 +30,7 @@ async function readJSON(filename: string) {
 
 async function writeJSON(
   filename: string,
-  data: UsersData | SessionsData | UserEventsData | PasswordResetTokensData | OAuthStatesData
+  data: UsersData | SessionsData | UserEventsData | PasswordResetTokensData
 ) {
   const filepath = path.join(MOCK_DATA_DIR, filename);
   await fs.writeFile(filepath, JSON.stringify(data, null, 2));
@@ -79,16 +77,6 @@ export const authPersistence = {
     await writeJSON('password-reset-tokens.json', data);
   },
 
-  // OAuth States
-  async getOAuthStates() {
-    await ensureFile('oauth-states.json', { states: {} });
-    return readJSON('oauth-states.json');
-  },
-
-  async saveOAuthStates(data: OAuthStatesData) {
-    await writeJSON('oauth-states.json', data);
-  },
-
   // Helpers
   generateId(prefix: string) {
     return `${prefix}_${randomBytes(16).toString('hex')}`;
@@ -104,58 +92,5 @@ export const authPersistence = {
 
   generateSessionToken() {
     return randomBytes(32).toString('hex');
-  },
-
-  generateOAuthState() {
-    return randomBytes(32).toString('hex');
-  },
-
-  async createOAuthState(provider: 'google' | 'github', redirectUrl: string) {
-    const stateId = this.generateId('state');
-    const stateToken = this.generateOAuthState();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes
-
-    const oauthState = {
-      id: stateId,
-      provider,
-      state: stateToken,
-      redirectUrl,
-      expiresAt: expiresAt.toISOString(),
-      createdAt: now.toISOString(),
-    };
-
-    const data = await this.getOAuthStates();
-    data.states[stateId] = oauthState;
-    await this.saveOAuthStates(data);
-
-    return oauthState;
-  },
-
-  async validateOAuthState(stateToken: string, provider: 'google' | 'github') {
-    const data = (await this.getOAuthStates()) as OAuthStatesData;
-    const state = Object.values(data.states).find(
-      (s: OAuthState) => s.state === stateToken && s.provider === provider
-    );
-
-    if (!state) {
-      return null;
-    }
-
-    // Check if expired
-    if (new Date(state.expiresAt) < new Date()) {
-      // Delete expired state
-      delete data.states[state.id];
-      await this.saveOAuthStates(data);
-      return null;
-    }
-
-    return state;
-  },
-
-  async deleteOAuthState(stateId: string) {
-    const data = await this.getOAuthStates();
-    delete data.states[stateId];
-    await this.saveOAuthStates(data);
   },
 };

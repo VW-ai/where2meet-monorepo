@@ -153,7 +153,3 @@ export const userEventsPersistence = new FilePersistence('user-events.json', {
 export const passwordResetTokensPersistence = new FilePersistence('password-reset-tokens.json', {
   tokens: {},
 });
-
-export const oauthStatesPersistence = new FilePersistence('oauth-states.json', {
-  states: {},
-});

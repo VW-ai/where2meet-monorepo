@@ -20,5 +20,4 @@ export const createEventId = () => generateId('evt');
 export const createParticipantId = () => generateId('prt');
 export const createVenueId = () => generateId('ven');
 export const createIdentityId = () => generateId('ident');
-export const createOAuthStateId = () => generateId('state');
 export const createPasswordResetTokenId = () => generateId('token');

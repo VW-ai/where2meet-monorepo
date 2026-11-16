@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-// import { OAuthButton } from '@/features/auth/ui/oauth-button'; // OAuth temporarily disabled
+import {
+  GoogleSignInButton,
+  isGoogleSignInEnabled,
+} from '@/features/auth/ui/google-sign-in-button';
 import catLogo from '@/components/cat/logo.svg';
 
 export default function SignInPage() {
@@ -53,21 +56,23 @@ export default function SignInPage() {
               Sign in to access your events and settings
             </p>
 
-            {/* OAuth temporarily disabled - backend not implemented yet
-            <div className="space-y-3 mb-6">
-              <OAuthButton provider="google" mode="signin" />
-              <OAuthButton provider="github" mode="signin" />
-            </div>
+            {isGoogleSignInEnabled() && (
+              <div className="mb-6 space-y-6">
+                <GoogleSignInButton
+                  text="signin_with"
+                  onSignedIn={() => router.push('/dashboard')}
+                />
 
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">OR</span>
+                  </div>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">OR</span>
-              </div>
-            </div>
-            */}
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
