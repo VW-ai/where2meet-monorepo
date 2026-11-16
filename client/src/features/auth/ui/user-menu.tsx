@@ -4,42 +4,20 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
 
-function initials(name: string | null | undefined, email: string | undefined) {
-  if (name?.trim()) {
-    return name
-      .trim()
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return email?.[0]?.toUpperCase() || 'U';
-}
-
-// The signed-in user's Google photo, or their initials
+// Same cat head as the people on a meeting page, in the brand red
 export function UserAvatar({ size = 'md' }: { size?: 'md' | 'lg' }) {
   const { user } = useAuthStore();
-  const [photoFailed, setPhotoFailed] = useState(false);
-  const box = size === 'lg' ? 'h-12 w-12 text-base' : 'h-9 w-9 text-xs';
+  const initial = (user?.name?.trim() || user?.email || '?').charAt(0).toUpperCase();
+  const box = size === 'lg' ? 'size-12 text-lg' : 'size-9 text-sm';
 
-  if (user?.avatarUrl && !photoFailed) {
-    return (
-      <img
-        src={user.avatarUrl}
-        alt=""
-        referrerPolicy="no-referrer"
-        onError={() => setPhotoFailed(true)}
-        className={`${box} rounded-full object-cover`}
-      />
-    );
-  }
   return (
-    <span
-      className={`${box} grid place-items-center rounded-full bg-[#c83f49] font-semibold text-white`}
-    >
-      {initials(user?.name, user?.email)}
+    <span className={`${box} relative grid flex-none place-items-center font-bold text-white`}>
+      <svg viewBox="0 0 100 100" aria-hidden="true" className="absolute inset-0 size-full">
+        <path d={CAT_HEAD_PATH} fill="#c83f49" />
+      </svg>
+      <span className="relative mt-[14%]">{initial}</span>
     </span>
   );
 }
@@ -88,7 +66,7 @@ export function UserMenu() {
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Account"
         aria-expanded={isOpen}
-        className="rounded-full ring-offset-2 transition-shadow hover:ring-2 hover:ring-white"
+        className="rounded-full transition-transform hover:scale-105 active:scale-95"
       >
         <UserAvatar />
       </button>
