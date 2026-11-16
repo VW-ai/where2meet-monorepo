@@ -25,6 +25,7 @@ import { participantClient } from '@/features/meeting/api';
 import { cn } from '@/shared/lib/cn';
 import type { Participant } from '@/entities';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { requestSignInNudge } from '@/features/auth/model/sign-in-nudge';
 import { participantErrorMessage } from '@/features/meeting/lib/participant-error-message';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
 
@@ -174,6 +175,7 @@ export function ParticipantSection() {
       ),
     });
     analyticsEvents.addLocation(currentEvent.id, data.address);
+    requestSignInNudge('location');
   };
 
   // "Add starting location" on your own card jumps to the prompt above the list
@@ -259,6 +261,7 @@ export function ParticipantSection() {
         // Track location update if address changed
         if (data.address && data.address !== editingParticipant.address) {
           analyticsEvents.addLocation(currentEvent.id, data.address);
+          requestSignInNudge('location');
         }
 
         setEditingParticipant(null);
@@ -292,6 +295,7 @@ export function ParticipantSection() {
 
           // Track participant added by organizer
           analyticsEvents.addLocation(currentEvent.id, data.address);
+          requestSignInNudge('location');
 
           if (version === 'v2') {
             showToast({
@@ -344,6 +348,7 @@ export function ParticipantSection() {
           // Track participant self-join
           analyticsEvents.joinEvent(currentEvent.id, response.id);
           analyticsEvents.addLocation(currentEvent.id, data.address);
+          requestSignInNudge('join');
         }
       }
 

@@ -10,6 +10,7 @@ import { useParticipantStore } from '@/features/meeting/model/participant-store'
 import { useToastStore } from '@/features/meeting/model/toast-store';
 import { APIError } from '@/lib/api/client';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { requestSignInNudge } from '@/features/auth/model/sign-in-nudge';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
 import type { TravelMode } from '@/shared/types/map';
 
@@ -145,7 +146,10 @@ export function useSavePersonDetails() {
     if (!eventId || !token) throw new Error('No authorization token available');
 
     patchParticipant(person.id, await participantClient.update(eventId, person.id, fields, token));
-    if (fields.address) analyticsEvents.addLocation(eventId, fields.address);
+    if (fields.address) {
+      analyticsEvents.addLocation(eventId, fields.address);
+      requestSignInNudge('location');
+    }
   }, []);
 }
 
@@ -179,6 +183,7 @@ export function useClaimParticipant() {
         useMapStore.getState().setSelectedParticipantId(person.id);
         void refreshEvent(eventId);
         analyticsEvents.joinEvent(eventId, person.id);
+        requestSignInNudge('join');
         showToast({
           message: t.claimed(person.name),
           action: { label: t.undo, run: () => void undo() },

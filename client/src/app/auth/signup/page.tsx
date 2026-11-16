@@ -9,6 +9,7 @@ import {
   isGoogleSignInEnabled,
 } from '@/features/auth/ui/google-sign-in-button';
 import { AuthCard, OrDivider, accountStyles as s } from '@/features/auth/ui/account-shell';
+import { nextPathFrom } from '@/features/auth/lib/next-path';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function SignUpPage() {
     setIsLoading(true);
     try {
       await register({ email, password, name });
-      router.push('/dashboard');
+      router.push(nextPathFrom(window.location.search));
     } catch {
       // The store holds the error
     } finally {
@@ -54,7 +55,15 @@ export default function SignUpPage() {
       footer={
         <>
           Already have an account?{' '}
-          <Link href="/auth/signin" className={s.link}>
+          <Link
+            href="/auth/signin"
+            className={s.link}
+            // Keeps ?next= so either page returns to where they started
+            onClick={(e) => {
+              e.preventDefault();
+              router.push(`/auth/signin${window.location.search}`);
+            }}
+          >
             Sign in
           </Link>
         </>
@@ -62,7 +71,10 @@ export default function SignUpPage() {
     >
       {isGoogleSignInEnabled() && (
         <div className="mb-5 space-y-5">
-          <GoogleSignInButton text="signup_with" onSignedIn={() => router.push('/dashboard')} />
+          <GoogleSignInButton
+            text="signup_with"
+            onSignedIn={() => router.push(nextPathFrom(window.location.search))}
+          />
           <OrDivider />
         </div>
       )}
