@@ -16,7 +16,11 @@
   --pp-safe-bottom-v: var(--pp-safe-bottom, env(safe-area-inset-bottom, 0px));
   --pp-anton: Anton, 'PingFang SC', 'Noto Sans SC', sans-serif;
   color: var(--pp-ink);
-  font-family: var(--font-sans, Inter), -apple-system, 'PingFang SC', sans-serif;
+  font-family:
+    var(--font-sans, Inter),
+    -apple-system,
+    'PingFang SC',
+    sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 .pp-plan {
@@ -1194,6 +1198,9 @@
   border-radius: 50%;
   background: rgb(255 255 255 / 0.18);
   color: #fff;
+}
+.pp-create-account[data-signed-in] {
+  background: none;
 }
 .pp-create-logo {
   flex: none;

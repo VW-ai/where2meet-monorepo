@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, Pencil, UserRound } from 'lucide-react';
 import catLogo from '@/components/cat/logo.svg';
+import { UserAvatar } from '@/features/auth/ui/user-menu';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { eventClient, participantClient } from '@/features/meeting/api';
 import {
@@ -357,9 +358,14 @@ export function PhoneCreate() {
               <a
                 href={isAuthenticated ? '/dashboard' : '/auth/signin'}
                 className="pp-create-account"
+                data-signed-in={isAuthenticated || undefined}
                 aria-label={t.account}
               >
-                <UserRound size={21} aria-hidden="true" />
+                {isAuthenticated ? (
+                  <UserAvatar onRed />
+                ) : (
+                  <UserRound size={21} aria-hidden="true" />
+                )}
               </a>
             </div>
             <button

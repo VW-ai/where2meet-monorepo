@@ -6,16 +6,44 @@ import { CalendarDays, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
 
-// Same cat head as the people on a meeting page, in the brand red
-export function UserAvatar({ size = 'md' }: { size?: 'md' | 'lg' }) {
+// The cat head from the logo, as a mask, so a photo takes the same shape
+const CAT_HEAD_MASK = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='${CAT_HEAD_PATH}'/></svg>`
+)}") center / contain no-repeat`;
+
+// The signed-in user's Google photo in the cat-head shape, or their initial on brand red
+export function UserAvatar({
+  size = 'md',
+  onRed = false,
+}: {
+  size?: 'md' | 'lg';
+  // A white head with a red initial, for red headers
+  onRed?: boolean;
+}) {
   const { user } = useAuthStore();
+  const [photoFailed, setPhotoFailed] = useState(false);
   const initial = (user?.name?.trim() || user?.email || '?').charAt(0).toUpperCase();
   const box = size === 'lg' ? 'size-12 text-lg' : 'size-9 text-sm';
 
+  if (user?.avatarUrl && !photoFailed) {
+    return (
+      <img
+        src={user.avatarUrl}
+        alt=""
+        referrerPolicy="no-referrer"
+        onError={() => setPhotoFailed(true)}
+        style={{ mask: CAT_HEAD_MASK, WebkitMask: CAT_HEAD_MASK }}
+        className={`${box} block flex-none object-cover`}
+      />
+    );
+  }
+
   return (
-    <span className={`${box} relative grid flex-none place-items-center font-bold text-white`}>
+    <span
+      className={`${box} relative grid flex-none place-items-center font-bold ${onRed ? 'text-[#c83f49]' : 'text-white'}`}
+    >
       <svg viewBox="0 0 100 100" aria-hidden="true" className="absolute inset-0 size-full">
-        <path d={CAT_HEAD_PATH} fill="#c83f49" />
+        <path d={CAT_HEAD_PATH} fill={onRed ? '#fff' : '#c83f49'} />
       </svg>
       <span className="relative mt-[14%]">{initial}</span>
     </span>
