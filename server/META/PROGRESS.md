@@ -1019,3 +1019,12 @@ Copied meeting links were `where2meet.org/meet/evt_<13-digit timestamp>_<16 rand
 
 #### Test Summary
 - New: 4 cases in `tests/events.test.ts` (resolve, unknown code, timestamp is not matched, bad shape).
+
+## 2026-11-16
+
+### Sign in with Google (server)
+
+`POST /api/auth/google` takes `{ credential }`, the ID token Google Identity Services gives the browser (iOS will post the same). The token is checked with jose against Google's keys, our `GOOGLE_OAUTH_CLIENT_ID` and both Google issuers; empty client ID replies 503 `GOOGLE_SIGNIN_DISABLED`. The account is the one already linked to that Google `sub`, else the account with that email (linked), else a new verified account (201). Linking to an account whose email was never verified removes its password and all its sessions, since Google has proved who owns the address. Sets `session_token` like login. No migration.
+
+#### Test Summary
+- New: `tests/auth-google.test.ts` (7 cases) with a local RS256 key.
