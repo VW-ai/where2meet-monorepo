@@ -64,15 +64,6 @@ export interface UserEvent {
   createdAt: string;
 }
 
-export interface OAuthState {
-  id: string;
-  provider: 'google' | 'github';
-  state: string;
-  redirectUrl: string;
-  expiresAt: string;
-  createdAt: string;
-}
-
 export interface PasswordResetToken {
   id: string;
   userId: string;
@@ -102,10 +93,6 @@ export interface UserEventResponse {
   role: 'organizer' | 'participant';
   participantId: string | null;
   event: import('@/entities').Event;
-}
-
-export interface OAuthStatesData {
-  states: Record<string, OAuthState>;
 }
 
 export interface PasswordResetTokensData {

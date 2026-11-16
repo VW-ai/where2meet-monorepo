@@ -6,20 +6,7 @@ import Image from 'next/image';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { AddressAutocomplete } from '@/shared/ui/address-autocomplete';
 import { reverseGeocode } from '@/shared/lib/google-maps/geocoding';
-// import { OAuthButton } from '@/features/auth/ui/oauth-button'; // OAuth temporarily disabled
-// import { OAUTH_PROVIDERS } from '@/features/auth/lib/oauth-providers'; // OAuth temporarily disabled
-// import { userClient } from '@/features/user/api'; // OAuth temporarily disabled
 import catLogo from '@/components/cat/logo.svg';
-
-// OAuth temporarily disabled - keeping types for future use
-/*
-interface Identity {
-  id: string;
-  provider: 'email' | 'google' | 'github';
-  providerId: string;
-  createdAt: string;
-}
-*/
 
 export default function SettingsPage() {
   const { user, updateProfile, logout } = useAuthStore();
@@ -30,11 +17,6 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
-  // OAuth temporarily disabled - uncomment when backend implements OAuth
-  // const [identities, setIdentities] = useState<Identity[]>([]);
-  // const [isLoadingIdentities, setIsLoadingIdentities] = useState(true);
-  // const [unlinkingProvider, setUnlinkingProvider] = useState<string | null>(null);
-
   useEffect(() => {
     if (user) {
       setName(user.name || '');
@@ -42,54 +24,6 @@ export default function SettingsPage() {
       setPlaceId(user.defaultPlaceId || null);
     }
   }, [user]);
-
-  // OAuth temporarily disabled - uncomment when backend implements OAuth
-  /*
-  useEffect(() => {
-    const fetchIdentities = async () => {
-      try {
-        const data = await userClient.getIdentities();
-        setIdentities(data.identities);
-      } catch (error) {
-        console.error('Error fetching identities:', error);
-      } finally {
-        setIsLoadingIdentities(false);
-      }
-    };
-
-    if (user) {
-      fetchIdentities();
-    }
-  }, [user]);
-
-  const handleUnlinkProvider = async (provider: string) => {
-    if (
-      !confirm(`Are you sure you want to disconnect ${provider}? You can reconnect it anytime.`)
-    ) {
-      return;
-    }
-
-    setUnlinkingProvider(provider);
-
-    try {
-      await userClient.unlinkIdentity(provider);
-
-      // Refresh identities
-      const data = await userClient.getIdentities();
-      setIdentities(data.identities);
-
-      setSaveMessage(
-        `${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected successfully!`
-      );
-      setTimeout(() => setSaveMessage(''), 3000);
-    } catch (error) {
-      console.error('Error unlinking provider:', error);
-      setSaveMessage('Failed to disconnect provider. Please try again.');
-    } finally {
-      setUnlinkingProvider(null);
-    }
-  };
-  */
 
   const handleAddressChange = (value: string) => {
     setAddressInput(value);
@@ -268,13 +202,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-
-              {/* OAuth Connected Accounts - temporarily disabled until backend implements OAuth
-              <div className="pt-6 border-t border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Connected Accounts</h2>
-                ... (OAuth section hidden)
-              </div>
-              */}
 
               {saveMessage && (
                 <div
