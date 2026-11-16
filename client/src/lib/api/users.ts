@@ -10,7 +10,7 @@ export const usersApi = {
       body: JSON.stringify(data),
     }),
 
-  getEvents: () => apiCall<UserEventResponse[]>('/api/users/me/events'),
+  getEvents: () => apiCall<{ events: UserEventResponse[] }>('/api/users/me/events'),
 
   claimEvent: (data: ClaimTokenDTO) =>
     apiCall('/api/users/me/events/claim', {

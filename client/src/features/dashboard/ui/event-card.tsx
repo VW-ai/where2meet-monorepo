@@ -1,110 +1,107 @@
-'use client';
-
 import Link from 'next/link';
-import { Event } from '@/entities';
+import { Check } from 'lucide-react';
+import type { UserEventResponse } from '@/features/auth/types';
 
 interface EventCardProps {
-  event: Event;
-  role?: 'organizer' | 'participant';
+  userEvent: UserEventResponse;
+  isPast?: boolean;
 }
 
-export function EventCard({ event, role }: EventCardProps) {
-  const participantCount = event.participants?.length || 0;
-  const isPublished = event.publishedVenueId !== null;
+const MAX_FACES = 4;
 
-  const formattedDate = event.meetingTime
-    ? new Date(event.meetingTime).toLocaleDateString('en-US', {
+function formatWhen(meetingTime: string, timeZone: string | null) {
+  const options: Intl.DateTimeFormatOptions = { timeZone: timeZone ?? undefined };
+  try {
+    const date = new Date(meetingTime);
+    return {
+      day: date.toLocaleDateString('en-US', {
+        ...options,
         weekday: 'short',
         month: 'short',
         day: 'numeric',
-        year: 'numeric',
+      }),
+      time: date.toLocaleTimeString('en-US', {
+        ...options,
         hour: 'numeric',
         minute: '2-digit',
-      })
-    : 'No time set';
+        timeZoneName: timeZone ? 'short' : undefined,
+      }),
+    };
+  } catch {
+    return null;
+  }
+}
+
+const initial = (name: string) => name.trim().charAt(0).toUpperCase() || '?';
+
+export function EventCard({ userEvent, isPast = false }: EventCardProps) {
+  const { event, role } = userEvent;
+  const when = event.meetingTime ? formatWhen(event.meetingTime, event.meetingTimeZone) : null;
+  const faces = event.participants.slice(0, MAX_FACES);
+  const extra = event.participantCount - faces.length;
 
   return (
-    <Link href={`/meet/${event.id}`}>
-      <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100 cursor-pointer">
-        <div className="flex items-start justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{event.title}</h3>
-          <div className="flex gap-2 flex-shrink-0 ml-2">
-            {role && (
-              <span
-                className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  role === 'organizer'
-                    ? 'bg-coral-100 text-coral-700'
-                    : 'bg-lavender-100 text-lavender-700'
-                }`}
-              >
-                {role === 'organizer' ? 'Organizer' : 'Participant'}
-              </span>
-            )}
-            {isPublished && (
-              <span className="px-2 py-1 text-xs font-medium bg-mint-100 text-mint-700 rounded-full">
-                Published
-              </span>
-            )}
-          </div>
-        </div>
+    <Link
+      href={`/meet/${event.id}`}
+      className={`group block rounded-[22px] bg-white p-5 shadow-[0_4px_24px_rgba(23,37,45,0.08)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(23,37,45,0.14)] ${
+        isPast ? 'opacity-75 hover:opacity-100' : ''
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+            role === 'organizer' ? 'bg-[#fff0ef] text-[#bd3843]' : 'bg-[#eef1f4] text-[#555a62]'
+          }`}
+        >
+          {role === 'organizer' ? 'Organizer' : 'Joined'}
+        </span>
+        {event.publishedAt && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#e9f6ec] px-2.5 py-1 text-[11px] font-semibold text-[#2f6b3a]">
+            <Check size={12} strokeWidth={3} />
+            Place picked
+          </span>
+        )}
+      </div>
 
-        <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <span>{formattedDate}</span>
-          </div>
+      <h3 className="mt-3 line-clamp-2 text-[17px] font-bold leading-snug tracking-[-0.3px] text-[#21252b]">
+        {event.title}
+      </h3>
 
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-              />
-            </svg>
-            <span>
-              {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
-            </span>
-          </div>
-
-          {isPublished && event.publishedAt && (
-            <div className="flex items-center gap-2 text-mint-600">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span>
-                Published{' '}
-                {new Date(event.publishedAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </span>
-            </div>
+      <div className="mt-4 grid grid-cols-2 gap-4 border-t border-dashed border-[#e4e8ed] pt-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[1.5px] text-[#8b9098]">
+            When
+          </p>
+          {when ? (
+            <>
+              <p className="mt-1 text-sm font-semibold text-[#21252b]">{when.day}</p>
+              <p className="text-xs text-[#666b73]">{when.time}</p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-[#8b9098]">No time yet</p>
           )}
         </div>
-
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <span className="text-xs text-gray-500">
-            Created{' '}
-            {new Date(event.createdAt).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </span>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[1.5px] text-[#8b9098]">
+            Going
+          </p>
+          <div className="mt-1.5 flex items-center">
+            {faces.map((person) => (
+              <span
+                key={person.id}
+                title={person.name}
+                style={{ backgroundColor: person.color }}
+                className="-ml-1.5 grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold text-white ring-2 ring-white first:ml-0"
+              >
+                {initial(person.name)}
+              </span>
+            ))}
+            {extra > 0 && (
+              <span className="-ml-1.5 grid h-7 min-w-7 place-items-center rounded-full bg-[#eef1f4] px-1.5 text-[11px] font-semibold text-[#555a62] ring-2 ring-white">
+                +{extra}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </Link>

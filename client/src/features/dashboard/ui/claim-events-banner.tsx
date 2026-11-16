@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useTokenClaimer } from '@/features/auth/hooks/useTokenClaimer';
+import { accountStyles as s } from '@/features/auth/ui/account-shell';
 
-export function ClaimEventsBanner() {
+// Meetings opened in this browser before signing in, not yet on the account
+export function ClaimEventsBanner({ onClaimed }: { onClaimed?: () => void }) {
   const { unclaimedEvents, isScanning, claimAllEvents } = useTokenClaimer();
   const [isClaiming, setIsClaiming] = useState(false);
 
@@ -15,6 +17,7 @@ export function ClaimEventsBanner() {
     setIsClaiming(true);
     try {
       await claimAllEvents();
+      onClaimed?.();
     } catch (error) {
       console.error('Error claiming events:', error);
     } finally {
@@ -22,51 +25,23 @@ export function ClaimEventsBanner() {
     }
   };
 
-  const organizerCount = unclaimedEvents.filter((e) => e.tokenType === 'organizer').length;
-  const participantCount = unclaimedEvents.filter((e) => e.tokenType === 'participant').length;
+  const count = unclaimedEvents.length;
+  const noun = count === 1 ? 'meeting' : 'meetings';
 
   return (
-    <div className="bg-mint-50 border border-mint-200 rounded-2xl p-6 mb-6">
-      <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 w-10 h-10 bg-mint-100 rounded-full flex items-center justify-center">
-          <svg
-            className="w-5 h-5 text-mint-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        </div>
-
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 mb-1">Unclaimed Events Found</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            You have {unclaimedEvents.length} unclaimed{' '}
-            {unclaimedEvents.length === 1 ? 'event' : 'events'}
-            {organizerCount > 0 &&
-              ` (${organizerCount} as organizer${organizerCount > 1 ? 's' : ''})`}
-            {participantCount > 0 &&
-              ` (${participantCount} as participant${participantCount > 1 ? 's' : ''})`}
-            . Claim them to manage them in your dashboard.
-          </p>
-
-          <button
-            onClick={handleClaimAll}
-            disabled={isClaiming}
-            className="px-4 py-2 bg-mint-600 text-white rounded-full text-sm font-medium hover:bg-mint-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isClaiming
-              ? 'Claiming...'
-              : `Claim All ${unclaimedEvents.length} Event${unclaimedEvents.length > 1 ? 's' : ''}`}
-          </button>
-        </div>
+    <div className="mb-6 flex flex-col gap-4 rounded-[22px] bg-white p-5 shadow-[0_4px_24px_rgba(23,37,45,0.08)] sm:flex-row sm:items-center">
+      <div className="flex-1">
+        <p className="text-[15px] font-semibold">
+          {count} {noun} on this device {count === 1 ? "isn't" : "aren't"} saved yet
+        </p>
+        <p className="mt-0.5 text-sm text-[#666b73]">
+          Add {count === 1 ? 'it' : 'them'} to your account to see {count === 1 ? 'it' : 'them'}{' '}
+          anywhere you sign in.
+        </p>
       </div>
+      <button onClick={handleClaimAll} disabled={isClaiming} className={s.primaryButton}>
+        {isClaiming ? 'Saving…' : `Save ${count} ${noun}`}
+      </button>
     </div>
   );
 }

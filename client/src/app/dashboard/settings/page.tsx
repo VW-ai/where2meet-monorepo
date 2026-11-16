@@ -2,20 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { AddressAutocomplete } from '@/shared/ui/address-autocomplete';
 import { reverseGeocode } from '@/shared/lib/google-maps/geocoding';
-import catLogo from '@/components/cat/logo.svg';
+import { AccountShell, accountStyles as s } from '@/features/auth/ui/account-shell';
+import { UserAvatar, UserMenu } from '@/features/auth/ui/user-menu';
+
+type SaveMessage = { kind: 'success' | 'error'; text: string } | null;
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { user, updateProfile, logout } = useAuthStore();
   const [name, setName] = useState('');
   const [addressInput, setAddressInput] = useState('');
   const [placeId, setPlaceId] = useState<string | null>(null);
-  const [_isLocating, setIsLocating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
+  const [message, setMessage] = useState<SaveMessage>(null);
 
   useEffect(() => {
     if (user) {
@@ -25,9 +29,14 @@ export default function SettingsPage() {
     }
   }, [user]);
 
+  const flash = (next: SaveMessage) => {
+    setMessage(next);
+    setTimeout(() => setMessage(null), 3000);
+  };
+
   const handleAddressChange = (value: string) => {
     setAddressInput(value);
-    setPlaceId(null); // Clear placeId when manually typing
+    setPlaceId(null); // A typed address isn't verified until picked from the list
   };
 
   const handleAddressSelect = (prediction: {
@@ -41,50 +50,40 @@ export default function SettingsPage() {
 
   const handleLocate = async () => {
     try {
-      setIsLocating(true);
-
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject);
       });
-
       const { latitude, longitude } = position.coords;
       const result = await reverseGeocode({ lat: latitude, lng: longitude });
-
       if (result) {
         setAddressInput(result.address);
         setPlaceId(result.placeId);
       }
     } catch (error) {
       console.error('Geolocation error:', error);
-      setSaveMessage('Failed to get your location. Please enter your address manually.');
-      setTimeout(() => setSaveMessage(''), 3000);
-    } finally {
-      setIsLocating(false);
+      flash({ kind: 'error', text: "We couldn't find your location. Type your address instead." });
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    setSaveMessage('');
+    setMessage(null);
 
-    // Validate: If address is set, placeId must also be set
     if (addressInput && !placeId) {
-      setSaveMessage('Please select an address from the autocomplete dropdown');
-      setIsSaving(false);
+      setMessage({ kind: 'error', text: 'Pick your address from the suggestions to save it.' });
       return;
     }
 
+    setIsSaving(true);
     try {
       await updateProfile({
         name: name || undefined,
         defaultAddress: addressInput || undefined,
         defaultPlaceId: placeId || undefined,
       });
-      setSaveMessage('Settings saved successfully!');
-      setTimeout(() => setSaveMessage(''), 3000);
-    } catch (error) {
-      setSaveMessage('Failed to save settings. Please try again.');
+      flash({ kind: 'success', text: 'Saved.' });
+    } catch {
+      setMessage({ kind: 'error', text: "We couldn't save your changes. Try again." });
     } finally {
       setIsSaving(false);
     }
@@ -92,144 +91,77 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     await logout();
+    router.push('/');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-coral-50 via-mint-50 to-lavender-50">
-      <header className="bg-white/90 backdrop-blur-sm shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              <Image
-                src={catLogo}
-                alt="Where2Meet"
-                width={40}
-                height={40}
-                className="w-10 h-10"
-                priority
-              />
-              <span className="font-semibold text-lg text-gray-900">Where2Meet</span>
-            </Link>
+    <AccountShell actions={<UserMenu />}>
+      <Link
+        href="/dashboard"
+        className="-ml-1 inline-flex items-center gap-0.5 text-sm font-semibold text-[#666b73] hover:text-[#21252b]"
+      >
+        <ChevronLeft size={16} strokeWidth={2.5} />
+        Your meetings
+      </Link>
+      <h1 className="mt-2 text-[28px] font-bold leading-tight tracking-[-0.8px]">Account</h1>
 
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Dashboard
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Sign Out
-              </button>
+      <form onSubmit={handleSave} className="mt-6 space-y-4">
+        <section className={s.card}>
+          <div className="flex items-center gap-3">
+            <UserAvatar size="lg" />
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold">{user?.name || 'Your profile'}</p>
+              <p className="truncate text-sm text-[#666b73]">{user?.email}</p>
             </div>
           </div>
-        </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Settings</h1>
-            <p className="text-gray-600">Manage your account preferences</p>
+          <div className="mt-5">
+            <label htmlFor="name" className={s.label}>
+              Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={s.input}
+              placeholder="What friends call you"
+              autoComplete="name"
+            />
+            <p className={s.hint}>Shown to the group when you join a meeting.</p>
           </div>
+        </section>
 
-          <div className="bg-white rounded-3xl shadow-sm p-8">
-            <form onSubmit={handleSave} className="space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h2>
+        <section className={s.card}>
+          <label htmlFor="defaultAddress" className={s.label}>
+            Usual starting point
+          </label>
+          <AddressAutocomplete
+            value={addressInput}
+            onChange={handleAddressChange}
+            onSelect={handleAddressSelect}
+            onLocate={handleLocate}
+            placeholder="Home, work, or a nearby cross street"
+            className="w-full"
+          />
+          <p className={s.hint}>We fill this in when you create or join a meeting.</p>
+        </section>
 
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={user?.email || ''}
-                      disabled
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-                    />
-                    <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
-                  </div>
+        {message && (
+          <div className={message.kind === 'success' ? s.success : s.error}>{message.text}</div>
+        )}
 
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                      Name
-                    </label>
-                    <input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-coral-500 focus:border-transparent outline-none transition-all"
-                      placeholder="Your name"
-                    />
-                  </div>
-                </div>
-              </div>
+        <button type="submit" disabled={isSaving} className={`w-full ${s.primaryButton}`}>
+          {isSaving ? 'Saving…' : 'Save changes'}
+        </button>
+      </form>
 
-              <div className="pt-6 border-t border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Default Preferences</h2>
-
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="defaultAddress"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Default Address
-                    </label>
-                    <AddressAutocomplete
-                      value={addressInput}
-                      onChange={handleAddressChange}
-                      onSelect={handleAddressSelect}
-                      onLocate={handleLocate}
-                      placeholder="Enter your default address"
-                      className="w-full"
-                    />
-                    <p className="mt-1 text-xs text-gray-500">
-                      This address will be used by default when joining new events.
-                      {placeId
-                        ? ' ✓ Address verified'
-                        : addressInput
-                          ? ' Type and select from dropdown to verify.'
-                          : ''}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {saveMessage && (
-                <div
-                  className={`p-3 rounded-lg text-sm ${saveMessage.includes('successfully') ? 'bg-mint-50 text-mint-700' : 'bg-red-50 text-red-700'}`}
-                >
-                  {saveMessage}
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-6 py-3 bg-coral-500 text-white rounded-full font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
-                <Link
-                  href="/dashboard"
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-full font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </Link>
-              </div>
-            </form>
-          </div>
-        </div>
-      </main>
-    </div>
+      <button
+        onClick={handleLogout}
+        className="mt-8 w-full text-center text-sm font-semibold text-[#666b73] hover:text-[#21252b]"
+      >
+        Sign out
+      </button>
+    </AccountShell>
   );
 }
