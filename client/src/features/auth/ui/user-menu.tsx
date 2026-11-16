@@ -2,7 +2,50 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { CalendarDays, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+
+function initials(name: string | null | undefined, email: string | undefined) {
+  if (name?.trim()) {
+    return name
+      .trim()
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return email?.[0]?.toUpperCase() || 'U';
+}
+
+// The signed-in user's Google photo, or their initials
+export function UserAvatar({ size = 'md' }: { size?: 'md' | 'lg' }) {
+  const { user } = useAuthStore();
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const box = size === 'lg' ? 'h-12 w-12 text-base' : 'h-9 w-9 text-xs';
+
+  if (user?.avatarUrl && !photoFailed) {
+    return (
+      <img
+        src={user.avatarUrl}
+        alt=""
+        referrerPolicy="no-referrer"
+        onError={() => setPhotoFailed(true)}
+        className={`${box} rounded-full object-cover`}
+      />
+    );
+  }
+  return (
+    <span
+      className={`${box} grid place-items-center rounded-full bg-[#c83f49] font-semibold text-white`}
+    >
+      {initials(user?.name, user?.email)}
+    </span>
+  );
+}
+
+const itemClass =
+  'flex w-full items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-left text-sm font-medium text-[#21252b] transition-colors hover:bg-[#f4f6f8]';
 
 export function UserMenu() {
   const router = useRouter();
@@ -10,20 +53,21 @@ export function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen]);
 
@@ -33,22 +77,9 @@ export function UserMenu() {
     router.push('/');
   };
 
-  const handleNavigation = (path: string) => {
+  const go = (path: string) => {
     setIsOpen(false);
     router.push(path);
-  };
-
-  // Get user initials for avatar
-  const getInitials = () => {
-    if (user?.name) {
-      return user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return user?.email?.[0]?.toUpperCase() || 'U';
   };
 
   return (
@@ -56,70 +87,34 @@ export function UserMenu() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Account"
-        className="grid h-9 w-9 place-items-center rounded-full bg-[#c83f49] text-xs font-semibold text-white"
+        aria-expanded={isOpen}
+        className="rounded-full ring-offset-2 transition-shadow hover:ring-2 hover:ring-white"
       >
-        {getInitials()}
+        <UserAvatar />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+        <div className="absolute right-0 z-50 mt-2 w-60 rounded-[18px] bg-white p-1.5 shadow-[0_8px_32px_rgba(23,37,45,0.18)]">
+          <div className="px-3 pb-2.5 pt-2">
+            <p className="truncate text-sm font-semibold text-[#21252b]">
+              {user?.name || 'Signed in'}
+            </p>
+            <p className="truncate text-xs text-[#666b73]">{user?.email}</p>
           </div>
-
-          <button
-            onClick={() => handleNavigation('/dashboard')}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              />
-            </svg>
-            Dashboard
+          <div className="my-1 h-px bg-[#eef1f4]" />
+          <button onClick={() => go('/dashboard')} className={itemClass}>
+            <CalendarDays size={16} className="text-[#8b9098]" />
+            Your meetings
           </button>
-
-          <button
-            onClick={() => handleNavigation('/dashboard/settings')}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            Settings
+          <button onClick={() => go('/dashboard/settings')} className={itemClass}>
+            <Settings size={16} className="text-[#8b9098]" />
+            Account
           </button>
-
-          <div className="border-t border-gray-100 mt-1 pt-1">
-            <button
-              onClick={handleLogout}
-              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              Sign Out
-            </button>
-          </div>
+          <div className="my-1 h-px bg-[#eef1f4]" />
+          <button onClick={handleLogout} className={itemClass}>
+            <LogOut size={16} className="text-[#8b9098]" />
+            Sign out
+          </button>
         </div>
       )}
     </div>
