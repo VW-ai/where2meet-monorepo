@@ -86,13 +86,23 @@ export interface UserEventsData {
   userEvents: Record<string, UserEvent>;
 }
 
-// API response type for GET /api/users/me/events
-// Returns UserEvent with populated event object
+// One item of GET /api/users/me/events (server/src/mappers/user.mapper.ts)
 export interface UserEventResponse {
   id: string;
   role: 'organizer' | 'participant';
   participantId: string | null;
-  event: import('@/entities').Event;
+  event: UserEventSummary;
+}
+
+export interface UserEventSummary {
+  id: string;
+  title: string;
+  meetingTime: string | null;
+  meetingTimeZone: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+  participantCount: number;
+  participants: Array<{ id: string; name: string; color: string; isOrganizer: boolean }>;
 }
 
 export interface PasswordResetTokensData {
