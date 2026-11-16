@@ -14,6 +14,12 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
 
+  signInWithGoogle: (credential: string) =>
+    apiCall<{ user: User }>('/api/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    }),
+
   logout: () => apiCall('/api/auth/logout', { method: 'POST' }),
 
   getSession: () => apiCall<{ user: User }>('/api/auth/session'),

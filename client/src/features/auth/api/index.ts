@@ -12,6 +12,7 @@ import { authApi } from '@/lib/api/auth';
 export const authClient = {
   register: authApi.register,
   login: authApi.login,
+  signInWithGoogle: authApi.signInWithGoogle,
   logout: authApi.logout,
   getSession: authApi.getSession,
   requestPasswordReset: authApi.requestPasswordReset,

@@ -28,6 +28,7 @@ interface AuthState {
   // User authentication actions
   setUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: (credential: string) => Promise<void>;
   register: (data: RegisterDTO) => Promise<void>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>; // Called on app load
@@ -41,6 +42,39 @@ interface AuthState {
   initializeParticipantMode: (eventId: string) => void;
   setParticipantInfo: (eventId: string, participantId: string, token: string) => void;
   clearParticipantInfo: (eventId: string) => void;
+}
+
+type SetAuthState = (partial: Partial<AuthState>) => void;
+
+/**
+ * Runs a request that returns the signed-in user (the backend sets the session
+ * cookie), then claims any event tokens this browser holds in the background.
+ */
+async function signIn(set: SetAuthState, request: () => Promise<{ user: User }>): Promise<void> {
+  try {
+    set({ isLoading: true, error: null });
+    const { user } = await request();
+    set({ user, isAuthenticated: true });
+
+    if (typeof window !== 'undefined') {
+      const tokens = scanLocalStorageForTokens();
+      if (tokens.length > 0) {
+        claimAllTokens(tokens)
+          .then((result) => {
+            console.warn(`Auto-claimed ${result.claimed} events`);
+            if (result.failed > 0) {
+              console.warn('Some claims failed:', result.errors);
+            }
+          })
+          .catch((err) => console.error('Auto-claim error:', err));
+      }
+    }
+  } catch (error) {
+    set({ error: error instanceof Error ? error.message : 'Operation failed' });
+    throw error;
+  } finally {
+    set({ isLoading: false });
+  }
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -71,65 +105,11 @@ export const useAuthStore = create<AuthState>()(
           error: null,
         }),
 
-      // Register new account
-      register: async (data) => {
-        try {
-          set({ isLoading: true, error: null });
-          const response = await authClient.register(data);
-          // Backend sets session cookie, returns user
-          set({ user: response.user, isAuthenticated: true });
+      register: (data) => signIn(set, () => authClient.register(data)),
 
-          // Auto-claim tokens in background (fire-and-forget)
-          if (typeof window !== 'undefined') {
-            const tokens = scanLocalStorageForTokens();
-            if (tokens.length > 0) {
-              claimAllTokens(tokens)
-                .then((result) => {
-                  console.warn(`Auto-claimed ${result.claimed} events`);
-                  if (result.failed > 0) {
-                    console.warn('Some claims failed:', result.errors);
-                  }
-                })
-                .catch((err) => console.error('Auto-claim error:', err));
-            }
-          }
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : 'Operation failed' });
-          throw error;
-        } finally {
-          set({ isLoading: false });
-        }
-      },
+      login: (email, password) => signIn(set, () => authClient.login({ email, password })),
 
-      // Log in
-      login: async (email, password) => {
-        try {
-          set({ isLoading: true, error: null });
-          const response = await authClient.login({ email, password });
-          // Backend sets session cookie, returns user
-          set({ user: response.user, isAuthenticated: true });
-
-          // Auto-claim tokens in background (fire-and-forget)
-          if (typeof window !== 'undefined') {
-            const tokens = scanLocalStorageForTokens();
-            if (tokens.length > 0) {
-              claimAllTokens(tokens)
-                .then((result) => {
-                  console.warn(`Auto-claimed ${result.claimed} events`);
-                  if (result.failed > 0) {
-                    console.warn('Some claims failed:', result.errors);
-                  }
-                })
-                .catch((err) => console.error('Auto-claim error:', err));
-            }
-          }
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : 'Operation failed' });
-          throw error;
-        } finally {
-          set({ isLoading: false });
-        }
-      },
+      signInWithGoogle: (credential) => signIn(set, () => authClient.signInWithGoogle(credential)),
 
       // Log out
       logout: async () => {
