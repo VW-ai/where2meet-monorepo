@@ -11,8 +11,10 @@ import { createAuthService } from "../services/auth.js";
 import {
   RegisterSchema,
   LoginSchema,
+  GoogleSignInSchema,
   type RegisterInput,
   type LoginInput,
+  type GoogleSignInInput,
 } from "../schemas/auth.js";
 import { toUserResponse } from "../mappers/user.mapper.js";
 import type { AuthResponse, LogoutResponse, SessionResponse } from "../dto/index.js";
@@ -22,14 +24,24 @@ import {
   getClearSessionCookieOptions,
 } from "../utils/session.js";
 import { isProduction } from "../lib/config.js";
-import { UnauthorizedError } from "../types/errors.js";
+import { AppError, UnauthorizedError } from "../types/errors.js";
 import { RATE_LIMITS } from "../lib/rateLimits.js";
+import type { GoogleIdTokenVerifier } from "../lib/googleIdToken.js";
 
 /**
  * Request types for route handlers.
  */
 type RegisterRequest = FastifyRequest<{ Body: RegisterInput }>;
 type LoginRequest = FastifyRequest<{ Body: LoginInput }>;
+type GoogleSignInRequest = FastifyRequest<{ Body: GoogleSignInInput }>;
+
+/**
+ * Options for the auth routes plugin.
+ */
+export interface AuthRoutesOptions {
+  /** Verifies Google ID tokens; null when Google sign-in is not configured. */
+  googleVerifier?: GoogleIdTokenVerifier | null;
+}
 
 /**
  * Registers authentication routes on the Fastify instance.
@@ -37,11 +49,13 @@ type LoginRequest = FastifyRequest<{ Body: LoginInput }>;
  * Endpoints:
  * - POST /api/auth/register - Register a new user
  * - POST /api/auth/login - Login with email and password
+ * - POST /api/auth/google - Sign in with a Google ID token
  * - POST /api/auth/logout - Logout (invalidate session)
  * - GET /api/auth/session - Validate session and return user
  */
-export function authRoutes(fastify: FastifyInstance): void {
+export function authRoutes(fastify: FastifyInstance, options: AuthRoutesOptions): void {
   const authService = createAuthService(fastify.db);
+  const googleVerifier = options.googleVerifier ?? null;
 
   /**
    * POST /api/auth/register
@@ -103,6 +117,41 @@ export function authRoutes(fastify: FastifyInstance): void {
       };
 
       return reply.send(response);
+    }
+  );
+
+  /**
+   * POST /api/auth/google
+   * Signs in with a Google ID token, creating or linking the account.
+   * Replies 201 when a new account was created.
+   */
+  fastify.post(
+    "/api/auth/google",
+    { config: RATE_LIMITS.auth },
+    async (request: GoogleSignInRequest, reply: FastifyReply) => {
+      if (!googleVerifier) {
+        throw new AppError("Google sign-in is not configured", 503, "GOOGLE_SIGNIN_DISABLED");
+      }
+
+      const parseResult = GoogleSignInSchema.safeParse(request.body);
+      if (!parseResult.success) {
+        throw parseResult.error;
+      }
+
+      const identity = await googleVerifier(parseResult.data.credential);
+      const { user, sessionToken, outcome } = await authService.signInWithGoogle(identity);
+
+      void reply.setCookie(
+        SESSION_COOKIE_NAME,
+        sessionToken,
+        getSessionCookieOptions(isProduction)
+      );
+
+      const response: AuthResponse = {
+        user: toUserResponse(user),
+      };
+
+      return reply.status(outcome === "created" ? 201 : 200).send(response);
     }
   );
 

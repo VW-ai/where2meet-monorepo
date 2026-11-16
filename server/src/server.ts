@@ -32,6 +32,22 @@ import { userRoutes } from "./routes/users.js";
 import { amapRoutes } from "./routes/amap.js";
 import { placesRoutes } from "./routes/places.js";
 import { rateLimitKey } from "./lib/rateLimitKey.js";
+import { createGoogleIdTokenVerifier, type GoogleIdTokenVerifier } from "./lib/googleIdToken.js";
+
+/**
+ * Options for building the server.
+ */
+export interface BuildServerOptions {
+  /** Register the rate limiter (default: production only). */
+  rateLimits?: boolean;
+  /** Google ID token verifier; null disables Google sign-in. Defaults from config. */
+  googleVerifier?: GoogleIdTokenVerifier | null;
+}
+
+function defaultGoogleVerifier(): GoogleIdTokenVerifier | null {
+  const clientId = config.GOOGLE_OAUTH_CLIENT_ID;
+  return clientId ? createGoogleIdTokenVerifier({ clientId }) : null;
+}
 
 /**
  * Creates and configures a Fastify server instance.
@@ -43,6 +59,7 @@ import { rateLimitKey } from "./lib/rateLimitKey.js";
  * - Health check endpoints
  * @param options - Build options
  * @param options.rateLimits - Register the rate limiter (default: production only)
+ * @param options.googleVerifier - Google ID token verifier (default: from config)
  * @returns Configured Fastify server instance (not yet listening)
  * @example
  * ```typescript
@@ -55,7 +72,10 @@ import { rateLimitKey } from "./lib/rateLimitKey.js";
  * await server.listen({ port: 3000 });
  * ```
  */
-export async function buildServer({ rateLimits = isProduction } = {}) {
+export async function buildServer({
+  rateLimits = isProduction,
+  googleVerifier = defaultGoogleVerifier(),
+}: BuildServerOptions = {}) {
   const server = Fastify({
     logger: isTest
       ? false
@@ -163,7 +183,7 @@ export async function buildServer({ rateLimits = isProduction } = {}) {
   await server.register(voteRoutes);
   await server.register(directionsRoutes);
   await server.register(sseRoutes);
-  await server.register(authRoutes);
+  await server.register(authRoutes, { googleVerifier });
   await server.register(userRoutes);
   await server.register(amapRoutes);
   await server.register(placesRoutes);
