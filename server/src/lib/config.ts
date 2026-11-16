@@ -66,6 +66,9 @@ const envSchema = z.object({
   AMAP_WEB_SERVICE_KEY: z.string().default(""),
   AMAP_TIMEOUT_MS: stringToNumber(5000).pipe(z.number().min(100).max(30000)),
 
+  // Google sign-in. Empty disables POST /api/auth/google.
+  GOOGLE_OAUTH_CLIENT_ID: z.string().default(""),
+
   // SSE (Server-Sent Events)
   SSE_HEARTBEAT_INTERVAL_MS: stringToNumber(30000).pipe(z.number().min(1000)), // 30 seconds
   SSE_CONNECTION_TIMEOUT_MS: stringToNumber(3600000).pipe(z.number().min(60000)), // 1 hour
