@@ -17,6 +17,7 @@ import { generateSessionToken, getSessionExpiresAt } from "../utils/session.js";
 import { hashToken } from "../utils/token.js";
 import { generateUserId, generateIdentityId, generateSessionId } from "../utils/id.js";
 import { EmailExistsError, InvalidCredentialsError, UnauthorizedError } from "../types/errors.js";
+import type { GoogleIdentity } from "../lib/googleIdToken.js";
 
 const logger = createLogger("AuthService");
 
@@ -35,6 +36,25 @@ export interface RegisterInput {
 export interface AuthResult {
   user: User;
   sessionToken: string;
+}
+
+/**
+ * How a Google sign-in found its user: an account already linked to this
+ * Google account, an email account it was just linked to, or a new account.
+ */
+export type GoogleSignInOutcome = "existing" | "linked" | "created";
+
+/**
+ * Result of a Google sign-in.
+ */
+export interface GoogleSignInResult extends AuthResult {
+  outcome: GoogleSignInOutcome;
+}
+
+type TransactionClient = Prisma.TransactionClient;
+
+function isUniqueViolation(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 /**
@@ -194,6 +214,121 @@ export class AuthService {
       user,
       sessionToken,
     };
+  }
+
+  /**
+   * Signs in with a verified Google identity, linking or creating the account.
+   *
+   * A concurrent first sign-in for the same Google account or email loses the
+   * unique-constraint race; one retry then finds the row the winner created.
+   * @param identity - Identity proven by a verified Google ID token
+   * @returns User, session token, and how the user was resolved
+   * @throws UnauthorizedError if Google has not verified the email
+   */
+  async signInWithGoogle(identity: GoogleIdentity): Promise<GoogleSignInResult> {
+    if (!identity.emailVerified) {
+      throw new UnauthorizedError("Google email is not verified");
+    }
+
+    try {
+      return await this.resolveGoogleSignIn(identity);
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
+      logger.warn("Google sign-in raced another sign-in; retrying");
+      return this.resolveGoogleSignIn(identity);
+    }
+  }
+
+  private async resolveGoogleSignIn(identity: GoogleIdentity): Promise<GoogleSignInResult> {
+    const { token: sessionToken, hash: sessionTokenHash } = generateSessionToken();
+    const expiresAt = getSessionExpiresAt();
+    const sessionId = generateSessionId();
+
+    const { user, outcome } = await this.db.$transaction(async (tx) => {
+      const resolved = await this.findOrCreateGoogleUser(tx, identity);
+      await tx.userSession.create({
+        data: {
+          id: sessionId,
+          userId: resolved.user.id,
+          tokenHash: sessionTokenHash,
+          expiresAt,
+        },
+      });
+      return resolved;
+    });
+
+    logger.info({ userId: user.id, outcome }, "Google sign-in successful");
+    return { user, sessionToken, outcome };
+  }
+
+  private async findOrCreateGoogleUser(
+    tx: TransactionClient,
+    identity: GoogleIdentity
+  ): Promise<{ user: User; outcome: GoogleSignInOutcome }> {
+    // providerId is Google's sub, not the email, so it is matched exactly.
+    const existing = await tx.userIdentity.findUnique({
+      where: { provider_providerId: { provider: "google", providerId: identity.sub } },
+      include: { user: true },
+    });
+    if (existing) {
+      return { user: existing.user, outcome: "existing" };
+    }
+
+    const email = identity.email.toLowerCase().trim();
+    const emailUser = await tx.user.findUnique({ where: { email } });
+    if (emailUser) {
+      return { user: await this.linkGoogleIdentity(tx, emailUser, identity), outcome: "linked" };
+    }
+
+    const user = await tx.user.create({
+      data: {
+        id: generateUserId(),
+        email,
+        name: identity.name,
+        avatarUrl: identity.picture,
+        emailVerified: true,
+      },
+    });
+    await this.createGoogleIdentity(tx, user.id, identity.sub);
+    return { user, outcome: "created" };
+  }
+
+  private async linkGoogleIdentity(
+    tx: TransactionClient,
+    user: User,
+    identity: GoogleIdentity
+  ): Promise<User> {
+    await this.createGoogleIdentity(tx, user.id, identity.sub);
+
+    if (!user.emailVerified) {
+      // Nobody proved they owned this address when the password was set, so it
+      // may belong to someone squatting the owner's email. Google has now
+      // proved ownership: drop the password and every session it opened.
+      await tx.userIdentity.deleteMany({ where: { userId: user.id, provider: "email" } });
+      await tx.userSession.deleteMany({ where: { userId: user.id } });
+      logger.warn({ userId: user.id }, "Google sign-in took over unverified email account");
+    }
+
+    return tx.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        name: user.name ?? identity.name,
+        avatarUrl: user.avatarUrl ?? identity.picture,
+      },
+    });
+  }
+
+  private async createGoogleIdentity(
+    tx: TransactionClient,
+    userId: string,
+    sub: string
+  ): Promise<void> {
+    await tx.userIdentity.create({
+      data: { id: generateIdentityId(), userId, provider: "google", providerId: sub },
+    });
   }
 
   /**

@@ -41,3 +41,13 @@ export const LoginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof LoginSchema>;
+
+/**
+ * Schema for Google sign-in. The credential is the ID token Google Identity
+ * Services gives the browser; the cap stops oversized bodies before parsing.
+ */
+export const GoogleSignInSchema = z.object({
+  credential: z.string().min(1).max(4096),
+});
+
+export type GoogleSignInInput = z.infer<typeof GoogleSignInSchema>;
