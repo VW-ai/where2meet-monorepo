@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { createMetadata } from '@/lib/seo/metadata';
+import { createMetadata, SITE_CONFIG } from '@/lib/seo/metadata';
 import { generateAboutPageSchema } from '@/lib/seo/structured-data';
 import { StructuredData } from '@/components/seo/structured-data';
 import catLogo from '@/components/cat/logo.svg';
+
+const link = 'font-semibold text-[#bd3843]';
 
 export const metadata: Metadata = createMetadata({
   title: 'About',
@@ -32,8 +34,38 @@ const sections = [
     body: 'The Where2Meet blog has guides to places that work for groups in different cities, from team lunches to group dinners. Every guide names real places, and its photos are credited to their authors.',
   },
   {
+    heading: 'How guides are made',
+    body: (
+      <>
+        An AI writer drafts each guide. Places, hours, price levels and walk times come from Google
+        Maps. Other facts link to official sources, such as a transit agency or the venue&apos;s own
+        site, and photos come from Wikimedia Commons. The writer publishes a guide once automated
+        checks pass, and Victor, our founder, reads every guide after it goes live. Spot a mistake?
+        Tell us on the{' '}
+        <Link href="/contact" className={link}>
+          contact page
+        </Link>
+        .
+      </>
+    ),
+  },
+  {
     heading: 'Who we are',
-    body: 'Where2Meet is made by a small independent team and has been around since 2025. It is not affiliated with When2meet, which helps a group find a time. Where2Meet helps a group pick the place.',
+    body: (
+      <>
+        Where2Meet is made by a small independent team and has been around since 2025. Its founder
+        is{' '}
+        <a href={SITE_CONFIG.founder.url} className={link}>
+          {SITE_CONFIG.founder.name}
+        </a>
+        . It is not affiliated with When2meet, which helps a group find a time. Where2Meet helps a
+        group pick the place. Thanks to{' '}
+        <a href="https://waynewangyuxuan.com/" className={link}>
+          Wayne
+        </a>{' '}
+        for helping shape the early version.
+      </>
+    ),
   },
 ];
 
@@ -70,8 +102,8 @@ export default function AboutPage() {
             ))}
             <p className="text-sm leading-relaxed text-[#666b73]">
               Questions or feedback? Email{' '}
-              <a href="mailto:victorzhang0218@gmail.com" className="font-semibold text-[#bd3843]">
-                victorzhang0218@gmail.com
+              <a href={`mailto:${SITE_CONFIG.email}`} className={link}>
+                {SITE_CONFIG.email}
               </a>
               .
             </p>
