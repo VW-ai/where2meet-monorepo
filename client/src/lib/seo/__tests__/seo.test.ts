@@ -536,24 +536,29 @@ describe('llms.txt', () => {
   const pageUrls = STATIC_PAGES.map((page) =>
     page.path === '/' ? `${CANONICAL_ORIGIN}/` : `${CANONICAL_ORIGIN}${page.path}`
   );
+  const sitePages = [...pageUrls.slice(0, 2), `${CANONICAL_ORIGIN}/blog`, ...pageUrls.slice(2)];
 
   it('is served as UTF-8 plain text', async () => {
     expect((await getLlmsTxt()).headers.get('content-type')).toBe('text/plain; charset=utf-8');
   });
 
-  it('links the pages, then every post by its /blog URL newest first, then cities and towns', async () => {
+  it('links every site page, then each city with its places and posts newest first, then posts with no city', async () => {
     disk.files = [...FIXTURE_FILES];
-    expect(linksIn(await llmsTxt())).toEqual([
-      ...pageUrls.slice(0, 2),
-      `${CANONICAL_ORIGIN}/blog`,
-      `${CANONICAL_ORIGIN}/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
-      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-team-welcome-lunch`,
-      `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
-      `${CANONICAL_ORIGIN}/blog/new-york/midtown/quiet-places-for-a-small-team-meeting`,
-      `${CANONICAL_ORIGIN}/about`,
-      `${CANONICAL_ORIGIN}/contact`,
+    const text = await llmsTxt();
+    expect(text.match(/^## .+/gm)).toEqual([
+      '## Pages',
+      '## New York',
+      '## More guides',
+      '## Optional',
+    ]);
+    expect(linksIn(text)).toEqual([
+      ...sitePages,
       `${CANONICAL_ORIGIN}/blog/new-york`,
       `${CANONICAL_ORIGIN}/blog/new-york/midtown`,
+      `${CANONICAL_ORIGIN}/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
+      `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
+      `${CANONICAL_ORIGIN}/blog/new-york/midtown/quiet-places-for-a-small-team-meeting`,
+      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-team-welcome-lunch`,
       `${CANONICAL_ORIGIN}/sitemap.xml`,
     ]);
   });
@@ -572,21 +577,15 @@ describe('llms.txt', () => {
     disk.files = [...FIXTURE_FILES];
     const lines = (await llmsTxt()).split('\n');
     expect(lines.filter((line) => /herald-square|new-york\)/.test(line))).toEqual([
-      `- [Group dinner spots near Herald Square](${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square): Sample post: group dinner spots near Herald Square that a big group can reach on one train, with tips on booking and getting home late.`,
       `- [Where to meet in New York](${CANONICAL_ORIGIN}/blog/new-york): Sample page: places in New York that work for groups, from team lunches to group dinners, plus how to get around by subway.`,
+      `- [Group dinner spots near Herald Square](${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square): Sample post: group dinner spots near Herald Square that a big group can reach on one train, with tips on booking and getting home late.`,
     ]);
   });
 
-  it('links no post and leaves out the cities section before anything is published', async () => {
+  it('links only the site pages, with no empty sections, before anything is published', async () => {
     const text = await llmsTxt();
-    expect(text).not.toContain('## Cities and towns');
-    expect(linksIn(text)).toEqual([
-      ...pageUrls.slice(0, 2),
-      `${CANONICAL_ORIGIN}/blog`,
-      `${CANONICAL_ORIGIN}/about`,
-      `${CANONICAL_ORIGIN}/contact`,
-      `${CANONICAL_ORIGIN}/sitemap.xml`,
-    ]);
+    expect(text.match(/^## .+/gm)).toEqual(['## Pages', '## Optional']);
+    expect(linksIn(text)).toEqual([...sitePages, `${CANONICAL_ORIGIN}/sitemap.xml`]);
   });
 
   it('keeps place copy on one list line with its link intact', () => {
