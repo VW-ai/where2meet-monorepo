@@ -2,6 +2,7 @@ import type {
   AboutPage,
   BlogPosting,
   BreadcrumbList,
+  CollectionPage,
   Event,
   FAQPage,
   ImageObject,
@@ -11,7 +12,14 @@ import type {
   WebSite,
   WithContext,
 } from 'schema-dts';
-import { BLOG_AUTHOR } from '@/features/blog/lib/catalog';
+import {
+  areaPosts,
+  pagePath,
+  pageUpdatedAt,
+  postPath,
+  type AreaPage,
+  type Catalog,
+} from '@/features/blog/lib/catalog';
 import { creditLine, LICENSES, type Photo } from '@/features/blog/lib/photos';
 import { SITE_CONFIG, toAbsoluteUrl } from './metadata';
 
@@ -29,6 +37,14 @@ export function generateOrganizationSchema(): WithContext<Organization> {
     logo: `${SITE_CONFIG.url}/logo.png`,
     description: SITE_CONFIG.description,
     foundingDate: '2025',
+    founder: { '@type': 'Person', ...SITE_CONFIG.founder },
+    email: SITE_CONFIG.email,
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      email: SITE_CONFIG.email,
+      url: `${SITE_CONFIG.url}/contact`,
+    },
     sameAs: [...SITE_CONFIG.profiles],
   };
 }
@@ -230,17 +246,51 @@ export interface Article {
 }
 
 export function generateBlogPostingSchema(article: Article): WithContext<BlogPosting> {
+  const url = toAbsoluteUrl(article.path);
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
+    '@id': `${url}#article`,
     headline: article.title,
     description: article.description,
     image: article.images.map(imageObject),
     datePublished: article.publishedAt,
     dateModified: article.updatedAt,
-    author: { '@type': 'Organization', name: BLOG_AUTHOR, url: `${SITE_CONFIG.url}/about` },
+    author: { '@id': `${SITE_CONFIG.url}/#organization` },
     publisher: { '@id': `${SITE_CONFIG.url}/#organization` },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': toAbsoluteUrl(article.path) },
+    isPartOf: { '@id': `${SITE_CONFIG.url}/#website` },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+  };
+}
+
+/** A city or town page lists the same posts as its guide cards, and dates itself as the sitemap does. */
+export function generateCollectionPageSchema(
+  catalog: Catalog,
+  page: AreaPage
+): WithContext<CollectionPage> {
+  const { seo } = page.town ?? page.city;
+  const url = toAbsoluteUrl(pagePath(page));
+  const posts = areaPosts(catalog, page);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': url,
+    url,
+    name: seo.title,
+    description: seo.description,
+    dateModified: pageUpdatedAt(catalog, page),
+    isPartOf: { '@id': `${SITE_CONFIG.url}/#website` },
+    ...(posts.length > 0 && {
+      mainEntity: {
+        '@type': 'ItemList',
+        itemListElement: posts.map((post, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          url: toAbsoluteUrl(postPath(post)),
+          name: post.title,
+        })),
+      },
+    }),
   };
 }
 

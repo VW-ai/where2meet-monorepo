@@ -10,6 +10,7 @@ import {
 import {
   generateBlogPostingSchema,
   generateBreadcrumbSchema,
+  generateCollectionPageSchema,
   generateOrganizationSchema,
   generateWebApplicationSchema,
 } from '@/lib/seo/structured-data';
@@ -304,6 +305,7 @@ describe('structured data', () => {
     ).toEqual({
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
+      '@id': `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square#article`,
       headline: 'Group dinner spots near Herald Square',
       description:
         'Sample post: group dinner spots near Herald Square that a big group can reach on one train, with tips on booking and getting home late.',
@@ -335,17 +337,61 @@ describe('structured data', () => {
       ],
       datePublished: '2026-10-06',
       dateModified: '2026-10-07',
-      author: {
-        '@type': 'Organization',
-        name: 'The Where2Meet team',
-        url: `${CANONICAL_ORIGIN}/about`,
-      },
+      author: { '@id': `${CANONICAL_ORIGIN}/#organization` },
       publisher: { '@id': `${CANONICAL_ORIGIN}/#organization` },
+      isPartOf: { '@id': `${CANONICAL_ORIGIN}/#website` },
       mainEntityOfPage: {
         '@type': 'WebPage',
         '@id': `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
       },
     });
+  });
+
+  it("lists a city page's posts, its towns' included, as its guide cards do, dated like its sitemap entry", () => {
+    const catalog = parseCatalog(fixtureContent()).catalog;
+    const city = catalog.cities.get('new-york')!;
+    expect(generateCollectionPageSchema(catalog, { kind: 'area', city, town: null })).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      '@id': `${CANONICAL_ORIGIN}/blog/new-york`,
+      url: `${CANONICAL_ORIGIN}/blog/new-york`,
+      name: city.seo.title,
+      description: city.seo.description,
+      dateModified: '2026-10-08',
+      isPartOf: { '@id': `${CANONICAL_ORIGIN}/#website` },
+      mainEntity: {
+        '@type': 'ItemList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            url: `${CANONICAL_ORIGIN}/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
+            name: 'A team welcome lunch in Bryant Park',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            url: `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
+            name: 'Group dinner spots near Herald Square',
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            url: `${CANONICAL_ORIGIN}/blog/new-york/midtown/quiet-places-for-a-small-team-meeting`,
+            name: 'Quiet places for a small team meeting in Midtown',
+          },
+        ],
+      },
+    });
+  });
+
+  it('leaves the list out of a city page with no posts yet', () => {
+    const places = FIXTURE_FILES.filter(({ path }) => !path.includes('/posts/'));
+    const catalog = parseCatalog(fixtureContent(places)).catalog;
+    const city = catalog.cities.get('new-york')!;
+    expect(
+      generateCollectionPageSchema(catalog, { kind: 'area', city, town: null })
+    ).not.toHaveProperty('mainEntity');
   });
 
   it('numbers breadcrumbs from 1 with absolute www URLs', () => {

@@ -21,7 +21,11 @@ import {
   type Term,
 } from '@/features/blog/lib/catalog';
 import { occasionIcon } from '@/features/blog/lib/occasion-icon';
-import { generateBlogPostingSchema, generateBreadcrumbSchema } from '@/lib/seo/structured-data';
+import {
+  generateBlogPostingSchema,
+  generateBreadcrumbSchema,
+  generateCollectionPageSchema,
+} from '@/lib/seo/structured-data';
 import { CONTENT_WIDTH_SIZES, PhotoFigure } from './photo-figure';
 import { PlanCta } from './plan-cta';
 import { Byline } from './post-card';
@@ -112,6 +116,7 @@ function AreaView({ page, catalog }: { page: AreaPage; catalog: Catalog }) {
 
   return (
     <>
+      <StructuredData data={generateCollectionPageSchema(catalog, page)} />
       <h1 className={heading}>{area.seo.title}</h1>
       {area.image && (
         <PhotoFigure
