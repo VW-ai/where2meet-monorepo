@@ -274,10 +274,10 @@ export const phonePlan = {
   },
 
   addSomeone() {
-    flow.setState({
-      draft: newDraft({ type: token() ? 'other' : 'join' }, 'name'),
-      detent: 'full',
-    });
+    const draft = newDraft({ type: token() ? 'other' : 'join' }, 'name');
+    // A signed-in person joining starts with their profile name
+    if (draft.kind.type === 'join') draft.name = useAuthStore.getState().user?.name ?? '';
+    flow.setState({ draft, detent: 'full' });
   },
 
   editStart(person: Participant) {

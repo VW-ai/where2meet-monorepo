@@ -45,7 +45,8 @@ export function SignInNudge({ eventId }: { eventId: string }) {
       state.isShareModalOpen ||
       state.isEditEventModalOpen ||
       state.isDeleteConfirmationOpen ||
-      state.isPublishModalOpen
+      state.isPublishModalOpen ||
+      state.isInviteOpen
   );
   const portalRunning = usePortalStore((state) => state.status !== 'idle');
   const signedOut = isAuthInitialized && !isAuthenticated;

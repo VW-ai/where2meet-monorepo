@@ -78,6 +78,10 @@ interface UIStore {
   requestJoinForm: () => void;
   clearJoinFormRequest: () => void;
 
+  // The invite card a recipient sees before the map
+  isInviteOpen: boolean;
+  setInviteOpen: (open: boolean) => void;
+
   // Participant stats slide-out
   isParticipantStatsOpen: boolean;
   toggleParticipantStats: () => void;
@@ -156,6 +160,9 @@ export const useUIStore = create<UIStore>((set) => ({
   isJoinFormRequested: false,
   requestJoinForm: () => set({ isJoinFormRequested: true, activeView: 'participant' }),
   clearJoinFormRequest: () => set({ isJoinFormRequested: false }),
+
+  isInviteOpen: false,
+  setInviteOpen: (open) => set({ isInviteOpen: open }),
 
   // Participant stats
   isParticipantStatsOpen: false,
