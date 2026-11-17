@@ -9,10 +9,7 @@ If you want GitHub Actions to control CD, disable Railway's auto-deploy to avoid
 
 ## GitHub Actions CD (recommended if you want full control)
 
-Workflows:
-
-- Staging: `.github/workflows/server-cd-staging.yml`
-- Production: `.github/workflows/server-cd-production.yml`
+Workflow: `.github/workflows/server-cd-production.yml`, run manually on `main` with `confirm=deploy`. There is no staging environment. Test server changes locally against `docker-compose.yml` first.
 
 ### Required GitHub config
 
@@ -20,9 +17,7 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 - Variables (repo-level): `RAILWAY_SERVICE_NAME`
 - Optional variables (repo-level): `database_url`, `redis_url` (synced to Railway as `DATABASE_URL`/`REDIS_URL` before deploy)
-- Secret (environment-level):
-  - `staging` environment: `RAILWAY_TOKEN` (Project Token scoped to staging)
-  - `production` environment: `RAILWAY_TOKEN` (Project Token scoped to production)
+- Secret: `RAILWAY_PRODUCTION` (Project Token scoped to production). The workflow also accepts it as `RAILWAY_TOKEN` in the `production` GitHub environment.
 
 ### Railway settings
 
@@ -35,8 +30,8 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 ### How deploy works
 
-- (Optional) The workflows sync `database_url`/`redis_url` into Railway variables `DATABASE_URL`/`REDIS_URL` (without triggering an extra deploy)
-- Then they run `railway up --ci --environment <staging|production> --service <name>`
+- (Optional) The workflow syncs `database_url`/`redis_url` into Railway variables `DATABASE_URL`/`REDIS_URL` (without triggering an extra deploy)
+- Then it runs `railway up --ci --environment production --service <name>`
 - The Railway runtime runs DB migrations before start via `railway.toml` (`startCommand`, before the Node process starts)
 
 Note: In Railway UI, `DATABASE_URL`/`REDIS_URL` may appear as `${{<id>.DATABASE_URL}}`-style references; Railway resolves these at runtime.

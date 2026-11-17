@@ -16,6 +16,7 @@ Run npm commands inside the package directory (or via the root `npm run *:client
 - Git hooks are installed once at the root (`npm install` here runs husky).
   `.husky/pre-commit` runs lint-staged, which uses each package's own config.
 - CI is path-filtered: `.github/workflows/client-ci.yml` runs for `client/**`,
-  `server-ci.yml` for `server/**`. Server CD to Railway is triggered by Server CI on `main`.
+  `server-ci.yml` for `server/**`. Server deploys to Railway are manual: run `Server CD Production`
+  on `main` with `confirm=deploy`. There is no staging environment.
 - Keep commits scoped to one package where possible; prefix messages with `client:` / `server:`
   when it helps.

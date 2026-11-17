@@ -26,13 +26,9 @@
 
 ### CI / CD：GitHub Actions
 
-- CI：`.github/workflows/ci.yml`
+- CI：`.github/workflows/server-ci.yml`
   - lint / build / test（用于 PR & main）
-- CD（staging）：`.github/workflows/cd-staging.yml`
-  - 手动触发（`workflow_dispatch`）
-  - CI 成功后自动触发（`workflow_run`）
-  - 使用 Railway CLI：`railway up --ci --environment staging --service <service>`
-- CD（production）：`.github/workflows/cd-production.yml`
+- CD（production）：`.github/workflows/server-cd-production.yml`
   - 手动触发（要求输入 `deploy` 确认）
   - 使用 Railway CLI：`railway up --ci --environment production --service <service>`
 - Token 预检查：`.github/workflows/railway-auth-check.yml`
@@ -42,12 +38,9 @@
 
 ## 环境划分
 
-我们默认至少存在两个 Railway 环境：
+只有一个 Railway 环境：`production`。2026-11-17 删除了 `staging`。
 
-- `staging`
-- `production`
-
-建议：两套环境各自绑定独立的 Postgres/Redis，避免数据串环境。
+服务器改动先在本机测试：用 `docker-compose.yml` 起 Postgres 和 Redis，测试数据只写本机库，不写生产。
 
 ---
 
@@ -97,7 +90,7 @@
 配置来源（两种方式二选一即可）：
 
 1) **Railway Dashboard 直接配置**（传统方式）  
-2) **GitHub Actions 在部署前同步写入 Railway**（见 `cd-staging.yml` / `cd-production.yml` 的 `Sync Railway env vars (optional)` 步骤）：
+2) **GitHub Actions 在部署前同步写入 Railway**（见 `server-cd-production.yml` 的 `Sync Railway env vars (optional)` 步骤）：
    - 从 GitHub repo variables 读取 `database_url` / `redis_url`
    - 写入 Railway service 的 `DATABASE_URL` / `REDIS_URL`（注意大小写）
    - 使用 `--skip-deploys` 避免“仅改变量就触发一次额外部署”
@@ -133,32 +126,27 @@ Railway CLI 有两类 token：
   - `RAILWAY_SERVICE_NAME`：Railway service 名称（例如 `where2meet-server`）
   - `database_url`（可选）：部署前同步到 Railway 的 `DATABASE_URL`
   - `redis_url`（可选）：部署前同步到 Railway 的 `REDIS_URL`
-- Environment Secrets（推荐放在对应 GitHub Environment 下）：
-  - `staging` 环境：
-    - `RAILWAY_TOKEN`（Project Token，Railway 环境选 staging）
-  - `production` 环境：
-    - `RAILWAY_TOKEN`（Project Token，Railway 环境选 production）
+- Repo Secret：`RAILWAY_PRODUCTION`（Project Token，Railway 环境选 production）
 
-兼容：工作流也支持你使用 `railway_staging/railway_production` 或 `RAILWAY_STAGING/RAILWAY_PRODUCTION` 作为 secret 名称（见 workflow 代码）。
+兼容：工作流也接受 GitHub Environment `production` 下的 `RAILWAY_TOKEN`（见 workflow 代码）。
 
 ---
 
 ## 部署流程（Flow）
 
-### 1) Staging 部署
+### Production 部署
 
 触发方式：
 
-- 手动：GitHub Actions → `CD Staging` → Run workflow
-- 自动：CI 在 `main` push 上成功后触发 `workflow_run`
+- 手动：GitHub Actions → `Server CD Production` → 输入 `deploy` 确认，或 `gh workflow run server-cd-production.yml --ref main -f confirm=deploy`
 
 执行步骤（概念上）：
 
 1. Checkout 代码（对应 commit）
 2. 安装 Railway CLI
 3. （可选）将 GitHub variables `database_url` / `redis_url` 同步到 Railway 的 `DATABASE_URL` / `REDIS_URL`（不会触发部署）
-4. 使用 `RAILWAY_TOKEN` 对 staging 环境执行：
-   - `railway up --ci --environment staging --service <service>`
+4. 使用 `RAILWAY_TOKEN` 对 production 环境执行：
+   - `railway up --ci --environment production --service <service>`
 5. Railway 构建镜像（Dockerfile）并发布部署
 6. Railway 运行 `preDeployCommand`：
    - `npx prisma migrate deploy`
@@ -166,17 +154,7 @@ Railway CLI 有两类 token：
    - `npm start`（启动 `dist/index.js`）
 8. Railway 对 `/health/ready` 做健康检查
 
-并发控制：
-
-- staging workflow 使用 `concurrency` 分组，并区分 `workflow_dispatch` 和 `workflow_run`，避免“手动部署被自动触发 run 取消”。
-
-### 2) Production 部署
-
-触发方式：
-
-- 手动：GitHub Actions → `CD Production` → 输入 `deploy` 确认
-
-执行步骤与 staging 类似，只是 `--environment production`，并且通过 GitHub Environment `production` 可绑定额外审批策略（如 required reviewers）。
+GitHub Environment `production` 可绑定额外审批策略（如 required reviewers）。
 
 ---
 
@@ -190,7 +168,7 @@ Railway CLI 有两类 token：
 
 要点：
 
-- 确保 staging/prod 的 `DATABASE_URL` 指向各自数据库。
+- 确保 production 的 `DATABASE_URL` 指向生产库。
 - 迁移失败会导致部署失败（这是期望行为）。
 
 ---
@@ -205,7 +183,7 @@ Railway CLI 有两类 token：
   - 创建 Event
   - participant join / update
   - venues search
-  - votes & SSE（若 staging 环境具备 Redis）
+  - votes & SSE
 
 ---
 
@@ -220,15 +198,7 @@ Railway CLI 有两类 token：
 - 先跑 `Railway Auth Check`（只读验证）确认 token 是否可用。
 - 确认 token 是对应 Railway 环境创建的 **Project Token**。
 
-### 2) 手动部署被取消
-
-现象：workflow_dispatch run 很快变为 cancelled。
-
-原因：concurrency 分组与其他触发（如 workflow_run）冲突。
-
-处理：已在 `.github/workflows/cd-staging.yml` 中按 `github.event_name` 区分分组。
-
-### 3) 迁移卡住/失败
+### 2) 迁移卡住/失败
 
 处理：
 
