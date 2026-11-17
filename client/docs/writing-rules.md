@@ -164,7 +164,7 @@ What the site handles, so don't hand-write it:
 
 ## Publishing
 
-- **One way to publish.** A person or an agent writes the post as `client/src/content/posts/<slug>.md` in the monorepo, in the format in `client/docs/blog-posts-contract.md`. They run `npm test` in `client/` and open a pull request. The scheduled writer merges its own pull request once CI passes, and the merge deploys the post. The owner reads every post after it goes live and fixes problems in follow-up pull requests. CI is the only check before a post goes live, so follow these rules even where CI can't check them.
+- **One way to publish.** A person or an agent writes the post as `client/src/content/posts/<slug>.md` in the monorepo, in the format in `client/docs/blog-posts-contract.md`. They run `npm test` in `client/` and open a pull request. The scheduled writer merges its own pull request once CI passes, and the merge deploys the post. The owner reads every post after it goes live and fixes problems in follow-up pull requests. CI is the only check before a post goes live, so follow these rules even where CI can't check them. An `autoblog/*` pull request may change only `client/src/content/posts/*.md` and `client/src/content/keywords.yaml`. CI fails it if it touches anything else, such as the checks, the frozen lists in `grandfathered.ts`, `taxonomy.yaml`, these docs or a workflow. Those changes go to the owner.
 - **Starting from an idea.** The panel's Ideas view has a Copy prompt button. It copies a prompt for an agent with the idea, its keywords, places and links, and these rules.
 - **Photos** are listed by their Commons link and never downloaded into the repo.
 - **CI checks every post.** A pull request can't merge until these pass:

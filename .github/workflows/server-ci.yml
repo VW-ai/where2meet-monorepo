@@ -133,10 +133,37 @@ jobs:
   client:
     uses: ./.github/workflows/client-ci.yml
 
+  # The scheduled writer merges its own autoblog/* PRs once CI passes, so CI is the only thing that
+  # keeps it from loosening the content checks it is graded by.
+  autoblog-scope:
+    name: Autoblog scope
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Allow autoblog PRs to change only posts and keywords
+        if: ${{ startsWith(github.head_ref, 'autoblog/') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          outside=$(gh api "repos/$REPO/pulls/$PR/files" --paginate \
+            -q '.[] | .filename, (.previous_filename // empty)' \
+            | grep -Ev '^client/src/content/(posts/[^/]+\.md|keywords\.yaml)$' || true)
+          if [ -n "$outside" ]; then
+            echo "::error::An autoblog PR may change only client/src/content/posts/*.md and client/src/content/keywords.yaml. Take these files out of the PR; changes to them go to the owner:"
+            echo "$outside"
+            exit 1
+          fi
+
   required:
     name: CI required
     if: ${{ always() }}
-    needs: [lint, build, test, client]
+    needs: [lint, build, test, client, autoblog-scope]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -148,8 +175,9 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           TEST_RESULT: ${{ needs.test.result }}
           CLIENT_RESULT: ${{ needs.client.result }}
+          AUTOBLOG_SCOPE_RESULT: ${{ needs.autoblog-scope.result }}
         run: |
-          for result in "$LINT_RESULT" "$BUILD_RESULT" "$TEST_RESULT" "$CLIENT_RESULT"; do
+          for result in "$LINT_RESULT" "$BUILD_RESULT" "$TEST_RESULT" "$CLIENT_RESULT" "$AUTOBLOG_SCOPE_RESULT"; do
             if [ "$result" != success ]; then
               echo "A CI check did not pass: $result"
               exit 1
