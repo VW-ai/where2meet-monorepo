@@ -27,7 +27,7 @@ import {
   generateCollectionPageSchema,
 } from '@/lib/seo/structured-data';
 import { CONTENT_WIDTH_SIZES, PhotoFigure } from './photo-figure';
-import { PlanCta } from './plan-cta';
+import { PlanCta, PlanLink } from './plan-cta';
 import { Byline } from './post-card';
 import { MarkdownBody, PostMarkdown } from './post-markdown';
 import { prose } from './prose';
@@ -137,6 +137,10 @@ function AreaView({ page, catalog }: { page: AreaPage; catalog: Catalog }) {
             </>
           )}
         </div>
+      )}
+
+      {posts.length > 0 && (
+        <PlanLink label={`Plan where to meet ${inArea(area)}`} className="mt-6" />
       )}
 
       {posts.length > 0 && (

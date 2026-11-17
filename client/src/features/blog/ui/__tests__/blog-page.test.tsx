@@ -22,11 +22,12 @@ function outline(html: string) {
   const article = html.match(/<article>(.*)<\/article>/s)?.[1] ?? '';
   return [
     ...article.matchAll(
-      /<h([12])>(.*?)<\/h\1>|<figure><img alt="([^"]*)"[^>]*?src="([^"]+)"[^>]*\/><figcaption>(.*?)<\/figcaption><\/figure>|<section aria-labelledby="[^"]+"><h2 id="[^"]+">(.*?)<\/h2>/gs
+      /<h([12])>(.*?)<\/h\1>|<figure><img alt="([^"]*)"[^>]*?src="([^"]+)"[^>]*\/><figcaption>(.*?)<\/figcaption><\/figure>|<section aria-labelledby="[^"]+"><h2 id="[^"]+">(.*?)<\/h2>|<a href="\/"><span><span>(.*?)<\/span>/gs
     ),
-  ].map(([, level, heading, alt, src, caption, places]) => {
+  ].map(([, level, heading, alt, src, caption, places, plan]) => {
     if (heading !== undefined) return `h${level} ${heading}`;
     if (places !== undefined) return `places: ${places}`;
+    if (plan !== undefined) return `plan: ${plan}`;
     return `figure ${decodeURIComponent(src)} "${alt}" | ${caption.replace(/<[^>]+>/g, '')}`;
   });
 }
@@ -59,6 +60,7 @@ describe('BlogPageView', () => {
       'figure /_next/image?url=/blog/images/bryant-park-from-one-vanderbilt.jpg&w=3840&q=75 "Bryant Park and the library seen from the top of One Vanderbilt" | Bryant Park from above. Photo by Larry D. Moore (CC BY 4.0, cropped) via Wikimedia Commons',
       'h2 Which places take bookings?',
       'places: Our picks in Midtown',
+      'plan: Plan this with your group',
       'h2 When is Midtown quietest?',
       'figure /_next/image?url=/blog/images/grand-central-concourse-windows.jpg&w=3840&q=75 "Light through the tall windows of Grand Central\'s main concourse" | Grand Central\'s main concourse at midday. Photo by Warren LeMay (CC0) via Wikimedia Commons',
       'h2 How to do it in Where2Meet',
@@ -108,6 +110,7 @@ describe('BlogPageView', () => {
       'figure /_next/image?url=/blog/images/rockefeller-center-concourse.jpg&w=3840&q=75 "The underground concourse at Rockefeller Center with shops on both sides"',
       'figure /_next/image?url=/blog/images/rockefeller-center-lights-at-sunset.jpg&w=3840&q=75 "Rockefeller Center\'s towers lit up at sunset"',
       'places: Our picks',
+      'plan: Plan this with your group',
       'h2 How long should the lunch take?',
       'h2 How to do it in Where2Meet',
       'h2 Common questions',
