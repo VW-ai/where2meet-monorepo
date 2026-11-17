@@ -30,6 +30,9 @@
 - phrase: date night spots
   occasion: date-night
   note: A "where to" search for date night places of any kind, added 2026-11-09
+- phrase: date night ideas
+  occasion: date-night
+  note: A list search for a date night plan in a city, added 2026-11-17 for Chicago, which had no date night post
 - phrase: team meeting location
   occasion: team-meeting
 - phrase: where to hold a team meeting
