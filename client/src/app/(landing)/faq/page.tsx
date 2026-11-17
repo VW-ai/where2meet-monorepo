@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import Image from 'next/image';
+import { SiteFooter } from '@/features/landing/ui/site-footer';
+import { SiteHeader } from '@/features/landing/ui/site-header';
 import { createMetadata } from '@/lib/seo/metadata';
 import { generateFAQSchema, type FAQItem } from '@/lib/seo/structured-data';
 import { StructuredData } from '@/components/seo/structured-data';
-import catLogo from '@/components/cat/logo.svg';
 
 export const metadata: Metadata = createMetadata({
   title: 'FAQ',
@@ -69,15 +68,7 @@ export default function FAQPage() {
       <StructuredData data={generateFAQSchema(faqs)} />
 
       <div className="min-h-screen bg-[#eef1f4] text-[#21252b]">
-        <header className="mx-auto max-w-xl px-4 pt-4 sm:pt-5">
-          <Link
-            href="/"
-            aria-label="Where2Meet"
-            className="inline-flex items-center rounded-full bg-white p-1.5 shadow-[0_3px_16px_rgba(23,37,45,0.15)]"
-          >
-            <Image src={catLogo} alt="Where2Meet" width={36} height={36} className="h-9 w-9" />
-          </Link>
-        </header>
+        <SiteHeader className="mx-auto max-w-xl px-4 pt-4 sm:pt-5" />
 
         <main className="mx-auto max-w-xl px-4 pb-10 pt-8">
           <h1 className="mb-4 text-2xl font-bold tracking-[-0.6px]">FAQ</h1>
@@ -89,12 +80,8 @@ export default function FAQPage() {
               </section>
             ))}
           </div>
-          <p className="mt-4 text-center text-sm">
-            <Link href="/contact" className="font-medium text-[#666b73] hover:text-[#bd3843]">
-              Contact
-            </Link>
-          </p>
         </main>
+        <SiteFooter className="mx-auto max-w-xl px-4 pb-8" />
       </div>
     </>
   );
