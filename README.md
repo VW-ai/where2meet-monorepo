@@ -36,12 +36,11 @@ The existing hosting projects use this repository:
 | Service | Build root | Deployment |
 | --- | --- | --- |
 | Vercel `where2meet` | `client` | Git integration deploys `main` to `www.where2meet.org` |
-| Railway `where2meet-server`, staging | `/server` | `Server CI` success on `main` triggers `Server CD Staging` |
 | Railway `where2meet-server`, production | `/server` | Run `Server CD Production` on `main` with `confirm=deploy` |
 
-Railway Config File Path is `/server/railway.toml` in both environments. Its production API remains at `https://where2meet-server-production.up.railway.app`. Database, Redis, provider environment variables, and domains remain on the existing projects.
+Railway Config File Path is `/server/railway.toml`. There is no staging environment; server changes are tested locally against `server/docker-compose.yml` before a production deploy. The production API remains at `https://where2meet-server-production.up.railway.app`. Database, Redis, provider environment variables, and domains remain on the existing projects.
 
-GitHub Actions uses the `RAILWAY_SERVICE_NAME` and `RAILWAY_PROJECT_ID` repository variables and environment-scoped project tokens stored as repository secrets `RAILWAY_STAGING` and `RAILWAY_PRODUCTION`. `Railway Auth Check` verifies both tokens without printing them. Client and server CI can also be run manually. The old server repository's CD workflows and direct Railway trigger are disabled so it cannot redeploy the retired source automatically.
+GitHub Actions uses the `RAILWAY_SERVICE_NAME` and `RAILWAY_PROJECT_ID` repository variables and a production-scoped project token stored as the repository secret `RAILWAY_PRODUCTION`. `Railway Auth Check` verifies it without printing it. Client and server CI can also be run manually. The old server repository's CD workflows and direct Railway trigger are disabled so it cannot redeploy the retired source automatically.
 
 Native iOS remains in its separate sibling folder. See [server deployment](server/docs/DEPLOYMENT.md) for operational commands.
 
