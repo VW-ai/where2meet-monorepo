@@ -20,6 +20,34 @@ function stubFetch(status: number, body: unknown) {
   return fetchMock;
 }
 
+describe('useAuthStore.checkSession', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('signs in the user the session check returns', async () => {
+    useAuthStore.setState({ user: null, isAuthenticated: false, isAuthInitialized: false });
+    stubFetch(200, { user });
+
+    await useAuthStore.getState().checkSession();
+
+    const state = useAuthStore.getState();
+    expect(state.user).toEqual(user);
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.isAuthInitialized).toBe(true);
+  });
+
+  it('signs out a visitor the session check answers with no user', async () => {
+    useAuthStore.setState({ user, isAuthenticated: true, isAuthInitialized: false });
+    stubFetch(200, { user: null });
+
+    await useAuthStore.getState().checkSession();
+
+    const state = useAuthStore.getState();
+    expect(state.user).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.isAuthInitialized).toBe(true);
+  });
+});
+
 describe('useAuthStore.signInWithGoogle', () => {
   beforeEach(() => {
     vi.stubGlobal('window', {});

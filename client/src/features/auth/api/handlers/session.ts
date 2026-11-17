@@ -96,8 +96,12 @@ async function handleGetSessionMock(request: NextRequest): Promise<NextResponse>
 }
 
 /**
- * Main handler - routes to mock or real backend based on configuration
+ * Main handler - routes to mock or real backend based on configuration.
+ * Signed-out visitors get 200 with `{ user: null }`, because browsers log a 401 as an
+ * error on every page. The iOS app calls the API directly and still gets the 401.
  */
 export async function handleGetSession(request: NextRequest): Promise<NextResponse> {
-  return routeAuthUserRequest(request, 'auth', '/session', handleGetSessionMock);
+  if (!request.cookies.has('session_token')) return NextResponse.json({ user: null });
+  const response = await routeAuthUserRequest(request, 'auth', '/session', handleGetSessionMock);
+  return response.status === 401 ? NextResponse.json({ user: null }) : response;
 }

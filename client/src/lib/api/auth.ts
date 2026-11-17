@@ -22,7 +22,7 @@ export const authApi = {
 
   logout: () => apiCall('/api/auth/logout', { method: 'POST' }),
 
-  getSession: () => apiCall<{ user: User }>('/api/auth/session'),
+  getSession: () => apiCall<{ user: User | null }>('/api/auth/session'),
 
   requestPasswordReset: (email: string) =>
     apiCall('/api/auth/recovery/request', {
