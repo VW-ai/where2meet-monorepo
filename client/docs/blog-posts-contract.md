@@ -11,10 +11,11 @@ Owner decisions:
 - 2026-10-14. This replaces the 2026-10-13 rule of mostly restaurants, cafes and bars. A local post's place cards are its list of picks, and the body doesn't repeat them. The places fit the post's title. When the post has a venue type, they are that type. Otherwise they can be any kind of place that suits the occasion, such as restaurants, cafes, bars, museums or parks.
 - 2026-10-16. A place note says why the place fits the occasion and gives a planning detail, in plain facts. It never names Google. The post names its source once, in one sentence on the line after `:::places`. At most 2 notes in a post start with the same word.
 - 2026-10-25. A description opens with what the reader gets, never with its title's words. A post's "How to do it in Where2Meet" section is two or three sentences written for that post, not steps shared with other posts.
+- 2026-11-17. To stop near-duplicate posts, a city gets one post per occasion, a place goes in at most 3 posts, and a Commons photo has one `file_name`. Alt text is at most 125 characters and describes only the photo, and no title says "near me". The scheduled writer merges its own pull request once CI passes, and the owner reads every post after it goes live, so CI enforces these rules. The posts and photos that broke a limit before it came in keep their share, as [Checks](#checks) describes. This replaces the 2026-10-10 rule that the owner reviews and merges every post.
 
 ## Make a change
 
-Every change is one pull request against `main`. Before you open it, run `npm test` in `client/`. To run only the content checks, run `npx vitest run src/content`. Open the pull request and don't merge it.
+Every change is one pull request against `main`. Before you open it, run `npm test` in `client/`. To run only the content checks, run `npx vitest run src/content`. The scheduled writer merges its own post pull request once CI passes. Leave any other pull request for the owner to merge.
 
 | To                       | Change                                                                                                                                                                                                |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -112,10 +113,10 @@ A coffee meeting spot works when both of you can reach it in about the same time
 
 | Field                                        | Value                                                                                                                                                                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `title`                                      | The h1 and the SEO title. With " \| Where2Meet" it is at most 60 characters.                                                                                                                                          |
+| `title`                                      | The h1 and the SEO title. With " \| Where2Meet" it is at most 60 characters. It never says "near me".                                                                                                                 |
 | `description`                                | 120 to 155 characters, not opening with the title's words.                                                                                                                                                            |
-| `main_keyword`                               | A phrase from `src/content/keywords.yaml` that no other post targets. It appears in the title and in the first two sentences of the body.                                                                             |
-| `occasion`                                   | A key from `occasions` in `src/content/taxonomy.yaml`.                                                                                                                                                                |
+| `main_keyword`                               | A phrase from `src/content/keywords.yaml` that no other post targets. It appears in the title and in the first two sentences of the body. A title gives a "near me" phrase's other words and names the place instead. |
+| `occasion`                                   | A key from `occasions` in `src/content/taxonomy.yaml`. A local post's occasion has no other post in its city, at city level or in a town.                                                                             |
 | `time`, `venue_type`, `group_size`, `budget` | A key from that file's `times`, `venue_types`, `group_sizes` or `budgets`, or `null`.                                                                                                                                 |
 | `city`, `town`                               | Both `null` for a general post at `/blog/<slug>`. For a local post, the slug of a city with a place file, and optionally one of its towns. The post is then at `/blog/<city>/<slug>` or `/blog/<city>/<town>/<slug>`. |
 | `published_at`, `updated_at`                 | `YYYY-MM-DD`. `updated_at` is on or after `published_at`.                                                                                                                                                             |
@@ -210,10 +211,10 @@ Phrases are unique, ignoring case and spacing. Every Markdown post's `main_keywo
 Posts and places use Wikimedia Commons photos. Photos are never downloaded into the repo. Each image has these fields:
 
 - `file_name`: lowercase `[a-z0-9-]+.jpg`, descriptive, and unique across all posts and places.
-- `source_url`: a JPEG on `upload.wikimedia.org` or `thumb.wikimedia.org`, at most 2,000,000 bytes. A 1,280-pixel-wide thumb fits.
+- `source_url`: a JPEG on `upload.wikimedia.org` or `thumb.wikimedia.org`, at most 2,000,000 bytes. A 1,280-pixel-wide thumb fits. No other image in a post or a place has the same `source_url`.
 - `page_url`: the photo's `https://commons.wikimedia.org/wiki/File:...` page.
 - `width` and `height`: the size of `source_url` in pixels.
-- `alt`: what the photo shows and where. `caption`: the line under it.
+- `alt`: what the photo shows and where, in at most 125 characters. `caption`: the line under it.
 - `author` and `license`: one of `CC0`, `Public domain`, `CC BY 2.0`, `CC BY 3.0` or `CC BY 4.0`. Share-alike is never allowed. There is no `license_url`, because the site links each license from `LICENSES` in `src/features/blog/lib/photos.ts`.
 - `cropped`: `true` when the photo is cropped. A CC BY caption then says so.
 
@@ -239,11 +240,15 @@ A post gets these rules:
 | `note-openings`     | At most 2 place notes start with the same word, with "A" and "An" counted as one.                                                                                                        |
 | `images`            | At least 3 usable images, and every `![](<file_name>)` line names a listed image.                                                                                                        |
 | `image-size`        | Each `source_url` answers a HEAD request with 200, `image/jpeg` and a size of at most 2,000,000 bytes.                                                                                   |
-| `title`             | The title with " \| Where2Meet" is at most 60 characters.                                                                                                                                |
+| `alt-text`          | Each image's alt text is at most 125 characters.                                                                                                                                         |
+| `title`             | The title with " \| Where2Meet" is at most 60 characters and never says "near me", so `main-keyword` checks it for the rest of the keyword.                                              |
 | `description`       | The description is 120 to 155 characters, and no 4 words in a row from the title start within its first 3 words. Words follow the 2026-10-22 SEO audit's pattern.                        |
 | `main-keyword`      | `main_keyword` is a phrase in `keywords.yaml`, and the title and the body's first two sentences say it as whole words. Headings, photo lines and `:::places` are skipped.                |
 | `headings`          | The body has `## How to do it in Where2Meet` and `## Common questions`.                                                                                                                  |
 | `how-to-similarity` | No other post's How-to section is more than 60 percent the same, word by word, by Python's `difflib.SequenceMatcher` ratio as the audit scored it. Both posts of a pair get the problem. |
+| `occasion-per-city` | No other local post in the same city, at city level or in a town, has the same `occasion`.                                                                                               |
+| `place-reuse`       | Each `place_id` is in at most 3 posts.                                                                                                                                                   |
+| `photo-reuse`       | No other image in a post or a place has the same `source_url`.                                                                                                                           |
 | `wording`           | No word starting with "fair" and no "meet in the middle", in the title, description, body, place notes, alt text or captions.                                                            |
 | `style`             | No em dash, en dash or curly quote in the same fields.                                                                                                                                   |
 | `dates`             | `updated_at` is on or after `published_at`.                                                                                                                                              |
@@ -256,12 +261,16 @@ A city or a town gets these rules:
 | `getting-around` | The body has a `## Getting around` line, and the transit notes after it have at least 20 words.                     |
 | `image`          | The page has an image.                                                                                              |
 | `image-size`     | As for posts.                                                                                                       |
-| `title`          | The SEO title with " \| Where2Meet" is at most 60 characters.                                                       |
+| `alt-text`       | As for posts.                                                                                                       |
+| `photo-reuse`    | As for posts.                                                                                                       |
+| `title`          | The SEO title with " \| Where2Meet" is at most 60 characters and never says "near me".                              |
 | `description`    | As for posts, with the SEO title and description.                                                                   |
 | `wording`        | As for posts, in the SEO title and description, the intro, the transit notes, and the image's alt text and caption. |
 | `style`          | As for posts, in the same fields.                                                                                   |
 
 `src/content/taxonomy.yaml` and `src/content/keywords.yaml` get only `fields`.
+
+`occasion-per-city`, `place-reuse` and `photo-reuse` came in on 2026-11-17, when some posts and photos already broke them. `GRANDFATHERED` in `src/features/blog/lib/grandfathered.ts` names those posts by slug and those images by `file_name`. They keep their share, and no other file can join one, so each list only shrinks. No date says which file came first, so when a city, a place or a photo goes past its limit, every file that isn't on the list gets the problem, and the message says to change the file that added it. Delete a name from its list when its file drops the share.
 
 The word, sentence and keyword rules match the panel's publish checklist exactly. The test sends the `image-size` HEAD requests itself. When the network is down, or Wikimedia answers 429 or 5xx, it prints "size not checked" for those photos and passes. Check their sizes yourself before you open the pull request.
 
