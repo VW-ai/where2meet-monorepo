@@ -252,6 +252,19 @@ export function areaPosts(catalog: Catalog, { city, town }: AreaPage): Post[] {
   );
 }
 
+export interface CityPosts {
+  city: City;
+  posts: Post[];
+}
+
+/** Each city that has posts, most posts first, with its posts newest first. */
+export function citiesWithPosts(catalog: Catalog): CityPosts[] {
+  return [...catalog.cities.values()]
+    .map((city) => ({ city, posts: areaPosts(catalog, { kind: 'area', city, town: null }) }))
+    .filter(({ posts }) => posts.length > 0)
+    .toSorted((a, b) => b.posts.length - a.posts.length || a.city.name.localeCompare(b.city.name));
+}
+
 /** A city post's town posts for the same occasion, or a town post's city post for it. */
 export function byAreaPosts(catalog: Catalog, post: Post): Post[] {
   const [city, town] = post.areas;
