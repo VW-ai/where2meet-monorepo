@@ -42,7 +42,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Old_State_House,_Boston.jpg
     width: 1280
     height: 853
-    alt: The red brick Old State House in Downtown Boston, with its gold eagle and white tower, between stone office buildings and a glass tower
+    alt: The red brick Old State House, with its gold eagle and white tower, between stone office buildings and a glass tower
     caption: The Old State House in July 2017. State station has an entrance in its basement
     author: Marco Almbauer
     license: Public domain
@@ -52,7 +52,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:MBTA_State_station_Old_State_House_entrance_March_2025.jpg
     width: 1280
     height: 853
-    alt: The basement entrance to State station in the brick wall of the Old State House, with fare gates lit up inside, the closest T stop to several team meeting spots in Downtown Boston
+    alt: The basement entrance to State station in the brick wall of the Old State House, with fare gates lit up inside
     caption: The State station entrance under the Old State House in March 2025, on the Orange and Blue lines
     author: 4300streetcar
     license: CC BY 4.0

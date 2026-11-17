@@ -42,7 +42,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_-_Fairmont_Copley_Plaza_-_panoramio.jpg
     width: 1280
     height: 960
-    alt: The Copley Plaza hotel, a class reunion venue on Copley Square in Back Bay, with red awnings at street level and a glass tower beside it
+    alt: The Copley Plaza hotel on Copley Square in Back Bay, with red awnings at street level and a glass tower beside it
     caption: The Copley Plaza hotel seen from Copley Square in October 2015
     author: Edgar El
     license: CC BY 3.0
@@ -52,7 +52,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Berklee_Performance_Center_(54924730130).jpg
     width: 1280
     height: 1280
-    alt: The white front of the Berklee Performance Center at 136 Massachusetts Avenue in Boston, with three arched windows and a tall Berklee sign
+    alt: The white front of the Berklee Performance Center at 136 Massachusetts Avenue, with three arched windows and a tall sign
     caption: The Berklee Performance Center, about a 4-minute walk from Berklee's Red Room on Boylston Street
     author: ajay_suresh
     license: CC BY 4.0

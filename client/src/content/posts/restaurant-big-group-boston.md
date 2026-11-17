@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Custom_House_Tower_in_Boston.jpg
     width: 1280
     height: 858
-    alt: The Custom House Tower's white clock tower framed by office buildings at Congress Street in Boston's Financial District, under a blue sky
+    alt: The Custom House Tower's white clock tower framed by office buildings at Congress Street in the Financial District
     caption: The Custom House Tower, a few blocks from Mr. Dooley's and State Street Provisions
     author: Marco Almbauer
     license: CC0
@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Christopher_Columbus_Waterfront_Park,_Boston,_MA.jpg
     width: 1280
     height: 960
-    alt: Christopher Columbus Waterfront Park and the wharves along Atlantic Avenue in Boston seen from above, with the harbor behind them
+    alt: Christopher Columbus Waterfront Park and the wharves along Atlantic Avenue seen from above, with the harbor behind them
     caption: Christopher Columbus Waterfront Park and the wharves on Atlantic Avenue, near Joe's Waterfront
     author: Judyg143 on Pixabay
     license: CC0
@@ -69,7 +69,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Broadway_station_platform_looking_south_Oct_2024_1.jpg
     width: 1280
     height: 853
-    alt: The Red Line platform at Broadway station in South Boston, with a train at the left and signs to Park Street and Ashmont or Braintree
+    alt: The Red Line platform at Broadway station, with a train at the left and signs to Park Street and Ashmont or Braintree
     caption: The Red Line platform at Broadway station, the stop for Shy Bird
     author: 4300streetcar
     license: CC BY 4.0

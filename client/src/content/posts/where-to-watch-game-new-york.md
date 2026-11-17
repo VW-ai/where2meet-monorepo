@@ -9,8 +9,8 @@ group_size: null
 budget: null
 city: new-york
 town: null
-published_at: 2026-10-16
-updated_at: 2026-10-16
+published_at: 2026-11-02
+updated_at: 2026-11-02
 places:
   - place_id: ChIJV8smVahZwokRodosOEyb7IU
     label: Legends

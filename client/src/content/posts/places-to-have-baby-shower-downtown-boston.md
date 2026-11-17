@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Omniparkerhouse.jpg
     width: 1280
     height: 850
-    alt: The lit canopy over the School Street entrance of the Omni Parker House in Downtown Boston, with people walking past on the sidewalk
+    alt: The lit canopy over the Omni Parker House's School Street entrance in Downtown Boston, with people walking past
     caption: The School Street entrance of the Omni Parker House, home of Parker's Restaurant, in October 2010
     author: Kimberly Vardeman
     license: CC BY 2.0
@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Old_State_House,_Boston_(western_elevation_detail,_2026).jpg
     width: 1280
     height: 960
-    alt: The brick west gable of the Old State House in Boston, with a gilded eagle on top and office towers behind, near places to have a baby shower by State station
+    alt: The brick west gable of the Old State House in Boston, with a gilded eagle on top and office towers behind
     caption: The west end of the Old State House, which holds an entrance to State station, in June 2026
     author: Seasider53
     license: CC BY 4.0

@@ -13,7 +13,7 @@ image:
   page_url: https://commons.wikimedia.org/wiki/File:Mission_Dolores_Park,_San_Francisco.jpg
   width: 1280
   height: 826
-  alt: People sitting on the sloping lawn of Mission Dolores Park, with palm trees and the downtown San Francisco skyline behind them
+  alt: People sitting on the sloping lawn of Mission Dolores Park, with palm trees and the downtown San Francisco skyline behind
   caption: The lawn of Mission Dolores Park, looking toward downtown
   author: Travel Coffee Book
   license: CC0

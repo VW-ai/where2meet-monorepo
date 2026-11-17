@@ -42,7 +42,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:160_Milk_Street_-_Boston_MA_-_DSC08285.jpg
     width: 1280
     height: 853
-    alt: The brick front of Central Wharf Company at 160 Milk Street in Boston, a holiday party venue with its name on a long sign above the windows
+    alt: The brick front of Central Wharf Company at 160 Milk Street in Boston, with its name on a long sign above the windows
     caption: Central Wharf Co. at 160 Milk Street, about a 3-minute walk from Aquarium station
     author: Daderot
     license: CC0

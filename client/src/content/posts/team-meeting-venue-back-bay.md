@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Back_Bay_Skyline,_Boston_(54954490694).jpg
     width: 1280
     height: 853
-    alt: A red brick building and office towers at Berkeley and Newbury Streets in Back Bay, with the glass tower at 200 Clarendon Street behind them, near a team meeting venue on Boylston Street
+    alt: A red brick building and office towers at Berkeley and Newbury Streets, with the glass tower at 200 Clarendon Street behind
     caption: Berkeley Street at Newbury Street, about a 3-minute walk from Workbar Back Bay
     author: ajay_suresh
     license: CC BY 4.0
@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Copley_Station_entrance,_Boston,_2012-06-27.jpg
     width: 1280
     height: 959
-    alt: The black iron inbound entrance to Copley station on the Green Line, with stairs going down beside the stone front of the Boston Public Library
+    alt: The black iron inbound entrance to Copley station, with stairs going down beside the stone front of the Boston Public Library
     caption: The inbound entrance to Copley station in 2012, beside the Boston Public Library
     author: Cbaile19
     license: CC0
@@ -58,8 +58,8 @@ images:
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0e/Looking_northeast_along_the_Reflecting_Pool_toward_One_Dalton%2C_the_Prudential_Tower%2C_and_other_skyscrapers_%2853957070710%29.jpg/1280px-Looking_northeast_along_the_Reflecting_Pool_toward_One_Dalton%2C_the_Prudential_Tower%2C_and_other_skyscrapers_%2853957070710%29.jpg
     page_url: https://commons.wikimedia.org/wiki/File:Looking_northeast_along_the_Reflecting_Pool_toward_One_Dalton,_the_Prudential_Tower,_and_other_skyscrapers_(53957070710).jpg
     width: 1280
-    height: 979
-    alt: The long reflecting pool at the Christian Science Plaza in Boston, looking northeast to the One Dalton tower and the Prudential Tower
+    height: 980
+    alt: The long reflecting pool at the Christian Science Plaza, looking northeast to the One Dalton tower and the Prudential Tower
     caption: The Christian Science Plaza's reflecting pool in 2024, looking toward One Dalton and the Prudential Tower. The Hilton and Flour are on Dalton Street
     author: Chris Rycroft
     license: CC BY 2.0

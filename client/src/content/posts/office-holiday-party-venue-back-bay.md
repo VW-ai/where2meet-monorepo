@@ -10,7 +10,7 @@ budget: null
 city: boston
 town: back-bay
 published_at: 2026-11-06
-updated_at: 2026-11-06
+updated_at: 2026-11-17
 places:
   - place_id: ChIJ2X25uw9644kRGG8gByNprGU
     label: Back Bay Social
@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_from_Prudential_Skywalk_-_NorthWest_-_HDR_-_2014-02-16.jpg
     width: 1280
     height: 824
-    alt: Back Bay on a snowy winter night from high in the Prudential Tower, with Boylston Street lit up below and Trinity Church beside a glass tower
+    alt: Back Bay on a snowy night from the Prudential Tower, with Boylston Street lit below and Trinity Church beside a glass tower
     caption: Back Bay at night in February 2014, seen from the Skywalk in the Prudential Tower
     author: Bill Damon
     license: CC BY 2.0
@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:The_Lenox_Hotel_(54924425591).jpg
     width: 1280
     height: 1920
-    alt: The red brick Lenox Hotel, an office holiday party venue at Boylston and Exeter streets in Back Bay, with a large gold bear above the corner entrance
+    alt: The red brick Lenox Hotel at Boylston and Exeter streets in Back Bay, with a large gold bear above the corner entrance
     caption: The Lenox Hotel at Boylston and Exeter streets in November 2025
     author: ajay_suresh
     license: CC BY 4.0
@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Plaza_by_the_Back_Bay_MBTA_station_at_night_(53955426465).jpg
     width: 1280
     height: 800
-    alt: The brick plaza beside Back Bay station at night, with the station's glass arches behind trees and orange umbrellas closed along a restaurant patio
+    alt: The brick plaza beside Back Bay station at night, with its glass arches behind trees and closed orange umbrellas on a patio
     caption: The plaza by Back Bay station, near Dartmouth Street, at night in April 2024
     author: Chris Rycroft
     license: CC BY 2.0
@@ -93,9 +93,9 @@ If the group shrinks to one long table, see [where to have a group dinner in Bac
 
 ## When do coworkers need to leave to get home?
 
-Set the end time from the commuter rail schedule, because those riders have the fewest ways home. A party that ends by 9:45 p.m. leaves time to walk to Back Bay station from any of these picks, which are at most about 15 minutes away.
+Set the end time from the commuter rail schedule, because those riders have the fewest ways home. Every pick here is at most about a 15-minute walk from Back Bay station, so end the party 20 minutes before the train your riders can't miss.
 
-- **Commuter rail.** The [MBTA's schedules](https://www.mbta.com/schedules/commuter-rail) for December 10 and 11, 2026, show the last two outbound trains from Back Bay at 10:06 and 11:51 p.m. on the Worcester line, and 10:15 p.m. and midnight on the Franklin line. The Needham and Providence/Stoughton lines leave at 10:50 p.m. and midnight. Anyone who misses the first of the two waits more than an hour.
+- **Commuter rail.** Late at night, Worcester, Franklin, Needham and Providence/Stoughton trains leave Back Bay far apart, so anyone who misses one can wait more than an hour for the next. Look up the party date on the [MBTA's commuter rail schedules](https://www.mbta.com/schedules/commuter-rail) and find the last two trains on each line your coworkers ride.
 - **Green Line.** Copley and Arlington have all four branches and elevators. [Hynes has no elevators](https://www.mbta.com/stops/place-hymnl), so send anyone who needs one to Copley.
 - **Late subway.** The MBTA's [subway guide](https://www.mbta.com/guides/subway-guide) says to reach a downtown transfer station by 12:35 a.m. Sunday to Thursday, or by 1:30 a.m. on Friday and Saturday.
 

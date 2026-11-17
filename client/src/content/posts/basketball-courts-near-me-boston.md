@@ -1,5 +1,5 @@
 ---
-title: Basketball courts near me in Boston, by T stop
+title: Outdoor basketball courts in Boston, by T line
 description: Six park courts and a free city gym, each matched to its closest T stop. A list of basketball courts near me for a pickup group spread across Boston.
 main_keyword: basketball courts near me
 occasion: pickup-basketball
@@ -10,7 +10,7 @@ budget: null
 city: boston
 town: null
 published_at: 2026-11-03
-updated_at: 2026-11-03
+updated_at: 2026-11-17
 places:
   - place_id: ChIJFzxGC25644kRwUUIDN7Qi50
     label: Peters Park
@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Peters_Park_-_Boston,_MA_-_courts.jpg
     width: 1280
     height: 720
-    alt: The outdoor basketball courts at Peters Park in Boston's South End, with backboards, tall light poles and trees behind the fence
+    alt: The outdoor basketball courts at Peters Park in the South End, with backboards, tall light poles and trees behind the fence
     caption: The basketball courts and their light poles at Peters Park in the South End
     author: Daderot
     license: CC0

@@ -36,7 +36,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Roxbury_Crossing_station_entrance_August_2026.jpg
     width: 1280
     height: 853
-    alt: The glass doors and orange "Roxbury Crossing to all trains" sign at the entrance to Roxbury Crossing station on the Orange Line in Boston
+    alt: The glass doors and orange "Roxbury Crossing to all trains" sign at the entrance to the Orange Line station
     caption: The entrance to Roxbury Crossing station on the Orange Line, about a 3-minute walk from Tavern of Tales
     author: 4300streetcar
     license: CC BY 4.0
@@ -46,7 +46,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Coolidge_Corner_MBTA_station,_Coolidge_Corner_MA.jpg
     width: 1280
     height: 960
-    alt: A Green Line trolley stopped beside the small tile-roofed shelter at Coolidge Corner station on Beacon Street in Brookline, under green trees
+    alt: A Green Line trolley stopped beside the small tile-roofed shelter at Coolidge Corner station on Beacon Street in Brookline
     caption: Coolidge Corner station on the Green Line's C branch, near Knight Moves Cafe
     author: John Phelan
     license: CC BY 3.0
@@ -66,7 +66,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Evelyn_Moakley_Bridge,_Boston,_MA_(5867551657).jpg
     width: 1280
     height: 850
-    alt: A black and white night view of the Evelyn Moakley Bridge carrying Seaport Boulevard over Fort Point Channel, with downtown Boston towers behind it
+    alt: A black and white night view of the Evelyn Moakley Bridge over Fort Point Channel, with downtown Boston towers behind it
     caption: The Evelyn Moakley Bridge, which carries Seaport Boulevard from downtown to the Seaport over Fort Point Channel
     author: Emmanuel Huybrechts
     license: CC BY 2.0

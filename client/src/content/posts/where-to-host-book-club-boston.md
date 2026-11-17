@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Public_Library_%E2%80%93_McKim_Building_(54923556202).jpg
     width: 1280
     height: 720
-    alt: The granite front of the Boston Public Library's McKim Building on Copley Square, with a row of arched windows above three arched doors
+    alt: The Boston Public Library's granite McKim Building on Copley Square, with a row of arched windows above three arched doors
     caption: The Boston Public Library's McKim Building on Copley Square, home of the Map Room Lounge
     author: ajay_suresh
     license: CC BY 4.0
@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Looking_south_down_Charles_Street_from_Pinckney_Street,_Beacon_Hill,_Boston,_2007.jpg
     width: 1280
     height: 851
-    alt: Brick row houses with shops on the ground floor along Charles Street in Beacon Hill, Boston, seen from the corner of Pinckney Street
+    alt: Brick row houses with shops on the ground floor along Charles Street in Beacon Hill, seen from the corner of Pinckney Street
     caption: Charles Street in Beacon Hill, looking south from Pinckney Street in 2007
     author: DimiTalen
     license: CC0

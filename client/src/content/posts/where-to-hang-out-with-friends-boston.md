@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Downtown_Boston_from_Fan_Pier_(9845721283).jpg
     width: 1280
     height: 916
-    alt: Downtown Boston's towers and the Rowes Wharf arch lit at dusk, seen across the harbor from Fan Pier in the Seaport with a heavy chain in front
+    alt: Downtown Boston's towers and the Rowes Wharf arch lit at dusk, seen across the harbor from Fan Pier in the Seaport
     caption: Downtown Boston and Rowes Wharf from Fan Pier in the Seaport, near Flight Club and SPIN
     author: Robbie Shade
     license: CC BY 2.0

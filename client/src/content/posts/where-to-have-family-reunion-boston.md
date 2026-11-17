@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Tea_Party_Ships_%26_Museum_(54960819933).jpg
     width: 1280
     height: 853
-    alt: The red wooden Boston Tea Party Ships and Museum building on pilings over Fort Point Channel, with a tall ship docked beside it
+    alt: The red wooden Boston Tea Party Ships and Museum building on pilings over Fort Point Channel, with a tall ship beside it
     caption: The Boston Tea Party Ships and Museum on Fort Point Channel, about a 7-minute walk from South Station
     author: ajay_suresh
     license: CC BY 4.0

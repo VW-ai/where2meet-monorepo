@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Hynes_Convention_Center_station_outbound_platform_April_2025_1.jpg
     width: 1280
     height: 853
-    alt: The outbound Green Line platform at Hynes Convention Center station in Boston, with green columns and a sign reading Kenmore and West
+    alt: The outbound Green Line platform at Hynes Convention Center station, with green columns and a sign reading Kenmore and West
     caption: The outbound platform at Hynes Convention Center station in April 2025. Kenmore, for Fenway Park, is the next stop
     author: 4300streetcar
     license: CC BY 4.0

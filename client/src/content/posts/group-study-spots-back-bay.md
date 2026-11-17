@@ -10,7 +10,7 @@ budget: null
 city: boston
 town: back-bay
 published_at: 2026-11-07
-updated_at: 2026-11-07
+updated_at: 2026-11-17
 places:
   - place_id: ChIJU_ibQgx644kRc6zBW_5d1Lk
     label: Boston Public Library
@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Public_Library_Johnson_Building_Boylston_Street_Entrance_March_2025.jpg
     width: 1280
     height: 853
-    alt: The glass Boylston Street entrance of the Boston Public Library's Johnson Building in the evening, with cafe tables visible inside, home to two group study spots in Back Bay
+    alt: The glass Boylston Street entrance of the Boston Public Library's Johnson Building in the evening, with cafe tables inside
     caption: The Boylston Street entrance to the Boston Public Library's Johnson Building in March 2025
     author: 4300streetcar
     license: CC BY 4.0
@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Public_Library_Central_Johnson_Building_New_and_Novel_Section_Feb_2025.jpg
     width: 1280
     height: 853
-    alt: Wooden columns and book displays on wheels under a slatted wooden ceiling in the New and Novel section of the Central Library's Johnson Building in Back Bay
+    alt: Wooden columns and book displays on wheels under a slatted wooden ceiling in the Johnson Building's New and Novel section
     caption: The New and Novel section inside the Johnson Building's Boylston Street entrance in February 2025
     author: 4300streetcar
     license: CC BY 4.0
@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Outbound_B_train_at_Hynes_Convention_Center_station_April_2025_2.jpg
     width: 1280
     height: 853
-    alt: A Green Line B train bound for Boston College pulling into the outbound platform at Hynes Convention Center station, with the station's name on both walls
+    alt: A Green Line B train bound for Boston College pulling into the outbound platform at Hynes Convention Center station
     caption: An outbound B train at Hynes Convention Center station, about a 2-minute walk from Trident, in April 2025
     author: 4300streetcar
     license: CC BY 4.0
@@ -102,7 +102,7 @@ Copley is closest to the library and Capital One Café, and Arlington is closest
 - **Orange Line and commuter rail riders.** Back Bay station is about a 4-minute walk from the library, but about 17 minutes from Trident, so favor the Copley picks.
 - **Classmates who need an elevator.** [Hynes has no elevators](https://www.mbta.com/stops/place-hymnl). Prudential, Copley, Arlington and Back Bay all have step-free access.
 
-From November 7 to 15, 2026, the MBTA's [Green Line alerts](https://www.mbta.com/schedules/Green/alerts) list no trains through Arlington, Copley or Hynes. Riders take shuttle buses to Copley and Back Bay, or the Orange Line from North Station to Back Bay. That week, start from a pick near Back Bay station.
+Check the MBTA's [Green Line alerts](https://www.mbta.com/schedules/Green/alerts) the day before. When trains aren't running through Arlington, Copley or Hynes, start from the library, about a 4-minute walk from Back Bay station on the Orange Line and commuter rail.
 
 ![](hynes-convention-center-station-outbound-b-train.jpg)
 

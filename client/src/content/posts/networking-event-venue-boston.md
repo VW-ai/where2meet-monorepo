@@ -54,16 +54,6 @@ images:
     author: M2545
     license: Public domain
     cropped: false
-  - file_name: lenox-hotel-boylston-exeter-boston.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/The_Lenox_Hotel_%2854924425591%29.jpg/1280px-The_Lenox_Hotel_%2854924425591%29.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:The_Lenox_Hotel_(54924425591).jpg
-    width: 1280
-    height: 1920
-    alt: The brick and stone Lenox Hotel at the corner of Boylston and Exeter streets in Back Bay, Boston, with black awnings over the ground floor
-    caption: The Lenox Hotel in Back Bay, home of The Irving
-    author: ajay_suresh
-    license: CC BY 4.0
-    cropped: false
   - file_name: fort-point-channel-dusk-boston.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Fort_Point%2C_Boston_%284775736383%29.jpg/1280px-Fort_Point%2C_Boston_%284775736383%29.jpg
     page_url: https://commons.wikimedia.org/wiki/File:Fort_Point,_Boston_(4775736383).jpg
@@ -105,8 +95,6 @@ Start at 6 or 6:30 p.m. on a Tuesday, Wednesday or Thursday. That gives guests t
 Workbar takes weekday events only after 5 p.m., so 6 p.m. is the earliest realistic start there. Apex is closed on Monday and Headroom is closed on Sunday, so check the day before you post the invite.
 
 A breakfast meetup avoids evening plans entirely. Sip Café opens at 7 a.m. on most weekdays, which leaves an hour before most offices start.
-
-![](lenox-hotel-boylston-exeter-boston.jpg)
 
 ## How will guests get there from across Boston?
 

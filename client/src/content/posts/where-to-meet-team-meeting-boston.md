@@ -1,7 +1,7 @@
 ---
 title: Where to meet for a team meeting in Boston
 description: Seven rooms and venues by State, South Station, North Station, Back Bay and the Seaport, with T walk times, to settle where to meet as a team.
-main_keyword: where to meet
+main_keyword: where to meet for a team meeting
 occasion: team-meeting
 time: null
 venue_type: null
@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:South_Station_headhouse_at_night,_January_2017_(Unsplash_xKQIz_5XjY).jpg
     width: 1280
     height: 853
-    alt: South Station's stone headhouse in Boston lit blue at night, with its clock and eagle above the arched entrance and a crosswalk in front
+    alt: South Station's stone headhouse lit blue at night, with its clock and eagle above the arched entrance
     caption: South Station at Dewey Square, about a 2-minute walk from Loft on Two
     author: Osman Rana
     license: CC0

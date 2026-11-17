@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Lovejoy_Wharf_-_Converse_(54959756452).jpg
     width: 1280
     height: 960
-    alt: The red brick Lovejoy Wharf buildings beside the water near North Station in Boston, with a Night Shift Brewing sign at street level
+    alt: The red brick Lovejoy Wharf buildings beside the water near North Station, with a Night Shift Brewing sign at street level
     caption: Lovejoy Wharf near North Station, where Night Shift Brewing has its taproom at street level
     author: ajay_suresh
     license: CC BY 4.0
@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Back_Bay_Station_Boston_Dartmouth_St_entrance_March_2026.jpg
     width: 1280
     height: 960
-    alt: The steel and glass doors of the Back Bay station entrance on Dartmouth Street in Boston, under a sign reading Back Bay Station South End
+    alt: The steel and glass doors of Back Bay station on Dartmouth Street, under a sign reading Back Bay Station South End
     caption: The Back Bay station entrance on Dartmouth Street, about a 2-minute walk from Clerys
     author: SnowFire
     license: CC BY 4.0

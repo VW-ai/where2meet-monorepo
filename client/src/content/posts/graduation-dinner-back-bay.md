@@ -36,7 +36,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:941-955_Boylston_Street,_Boston,_MA_-_front.JPG
     width: 1280
     height: 960
-    alt: The red stone and brick former fire and police station at 941 to 955 Boylston Street in Back Bay, home to a graduation dinner pick at number 955
+    alt: The red stone and brick former fire and police station at 941 to 955 Boylston Street in Back Bay
     caption: The 1886 fire and police station at 941 to 955 Boylston Street, with Dillon's now at number 955
     author: Daderot
     license: Public domain

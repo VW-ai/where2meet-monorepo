@@ -62,7 +62,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_skyline_across_Fort_Point_Channel_with_Summer_St_and_Congress_St_bridges_2011.jpg
     width: 1280
     height: 559
-    alt: Downtown Boston's towers across Fort Point Channel, with the Summer Street bridge on the left and the Congress Street bridge on the right
+    alt: Boston's towers across Fort Point Channel, with the Summer Street bridge at left and the Congress Street bridge at right
     caption: Fort Point Channel between South Station and Fort Point, with the Summer Street and Congress Street bridges
     author: Soe Lin
     license: CC BY 2.0

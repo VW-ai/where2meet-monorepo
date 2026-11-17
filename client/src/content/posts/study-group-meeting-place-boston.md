@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Reading_room_-_Boston_Public_Library,_McKim_Building_-_DSC09268.JPG
     width: 1280
     height: 960
-    alt: Students working on laptops at long wooden tables under green lamps in Bates Hall, the reading room of the Boston Public Library's Central Library
+    alt: Students working on laptops at long wooden tables under green lamps in Bates Hall at the Boston Public Library
     caption: Bates Hall, the reading room in the Central Library's McKim Building on Copley Square
     author: Daderot
     license: CC0
