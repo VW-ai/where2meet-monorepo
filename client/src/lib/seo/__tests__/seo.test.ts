@@ -147,7 +147,7 @@ describe('sitemap', () => {
   it('lists every public page once, and /blog undated before anything is published', async () => {
     const entries = await sitemap();
     expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
-      [CANONICAL_ORIGIN, '2026-10-04', undefined],
+      [CANONICAL_ORIGIN, '2026-11-08', undefined],
       [`${CANONICAL_ORIGIN}/faq`, '2026-10-19', undefined],
       [`${CANONICAL_ORIGIN}/about`, '2026-10-21', undefined],
       [`${CANONICAL_ORIGIN}/contact`, '2026-10-21', undefined],
@@ -208,6 +208,18 @@ describe('sitemap', () => {
       ['/blog/new-york', '2026-10-08', ['/blog/images/midtown-manhattan-skyline-new-york.jpg']],
       ['/blog/new-york/midtown', '2026-10-08', ['/blog/images/bryant-park-lawn-midtown.jpg']],
     ]);
+  });
+
+  it('dates the home page by the newest post it links, not by a newer post it leaves out', async () => {
+    const redated = (slug: string, date: string) => (file: FixtureFile) =>
+      file.path.endsWith(`/${slug}.md`)
+        ? { ...file, text: file.text.replace(/(published_at|updated_at): \S+/g, `$1: ${date}`) }
+        : file;
+    disk.files = FIXTURE_FILES.map(
+      redated('group-dinner-spots-near-herald-square', '2026-11-20')
+    ).map(redated('how-to-plan-a-team-welcome-lunch', '2026-11-25'));
+    const home = (await sitemap()).find(({ url }) => url === CANONICAL_ORIGIN);
+    expect(home?.lastModified).toBe('2026-11-20');
   });
 
   it('lists the place pages and leaves out /blog/content.json, which is data', async () => {

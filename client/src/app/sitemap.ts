@@ -6,8 +6,11 @@ import {
   pagePath,
   pagePhotos,
   pageUpdatedAt,
+  postPath,
+  type Catalog,
 } from '@/features/blog/lib/catalog';
 import { loadCatalog } from '@/features/blog/lib/source';
+import { homeGuides } from '@/features/landing/lib/home-guides';
 import { toAbsoluteUrl } from '@/lib/seo/metadata';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
@@ -16,8 +19,8 @@ import { STATIC_PAGES } from '@/lib/seo/site-pages';
  * Generate sitemap for Where2Meet
  *
  * - URLs use the canonical `www` host from SITE_CONFIG.
- * - `lastModified` values are real content dates (see `src/lib/seo/site-pages.ts`, each post's
- *   `updated_at`, and `pageUpdatedAt` for a city or town), never the build time.
+ * - `lastModified` values are real content dates (see `src/lib/seo/site-pages.ts`, `homeUpdatedAt`,
+ *   each post's `updated_at`, and `pageUpdatedAt` for a city or town), never the build time.
  *
  * Note: Dynamic meeting pages (/meet/[id]) are intentionally excluded because:
  * - They are user-generated and mostly private/temporary
@@ -30,7 +33,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...STATIC_PAGES.map((page) => ({
       url: page.path === '/' ? SITE_CONFIG.url : `${SITE_CONFIG.url}${page.path}`,
-      lastModified: page.lastModified,
+      lastModified:
+        page.path === '/' ? homeUpdatedAt(catalog, page.lastModified) : page.lastModified,
       changeFrequency: page.changeFrequency,
       priority: page.priority,
     })),
@@ -48,4 +52,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       images: pagePhotos(page).map((photo) => toAbsoluteUrl(photo.src)),
     })),
   ];
+}
+
+/** Like a city page, the home page changes when it starts linking a newer post. */
+function homeUpdatedAt(catalog: Catalog, ownDate: string): string {
+  const linked = new Set(homeGuides(catalog).posts.map(({ href }) => href));
+  return [
+    ownDate,
+    ...catalog.posts.filter((post) => linked.has(postPath(post))).map((post) => post.publishedAt),
+  ]
+    .sort()
+    .at(-1)!;
 }
