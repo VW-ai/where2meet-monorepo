@@ -98,6 +98,12 @@ const nextConfig = {
       // Pages retired by the visual-story landing. The blog replaced the scenario pages.
       { source: '/how-it-works', destination: '/', permanent: true },
       { source: '/scenarios', destination: '/blog', permanent: true },
+      // Search Console still shows this one, so it goes to the post on the same topic.
+      {
+        source: '/scenarios/date-night-equal-distance',
+        destination: '/blog/new-york/union-square/how-to-pick-a-date-spot',
+        permanent: true,
+      },
       { source: '/scenarios/:slug', destination: '/blog', permanent: true },
       { source: '/where-to-meet', destination: '/blog', permanent: true },
       { source: '/where-to-meet/:path*', destination: '/blog/:path*', permanent: true },

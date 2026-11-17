@@ -440,6 +440,19 @@ describe('next.config redirects and headers', () => {
     }
   });
 
+  it('sends the date night scenario to the date post, ahead of the other scenarios', async () => {
+    const scenarios = (await nextConfig.redirects()).filter(({ source }) =>
+      source.startsWith('/scenarios/')
+    );
+    expect(scenarios.map(({ source, destination }) => [source, destination])).toEqual([
+      [
+        '/scenarios/date-night-equal-distance',
+        '/blog/new-york/union-square/how-to-pick-a-date-spot',
+      ],
+      ['/scenarios/:slug', '/blog'],
+    ]);
+  });
+
   it('moves /where-to-meet and every path under it to the same path under /blog for good', async () => {
     const redirects = await nextConfig.redirects();
     expect(redirects.filter(({ source }) => source.startsWith('/where-to-meet'))).toEqual([
