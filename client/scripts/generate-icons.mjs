@@ -5,6 +5,7 @@
  *   - public/icon-192.png     192x192  PWA icon (white background, maskable-safe)
  *   - public/icon-512.png     512x512  PWA icon (white background, maskable-safe)
  *   - src/app/apple-icon.png  180x180  Apple touch icon
+ *   - src/app/favicon.ico     16, 32 and 48 px, the cat in a white circle like the site header
  *
  * Usage:  node scripts/generate-icons.mjs
  *
@@ -58,11 +59,58 @@ function appIcon({ logoSrc, size, logoScale }) {
   );
 }
 
-async function render(element, { width, height }, outFile) {
+/** Favicon: the white circle the site header draws behind the logo, so it shows on dark tabs too. */
+function faviconIcon({ logoSrc, size }) {
+  const logoSize = Math.round(size * 0.75);
+  return h(
+    'div',
+    {
+      style: {
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '50%',
+        backgroundColor: '#FFFFFF',
+      },
+    },
+    h('img', { src: logoSrc, width: logoSize, height: logoSize, style: { objectFit: 'contain' } })
+  );
+}
+
+async function png(element, { width, height }) {
   const response = new ImageResponse(element, { width, height });
-  const buffer = Buffer.from(await response.arrayBuffer());
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function write(outFile, buffer, label) {
   await writeFile(outFile, buffer);
-  console.log(`wrote ${path.relative(ROOT, outFile)} (${width}x${height}, ${buffer.length} bytes)`);
+  console.log(`wrote ${path.relative(ROOT, outFile)} (${label}, ${buffer.length} bytes)`);
+}
+
+async function render(element, { width, height }, outFile) {
+  await write(outFile, await png(element, { width, height }), `${width}x${height}`);
+}
+
+/** An ICO file whose images are PNGs, which every current browser reads. */
+function ico(images) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(images.length, 4);
+  let offset = header.length + 16 * images.length;
+  const entries = images.map(({ size, data }) => {
+    const entry = Buffer.alloc(16);
+    entry.writeUInt8(size, 0);
+    entry.writeUInt8(size, 1);
+    entry.writeUInt16LE(1, 4);
+    entry.writeUInt16LE(32, 6);
+    entry.writeUInt32LE(data.length, 8);
+    entry.writeUInt32LE(offset, 12);
+    offset += data.length;
+    return entry;
+  });
+  return Buffer.concat([header, ...entries, ...images.map(({ data }) => data)]);
 }
 
 async function main() {
@@ -84,6 +132,15 @@ async function main() {
     { width: 180, height: 180 },
     path.join(ROOT, 'src/app/apple-icon.png')
   );
+
+  const sizes = [16, 32, 48];
+  const favicons = await Promise.all(
+    sizes.map(async (size) => ({
+      size,
+      data: await png(faviconIcon({ logoSrc, size }), { width: size, height: size }),
+    }))
+  );
+  await write(path.join(ROOT, 'src/app/favicon.ico'), ico(favicons), sizes.join(', '));
 }
 
 main().catch((error) => {

@@ -147,9 +147,9 @@ describe('sitemap', () => {
   it('lists every public page once, and /blog undated before anything is published', async () => {
     const entries = await sitemap();
     expect(entries.map(({ url, lastModified, images }) => [url, lastModified, images])).toEqual([
-      [CANONICAL_ORIGIN, '2026-10-04', undefined],
+      [CANONICAL_ORIGIN, '2026-11-08', undefined],
       [`${CANONICAL_ORIGIN}/faq`, '2026-10-19', undefined],
-      [`${CANONICAL_ORIGIN}/about`, '2026-10-21', undefined],
+      [`${CANONICAL_ORIGIN}/about`, '2026-11-16', undefined],
       [`${CANONICAL_ORIGIN}/contact`, '2026-10-21', undefined],
       [`${CANONICAL_ORIGIN}/privacy`, '2026-11-05', undefined],
       [`${CANONICAL_ORIGIN}/blog`, undefined, undefined],
@@ -208,6 +208,18 @@ describe('sitemap', () => {
       ['/blog/new-york', '2026-10-08', ['/blog/images/midtown-manhattan-skyline-new-york.jpg']],
       ['/blog/new-york/midtown', '2026-10-08', ['/blog/images/bryant-park-lawn-midtown.jpg']],
     ]);
+  });
+
+  it('dates the home page by the newest post it links, not by a newer post it leaves out', async () => {
+    const redated = (slug: string, date: string) => (file: FixtureFile) =>
+      file.path.endsWith(`/${slug}.md`)
+        ? { ...file, text: file.text.replace(/(published_at|updated_at): \S+/g, `$1: ${date}`) }
+        : file;
+    disk.files = FIXTURE_FILES.map(
+      redated('group-dinner-spots-near-herald-square', '2026-11-20')
+    ).map(redated('how-to-plan-a-team-welcome-lunch', '2026-11-25'));
+    const home = (await sitemap()).find(({ url }) => url === CANONICAL_ORIGIN);
+    expect(home?.lastModified).toBe('2026-11-20');
   });
 
   it('lists the place pages and leaves out /blog/content.json, which is data', async () => {
@@ -440,6 +452,19 @@ describe('next.config redirects and headers', () => {
     }
   });
 
+  it('sends the date night scenario to the date post, ahead of the other scenarios', async () => {
+    const scenarios = (await nextConfig.redirects()).filter(({ source }) =>
+      source.startsWith('/scenarios/')
+    );
+    expect(scenarios.map(({ source, destination }) => [source, destination])).toEqual([
+      [
+        '/scenarios/date-night-equal-distance',
+        '/blog/new-york/union-square/how-to-pick-a-date-spot',
+      ],
+      ['/scenarios/:slug', '/blog'],
+    ]);
+  });
+
   it('moves /where-to-meet and every path under it to the same path under /blog for good', async () => {
     const redirects = await nextConfig.redirects();
     expect(redirects.filter(({ source }) => source.startsWith('/where-to-meet'))).toEqual([
@@ -511,24 +536,29 @@ describe('llms.txt', () => {
   const pageUrls = STATIC_PAGES.map((page) =>
     page.path === '/' ? `${CANONICAL_ORIGIN}/` : `${CANONICAL_ORIGIN}${page.path}`
   );
+  const sitePages = [...pageUrls.slice(0, 2), `${CANONICAL_ORIGIN}/blog`, ...pageUrls.slice(2)];
 
   it('is served as UTF-8 plain text', async () => {
     expect((await getLlmsTxt()).headers.get('content-type')).toBe('text/plain; charset=utf-8');
   });
 
-  it('links the pages, then every post by its /blog URL newest first, then cities and towns', async () => {
+  it('links every site page, then each city with its places and posts newest first, then posts with no city', async () => {
     disk.files = [...FIXTURE_FILES];
-    expect(linksIn(await llmsTxt())).toEqual([
-      ...pageUrls.slice(0, 2),
-      `${CANONICAL_ORIGIN}/blog`,
-      `${CANONICAL_ORIGIN}/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
-      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-team-welcome-lunch`,
-      `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
-      `${CANONICAL_ORIGIN}/blog/new-york/midtown/quiet-places-for-a-small-team-meeting`,
-      `${CANONICAL_ORIGIN}/about`,
-      `${CANONICAL_ORIGIN}/contact`,
+    const text = await llmsTxt();
+    expect(text.match(/^## .+/gm)).toEqual([
+      '## Pages',
+      '## New York',
+      '## More guides',
+      '## Optional',
+    ]);
+    expect(linksIn(text)).toEqual([
+      ...sitePages,
       `${CANONICAL_ORIGIN}/blog/new-york`,
       `${CANONICAL_ORIGIN}/blog/new-york/midtown`,
+      `${CANONICAL_ORIGIN}/blog/new-york/midtown/a-team-welcome-lunch-in-bryant-park`,
+      `${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square`,
+      `${CANONICAL_ORIGIN}/blog/new-york/midtown/quiet-places-for-a-small-team-meeting`,
+      `${CANONICAL_ORIGIN}/blog/how-to-plan-a-team-welcome-lunch`,
       `${CANONICAL_ORIGIN}/sitemap.xml`,
     ]);
   });
@@ -547,21 +577,15 @@ describe('llms.txt', () => {
     disk.files = [...FIXTURE_FILES];
     const lines = (await llmsTxt()).split('\n');
     expect(lines.filter((line) => /herald-square|new-york\)/.test(line))).toEqual([
-      `- [Group dinner spots near Herald Square](${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square): Sample post: group dinner spots near Herald Square that a big group can reach on one train, with tips on booking and getting home late.`,
       `- [Where to meet in New York](${CANONICAL_ORIGIN}/blog/new-york): Sample page: places in New York that work for groups, from team lunches to group dinners, plus how to get around by subway.`,
+      `- [Group dinner spots near Herald Square](${CANONICAL_ORIGIN}/blog/new-york/group-dinner-spots-near-herald-square): Sample post: group dinner spots near Herald Square that a big group can reach on one train, with tips on booking and getting home late.`,
     ]);
   });
 
-  it('links no post and leaves out the cities section before anything is published', async () => {
+  it('links only the site pages, with no empty sections, before anything is published', async () => {
     const text = await llmsTxt();
-    expect(text).not.toContain('## Cities and towns');
-    expect(linksIn(text)).toEqual([
-      ...pageUrls.slice(0, 2),
-      `${CANONICAL_ORIGIN}/blog`,
-      `${CANONICAL_ORIGIN}/about`,
-      `${CANONICAL_ORIGIN}/contact`,
-      `${CANONICAL_ORIGIN}/sitemap.xml`,
-    ]);
+    expect(text.match(/^## .+/gm)).toEqual(['## Pages', '## Optional']);
+    expect(linksIn(text)).toEqual([...sitePages, `${CANONICAL_ORIGIN}/sitemap.xml`]);
   });
 
   it('keeps place copy on one list line with its link intact', () => {

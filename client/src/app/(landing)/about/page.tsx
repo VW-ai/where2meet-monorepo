@@ -73,6 +73,7 @@ const links = [
   { href: '/blog', label: 'Blog' },
   { href: '/faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact' },
+  { href: '/privacy', label: 'Privacy' },
 ];
 
 export default function AboutPage() {
@@ -87,7 +88,14 @@ export default function AboutPage() {
             aria-label="Where2Meet"
             className="inline-flex items-center rounded-full bg-white p-1.5 shadow-[0_3px_16px_rgba(23,37,45,0.15)]"
           >
-            <Image src={catLogo} alt="Where2Meet" width={36} height={36} className="h-9 w-9" />
+            <Image
+              src={catLogo}
+              alt="Where2Meet"
+              width={36}
+              height={36}
+              className="h-9 w-9"
+              loading="eager"
+            />
           </Link>
         </header>
 

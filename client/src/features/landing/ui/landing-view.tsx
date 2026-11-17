@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
 import catLogo from '@/components/cat/logo.svg';
 import { HeroInput } from '@/features/landing/ui/hero-input';
@@ -24,6 +23,7 @@ import type { MapProvider } from '@/shared/types/map';
 import { useUiVersionSwitch } from '@/features/meeting/hooks/useUiVersionSwitch';
 import { useUiVersion } from '@/features/meeting/model/ui-version-store';
 import { PhoneCreate } from './phone-create';
+import { SiteFooter } from './site-footer';
 import { LANGUAGE_TAGS, LocaleProvider, defineMessages, localeFor } from '@/shared/lib/i18n';
 
 const messages = defineMessages({
@@ -354,29 +354,10 @@ export function LandingView({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      <footer className="mx-auto w-full max-w-xl px-4 py-6 lg:max-w-5xl lg:px-8" data-leave="0">
-        {/* Darker than the gray on white cards, because the backdrop's color glows pass behind the footer. */}
-        <nav className="mb-2 flex justify-center gap-5 text-sm">
-          <Link href="/blog" className="font-medium text-[#555a62] hover:text-[#bd3843]">
-            Blog
-          </Link>
-          <Link href="/faq" className="font-medium text-[#555a62] hover:text-[#bd3843]">
-            FAQ
-          </Link>
-          <Link href="/about" className="font-medium text-[#555a62] hover:text-[#bd3843]">
-            About
-          </Link>
-          <Link href="/contact" className="font-medium text-[#555a62] hover:text-[#bd3843]">
-            Contact
-          </Link>
-          <Link href="/privacy" className="font-medium text-[#555a62] hover:text-[#bd3843]">
-            Privacy
-          </Link>
-        </nav>
-        <p className="text-center text-xs text-[#555a62]">
-          © {new Date().getFullYear()} Where2Meet
-        </p>
-      </footer>
+      <SiteFooter
+        className="mx-auto w-full max-w-xl px-4 py-6 lg:max-w-5xl lg:px-8"
+        data-leave="0"
+      />
     </div>
   );
 }
