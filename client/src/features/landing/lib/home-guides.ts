@@ -1,9 +1,9 @@
 import {
-  areaPosts,
+  citiesWithPosts,
   pagePath,
   postPath,
   type Catalog,
-  type City,
+  type Post,
 } from '@/features/blog/lib/catalog';
 import { HOME_OCCASIONS } from './occasions';
 
@@ -18,15 +18,28 @@ export interface HomeGuides {
 }
 
 export function homeGuides(catalog: Catalog): HomeGuides {
-  const guideCount = (city: City) => areaPosts(catalog, { kind: 'area', city, town: null }).length;
-  const cities = [...catalog.cities.values()]
-    .toSorted((a, b) => guideCount(b) - guideCount(a) || a.name.localeCompare(b.name))
-    .map((city) => ({ href: pagePath({ kind: 'area', city, town: null }), title: city.seo.title }));
-
-  const newestFirst = catalog.posts.toSorted((a, b) => b.publishedAt.localeCompare(a.publishedAt));
-  const posts = HOME_OCCASIONS.flatMap(
-    ({ key }) => newestFirst.find((post) => post.occasion.key === key) ?? []
-  ).map((post) => ({ href: postPath(post), title: post.title }));
-
+  const cities = citiesWithPosts(catalog).map(({ city }) => ({
+    href: pagePath({ kind: 'area', city, town: null }),
+    title: city.seo.title,
+  }));
+  const posts = occasionPicks(catalog).map((post) => ({ href: postPath(post), title: post.title }));
   return { cities, posts };
+}
+
+/**
+ * One post per home occasion, each from the city with the fewest picks so far, so the links spread
+ * across cities. Within a city, a city-wide post beats a town post, then the newest wins.
+ */
+function occasionPicks(catalog: Catalog): Post[] {
+  const picks: Post[] = [];
+  const cityOf = (post: Post) => post.areas[0]?.slug;
+  const picksIn = (post: Post) => picks.filter((pick) => cityOf(pick) === cityOf(post)).length;
+  const cityWideFirst = (post: Post) => (post.areas.length === 1 ? 0 : 1);
+  for (const { key } of HOME_OCCASIONS) {
+    const [pick] = catalog.posts
+      .filter((post) => post.occasion.key === key)
+      .toSorted((a, b) => picksIn(a) - picksIn(b) || cityWideFirst(a) - cityWideFirst(b));
+    if (pick) picks.push(pick);
+  }
+  return picks;
 }

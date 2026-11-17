@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LandingPage from '@/app/(landing)/page';
-import { FIXTURE_FILES, type FixtureFile } from '@/features/blog/__fixtures__/content-files';
+import {
+  FIXTURE_FILES,
+  markdownFile,
+  type FixtureFile,
+} from '@/features/blog/__fixtures__/content-files';
 
 const disk = vi.hoisted(() => ({ files: [] as FixtureFile[] }));
 vi.mock('node:fs/promises', async (importOriginal) => {
@@ -37,6 +41,47 @@ async function renderMain() {
 
 const text = (html: string) => html.replace(/<[^>]+>/g, '');
 
+async function guideLinks(heading: string) {
+  const main = await renderMain();
+  return [
+    ...(main.match(new RegExp(`<h3>${heading}</h3><ul>(.*?)</ul>`))?.[1] ?? '').matchAll(
+      /<a href="([^"]+)">(.*?)<\/a>/g
+    ),
+  ].map(([, href, title]) => `${href} | ${title}`);
+}
+
+function bostonPost(slug: string, title: string, occasion: string): FixtureFile {
+  const fileName = `${slug}.jpg`;
+  return {
+    path: `src/content/posts/${slug}.md`,
+    text: markdownFile(
+      `${slug}.md`,
+      {
+        title,
+        description: `${title}, near the T.`,
+        occasion,
+        city: 'boston',
+        town: null,
+        published_at: '2026-11-01',
+        updated_at: '2026-11-01',
+        images: [
+          {
+            file_name: fileName,
+            source_url: `https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/${fileName}/1280px-${fileName}`,
+            page_url: `https://commons.wikimedia.org/wiki/File:${fileName}`,
+            width: 1280,
+            height: 960,
+            alt: title,
+            author: 'Phi',
+            license: 'CC0',
+          },
+        ],
+      },
+      '## Where to go\n\nNear the T.\n'
+    ).text,
+  };
+}
+
 describe('the homepage', () => {
   it('keeps the create form first, then says what Where2Meet is and how it works', async () => {
     const main = await renderMain();
@@ -70,21 +115,25 @@ describe('the homepage', () => {
     ]);
   });
 
-  it('links each city page, most guides first, and the newest guide for each occasion chip, by their titles', async () => {
-    const main = await renderMain();
-    const links = (heading: string) =>
-      [
-        ...(main.match(new RegExp(`<h3>${heading}</h3><ul>(.*?)</ul>`))?.[1] ?? '').matchAll(
-          /<a href="([^"]+)">(.*?)<\/a>/g
-        ),
-      ].map(([, href, title]) => `${href} | ${title}`);
+  it('links only the city pages that have guides, most guides first, and one guide per occasion chip', async () => {
+    expect(await guideLinks('By city')).toEqual(['/blog/new-york | Where to meet in New York']);
+    expect(await guideLinks('By occasion')).toEqual([
+      '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting | Quiet places for a small team meeting in Midtown',
+      '/blog/new-york/group-dinner-spots-near-herald-square | Group dinner spots near Herald Square',
+    ]);
+  });
 
-    expect(links('By city')).toEqual([
+  it('spreads the occasion guides across cities before taking the newest', async () => {
+    disk.files.push(
+      bostonPost('team-meeting-rooms-boston', 'Team meeting rooms in Boston', 'team-meeting'),
+      bostonPost('group-dinner-boston', 'Group dinner in Boston', 'group-dinner')
+    );
+    expect(await guideLinks('By city')).toEqual([
       '/blog/new-york | Where to meet in New York',
       '/blog/boston | Where to meet up in Boston',
     ]);
-    expect(links('By occasion')).toEqual([
-      '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting | Quiet places for a small team meeting in Midtown',
+    expect(await guideLinks('By occasion')).toEqual([
+      '/blog/boston/team-meeting-rooms-boston | Team meeting rooms in Boston',
       '/blog/new-york/group-dinner-spots-near-herald-square | Group dinner spots near Herald Square',
     ]);
   });
