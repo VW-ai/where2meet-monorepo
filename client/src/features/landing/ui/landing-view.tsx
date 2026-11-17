@@ -252,12 +252,19 @@ export function LandingView({ children }: { children: ReactNode }) {
             priority
           />
         </div>
-        <div
-          className="rounded-full bg-white shadow-[0_3px_16px_rgba(23,37,45,0.15)]"
-          data-leave="120"
-        >
-          {isAuthenticated ? <UserMenu /> : <SignInButton />}
-        </div>
+        {isAuthenticated ? (
+          // The cat-head avatar is its own shape; a circle behind it would show around the ears
+          <div data-leave="120">
+            <UserMenu />
+          </div>
+        ) : (
+          <div
+            className="rounded-full bg-white shadow-[0_3px_16px_rgba(23,37,45,0.15)]"
+            data-leave="120"
+          >
+            <SignInButton />
+          </div>
+        )}
       </header>
 
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-8 lg:max-w-5xl lg:px-8 lg:py-10">
