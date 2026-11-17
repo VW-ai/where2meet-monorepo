@@ -32,7 +32,8 @@ interface GoogleAccountsId {
 
 declare global {
   interface Window {
-    google?: { accounts: { id: GoogleAccountsId } };
+    // Google Maps also sets window.google, without accounts
+    google?: { accounts?: { id: GoogleAccountsId } };
   }
 }
 
@@ -61,7 +62,7 @@ export function GoogleSignInButton({ text, onSignedIn }: GoogleSignInButtonProps
 
   useEffect(() => {
     const container = containerRef.current;
-    const gsi = window.google?.accounts.id;
+    const gsi = window.google?.accounts?.id;
     if (!isScriptReady || !container || !gsi) return;
 
     gsi.initialize({
