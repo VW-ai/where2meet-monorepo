@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { fixtureContent, markdownFile } from '../../__fixtures__/content-files';
-import { findPage, type Catalog } from '../../lib/catalog';
+import { findPage, type Catalog, type Post } from '../../lib/catalog';
 import { parseCatalog } from '../../lib/parse';
 import { BlogPageView } from '../blog-page';
 
@@ -116,6 +116,35 @@ describe('BlogPageView', () => {
       'h2 Common questions',
       'h2 A quick checklist',
     ]);
+  });
+
+  it('links a city post to its town posts for the same occasion, and each of those back up, in the body', () => {
+    const page = findPage(catalog, [
+      'new-york',
+      'midtown',
+      'quiet-places-for-a-small-team-meeting',
+    ]);
+    if (page?.kind !== 'post') throw new Error('The Midtown team meeting post is missing');
+    const cityMeeting: Post = {
+      ...page.post,
+      slug: 'team-meeting-spots-in-new-york',
+      title: 'Team meeting spots in New York',
+      areas: [page.post.areas[0]!],
+    };
+    const withCityMeeting = { ...catalog, posts: [cityMeeting, ...catalog.posts] };
+
+    expect(
+      links(render('new-york/team-meeting-spots-in-new-york', withCityMeeting), 'By area')
+    ).toEqual(['/blog/new-york/midtown/quiet-places-for-a-small-team-meeting']);
+    expect(
+      links(
+        render('new-york/midtown/quiet-places-for-a-small-team-meeting', withCityMeeting),
+        'By area'
+      )
+    ).toEqual(['/blog/new-york/team-meeting-spots-in-new-york']);
+    expect(
+      render('new-york/midtown/a-team-welcome-lunch-in-bryant-park', withCityMeeting)
+    ).not.toContain('By area');
   });
 
   it('lists a BlogPosting’s photos and breadcrumbs from Home down to a town post', () => {
