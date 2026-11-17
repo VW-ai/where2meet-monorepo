@@ -6,6 +6,7 @@ import { StructuredData } from '@/components/seo/structured-data';
 import {
   areaPosts,
   areaWithArticle,
+  byAreaPosts,
   inArea,
   pagePath,
   pageTrail,
@@ -27,7 +28,7 @@ import {
   generateCollectionPageSchema,
 } from '@/lib/seo/structured-data';
 import { CONTENT_WIDTH_SIZES, PhotoFigure } from './photo-figure';
-import { PlanCta } from './plan-cta';
+import { PlanCta, PlanLink } from './plan-cta';
 import { Byline } from './post-card';
 import { MarkdownBody, PostMarkdown } from './post-markdown';
 import { prose } from './prose';
@@ -64,6 +65,7 @@ export function BlogPageView({ page, catalog }: { page: BlogPage; catalog: Catal
 
 function PostView({ post, catalog }: { post: Post; catalog: Catalog }) {
   const related = relatedPosts(catalog, post);
+  const byArea = byAreaPosts(catalog, post);
   return (
     <>
       <StructuredData
@@ -94,6 +96,18 @@ function PostView({ post, catalog }: { post: Post; catalog: Catalog }) {
             places={post.places}
             placesTitle={post.placesTitle}
           />
+          {byArea.length > 0 && (
+            <section className="mt-10">
+              <prose.h2>By area</prose.h2>
+              <prose.ul>
+                {byArea.map((other) => (
+                  <prose.li key={postPath(other)}>
+                    <prose.a href={postPath(other)}>{other.title}</prose.a>
+                  </prose.li>
+                ))}
+              </prose.ul>
+            </section>
+          )}
         </div>
       </article>
 
@@ -137,6 +151,10 @@ function AreaView({ page, catalog }: { page: AreaPage; catalog: Catalog }) {
             </>
           )}
         </div>
+      )}
+
+      {posts.length > 0 && (
+        <PlanLink label={`Plan where to meet ${inArea(area)}`} className="mt-6" />
       )}
 
       {posts.length > 0 && (

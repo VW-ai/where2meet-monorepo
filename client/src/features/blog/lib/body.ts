@@ -3,7 +3,8 @@ import type { CommonsImage } from './photos';
 export type BodyBlock =
   | { kind: 'markdown'; source: string }
   | { kind: 'photo'; image: CommonsImage }
-  | { kind: 'places' };
+  | { kind: 'places' }
+  | { kind: 'plan' };
 
 const PHOTO_LINE = /^!\[[^\]]*\]\(([a-z0-9-]+\.jpg)\)$/;
 export const PLACES_LINE = ':::places';
@@ -17,6 +18,7 @@ export function layoutBody(
   const blocks: BodyBlock[] = [];
   const placed = new Set<CommonsImage>();
   let placesPlaced = false;
+  let planPlaced = false;
   let sections = 0;
   let afterSecondSection: number | null = null;
   let lines: string[] = [];
@@ -42,9 +44,16 @@ export function layoutBody(
       if (hasPlaces && !placesPlaced) blocks.push({ kind: 'places' });
       placesPlaced = true;
     } else {
-      if (SECTION_HEADING.test(line) && ++sections === 3) {
-        flush();
-        afterSecondSection = blocks.length;
+      if (SECTION_HEADING.test(line)) {
+        if (placesPlaced && !planPlaced) {
+          flush();
+          blocks.push({ kind: 'plan' });
+          planPlaced = true;
+        }
+        if (++sections === 3) {
+          flush();
+          afterSecondSection = blocks.length;
+        }
       }
       lines.push(line);
     }
@@ -57,6 +66,7 @@ export function layoutBody(
       .filter((image) => !placed.has(image))
       .map((image): BodyBlock => ({ kind: 'photo', image })),
     ...(hasPlaces && !placesPlaced ? [{ kind: 'places' } as const] : []),
+    ...(planPlaced ? [] : [{ kind: 'plan' } as const]),
   ];
   blocks.splice(afterSecondSection ?? blocks.length, 0, ...rest);
   return blocks;

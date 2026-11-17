@@ -4,7 +4,12 @@ import type { CuratedPlace } from '@/features/blog/lib/catalog';
 import type { CommonsImage } from '@/features/blog/lib/photos';
 import { CuratedPlaces } from './curated-places';
 import { PhotoFigure } from './photo-figure';
+import { PlanLink } from './plan-cta';
 import { prose } from './prose';
+
+/** The article card's inner width: the 864px column less the card's padding, 20px a side or 32px from 640px. */
+const BODY_PHOTO_SIZES =
+  '(min-width: 896px) 800px, (min-width: 640px) calc(100vw - 96px), calc(100vw - 72px)';
 
 /** The contract's Markdown subset. Anything else keeps its text and loses its markup. */
 const ALLOWED_ELEMENTS = ['p', 'ul', 'ol', 'li', 'strong', 'em', 'a', 'h2', 'h3'];
@@ -67,7 +72,7 @@ export function MarkdownBody({
         <PhotoFigure
           key={index}
           photo={block.image}
-          sizes="(min-width: 896px) 800px, 100vw"
+          sizes={BODY_PHOTO_SIZES}
           className="my-8"
           imageClassName="rounded-[20px]"
         />
@@ -75,6 +80,15 @@ export function MarkdownBody({
     }
     if (block.kind === 'places') {
       return <CuratedPlaces key={index} title={placesTitle} places={places} />;
+    }
+    if (block.kind === 'plan') {
+      return (
+        <PlanLink
+          key={index}
+          label="Plan this with your group"
+          className="mx-auto my-8 max-w-[38rem]"
+        />
+      );
     }
     return <PostMarkdown key={index} source={block.source} />;
   });
