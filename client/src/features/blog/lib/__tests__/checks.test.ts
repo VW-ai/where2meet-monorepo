@@ -3,6 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { checkContent, formatProblem, type ImageHead } from '../checks';
 import type { ContentFile } from '../content-file';
+import type { Grandfathered } from '../grandfathered';
 import { fixtureContent } from '../../__fixtures__/content-files';
 
 const NAME = 'group-dinner-after-work.md';
@@ -32,15 +33,19 @@ const ATLANTIC_IMAGE = `  - file_name: atlantic-avenue-barclays-center-station-e
 `;
 
 const KEYWORDS =
-  '- phrase: Group  Dinner after work\n  occasion: group-dinner\n- phrase: group dinner\n';
+  '- phrase: Group  Dinner after work\n  occasion: group-dinner\n- phrase: group dinner\n- phrase: group dinner near me\n';
+
+const NONE: Grandfathered = { occasions: {}, places: {}, photos: {} };
 
 function check(
   posts: readonly ContentFile[],
-  heads: ReadonlyMap<string, ImageHead> = new Map()
+  heads: ReadonlyMap<string, ImageHead> = new Map(),
+  grandfathered = NONE
 ): string[] {
-  return checkContent({ ...fixtureContent(), keywordsText: KEYWORDS, posts }, { heads }).map(
-    formatProblem
-  );
+  return checkContent(
+    { ...fixtureContent(), keywordsText: KEYWORDS, posts },
+    { heads, grandfathered }
+  ).map(formatProblem);
 }
 
 function edited(edits: readonly [from: string, to: string][], name = NAME): ContentFile {
@@ -288,7 +293,8 @@ describe('checkContent on a post', () => {
       ]);
     });
 
-    it('keeps each file name to the first file that lists it', () => {
+    it('keeps each file name to the first file that lists it, and fails a photo listed under a second name', () => {
+      const OTHER = 'src/content/posts/group-dinner-in-brooklyn.md';
       const other = edited(
         [
           ['fulton-center-lower-manhattan.jpg', 'fulton-center-station.jpg'],
@@ -296,11 +302,17 @@ describe('checkContent on a post', () => {
         ],
         'group-dinner-in-brooklyn.md'
       );
+      const reuse = (name: string, other: string, file: string) =>
+        `${name}: its source_url is also ${other} in ${file}; one Commons photo gets one file_name, so pick a different photo for the file that added it`;
       expect(check([example, other])).toEqual([
-        'src/content/posts/group-dinner-in-brooklyn.md: fields: images[0]: file_name "west-32nd-street-koreatown-manhattan.jpg" is already used',
-        'src/content/posts/group-dinner-in-brooklyn.md: images: the post has 2 usable images; it needs at least 3, a cover and two for the body',
-        `${FILE}: how-to-similarity: the "How to do it in Where2Meet" section is 100 percent the same as the one in src/content/posts/group-dinner-in-brooklyn.md, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
-        `src/content/posts/group-dinner-in-brooklyn.md: how-to-similarity: the "How to do it in Where2Meet" section is 100 percent the same as the one in ${FILE}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
+        `${OTHER}: fields: images[0]: file_name "west-32nd-street-koreatown-manhattan.jpg" is already used`,
+        `${OTHER}: images: the post has 2 usable images; it needs at least 3, a cover and two for the body`,
+        `${FILE}: how-to-similarity: the "How to do it in Where2Meet" section is 100 percent the same as the one in ${OTHER}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
+        `${OTHER}: how-to-similarity: the "How to do it in Where2Meet" section is 100 percent the same as the one in ${FILE}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
+        `${FILE}: photo-reuse: ${reuse('fulton-center-lower-manhattan.jpg', 'fulton-center-station.jpg', OTHER)}`,
+        `${OTHER}: photo-reuse: ${reuse('fulton-center-station.jpg', 'fulton-center-lower-manhattan.jpg', FILE)}`,
+        `${FILE}: photo-reuse: ${reuse('atlantic-avenue-barclays-center-station-entrance.jpg', 'barclays-center-entrance.jpg', OTHER)}`,
+        `${OTHER}: photo-reuse: ${reuse('barclays-center-entrance.jpg', 'atlantic-avenue-barclays-center-station-entrance.jpg', FILE)}`,
       ]);
     });
   });
@@ -332,6 +344,24 @@ describe('checkContent on a post', () => {
         `${FILE}: image-size: ${message}`,
       ]);
     });
+  });
+
+  it('holds alt text to 125 characters', () => {
+    const alt = (tail: string) =>
+      edited([['with signs for its lines\n', `with signs for its lines${tail}\n`]]);
+    expect(check([alt(', in heavy rain')])).toEqual([]);
+    expect(check([alt(', on a rainy day')])).toEqual([
+      `${FILE}: alt-text: atlantic-avenue-barclays-center-station-entrance.jpg: the alt text is 126 characters; it may be at most 125, so describe only what the photo shows and where`,
+    ]);
+  });
+
+  it('fails a title that says "near me"', () => {
+    const file = edited([
+      ['title: How to plan a group dinner after work', 'title: Group dinner after work near me'],
+    ]);
+    expect(check([file])).toEqual([
+      `${FILE}: title: the title says "near me"; name the place instead, as in "Free indoor basketball courts near Back Bay"`,
+    ]);
   });
 
   it('holds the title to 60 characters with the suffix', () => {
@@ -393,6 +423,19 @@ describe('checkContent on a post', () => {
       ]);
       expect(check([file])).toEqual([
         `${FILE}: main-keyword: the title does not say the main keyword "group dinner after work"; it must, as whole words`,
+      ]);
+    });
+
+    it('needs the other words of a "near me" keyword in the title, which names the place instead', () => {
+      const nearMe = (title: string) =>
+        edited([
+          ['main_keyword: group dinner after work', 'main_keyword: group dinner near me'],
+          ['A group dinner after work goes best', 'A group dinner near me goes best'],
+          ['title: How to plan a group dinner after work', `title: ${title}`],
+        ]);
+      expect(check([nearMe('How to plan a group dinner in Manhattan')])).toEqual([]);
+      expect(check([nearMe('How to plan a team dinner in Manhattan')])).toEqual([
+        `${FILE}: main-keyword: the title does not say each word of the main keyword "group dinner near me" other than "near me"; it must, as whole words, with the place instead of "near me"`,
       ]);
     });
 
@@ -483,14 +526,7 @@ describe('checkContent on a post', () => {
       };
     }
 
-    const other = edited(
-      [
-        ['west-32nd-street-koreatown-manhattan.jpg', 'west-32nd-street-koreatown.jpg'],
-        ['fulton-center-lower-manhattan.jpg', 'fulton-center-station.jpg'],
-        ['atlantic-avenue-barclays-center-station-entrance.jpg', 'barclays-center-entrance.jpg'],
-      ],
-      'group-dinner-in-brooklyn.md'
-    );
+    const other = edited([['.jpg', '-brooklyn.jpg']], 'group-dinner-in-brooklyn.md');
 
     it('fails both posts when their sections are more than 60 percent the same, and passes a section of its own', () => {
       expect(check([withHowTo(example, MIDTOWN_STEPS), withHowTo(other, DOWNTOWN_STEPS)])).toEqual([
@@ -512,6 +548,67 @@ describe('checkContent on a post', () => {
         `${OTHER}: how-to-similarity: the "How to do it in Where2Meet" section is 95 percent the same as the one in ${FILE}, word by word; it may be at most 60 percent the same, so write it for this post's occasion and places`,
       ]);
     });
+  });
+
+  describe('occasion-per-city', () => {
+    const MIDTOWN = 'src/content/posts/group-dinner-in-midtown.md';
+    const local = edited([['city: null', 'city: new-york']]);
+    const inTown = edited(
+      [
+        ['city: null', 'city: new-york'],
+        ['town: null', 'town: midtown'],
+        ['.jpg', '-midtown.jpg'],
+      ],
+      'group-dinner-in-midtown.md'
+    );
+    const sharing = (posts: readonly ContentFile[], grandfathered = NONE) =>
+      check(posts, new Map(), grandfathered).filter((line) =>
+        line.includes(': occasion-per-city: ')
+      );
+    const message = (others: string) =>
+      `occasion-per-city: New York already has a post for the occasion "group-dinner": ${others}; a city gets one post per occasion, at city level or in a town, so improve the post that was there first, and write a new post for an occasion New York has no post for, or for a city with no post for this occasion`;
+
+    it('fails both posts when a city and one of its towns have the same occasion', () => {
+      expect(sharing([local, inTown])).toEqual([
+        `${FILE}: ${message('group-dinner-in-midtown')}`,
+        `${MIDTOWN}: ${message('group-dinner-after-work')}`,
+      ]);
+    });
+
+    it('lets grandfathered posts keep sharing, and fails a new post that joins them', () => {
+      const third = edited(
+        [
+          ['city: null', 'city: new-york'],
+          ['.jpg', '-third.jpg'],
+        ],
+        'group-dinner-third.md'
+      );
+      const grandfathered: Grandfathered = {
+        ...NONE,
+        occasions: {
+          'new-york/group-dinner': ['group-dinner-after-work', 'group-dinner-in-midtown'],
+        },
+      };
+      expect(sharing([local, inTown], grandfathered)).toEqual([]);
+      expect(sharing([local, inTown, third], grandfathered)).toEqual([
+        `src/content/posts/group-dinner-third.md: ${message('group-dinner-after-work and group-dinner-in-midtown')}`,
+      ]);
+    });
+  });
+
+  it('fails every post that lists a place once more than three posts do', () => {
+    const copies = ['a', 'b', 'c'].map((name) =>
+      edited([['.jpg', `-${name}.jpg`]], `group-dinner-${name}.md`)
+    );
+    const elZason = (posts: readonly ContentFile[]) =>
+      check(posts).filter((line) => line.includes(': place-reuse: "El Zason"'));
+    expect(elZason([example, ...copies.slice(1)])).toEqual([]);
+    expect(elZason([example, ...copies])).toEqual(
+      [FILE, ...['a', 'b', 'c'].map((name) => `src/content/posts/group-dinner-${name}.md`)].map(
+        (file) =>
+          `${file}: place-reuse: "El Zason" (ChIJX0ngNbRbwokR2sNkLsVtQMY) is in 3 other posts; a place may be in at most 3 posts, so pick a different place for the post that added it`
+      )
+    );
   });
 
   it('needs updated_at on or after published_at', () => {

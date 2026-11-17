@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Newbury_Street,_Boston,_Massachusetts_March_2020_-_03.jpg
     width: 1280
     height: 960
-    alt: Shops and brick buildings on Newbury Street in Back Bay with a church spire ahead, on the street with three first date spot picks
+    alt: Shops and brick buildings on Newbury Street in Back Bay, with a church spire ahead
     caption: Newbury Street in Back Bay. Eva, Faccia a Faccia and Serafina are on its western blocks
     author: Sharon Hahn Darlin
     license: CC BY 2.0

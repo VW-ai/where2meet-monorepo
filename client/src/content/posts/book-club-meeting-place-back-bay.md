@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Public_Library_McKim_Building_Reading_Room.jpg
     width: 1280
     height: 960
-    alt: Long wooden tables with green-shaded lamps in the reading room of the Boston Public Library's McKim Building, with arched windows and bookshelves behind them
+    alt: Long wooden tables with green-shaded lamps in the McKim Building's reading room, with arched windows and bookshelves behind
     caption: The reading room in the Boston Public Library's McKim Building on Copley Square in June 2019
     author: Ncysea
     license: Public domain

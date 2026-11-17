@@ -36,7 +36,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Joes_American_Bar_and_Grill,_Boston_MA.jpg
     width: 1280
     height: 960
-    alt: Joe's American Bar & Grill on Newbury Street in Back Bay, one option for where to have a group dinner, with shoppers walking past on the sidewalk
+    alt: Joe's American Bar & Grill on Newbury Street in Back Bay, with shoppers walking past on the sidewalk
     caption: Joe's on Newbury in 2011, when its sign read Joe's American Bar & Grill
     author: John Phelan
     license: CC BY 3.0
@@ -46,7 +46,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Outbound_D_train_at_Hynes_Convention_Center_station_April_2025.jpg
     width: 1280
     height: 853
-    alt: A green outbound D branch train stopped at the platform of Hynes Convention Center station in Boston, with stairs to the street on the left
+    alt: A green outbound D branch train stopped at Hynes Convention Center station, with stairs to the street on the left
     caption: An outbound D train at Hynes Convention Center station in April 2025, the stop for Boston Burger Company and Terra
     author: 4300streetcar
     license: CC BY 4.0
@@ -56,7 +56,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_-_Back_Bay%27s_Commonwealth_Avenue_(48718573608).jpg
     width: 1280
     height: 960
-    alt: Red brick row houses at the corner of Commonwealth Avenue and Gloucester Street in Back Bay, with a lit street lamp and parked cars at dusk
+    alt: Red brick row houses at Commonwealth Avenue and Gloucester Street in Back Bay at dusk, with a lit street lamp and parked cars
     caption: Row houses at Commonwealth Avenue and Gloucester Street, a few blocks west of Buttermilk & Bourbon
     author: Ajay Suresh
     license: CC BY 2.0

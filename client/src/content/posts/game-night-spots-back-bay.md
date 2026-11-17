@@ -36,7 +36,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Fenway_Park_-_Lansdowne_Street_(54954428668).jpg
     width: 1280
     height: 853
-    alt: Lansdowne Street beside Fenway Park, where two game night spots stand, with the green Red Sox sign over brick buildings and the blue House of Blues sign on the right
+    alt: Lansdowne Street by Fenway Park, with the green Red Sox sign over brick buildings and the blue House of Blues sign at right
     caption: Lansdowne Street beside Fenway Park, home to Cheeky Monkey and Game On!, in November 2025
     author: ajay_suresh
     license: CC BY 4.0
@@ -46,7 +46,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Hynes_Convention_Center_station_outbound_platform_April_2025_1.jpg
     width: 1280
     height: 853
-    alt: The outbound platform at Hynes Convention Center station, with green columns, stairs at the far end and a sign reading Green Line Kenmore and West
+    alt: Hynes Convention Center station's outbound platform, with green columns, stairs at the far end and a Kenmore and West sign
     caption: The outbound platform at Hynes Convention Center station, the closest stop to Kings and Trident, in April 2025
     author: 4300streetcar
     license: CC BY 4.0

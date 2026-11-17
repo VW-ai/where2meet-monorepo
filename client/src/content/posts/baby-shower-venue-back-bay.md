@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:The_College_Club_of_Boston_(54954431303).jpg
     width: 1280
     height: 1920
-    alt: The brownstone front of the College Club of Boston at 44 Commonwealth Avenue, a Back Bay baby shower venue, with bay windows and a raised entrance
+    alt: The brownstone front of the College Club of Boston at 44 Commonwealth Avenue, with bay windows and a raised entrance
     caption: The College Club of Boston at 44 Commonwealth Avenue in November 2025
     author: ajay_suresh
     license: CC BY 4.0

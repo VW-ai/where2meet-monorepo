@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Public_Library_(17491249225).jpg
     width: 1280
     height: 853
-    alt: The stone front of the Boston Public Library's McKim Building at Copley Square, with American flags flying below tall arched windows and a carved inscription
+    alt: The stone front of the Boston Public Library's McKim Building at Copley Square, with American flags below tall arched windows
     caption: The Boston Public Library at Copley Square, home of Map Room Lounge
     author: Tony Webster
     license: CC BY 2.0
@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Prudential_Center_South_Garden_-_Boston,_MA.jpg
     width: 1280
     height: 720
-    alt: A green lawn, a dark stone fountain and blue outdoor tables in the Prudential Center's South Garden in Back Bay, a free stop among things to do with friends
+    alt: A green lawn, a dark stone fountain and blue outdoor tables in the Prudential Center's South Garden in Back Bay
     caption: The South Garden at the Prudential Center in May 2023
     author: Daderot
     license: CC0

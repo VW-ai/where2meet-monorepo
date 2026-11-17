@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Fairmont_Copley_Plaza.jpg
     width: 1280
     height: 960
-    alt: A red awning and brass doors at the entrance of the Copley Plaza hotel on St. James Avenue, a family reunion venue on Copley Square in Back Bay
+    alt: A red awning and brass doors at the entrance of the Copley Plaza hotel on St. James Avenue, on Copley Square in Back Bay
     caption: The entrance of the Copley Plaza hotel on St. James Avenue in April 2008
     author: John Stephen Dwyer
     license: Public domain
@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Armory_of_the_First_Corps_of_Cadets_(54954248991).jpg
     width: 1280
     height: 1920
-    alt: The granite tower and castle-style walls of the former First Corps of Cadets armory on Arlington Street in Boston, with an American flag flying above it
+    alt: The granite tower and castle-style walls of the old First Corps of Cadets armory on Arlington Street, under an American flag
     caption: The former First Corps of Cadets armory on Arlington Street, home of The Tower
     author: ajay_suresh
     license: CC BY 4.0
@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:The_Westin_Copley_Place,_Boston_(54924730375).jpg
     width: 1280
     height: 1920
-    alt: The Westin Copley Place in Boston, a tall brown tower above a lower block with the hotel's name on it, seen from the Copley Square side on a wet day
+    alt: The Westin Copley Place, a tall brown tower above a lower block with the hotel's name, seen from Copley Square on a wet day
     caption: The Westin Copley Place, about a 2-minute walk from the Copley Plaza hotel
     author: ajay_suresh
     license: CC BY 4.0

@@ -42,7 +42,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Copley_Square,_Boston_MA_(50986788232).jpg
     width: 1280
     height: 800
-    alt: The granite front of the Boston Public Library's McKim Building on Copley Square in Back Bay, with flags over the entrance and the Old South Church tower to the right
+    alt: The Boston Public Library's McKim Building on Copley Square, with flags over the door and Old South Church's tower at right
     caption: The Boston Public Library on Copley Square in 2014. The Map Room Lounge is inside the library
     author: Eric Friedebach
     license: CC BY 2.0
@@ -52,7 +52,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Berkeley_Building,_1905,_by_by_Stephen_Codman_and_Constant-D%C3%A9sir%C3%A9_Despradelle_-_Boston,_MA_-_DSC06938.jpg
     width: 1280
     height: 853
-    alt: The white terracotta front and bay windows of the 1905 Berkeley Building on Boylston Street in Back Bay, Boston, under a blue sky
+    alt: The white terracotta front and bay windows of the 1905 Berkeley Building on Boylston Street in Back Bay, under a blue sky
     caption: The Berkeley Building at 420 Boylston Street in 2017, about a 2-minute walk from Workbar Back Bay
     author: Daderot
     license: CC0

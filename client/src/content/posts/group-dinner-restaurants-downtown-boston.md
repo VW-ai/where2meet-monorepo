@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Marriott_Long_Wharf_building.jpg
     width: 1280
     height: 853
-    alt: The red brick Boston Marriott Long Wharf, home of one of the group dinner restaurants in Downtown Boston, seen across the harbor water with boats docked in front
+    alt: The red brick Boston Marriott Long Wharf seen across the harbor, with boats docked in front
     caption: The Boston Marriott Long Wharf at 296 State Street in September 2024. Waterline is inside
     author: 4300streetcar
     license: CC BY 4.0

@@ -29,7 +29,7 @@
   note: Bars for a date night, as searched with a city or neighborhood
 - phrase: date night spots
   occasion: date-night
-  note: A "where to" search for date night places of any kind, added 2026-11-09 because every other date night phrase already has a post
+  note: A "where to" search for date night places of any kind, added 2026-11-09
 - phrase: team meeting location
   occasion: team-meeting
 - phrase: where to hold a team meeting
@@ -39,17 +39,20 @@
   note: A room or place to book for a team meeting, as searched with a neighborhood
 - phrase: team meeting spots
   occasion: team-meeting
-  note: A list search for places of any kind to hold a team meeting, added 2026-11-10 because every other team meeting phrase already has a post
+  note: A list search for places of any kind to hold a team meeting, added 2026-11-10
+- phrase: where to meet for a team meeting
+  occasion: team-meeting
+  note: The Boston team meeting post's phrase from 2026-11-17, so "where to meet" is left to the homepage
 - phrase: group dinner
   occasion: group-dinner
 - phrase: restaurant for a big group
   occasion: group-dinner
 - phrase: where to have a group dinner
   occasion: group-dinner
-  note: A "where to" search that wants places, added 2026-11-04 because every other group dinner phrase already has a post
+  note: A "where to" search that wants places, added 2026-11-04
 - phrase: group dinner restaurants
   occasion: group-dinner
-  note: A list search for restaurants that suit a group dinner, added 2026-11-15 because every other group dinner phrase already has a post
+  note: A list search for restaurants that suit a group dinner, added 2026-11-15
 - phrase: coffee meeting spot
   occasion: coffee-catch-up
 - phrase: weekend hangout
@@ -58,10 +61,10 @@
   occasion: weekend-hangout
 - phrase: things to do with friends
   occasion: weekend-hangout
-  note: A list search for a weekend plan with friends, added 2026-11-05 because every other weekend hangout phrase already has a post
+  note: A list search for a weekend plan with friends, added 2026-11-05
 - phrase: places to hang out
   occasion: weekend-hangout
-  note: A "where" search for spots to spend a weekend with friends, added 2026-11-15 because every other weekend hangout phrase already has a post
+  note: A "where" search for spots to spend a weekend with friends, added 2026-11-15
 - phrase: family outing
   occasion: family-outing
 - phrase: team offsite location
@@ -74,14 +77,14 @@
   occasion: family-reunion
 - phrase: family reunion ideas
   occasion: family-reunion
-  note: For a list of reunion stops in one area, since both other family reunion phrases have live posts, added 2026-11-16
+  note: For a list of reunion stops in one area, added 2026-11-16
 - phrase: class reunion venue
   occasion: class-reunion
 - phrase: where to hold a class reunion
   occasion: class-reunion
 - phrase: class reunion ideas
   occasion: class-reunion
-  note: For a reunion weekend of stops in one area, since both other class reunion phrases have live posts, added 2026-11-16
+  note: For a reunion weekend of stops in one area, added 2026-11-16
 - phrase: where to celebrate a birthday
   occasion: birthday
 - phrase: where to celebrate graduation
@@ -90,17 +93,17 @@
   occasion: graduation-celebration
 - phrase: graduation dinner
   occasion: graduation-celebration
-  note: The meal after the ceremony, added 2026-11-06 because every other graduation celebration phrase already has a post
+  note: The meal after the ceremony, added 2026-11-06
 - phrase: graduation celebration ideas
   occasion: graduation-celebration
-  note: For a list of stops for the whole graduation day in one area, added 2026-11-16 because every other graduation celebration phrase already has a post
+  note: For a list of stops for the whole graduation day in one area, added 2026-11-16
 - phrase: baby shower venue
   occasion: baby-shower
 - phrase: where to have a baby shower
   occasion: baby-shower
 - phrase: places to have a baby shower
   occasion: baby-shower
-  note: A "where" search for a list of shower spots in one area, added 2026-11-17 because both other baby shower phrases have live posts
+  note: A "where" search for a list of shower spots in one area, added 2026-11-17
 - phrase: holiday party venue
   occasion: holiday-party
 - phrase: office holiday party venue
@@ -115,7 +118,7 @@
   occasion: study-session
 - phrase: group study spots
   occasion: study-session
-  note: A search for places a study group can use, added 2026-11-07 because every other study session phrase already has a post
+  note: A search for places a study group can use, added 2026-11-07
 - phrase: board game bar
   occasion: game-night
 - phrase: board game bar near me

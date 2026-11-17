@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:The_Corner_Mall_(54954487529).jpg
     width: 1280
     height: 1920
-    alt: People walking on the brick pedestrian street outside The Corner Mall on Washington Street, near the Temple Place places to hang out in Downtown Boston
+    alt: People walking on the brick pedestrian street outside The Corner Mall on Washington Street in Downtown Boston
     caption: The Corner Mall on Washington Street in Downtown Crossing in November 2025, near Back Deck and VERSUS
     author: ajay_suresh
     license: CC BY 4.0

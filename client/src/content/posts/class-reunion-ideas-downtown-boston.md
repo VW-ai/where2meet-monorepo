@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_MA%27s,_2nd_Green_Dragon_Tavern_(5433752853).jpg
     width: 1280
     height: 853
-    alt: The black and gold corner front of the Green Dragon Tavern on Marshall Street in Boston, with flower baskets and flags above the door
+    alt: The black and gold corner front of the Green Dragon Tavern on Marshall Street, with flower baskets and flags above the door
     caption: The Green Dragon Tavern at Marshall Street and Creek Square in October 2010
     author: benito roveran
     license: CC BY 2.0
@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:A_mosaic_located_along_Boston%27s_Freedom_Trail_commemorating_the_site_of_the_first_public_school,_the_Latin_School._(b6a5b6e4-2737-4810-9f27-8d1cec8a1e8e).JPG
     width: 1280
     height: 851
-    alt: The sidewalk mosaic on School Street in Boston marking the site of the Latin School, a group photo stop among class reunion ideas downtown
+    alt: The sidewalk mosaic on School Street in Boston that marks the site of the Latin School
     caption: The Latin School mosaic on School Street, part of the Freedom Trail, in May 2018
     author: National Park Service
     license: Public domain
@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Omni_Parker_House,_School_St,_Boston_(493545)_(11061672353).jpg
     width: 1280
     height: 853
-    alt: The wood-paneled lobby of the Omni Parker House on School Street in Boston, with armchairs, chandeliers and a patterned carpet
+    alt: The wood-paneled lobby of the Omni Parker House on School Street, with armchairs, chandeliers and a patterned carpet
     caption: The lobby of the Omni Parker House in October 2013
     author: Robert Linsdell
     license: CC BY 2.0

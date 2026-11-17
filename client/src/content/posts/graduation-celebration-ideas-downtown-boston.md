@@ -52,7 +52,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:South_Market_-_Boston_(54960945700).jpg
     width: 1280
     height: 853
-    alt: The brick South Market building at Faneuil Hall Marketplace in Boston, with the Custom House Tower behind it, a brunch stop for graduation celebration ideas downtown
+    alt: The brick South Market building at Faneuil Hall Marketplace in Boston, with the Custom House Tower behind it
     caption: The South Market building at Faneuil Hall Marketplace in November 2025
     author: ajay_suresh
     license: CC BY 4.0

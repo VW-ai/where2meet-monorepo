@@ -15,7 +15,7 @@ image:
   page_url: https://commons.wikimedia.org/wiki/File:Union_Square,_San_Francisco._(39776431142).jpg
   width: 1280
   height: 831
-  alt: People sitting on the steps of Union Square's plaza in San Francisco, with the Dewey Monument column and department stores around it
+  alt: People on the steps of Union Square's plaza in San Francisco, with the Dewey Monument column and department stores around it
   caption: Union Square, a few blocks from the Powell St station
   author: Bernard Spragg
   license: CC0

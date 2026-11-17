@@ -17,11 +17,14 @@ import {
   type ContentFile,
   type Fields,
 } from './content-file';
+import { GRANDFATHERED, type Grandfathered, type NamesByKey } from './grandfathered';
 import { GETTING_AROUND, parseCatalog, type RepoContent } from './parse';
 import type { CommonsImage } from './photos';
 import { howToWords, titleEcho, wordSimilarity } from './repetition';
 
-export type Rule = 'fields' | PostRule | PlaceRule | 'how-to-similarity';
+export type Rule = 'fields' | PostRule | PlaceRule | 'how-to-similarity' | SharedRule;
+
+type SharedRule = 'occasion-per-city' | 'place-reuse' | 'photo-reuse';
 
 type PostRule =
   | 'word-count'
@@ -30,6 +33,7 @@ type PostRule =
   | 'note-openings'
   | 'images'
   | 'image-size'
+  | 'alt-text'
   | 'title'
   | 'description'
   | 'main-keyword'
@@ -43,6 +47,7 @@ type PlaceRule =
   | 'getting-around'
   | 'image'
   | 'image-size'
+  | 'alt-text'
   | 'title'
   | 'description'
   | 'wording'
@@ -63,6 +68,8 @@ export interface ImageHead {
 export interface CheckOptions {
   /** Keyed by source_url. An image without an entry was not measured, and its size goes unchecked. */
   heads: ReadonlyMap<string, ImageHead>;
+  /** The files allowed past a sharing limit. Defaults to those that were past it when it came in. */
+  grandfathered?: Grandfathered;
 }
 
 interface RuleContext extends CheckOptions {
@@ -87,6 +94,8 @@ const NOTE_OPENING_MAX = 2;
 const IMAGES_MIN = 3;
 /** The site caches a photo only up to this many bytes. */
 const IMAGE_BYTES_MAX = 2_000_000;
+const ALT_MAX = 125;
+const POSTS_PER_PLACE_MAX = 3;
 const HEADINGS = ['## How to do it in Where2Meet', '## Common questions'];
 const INTRO_MIN_WORDS = 60;
 const TRANSIT_NOTES_MIN_WORDS = 20;
@@ -100,6 +109,7 @@ const OFF_BRAND = new RegExp(
   String.raw`(?<!${WORD_CHAR})fair${WORD_CHAR}*|(?<!${WORD_CHAR})meet(?:s|ing)?(?:${SPACE}|-)+in(?:${SPACE}|-)+the(?:${SPACE}|-)+middle(?!${WORD_CHAR})`,
   'giu'
 );
+const NEAR_ME = new RegExp(String.raw`(?<!${WORD_CHAR})near${SPACE}+me(?!${WORD_CHAR})`, 'giu');
 const GOOGLE_NAME = String.raw`google(?:${SPACE}+maps)?`;
 const GOOGLE_TAG = String.raw`(?:per|according${SPACE}+to)${SPACE}+${GOOGLE_NAME}|${GOOGLE_NAME}${SPACE}+(?:lists|listed|says|said|shows|showed|rates|rated)|on${SPACE}+google${SPACE}+maps`;
 const GOOGLE_SOURCE = new RegExp(
@@ -252,17 +262,24 @@ const POST_RULES: { [R in PostRule]: Check<Post> } = {
 
   'image-size': ({ images }, { heads }) => sizeProblems(images, heads),
 
+  'alt-text': ({ images }) => altProblems(images),
+
   title: ({ title }) => titleProblems(title),
 
   description: ({ title, description }) => descriptionProblems(title, description),
 
   'main-keyword': ({ title, mainKeyword, markdown }, { keywords }) => {
     if (mainKeyword === null) return [];
+    const titleWords = withoutNearMe(mainKeyword);
     return [
       !keywords.has(normalize(mainKeyword)) &&
         `the main keyword "${mainKeyword}" is not a phrase in ${KEYWORDS_FILE}; it must be one, so add it there or pick one of its phrases`,
-      !says(title, mainKeyword) &&
+      titleWords === null &&
+        !says(title, mainKeyword) &&
         `the title does not say the main keyword "${mainKeyword}"; it must, as whole words`,
+      titleWords !== null &&
+        !titleWords.every((word) => says(title, word)) &&
+        `the title does not say each word of the main keyword "${mainKeyword}" other than "near me"; it must, as whole words, with the place instead of "near me"`,
       !says(opening(markdown), mainKeyword) &&
         `the body's first two sentences do not say the main keyword "${mainKeyword}"; they must, as whole words`,
     ];
@@ -311,6 +328,8 @@ const PLACE_RULES: { [R in PlaceRule]: Check<Area> } = {
 
   'image-size': (area, { heads }) => sizeProblems(area.image ? [area.image] : [], heads),
 
+  'alt-text': (area) => altProblems(area.image ? [area.image] : []),
+
   title: (area) => titleProblems(area.seo.title),
 
   description: ({ seo }) => descriptionProblems(seo.title, seo.description),
@@ -358,20 +377,109 @@ export function checkContent(repo: RepoContent, options: CheckOptions): Problem[
           : []),
       ];
     };
+  const posts = repo.posts.flatMap((file) => {
+    const post = keptPost(file, catalog);
+    return post ? [{ file: filePath(POSTS_DIR, file.name), post }] : [];
+  });
+  const placeImages = repo.places.flatMap((file) => {
+    const image = keptPlace(file, catalog)?.image;
+    return image ? [{ file: filePath(PLACES_DIR, file.name), image }] : [];
+  });
   return [
     ...problems(TAXONOMY_FILE, 'fields', skipped(TAXONOMY_FILE)),
     ...problems(KEYWORDS_FILE, 'fields', skipped(KEYWORDS_FILE)),
     ...repo.places.flatMap(checkFile(PLACES)),
     ...repo.posts.flatMap(checkFile(POSTS)),
-    ...howToRepeats(
-      repo.posts.flatMap((file) => {
-        const post = keptPost(file, catalog);
-        return post
-          ? [{ file: filePath(POSTS_DIR, file.name), words: howToWords(post.markdown) }]
-          : [];
-      })
-    ),
+    ...howToRepeats(posts.map(({ file, post }) => ({ file, words: howToWords(post.markdown) }))),
+    ...sharingProblems(posts, placeImages, options.grandfathered ?? GRANDFATHERED),
   ];
+}
+
+/** Something only a few files may share, such as one place, as one file uses it. */
+interface Use {
+  file: string;
+  /** What the limit counts, such as a place_id. */
+  key: string;
+  /** How the grandfathered lists name this use: a post's slug or an image's file_name. */
+  name: string;
+}
+
+interface Limit<U extends Use> {
+  rule: SharedRule;
+  max: number;
+  grandfathered: NamesByKey;
+  message: (use: U, others: readonly U[]) => string;
+}
+
+function sharingProblems(
+  posts: readonly { file: string; post: Post }[],
+  placeImages: readonly { file: string; image: CommonsImage }[],
+  grandfathered: Grandfathered
+): Problem[] {
+  const occasions = posts.flatMap(({ file, post }) => {
+    const [city] = post.areas;
+    return city
+      ? [
+          {
+            file,
+            key: `${city.slug}/${post.occasion.key}`,
+            name: post.slug,
+            city: city.name,
+            occasion: post.occasion.key,
+          },
+        ]
+      : [];
+  });
+  const places = posts.flatMap(({ file, post }) =>
+    post.places.map(({ placeId, label }) => ({ file, key: placeId, name: post.slug, label }))
+  );
+  const photos = [
+    ...placeImages,
+    ...posts.flatMap(({ file, post }) => post.images.map((image) => ({ file, image }))),
+  ].map(({ file, image }) => ({ file, key: image.sourceUrl, name: image.fileName }));
+  return [
+    ...pastLimit(occasions, {
+      rule: 'occasion-per-city',
+      max: 1,
+      grandfathered: grandfathered.occasions,
+      message: ({ city, occasion }, others) =>
+        `${city} already has a post for the occasion "${occasion}": ${sentenceList(others.map(({ name }) => name))}; a city gets one post per occasion, at city level or in a town, so improve the post that was there first, and write a new post for an occasion ${city} has no post for, or for a city with no post for this occasion`,
+    }),
+    ...pastLimit(places, {
+      rule: 'place-reuse',
+      max: POSTS_PER_PLACE_MAX,
+      grandfathered: grandfathered.places,
+      message: ({ label, key }, others) =>
+        `"${label}" (${key}) is in ${count(others.length, 'other post')}; a place may be in at most ${POSTS_PER_PLACE_MAX} posts, so pick a different place for the post that added it`,
+    }),
+    ...pastLimit(photos, {
+      rule: 'photo-reuse',
+      max: 1,
+      grandfathered: grandfathered.photos,
+      message: ({ name }, others) =>
+        `${name}: its source_url is also ${sentenceList(others.map((other) => `${other.name} in ${other.file}`))}; one Commons photo gets one file_name, so pick a different photo for the file that added it`,
+    }),
+  ];
+}
+
+/** Every use of a key past its limit, except the grandfathered ones. No date says which use came first. */
+function pastLimit<U extends Use>(uses: readonly U[], limit: Limit<U>): Problem[] {
+  const byKey = new Map<string, U[]>();
+  for (const use of uses) byKey.set(use.key, [...(byKey.get(use.key) ?? []), use]);
+  return [...byKey].flatMap(([key, shared]) => {
+    if (shared.length <= limit.max) return [];
+    const kept = new Set(limit.grandfathered[key] ?? []);
+    return shared
+      .filter(({ name }) => !kept.has(name))
+      .map((use) => ({
+        file: use.file,
+        rule: limit.rule,
+        message: limit.message(
+          use,
+          shared.filter((other) => other !== use)
+        ),
+      }));
+  });
 }
 
 /** Each pair of posts whose How-to sections are near-copies, reported on both files. */
@@ -457,7 +565,25 @@ function titleProblems(title: string): Messages {
   return [
     length > SEO_TITLE_MAX &&
       `the title is ${count(length, 'character')} with its " | Where2Meet" suffix; it needs at most ${SEO_TITLE_MAX}`,
+    withoutNearMe(title) !== null &&
+      `the title says "near me"; name the place instead, as in "Free indoor basketball courts near Back Bay"`,
   ];
+}
+
+/** The words of a phrase other than "near me", or null when it doesn't say "near me". */
+function withoutNearMe(phrase: string): string[] | null {
+  const rest = normalize(phrase).replace(NEAR_ME, ' ');
+  return rest === normalize(phrase) ? null : rest.split(' ').filter(Boolean);
+}
+
+function altProblems(images: readonly CommonsImage[]): Messages {
+  return images.map(({ fileName, alt }) => {
+    const length = codePoints(alt);
+    return (
+      length > ALT_MAX &&
+      `${fileName}: the alt text is ${count(length, 'character')}; it may be at most ${ALT_MAX}, so describe only what the photo shows and where`
+    );
+  });
 }
 
 function descriptionProblems(title: string, description: string): Messages {

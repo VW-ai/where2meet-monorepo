@@ -18,6 +18,7 @@ These rules change only when the owner asks, by pull request to this file, `clie
 
 - Every post covers one occasion listed in `client/src/content/taxonomy.yaml`. A post may also have a time, a venue type, a group size and a budget from the same file.
 - Most of every post is practical advice that helps a reader even if they never open Where2Meet.
+- **One post per city and occasion.** A city gets one post for each occasion, at city level or in one of its towns. Before you pick an occasion, search the `city:` and `occasion:` lines in `client/src/content/posts/`. If a post in that city or in any of its towns already has the occasion, don't write a second one. Improve that post instead, or write about an occasion the city has no post for. A city or town page with no posts yet is a good place to start. CI blocks a second post for a city and occasion.
 - Every post gives advice of its own. Don't reuse another post's text with the occasion or the place swapped. That includes the description and the "How to do it in Where2Meet" section. Near-copies look templated to Google and hurt the whole site.
 - We never guess the reader's location. A general post names its example city. A local post's URL fixes its place.
 - **General posts** give the advice that works anywhere, in 700 to 1,000 words.
@@ -49,8 +50,9 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 - **Real photos only.** Every post shows real photos of real places it names or of the area it covers. No stock photos, drawings, screenshots of maps or AI images.
 - **Google's photos stay live.** Place cards load Google's photo, rating and address live, with credits. Google's terms forbid saving them or putting them in a saved image. So Google photos never count as the post's photos and are never the cover.
 - **The post's own photos come from Wikimedia Commons.** Only CC0, public domain or CC BY qualify. Share-alike (CC BY-SA) doesn't, because the cover might then have to carry that license too. Check the license and the author on each photo's Commons page.
-- **Merging approves a photo.** The writer lists each photo in the post file by its Commons link. The owner reviews the photos in the pull request, and the merge is the approval to use them.
-- **Alt text.** Describe what the photo shows and where, in plain words, as in "Bryant Park's lawn and chairs with the Empire State Building behind them". Include a keyword only when it truly describes the photo. Never stuff keywords.
+- **Nobody approves a photo before it goes live.** The writer lists each photo in the post file by its Commons link and checks its license and author first. The owner looks at the photos after the post goes live and replaces any that don't qualify.
+- **One file per Commons photo.** A Commons photo appears under one `file_name`, in one post or place. Before you pick a photo, search its `source_url` in `client/src/content/`. If another post or place already lists it, pick a different photo of the place. CI blocks a second file for the same `source_url`.
+- **Alt text.** Say what the photo shows and where, in plain words, in at most 125 characters, as in "Bryant Park's lawn and chairs with the Empire State Building behind them". Describe only the photo. Never add the post's keyword or a clause that ties the photo to the post, as in "near a team meeting venue on Boylston Street". CI blocks alt text over 125 characters.
 - **Caption.** Under each photo, say what it shows and credit the photographer and the license, with links. CC BY photos also say "cropped" when cropped.
 - **File names.** Use descriptive words joined by hyphens, as in `bryant-park-lawn-midtown.jpg`. Never `IMG_1234.jpg`.
 - **Placement.** Put each photo next to the text about that place, not in a gallery at the end.
@@ -60,6 +62,8 @@ Text uses the site's Markdown subset: paragraphs, lists, bold, italic, links, an
 ## Places
 
 - Pick each place on Google Maps and store only its place ID.
+- **A place goes in at most three posts.** Before you pick a place, search its `place_id` in `client/src/content/posts/`. If three posts already list it, pick a different place. CI blocks a fourth. A few places were in more posts before this rule. Those posts keep them, and no new post can add them.
+- **A city post spreads out.** A post about a whole city, with `town: null`, picks places in at least three of the city's neighborhoods, because a group that searches the city can start anywhere. Don't fill a city post with one neighborhood's places.
 - The label is the place's name. The note is in our own words, at least 12 words, as in Place notes.
 - The place cards are the list of picks. The body may name a place where the advice needs it, but it doesn't repeat a card's note.
 - Check every fact in a note on Google Maps, and check that each place is open, before publishing. Check again whenever you update the post.
@@ -98,6 +102,7 @@ After: "Keep this coffee shop on West 38th Street for a check-in of two or three
 - Don't call a place quiet, cheap or popular unless Google Maps or the place itself says so.
 - An illustrative example is fine when it is labeled as an example.
 - Link the source for any fact a reader might doubt, such as a transit agency's schedule page.
+- **Durable facts only.** No dated service alerts, such as a transit diversion, a temporary closure or a construction notice. They expire while the post stays up. State what stays true, and link the agency's alerts page, as in "Check the MBTA's Green Line alerts the day before".
 
 ## Style
 
@@ -116,18 +121,18 @@ After: "Keep this coffee shop on West 38th Street for a check-in of two or three
 Search intent and keywords:
 - **One main keyword per post.** Before writing, pick one main keyword and up to two related ones from `client/src/content/keywords.yaml`, which the panel's Keywords view also shows. If no listed keyword fits, add one to that file in the same pull request and say why in the pull request description.
 - **One post per keyword.** Check that no other post already targets the same main keyword. The Copy prompt lists the posts that already target each keyword. To check by hand, search the `main_keyword` lines in `client/src/content/posts/`. Two posts chasing one keyword compete with each other. Improve the existing post instead.
+- **No new phrase for a covered occasion.** Don't add a phrase so that a city can get a second post for an occasion. When every phrase for an occasion has a post, the occasion is covered, and that is not a reason to add a phrase. Pick an occasion or a city with no post instead.
 - **Match the intent.** "How to" searches get steps. "Where to" searches get places. "Ideas" searches get a list.
 - **Where the main keyword goes:**
-  - in the title
+  - in the title, where a "near me" keyword gives its other words and names the place instead of "near me"
   - in the description
   - in the first two sentences
   - in one `##` heading
-  - in the alt text of one photo where it truly describes it
 
   Use the words as people type them. Write naturally and never repeat a keyword to hit a count.
 
 The page:
-- **Title.** The search phrase comes first, as in "How to choose a team meeting location" or "Where to hold a team meeting in Midtown". It's at most 60 characters including " | Where2Meet", so about 47 for the title itself.
+- **Title.** The search phrase comes first, as in "How to choose a team meeting location" or "Where to hold a team meeting in Midtown", in the order a person says it. It's at most 60 characters including " | Where2Meet", so about 47 for the title itself. Never write "near me" in a title. Name the place instead, as in "Free indoor basketball courts near Back Bay" for the keyword "indoor basketball courts near me free". The slug and `main_keyword` can keep "near me". CI blocks it in a title.
 - **Description.** 120 to 155 characters, with the main keyword, written as a promise of what the reader gets. Google cuts longer ones. Search results show the title right above the description, so never open with the title's words or restate the title. Open with what the reader gets, such as the places and a detail only this page has. When the title starts with the main keyword, put the keyword later in the description. Vary how descriptions end, so they don't all end on the trains home. CI fails a description when four words in a row from the title start within its first three words, as in "Plan a bathhouse with friends in Lower Manhattan" under the title "Bathhouse with friends in Lower Manhattan".
 - **Slug.** Lowercase words joined by hyphens, keyword first, without filler words like "the" or "a". Never change a published slug.
 - **Headings.** One h1, which is the title and is added by the page. Then `##` sections, and `###` only inside a section.
@@ -159,7 +164,7 @@ What the site handles, so don't hand-write it:
 
 ## Publishing
 
-- **One way to publish.** A person or an agent writes the post as `client/src/content/posts/<slug>.md` in the monorepo, in the format in `client/docs/blog-posts-contract.md`. They run `npm test` in `client/` and open a pull request. The writer never merges. The owner reviews and merges, and the merge deploys the post.
+- **One way to publish.** A person or an agent writes the post as `client/src/content/posts/<slug>.md` in the monorepo, in the format in `client/docs/blog-posts-contract.md`. They run `npm test` in `client/` and open a pull request. The scheduled writer merges its own pull request once CI passes, and the merge deploys the post. The owner reads every post after it goes live and fixes problems in follow-up pull requests. CI is the only check before a post goes live, so follow these rules even where CI can't check them.
 - **Starting from an idea.** The panel's Ideas view has a Copy prompt button. It copies a prompt for an agent with the idea, its keywords, places and links, and these rules.
 - **Photos** are listed by their Commons link and never downloaded into the repo.
 - **CI checks every post.** A pull request can't merge until these pass:
@@ -174,6 +179,11 @@ What the site handles, so don't hand-write it:
   - photos that load as JPEGs of at most 2 MB (skipped when Wikimedia can't be reached)
   - the required sections
   - a "How to do it in Where2Meet" section that is no more than 60 percent the same as another post's
+  - one post per city and occasion
+  - each place in at most three posts
+  - alt text of at most 125 characters
+  - no "near me" in a title
+  - one file name per Commons photo
   - the brand wording and the style rules a machine can check (dashes, quotes)
 - **Local posts.** A local post's city and town each need a place file, already merged or in the same pull request.
 - **After anything goes live,** request indexing for the new URL in Search Console.

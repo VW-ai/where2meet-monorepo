@@ -42,18 +42,8 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Cheers_Beacon_Hill_-_Bull_%26_Finch_Pub_(54953358762).jpg
     width: 1280
     height: 960
-    alt: The brick and granite front of Hampshire House on Beacon Street in Boston, with white awnings and a canopy marked Hampshire House
+    alt: The brick and granite front of Hampshire House on Beacon Street, with white awnings and a canopy marked Hampshire House
     caption: Hampshire House on Beacon Street, across from the Public Garden
-    author: ajay_suresh
-    license: CC BY 4.0
-    cropped: false
-  - file_name: newbury-hotel-arlington-street-boston.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/The_Newbury_Boston_%2854954550250%29.jpg/1280px-The_Newbury_Boston_%2854954550250%29.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:The_Newbury_Boston_(54954550250).jpg
-    width: 1280
-    height: 1920
-    alt: The Newbury hotel at the corner of Newbury Street and Arlington Street in Boston, a brick and limestone tower with shops at street level
-    caption: The Newbury at Arlington Street, where Contessa sits on the roof
     author: ajay_suresh
     license: CC BY 4.0
     cropped: false
@@ -62,7 +52,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Sixty_State_Street,_Boston_MA.jpg
     width: 1280
     height: 1707
-    alt: The 60 State Street tower in downtown Boston seen from below, where the State Room on the 33rd floor works as a graduation party venue
+    alt: The 60 State Street tower in Downtown Boston, seen from below
     caption: 60 State Street, home of the State Room, about a 2-minute walk from State station
     author: John Phelan
     license: CC BY 3.0
@@ -98,8 +88,6 @@ Choose lunch when the ceremony ends before noon and relatives drive home the sam
 On weekends, Contessa, Rochambeau, 75 on Liberty Wharf and MIDA all serve before 11 a.m. That gives you a table soon after a morning ceremony. Book for the time the ceremony ends plus the trip over, not for the time it ends. Gowns, photos and finding parents in a crowd all take longer than planned.
 
 A dinner gives you more room to choose. Contessa, MIDA and 75 on Liberty Wharf serve until at least 10 p.m. every night, so a 6 p.m. booking leaves time for toasts.
-
-![](newbury-hotel-arlington-street-boston.jpg)
 
 ## When does a graduation party need a private room?
 

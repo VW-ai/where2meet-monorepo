@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Common_Frog_Pond_-_IMG_8279.JPG
     width: 1280
     height: 960
-    alt: Skaters on the Frog Pond rink on Boston Common in winter, with snow, bare trees and brick buildings behind the rink's green fence
+    alt: Skaters on the Frog Pond rink on Boston Common in winter, with snow, bare trees and brick buildings behind its green fence
     caption: Skaters on the Frog Pond at Boston Common in December 2010
     author: Daderot
     license: CC0
@@ -49,7 +49,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Locke-Ober_Restaurant_2009.JPG
     width: 1280
     height: 960
-    alt: The dark wood storefront and hanging sign of Locke-Ober on Winter Place in Downtown Boston, the building that now holds one of the date night spots in this post
+    alt: The dark wood storefront and hanging sign of Locke-Ober on Winter Place in Downtown Boston
     caption: Locke-Ober on Winter Place in 2009. Yvonne's now fills the building
     author: Pmcyclist
     license: Public domain

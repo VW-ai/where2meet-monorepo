@@ -42,7 +42,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Public_Library_%E2%80%93_McKim_Building_(54923556202).jpg
     width: 1280
     height: 720
-    alt: The granite front of the Boston Public Library's McKim Building on Copley Square, with arched windows and lamps by the entrance steps
+    alt: The Boston Public Library's granite McKim Building on Copley Square, with arched windows and lamps by the entrance steps
     caption: The Boston Public Library's McKim Building on Copley Square, home of the Courtyard Tea Room
     author: ajay_suresh
     license: CC BY 4.0
@@ -52,7 +52,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Boston_Public_Library_Courtyard.JPG
     width: 1280
     height: 1707
-    alt: Marble columns, arches and hanging lanterns along the courtyard arcade of the Boston Public Library, a place to have a baby shower over afternoon tea
+    alt: Marble columns, arches and hanging lanterns along the courtyard arcade of the Boston Public Library
     caption: The courtyard arcade of the Central Library, where the Courtyard Tea Room sits
     author: Millylang
     license: Public domain

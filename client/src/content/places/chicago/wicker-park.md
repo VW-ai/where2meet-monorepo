@@ -13,7 +13,7 @@ image:
   page_url: https://commons.wikimedia.org/wiki/File:Wicker_Park,_Chicago.jpg
   width: 1280
   height: 720
-  alt: A white terra cotta building and older brick storefronts at the corner of Milwaukee and Damen avenues in Wicker Park under a cloudy sky
+  alt: A white terra cotta building and older brick storefronts at Milwaukee and Damen avenues in Wicker Park under a cloudy sky
   caption: The corner of Milwaukee and Damen avenues in Wicker Park
   author: Ben Collins-Sussman
   license: CC BY 2.0

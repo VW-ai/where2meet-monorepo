@@ -13,7 +13,7 @@ image:
   page_url: https://commons.wikimedia.org/wiki/File:State_Street_and_Chicago_Theater_Marquee.jpg
   width: 1280
   height: 964
-  alt: The lit CHICAGO sign and marquee of the Chicago Theatre on State Street at dusk, with the elevated 'L' tracks and a Marina City tower behind
+  alt: The Chicago Theatre's lit CHICAGO sign on State Street at dusk, with the elevated 'L' tracks and a Marina City tower behind
   caption: The Chicago Theatre marquee on State Street, seen from Benton Place
   author: The Other 95%
   license: CC BY 4.0

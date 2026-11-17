@@ -1,5 +1,5 @@
 ---
-title: Indoor basketball courts near me free, Back Bay
+title: Free indoor basketball courts near Back Bay
 description: A city gym with no fee, two lit park courts and a Saturday YMCA run, for anyone searching indoor basketball courts near me free from Back Bay.
 main_keyword: indoor basketball courts near me free
 occasion: pickup-basketball
@@ -10,7 +10,7 @@ budget: null
 city: boston
 town: back-bay
 published_at: 2026-11-09
-updated_at: 2026-11-09
+updated_at: 2026-11-17
 places:
   - place_id: ChIJ_bGAUWt644kR2j_5HYlWXOM
     label: Blackstone Community Center
@@ -39,7 +39,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Municipal_Building,_City_of_Boston_-_Boston,_MA_-_DSC06762.jpg
     width: 1280
     height: 853
-    alt: The columned stone front of the Blackstone Community Center, marked Municipal Building City of Boston, seen across the lawn of Blackstone Square in the South End
+    alt: The Blackstone Community Center's columned stone front, marked Municipal Building City of Boston, across Blackstone Square
     caption: The Blackstone Community Center, home of a free city gym, from Blackstone Square
     author: Daderot
     license: CC0

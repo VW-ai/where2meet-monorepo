@@ -59,7 +59,7 @@ images:
     page_url: https://commons.wikimedia.org/wiki/File:Christopher_Columbus_Waterfront_Park,_Boston_(493355)_(10772149214).jpg
     width: 1280
     height: 853
-    alt: A fountain, benches and shade trees in Christopher Columbus Waterfront Park, a stop for family reunion ideas in Downtown Boston
+    alt: A fountain, benches and shade trees in Christopher Columbus Waterfront Park in Downtown Boston
     caption: The fountain in Christopher Columbus Waterfront Park in September 2013
     author: Robert Linsdell
     license: CC BY 2.0
