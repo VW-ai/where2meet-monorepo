@@ -125,10 +125,9 @@ export const useAuthStore = create<AuthState>()(
       checkSession: async () => {
         try {
           set({ isLoading: true });
-          const response = await authClient.getSession();
-          set({ user: response.user, isAuthenticated: true, isAuthInitialized: true });
+          const { user } = await authClient.getSession();
+          set({ user, isAuthenticated: user !== null, isAuthInitialized: true });
         } catch (error) {
-          // Session expired or invalid
           set({ user: null, isAuthenticated: false, isAuthInitialized: true });
         } finally {
           set({ isLoading: false });

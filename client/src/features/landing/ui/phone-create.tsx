@@ -139,7 +139,7 @@ function Tray({
   error,
   onStart,
 }: {
-  when: Date;
+  when: Date | null;
   setWhen: (date: Date) => void;
   picking: boolean;
   setPicking: (on: boolean) => void;
@@ -153,7 +153,7 @@ function Tray({
   const now = new Date();
   const router = useRouter();
 
-  if (picking) {
+  if (picking && when) {
     const isToday = isSameDay(when, now);
     const inSlots = TIME_SLOTS.some(([h, m]) => when.getHours() === h && when.getMinutes() === m);
     const timeValue = `${String(when.getHours()).padStart(2, '0')}:${String(when.getMinutes()).padStart(2, '0')}`;
@@ -219,7 +219,7 @@ function Tray({
         </span>
         <span className="pp-when-text">
           <small>{t.whenTitle}</small>
-          <b>{whenLine(when, now, locale)}</b>
+          <b>{when ? whenLine(when, now, locale) : '\u00a0'}</b>
         </span>
         <span className="pp-when-change">{t.change}</span>
       </button>
@@ -354,7 +354,7 @@ export function PhoneCreate() {
                   priority
                 />
               </span>
-              <p>{t.tagline}</p>
+              <h1>{t.tagline}</h1>
               <a
                 href={isAuthenticated ? '/dashboard' : '/auth/signin'}
                 className="pp-create-account"
@@ -448,7 +448,7 @@ export function PhoneCreate() {
               {t.switchMap}
             </button>
           )}
-          {!focused && when && (
+          {!focused && (
             <Tray
               when={when}
               setWhen={setWhen}

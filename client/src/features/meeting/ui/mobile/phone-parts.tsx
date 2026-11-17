@@ -32,6 +32,8 @@ export function useFittedWord<T extends HTMLElement>(text: string, sizes: readon
     const context = document.createElement('canvas').getContext('2d');
     if (!element || !context) return;
     const fit = () => {
+      // The phone home is hidden on desktop, and measuring it there downloads Anton for nothing.
+      if (!element.clientWidth) return;
       const family = getComputedStyle(element).fontFamily;
       setSize(
         fittedWordSize(
@@ -48,8 +50,12 @@ export function useFittedWord<T extends HTMLElement>(text: string, sizes: readon
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(element);
-    void document.fonts.ready.then(fit);
-    return () => observer.disconnect();
+    // Anton can start loading after mount, when a desktop window narrows to phone width.
+    document.fonts.addEventListener('loadingdone', fit);
+    return () => {
+      observer.disconnect();
+      document.fonts.removeEventListener('loadingdone', fit);
+    };
   }, [text, sizes]);
 
   return [ref, size] as const;
