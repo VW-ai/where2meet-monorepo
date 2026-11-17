@@ -758,3 +758,5 @@ function sentenceList(items: readonly string[]): string {
 function described(value: unknown): string {
   return value === undefined ? 'missing' : JSON.stringify(value);
 }
+
+// scope test, not for merge
