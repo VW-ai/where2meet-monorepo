@@ -1140,7 +1140,7 @@
   letter-spacing: 1.5px;
 }
 .pp-strip b {
-  color: var(--pp-brand);
+  color: #b3333c;
   font-size: 13px;
   font-style: italic;
   font-weight: 800;
@@ -1181,7 +1181,7 @@
   gap: 10px;
   min-height: 44px;
 }
-.pp-create-line p {
+.pp-create-line h1 {
   flex: 1;
   min-width: 0;
   color: #fff;
@@ -1672,7 +1672,7 @@
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   letter-spacing: 3px;
-  opacity: 0.45;
+  opacity: 0.65;
 }
 .pp-ticket-actions {
   display: flex;

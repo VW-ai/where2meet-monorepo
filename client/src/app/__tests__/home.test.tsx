@@ -115,6 +115,15 @@ describe('the homepage', () => {
     ]);
   });
 
+  it('server-renders the phone home with its heading, date card and start button', async () => {
+    const html = renderToStaticMarkup(await LandingPage()).replaceAll('&#x27;', "'");
+    const phone = html.match(/<section class="pp-create-home"[^>]*>(.*?)<\/section>/s)?.[1] ?? '';
+
+    expect(phone).toContain('<h1>Plan where to meet, together.</h1>');
+    expect(text(phone)).toContain('When are you meeting?');
+    expect(text(phone)).toContain('Name your event to start');
+  });
+
   it('links only the city pages that have guides, most guides first, and one guide per occasion chip', async () => {
     expect(await guideLinks('By city')).toEqual(['/blog/new-york | Where to meet in New York']);
     expect(await guideLinks('By occasion')).toEqual([
