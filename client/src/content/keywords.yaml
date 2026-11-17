@@ -98,6 +98,9 @@
   occasion: baby-shower
 - phrase: where to have a baby shower
   occasion: baby-shower
+- phrase: places to have a baby shower
+  occasion: baby-shower
+  note: A "where" search for a list of shower spots in one area, added 2026-11-17 because both other baby shower phrases have live posts
 - phrase: holiday party venue
   occasion: holiday-party
 - phrase: office holiday party venue
