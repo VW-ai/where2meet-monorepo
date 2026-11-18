@@ -1,6 +1,6 @@
 ---
-title: Places to have a baby shower in Downtown Boston
-description: Seven picks from a Tremont Street tea room to a 33rd-floor event room, sorted by start time and T stop, among the places to have a baby shower downtown.
+title: Places to have a baby shower downtown, by hour
+description: Seven reservable tables, from a School Street dining room that closes at 2 p.m. to a bistro open until 11, among places to have a baby shower downtown.
 main_keyword: places to have a baby shower
 occasion: baby-shower
 time: null
@@ -10,29 +10,29 @@ budget: null
 city: boston
 town: downtown
 published_at: 2026-11-17
-updated_at: 2026-11-17
+updated_at: 2026-11-18
 places:
-  - place_id: ChIJ8TZWfMBx44kRLc0vcq2UUSI
-    label: Silver Dove Afternoon Tea
-    note: Afternoon tea is the whole format at this Tremont Street tea room, so the host only has to plan the guest count and the gifts. Reserve ahead, because it opens only Wednesday to Sunday, from 11 a.m. to 7 p.m. Prices are moderate. From Government Center station, the walk is about 2 minutes.
   - place_id: ChIJoZacmYRw44kRmJklXfYg654
     label: "Parker's Restaurant"
-    note: Hosts planning a morning shower can book a group table at this hotel restaurant on School Street, which serves from 7 a.m. to 2 p.m. every day. It takes reservations and is moderately priced. Park Street and Government Center are each about a 4-minute walk.
+    note: Breakfast showers fit this hotel restaurant on School Street, which serves from 7 a.m. to 2 p.m. every day, so seat guests by 10:30 a.m. It takes reservations, suits groups and is moderately priced. Park Street and Government Center are each about a 4-minute walk.
   - place_id: ChIJt8go3eFx44kRnKtiaUFZC1g
     label: Grana at The Langham, Boston
-    note: Weekday or weekend, this Italian restaurant inside The Langham stops serving at 2 p.m., so start a brunch shower here by 11 a.m. It takes reservations, suits groups and is moderately priced. Plan on about a 7-minute walk from State station.
-  - place_id: ChIJwZ7YX51w44kRzyK2-tjEPg0
-    label: Artisan Bistro
-    note: Of the restaurants on this list, only this one in the Ritz-Carlton serves past 7 p.m., from 7 a.m. to 11 p.m. every day, so it fits a shower after work. It takes reservations, is good for groups and is moderately priced. Boylston and Chinatown stations are each about a 2-minute walk.
+    note: Book this Italian restaurant inside The Langham for a brunch table that starts by 11 a.m., because it stops serving at 2 p.m. daily. It takes reservations, is good for groups and is moderately priced. State station is about a 5-minute walk.
   - place_id: ChIJz8HYG4Rx44kRSy7D-SO5AEQ
     label: Cafe Bonjour
-    note: Keep this French cafe on Temple Place for a small shower of close friends, and book a table, since it takes reservations. It's open from 7 a.m. to 3 p.m. daily and is moderately priced. Downtown Crossing, on the Red and Orange lines, is about a 2-minute walk.
-  - place_id: ChIJH9CZLYRw44kRB96v85hlWMo
-    label: "State Room: A Longwood Venue"
-    note: Book this event room on the 33rd floor of 60 State Street when the shower needs its own space for a long guest list, games and a gift table. It keeps no regular hours, so contact the venue about open dates. State station, on the Orange and Blue lines, is about a 2-minute walk.
-  - place_id: ChIJVVWVXoRw44kR9LLzsLz0uWw
-    label: Convene One Boston Place
-    note: Coworkers throwing a shower at the office can rent a room at this event venue on Washington Street, open 9 a.m. to 5 p.m., Monday to Friday. It's closed on weekends, so plan a weekday lunch. State station is about a 1-minute walk.
+    note: Keep this French cafe on Temple Place for a noon shower of a few close friends. It takes reservations, is open from 7 a.m. to 3 p.m. daily and is moderately priced. Downtown Crossing, on the Red and Orange lines, is about a 2-minute walk.
+  - place_id: ChIJP-3hK-1x44kREO9jNXUioCo
+    label: Folio
+    note: Saturday afternoon showers suit this restaurant inside the Boston Athenaeum, which serves until 5 p.m. on Friday and Saturday and into the evening Tuesday to Thursday. It's closed Sunday and Monday. Book on Resy, or send the large-party request on its site. Park Street is about a 4-minute walk.
+  - place_id: ChIJ8TZWfMBx44kRLc0vcq2UUSI
+    label: Silver Dove Afternoon Tea
+    note: Tea service is the whole menu at this Tremont Street tea room, so the host plans only the guest count and the gifts. It's open from 11 a.m. to 7 p.m., Wednesday to Sunday, takes reservations and is moderately priced. Government Center is about a 2-minute walk.
+  - place_id: ChIJFWVQXYNw44kRLfOaXuBwO5U
+    label: "MAST'"
+    note: Weekday lunch showers for coworkers work at this two-story Italian restaurant on Province Street, which opens at 11 a.m. Monday to Friday. On weekends it opens at 4 p.m., so plan an early dinner. It takes reservations, suits groups and is moderately priced. Downtown Crossing is about a 2-minute walk.
+  - place_id: ChIJwZ7YX51w44kRzyK2-tjEPg0
+    label: Artisan Bistro
+    note: Every day of the week, this bistro in the Ritz-Carlton serves from 7 a.m. to 11 p.m., so it covers a Monday shower or one after work. It takes reservations, is good for groups and is moderately priced. Boylston and Chinatown stations are each about a 2-minute walk.
 images:
   - file_name: omni-parker-house-school-street-entrance-boston.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Omniparkerhouse.jpg/1280px-Omniparkerhouse.jpg
@@ -66,65 +66,71 @@ images:
     cropped: false
 ---
 
-The best places to have a baby shower in Downtown Boston are a tea room, three hotel restaurants, a French cafe and two rooms you book by date, all a few minutes from a T stop. Which one fits depends on when the shower starts and how many guests reply. You're hosting for a friend who is due soon, the list mixes coworkers and family, and the guests ride four different subway lines.
+The best places to have a baby shower in Downtown Boston for a small group are restaurants and a tea room where you reserve a table, not a room. Pick the one whose kitchen stays open well past your start time. You're hosting a dozen or fewer close friends and family, you don't want to sign a rental contract or decorate a hall, and the real question is when everyone can come.
 
-This post lists seven places, then covers what time to start, which station suits the guest of honor and when to rent a room. It's part of our guide to [Downtown Boston](/blog/boston/downtown). For picks across the city, see [where to have a baby shower in Boston](/blog/boston/where-to-have-baby-shower-boston).
+This post lists seven tables from the earliest close to the latest. It then covers how long a shower needs, how many guests one table seats and what you can bring to a restaurant. It's part of our guide to [Downtown Boston](/blog/boston/downtown).
 
-## Which places to have a baby shower downtown fit your group?
+## Which places to have a baby shower downtown fit your start time?
 
-Sort by start time first, then by guest count. Three of these places close by 3 p.m., the tea room stays open until 7 p.m., one hotel restaurant serves until 11 p.m., and two event spaces book by date.
+Choose a place that stays open at least three hours past your start. The cards run from the earliest close, 2 p.m., to the latest, 11 p.m.
 
 :::places
 
-The hours, reservations, group fit, price levels and walk times on these cards come from Google Maps as of November 2026. Walk times start at the MBTA station named in each note.
+The hours, reservations, group fit, price levels and walk times on these cards come from Google Maps as of November 2026. Folio's booking options come from its own site.
 
-## What time should a downtown baby shower start?
+## How long before closing should the shower start?
 
-Start about three hours before the kitchen closes. That leaves time to eat, play one game and open gifts without a server waiting on the table.
+Start about three hours before the kitchen closes. Plan about an hour to eat, half an hour for one game and an hour for gifts, with time to spare before the staff needs the table.
 
-- **Morning.** Parker's and Grana both stop serving at 2 p.m., so a 10 a.m. or 11 a.m. start works best.
-- **Early afternoon.** Cafe Bonjour closes at 3 p.m., which suits a short noon shower.
-- **Mid-afternoon.** Silver Dove runs until 7 p.m., so a 2 p.m. or 3 p.m. start fits, on any day but Monday or Tuesday.
-- **Evening.** Artisan Bistro serves until 11 p.m., the one choice for a shower after work.
+- **Closes at 2 p.m.** Parker's and Grana. Start by 11 a.m.
+- **Closes at 3 p.m.** Cafe Bonjour. Start by noon.
+- **Closes at 5 p.m. on Friday and Saturday.** Folio. Start by 2 p.m.
+- **Closes at 7 p.m.** Silver Dove, Wednesday to Sunday. Start by 4 p.m.
+- **Closes at 10 or 11 p.m.** MAST' and Artisan Bistro. Start as late as 7 p.m.
 
-Here is an example. A host plans a Saturday shower for 12 guests and books Parker's for 10:30 a.m. The gifts are open by 1 p.m., before the kitchen closes.
+Here is an example. A host plans a Sunday shower for ten. Folio is closed on Sundays and MAST' opens at 4 p.m., so the host books Silver Dove for 1 p.m., and the gifts are open by 3:30.
 
 ![](old-city-hall-school-street-downtown-boston.jpg)
 
-## Which T stop is easiest for the guest of honor?
+## How many guests can one restaurant table seat?
 
-Pick the station on the parent-to-be's own line, so the trip has no transfer. Downtown's stations sit a few blocks apart, and each serves a different mix of lines.
+Plan on a dozen or fewer. Past that, the group spreads over several tables, and half the guests can't see the gifts being opened.
 
-- **Red Line.** Get off at Downtown Crossing for Cafe Bonjour, about 2 minutes on foot. Relatives on the commuter rail can ride the Red Line one stop from South Station.
-- **Orange or Blue Line.** State is about 2 minutes from the State Room and about 1 minute from Convene.
-- **Green Line.** Government Center is closest to Silver Dove. Boylston is closest to Artisan Bistro.
+Book for the yes replies plus one or two maybes. If the online booking page stops below your count, call the restaurant or use its large-party form. Ask for one long or round table with the guest of honor in the middle, and ask how long you can keep it.
 
-Check the MBTA's [elevator and escalator alerts](https://www.mbta.com/alerts/access) on the morning of the shower if the guest of honor wants to skip stairs.
+If the replies pass about 20, you need a private room you book by date. Our [baby shower venue rooms in Back Bay](/blog/boston/back-bay/baby-shower-venue-back-bay) are sorted by seat count.
 
 ![](old-state-house-west-gable-state-street-boston.jpg)
 
-## When should you rent an event room instead of a table?
+## What can you bring to a restaurant baby shower?
 
-Rent a room when the replies outgrow two or three tables, or when the host wants decorations and a long gift table. A restaurant table can't hold either for long.
+Bring only what fits on the table and leaves with you. Call ahead about the cake, because some restaurants charge a fee to cut one from outside.
 
-The State Room books by date and fits a weekend shower. Convene is open only on weekdays, so it suits an office shower over lunch. Before you sign, ask whether outside cake carries a fee, how guests get from the lobby to the room, and when you must clear out.
+- **Cake.** Ask whether an outside cake is allowed and what it costs, or order the restaurant's own dessert.
+- **Decorations.** Keep to a small centerpiece and a card. Ask before you bring balloons.
+- **Gifts.** Suggest gift cards or shipped gifts on the invitation. If guests bring boxes, have one helper carry them out to a ride share.
+- **Games.** Pick one that works seated, such as a baby photo guessing card.
 
-If the shower grows into a bigger family day, see our [family reunion ideas in Downtown Boston](/blog/boston/downtown/family-reunion-ideas-downtown-boston). For rooms near the Public Garden, read our [baby shower venue picks in Back Bay](/blog/boston/back-bay/baby-shower-venue-back-bay).
+For a bigger table with no shower on the agenda, see our [group dinner restaurants in Downtown Boston](/blog/boston/downtown/group-dinner-restaurants-downtown-boston).
 
 ## How to do it in Where2Meet
 
-Make one [Where2Meet](/) plan and add the guest of honor's home station before you send the link. Coworkers add their offices and family members add their neighborhoods, and then you compare transit times to Silver Dove and Artisan Bistro, the afternoon and evening options. Look at the walking route from the station on the map for the parent-to-be, let everyone vote, and the host books the winner.
+Start a [Where2Meet](/) plan with the guest of honor's station and the two or three guests coming the farthest, since a small table means every seat counts. Search the places whose hours fit your start by name, such as Folio for a Saturday afternoon or MAST' for a weeknight, and compare transit times from each starting point. The close friends vote, and the host reserves the table.
 
 ## Common questions
 
-### Can you have a baby shower downtown on a Monday?
+### Can you have a baby shower at a restaurant without a private room?
 
-Yes. Parker's, Grana, Cafe Bonjour and Artisan Bistro are open every day, and Convene is open on weekdays. Silver Dove is closed on Monday and Tuesday.
+Yes, for a small group. Reserve one table for the yes replies, keep decorations on the table and ask about an outside cake when you book.
 
-### Where can you have an evening baby shower in Downtown Boston?
+### Where can you have a weeknight baby shower in Downtown Boston?
 
-Artisan Bistro serves until 11 p.m. every day and takes reservations. Silver Dove stays open until 7 p.m., Wednesday to Sunday.
+Artisan Bistro serves until 11 p.m. every day, and MAST' until 10 p.m. Monday to Thursday. Folio stays open into the evening from Tuesday to Thursday.
 
-### How much does a downtown baby shower cost?
+### Which downtown places are open for a Monday baby shower?
 
-The five restaurants on this list are all moderately priced. The State Room and Convene set prices by date and group size, so ask each for a quote.
+Parker's, Grana, Cafe Bonjour, MAST' and Artisan Bistro open on Mondays. Silver Dove and Folio are closed.
+
+### How much does a downtown baby shower table cost?
+
+All seven places are moderately priced. For a big party, ask whether there is a food and drink minimum when you book.
