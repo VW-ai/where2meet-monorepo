@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, Loader2, LogOut, Settings } from 'lucide-react';
+import { CalendarDays, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
 import { startLoadingMeetings } from '@/features/dashboard/lib/meetings-request';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 // The cat head from the logo, as a mask, so a photo takes the same shape
 const CAT_HEAD_MASK = `url("data:image/svg+xml,${encodeURIComponent(
@@ -100,11 +101,7 @@ export function UserMenu() {
   };
   const pending = (path: string) => isNavigating && goingTo === path;
   const itemIcon = (path: string, Icon: typeof Settings) =>
-    pending(path) ? (
-      <Loader2 size={16} className="animate-spin text-[#c83f49]" />
-    ) : (
-      <Icon size={16} className="text-[#8b9098]" />
-    );
+    pending(path) ? <CatLoader size={16} /> : <Icon size={16} className="text-[#8b9098]" />;
 
   return (
     <div className="relative" ref={menuRef}>

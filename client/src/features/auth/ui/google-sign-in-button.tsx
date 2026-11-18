@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
 import { useAuthStore } from '@/features/auth/model/auth-store';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 type GoogleButtonText = 'signin_with' | 'signup_with' | 'continue_with';
 
@@ -103,7 +104,11 @@ export function GoogleSignInButton({ text, onSignedIn }: GoogleSignInButtonProps
       />
       <div ref={containerRef} className={`flex justify-center ${isSigningIn ? 'hidden' : ''}`} />
       {isSigningIn && (
-        <p className="py-2.5 text-center text-sm text-gray-600" role="status">
+        <p
+          className="flex items-center justify-center gap-2 py-2.5 text-sm text-gray-600"
+          role="status"
+        >
+          <CatLoader size={16} />
           Signing in…
         </p>
       )}

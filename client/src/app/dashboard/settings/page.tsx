@@ -9,6 +9,7 @@ import { AddressAutocomplete } from '@/shared/ui/address-autocomplete';
 import { reverseGeocode } from '@/shared/lib/google-maps/geocoding';
 import { AccountShell, accountStyles as s } from '@/features/auth/ui/account-shell';
 import { UserAvatar, UserMenu } from '@/features/auth/ui/user-menu';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 type SaveMessage = { kind: 'success' | 'error'; text: string } | null;
 
@@ -152,6 +153,7 @@ export default function SettingsPage() {
         )}
 
         <button type="submit" disabled={isSaving} className={`w-full ${s.primaryButton}`}>
+          {isSaving && <CatLoader size={18} onColor />}
           {isSaving ? 'Saving…' : 'Save changes'}
         </button>
       </form>

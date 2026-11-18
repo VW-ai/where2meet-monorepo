@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { MapPin, Loader2, Locate } from 'lucide-react';
+import { MapPin, Locate } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
 import { searchPlaceSuggestions } from '@/shared/lib/map-provider';
 import type { MapProvider } from '@/shared/types/map';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -190,7 +191,7 @@ export function AddressAutocomplete({
 
         {/* Loading Spinner or Locate Button */}
         {isLoading || isLocating ? (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+          <CatLoader size={16} className="absolute right-3 top-1/2 -translate-y-1/2" />
         ) : (
           onLocate && (
             <button

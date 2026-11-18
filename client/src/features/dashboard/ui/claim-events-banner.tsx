@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTokenClaimer } from '@/features/auth/hooks/useTokenClaimer';
 import { accountStyles as s } from '@/features/auth/ui/account-shell';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 // Meetings opened in this browser before signing in, not yet on the account
 export function ClaimEventsBanner({ onClaimed }: { onClaimed?: () => void }) {
@@ -40,6 +41,7 @@ export function ClaimEventsBanner({ onClaimed }: { onClaimed?: () => void }) {
         </p>
       </div>
       <button onClick={handleClaimAll} disabled={isClaiming} className={s.primaryButton}>
+        {isClaiming && <CatLoader size={18} onColor />}
         {isClaiming ? 'Saving…' : `Save ${count} ${noun}`}
       </button>
     </div>

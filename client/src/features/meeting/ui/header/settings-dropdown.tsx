@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Settings, Edit2, CheckCircle, XCircle, Trash2, Loader2 } from 'lucide-react';
+import { Settings, Edit2, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
@@ -9,6 +9,7 @@ import { useUiVersion, type UiVersion } from '@/features/meeting/model/ui-versio
 import { unpublishVenue } from '@/features/meeting/model/publish-venue';
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -141,7 +142,7 @@ export function SettingsDropdown({ eventId: _eventId }: SettingsDropdownProps) {
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-gray-50 transition-colors border-t border-border disabled:opacity-50"
             >
               {isUnpublishing ? (
-                <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                <CatLoader size={16} />
               ) : (
                 <XCircle className="w-4 h-4 text-orange-500" />
               )}
