@@ -10,6 +10,7 @@ import {
 } from '@/features/auth/ui/google-sign-in-button';
 import { AuthCard, OrDivider, accountStyles as s } from '@/features/auth/ui/account-shell';
 import { nextPathFrom } from '@/features/auth/lib/next-path';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -146,6 +147,7 @@ export default function SignUpPage() {
         {displayError && <div className={s.error}>{displayError}</div>}
 
         <button type="submit" disabled={isLoading} className={`w-full ${s.primaryButton}`}>
+          {isLoading && <CatLoader size={18} onColor />}
           {isLoading ? 'Creating account…' : 'Create account'}
         </button>
       </form>

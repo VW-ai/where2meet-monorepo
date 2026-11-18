@@ -9,6 +9,7 @@ import { useAuthStore } from '@/features/auth/model/auth-store';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
 import type { TravelMode } from '@/shared/types/map';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -299,7 +300,7 @@ export function AddParticipant({
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <CatLoader size={16} onColor />
               {mode === 'add' ? t.adding : t.saving}
             </span>
           ) : mode === 'add' ? (

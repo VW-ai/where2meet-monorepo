@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, X, Loader2, MapPin } from 'lucide-react';
+import { Search, X, MapPin } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useMapStore } from '@/features/meeting/model/map-store';
@@ -9,6 +9,7 @@ import { useMeetingStore } from '@/features/meeting/model/meeting-store';
 import type { PlacePrediction } from '@/shared/lib/google-maps/places-autocomplete';
 import { searchPlaceSuggestions } from '@/shared/lib/map-provider';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -248,9 +249,7 @@ export function SearchPillBar({ onSearchExecute, onPlaceSelect, onFocus }: Searc
         />
 
         {/* Loading Spinner */}
-        {isLoading && isExpanded && (
-          <Loader2 className="w-4 h-4 text-coral-500 animate-spin flex-shrink-0" />
-        )}
+        {isLoading && isExpanded && <CatLoader size={16} />}
 
         {/* Clear Button */}
         {query && !isLoading && (

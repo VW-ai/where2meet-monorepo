@@ -9,6 +9,7 @@ import { usePhonePlanStore } from '@/features/meeting/model/phone-plan-store';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import type { Location, TravelMode } from '@/shared/types/map';
 import { defineMessages, useMessages, type Locale } from '@/shared/lib/i18n';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -264,7 +265,7 @@ export function RoutesCalculating() {
   const t = useMessages(messages);
   return (
     <div className="absolute top-4 right-4 z-20 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg flex items-center gap-2">
-      <Loader2 className="w-4 h-4 text-coral-500 animate-spin" />
+      <CatLoader size={16} />
       <span className="text-sm text-muted-foreground">{t.calculatingRoutes}</span>
     </div>
   );

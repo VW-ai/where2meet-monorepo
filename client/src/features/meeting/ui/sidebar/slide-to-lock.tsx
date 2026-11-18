@@ -1,11 +1,11 @@
 'use client';
 
 import { useRef, useState, type PointerEvent } from 'react';
-import { Loader2 } from 'lucide-react';
 import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
 import { slideLocks, slideOffset } from '@/features/meeting/lib/slide-to-lock';
 import { cn } from '@/shared/lib/cn';
 import { defineMessages, useMessages } from '@/shared/lib/i18n';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -159,7 +159,7 @@ export function SlideToLock({
         }}
       >
         {locking ? (
-          <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+          <CatLoader size={20} onColor />
         ) : (
           <svg viewBox="0 0 100 100" aria-hidden="true" className="size-[26px]">
             <path d={CAT_HEAD_PATH} fill="currentColor" />

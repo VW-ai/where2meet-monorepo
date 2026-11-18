@@ -32,6 +32,7 @@ import { getHexColor } from '@/features/meeting/lib/participant-colors';
 import { VoteButton } from '@/features/voting/ui/vote-button';
 import type { MapProvider } from '@/shared/types/map';
 import { defineMessages, useLocale, useMessages } from '@/shared/lib/i18n';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -345,7 +346,7 @@ export function VenueInfo() {
                 <div className="space-y-2">
                   {isCalculatingRoutes ? (
                     <div className="flex items-center justify-center py-4">
-                      <Loader2 className="w-5 h-5 text-coral-500 animate-spin" />
+                      <CatLoader size={20} />
                       <span className="ml-2 text-sm text-muted-foreground">{t.calculating}</span>
                     </div>
                   ) : (

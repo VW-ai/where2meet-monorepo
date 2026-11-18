@@ -3,7 +3,7 @@
 import './phone-plan.css';
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { LocateFixed, Loader2, MapPin, Share } from 'lucide-react';
+import { LocateFixed, MapPin, Share } from 'lucide-react';
 import { nextParticipantColor } from '@/features/meeting/lib/participant-colors';
 import catLogo from '@/components/cat/logo.svg';
 import { useAuthStore } from '@/features/auth/model/auth-store';
@@ -23,6 +23,7 @@ import { AvatarStack, PhoneToast } from './phone-parts';
 import { PhoneMenu } from './phone-menu';
 import { PhoneSheet } from './phone-sheet';
 import { PhoneTicket } from './phone-ticket';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -248,7 +249,9 @@ export function PhonePlan() {
   useEffect(() => {
     const top = safeTop() + 8 + 56;
     setPinTop(top + (window.innerHeight - panelHeight - top) / 2);
-    document.querySelector<HTMLElement>('.meeting-map')?.style.setProperty('--pp-panel', `${panelHeight}px`);
+    document
+      .querySelector<HTMLElement>('.meeting-map')
+      ?.style.setProperty('--pp-panel', `${panelHeight}px`);
   }, [panelHeight]);
 
   useMapGestures(mode === 'aim');
@@ -261,7 +264,7 @@ export function PhonePlan() {
       <TopBar />
       {mode === 'places' && (areaMoved || (searching && venues.length > 0)) && (
         <button type="button" className="pp-search-pill" onClick={phonePlan.searchThisArea}>
-          {searching && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
+          {searching && <CatLoader size={15} />}
           {searching ? t.finding : t.searchArea}
         </button>
       )}

@@ -8,7 +8,6 @@ import {
   Clock,
   Coffee,
   Globe,
-  Loader2,
   MapPin,
   Phone,
   Share,
@@ -46,6 +45,7 @@ import { FocusBox, pickerMode } from './transport-parts';
 import { travelModeMessages } from './travel-type-filter';
 import { VenuePanelFooter } from './venue-panel-footer';
 import { AvatarStack, ParticipantAvatar } from './venue-v2-parts';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 const messages = defineMessages({
   en: {
@@ -417,7 +417,7 @@ function TravelSection({ myId, hasJoined }: { myId: string | null; hasJoined: bo
       </div>
       {isCalculatingRoutes ? (
         <p role="status" className="mt-2 flex items-center gap-2 text-[13px] text-v2-ink-2">
-          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+          <CatLoader size={14} />
           {t.calculating}
         </p>
       ) : hasTrips ? (
@@ -480,7 +480,7 @@ function VenueFacts({ venue, isLoading }: { venue: Venue; isLoading: boolean }) 
     <div className="grid gap-px border-t border-v2-line pt-2 text-[13px]">
       {isLoading ? (
         <p role="status" className="flex items-center gap-2 py-[5px] text-v2-ink-2">
-          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+          <CatLoader size={14} />
           {t.loadingDetails}
         </p>
       ) : (

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { authClient } from '@/features/auth/api';
 import { AuthCard, accountStyles as s } from '@/features/auth/ui/account-shell';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -71,6 +72,7 @@ export default function ForgotPasswordPage() {
         {error && <div className={s.error}>{error}</div>}
 
         <button type="submit" disabled={isLoading} className={`w-full ${s.primaryButton}`}>
+          {isLoading && <CatLoader size={18} onColor />}
           {isLoading ? 'Sending…' : 'Send reset link'}
         </button>
       </form>

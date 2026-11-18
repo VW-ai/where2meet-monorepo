@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { authClient } from '@/features/auth/api';
 import { AccountShell, AuthCard, accountStyles as s } from '@/features/auth/ui/account-shell';
+import { CatLoader } from '@/components/cat/cat-loader';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -114,6 +115,7 @@ function ResetPasswordForm() {
           disabled={isLoading || !token}
           className={`w-full ${s.primaryButton}`}
         >
+          {isLoading && <CatLoader size={18} onColor />}
           {isLoading ? 'Saving…' : 'Save new password'}
         </button>
       </form>

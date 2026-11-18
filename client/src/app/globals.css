@@ -288,6 +288,23 @@ input[type='time']::-webkit-calendar-picker-indicator:hover {
   opacity: 0.55;
 }
 
+.cat-trace-line {
+  stroke-dasharray: 32 68;
+  animation: cat-trace 1.3s linear infinite;
+}
+
+@keyframes cat-trace {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-trace-line {
+    animation-duration: 3.5s;
+  }
+}
+
 @keyframes rad-spin {
   to {
     --spin: 360deg;
