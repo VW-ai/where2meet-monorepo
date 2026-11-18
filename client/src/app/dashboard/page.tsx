@@ -6,12 +6,12 @@ import Image from 'next/image';
 import { Plus } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import type { UserEventResponse } from '@/features/auth/types';
-import { userClient } from '@/features/user/api';
 import { AccountShell, accountStyles as s } from '@/features/auth/ui/account-shell';
 import { UserMenu } from '@/features/auth/ui/user-menu';
 import { EventCard } from '@/features/dashboard/ui/event-card';
 import { ClaimEventsBanner } from '@/features/dashboard/ui/claim-events-banner';
 import { groupMeetings } from '@/features/dashboard/lib/group-meetings';
+import { loadMeetings } from '@/features/dashboard/lib/meetings-request';
 import catLogo from '@/components/cat/logo.svg';
 
 type LoadState =
@@ -49,8 +49,7 @@ export default function DashboardPage() {
 
   const loadEvents = useCallback(async () => {
     try {
-      const { events } = await userClient.getEvents();
-      setState({ status: 'ready', userEvents: events.filter((ue) => ue.event != null) });
+      setState({ status: 'ready', userEvents: await loadMeetings() });
     } catch (error) {
       console.error('Error loading events:', error);
       setState({ status: 'error' });

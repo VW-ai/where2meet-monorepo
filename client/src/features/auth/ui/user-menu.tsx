@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, LogOut, Settings } from 'lucide-react';
+import { CalendarDays, Loader2, LogOut, Settings } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { CAT_HEAD_PATH } from '@/features/meeting/lib/cat-head';
+import { startLoadingMeetings } from '@/features/dashboard/lib/meetings-request';
 
 // The cat head from the logo, as a mask, so a photo takes the same shape
 const CAT_HEAD_MASK = `url("data:image/svg+xml,${encodeURIComponent(
@@ -57,7 +58,16 @@ export function UserMenu() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [goingTo, setGoingTo] = useState<string | null>(null);
+  const [isNavigating, startNavigation] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Opening the menu (or pointing at it) fetches the account pages and meetings, so a click lands fast
+  const warmUp = () => {
+    router.prefetch('/dashboard');
+    router.prefetch('/dashboard/settings');
+    startLoadingMeetings();
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -83,15 +93,27 @@ export function UserMenu() {
     router.push('/');
   };
 
+  // The menu stays open with a spinner on the item until the page is there
   const go = (path: string) => {
-    setIsOpen(false);
-    router.push(path);
+    setGoingTo(path);
+    startNavigation(() => router.push(path));
   };
+  const pending = (path: string) => isNavigating && goingTo === path;
+  const itemIcon = (path: string, Icon: typeof Settings) =>
+    pending(path) ? (
+      <Loader2 size={16} className="animate-spin text-[#c83f49]" />
+    ) : (
+      <Icon size={16} className="text-[#8b9098]" />
+    );
 
   return (
     <div className="relative" ref={menuRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!isOpen) warmUp();
+          setIsOpen(!isOpen);
+        }}
+        onPointerEnter={warmUp}
         aria-label="Account"
         aria-expanded={isOpen}
         className="rounded-full transition-transform hover:scale-105 active:scale-95"
@@ -108,12 +130,20 @@ export function UserMenu() {
             <p className="truncate text-xs text-[#666b73]">{user?.email}</p>
           </div>
           <div className="my-1 h-px bg-[#eef1f4]" />
-          <button onClick={() => go('/dashboard')} className={itemClass}>
-            <CalendarDays size={16} className="text-[#8b9098]" />
+          <button
+            onClick={() => go('/dashboard')}
+            aria-busy={pending('/dashboard')}
+            className={itemClass}
+          >
+            {itemIcon('/dashboard', CalendarDays)}
             Your meetings
           </button>
-          <button onClick={() => go('/dashboard/settings')} className={itemClass}>
-            <Settings size={16} className="text-[#8b9098]" />
+          <button
+            onClick={() => go('/dashboard/settings')}
+            aria-busy={pending('/dashboard/settings')}
+            className={itemClass}
+          >
+            {itemIcon('/dashboard/settings', Settings)}
             Account
           </button>
           <div className="my-1 h-px bg-[#eef1f4]" />
