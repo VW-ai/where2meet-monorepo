@@ -36,6 +36,9 @@
 - phrase: things to do on a date
   occasion: date-night
   note: A list search for date plans of any kind, outings as well as bars, added 2026-11-18 for Los Angeles, which had no date night post
+- phrase: where to take a date
+  occasion: date-night
+  note: A "where to" search for a date's bars and dinners in a city, added 2026-11-19 for San Francisco, which had no date night post
 - phrase: team meeting location
   occasion: team-meeting
 - phrase: where to hold a team meeting
