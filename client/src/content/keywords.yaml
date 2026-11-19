@@ -52,6 +52,9 @@
 - phrase: where to meet for a team meeting
   occasion: team-meeting
   note: The Boston team meeting post's phrase from 2026-11-17, so "where to meet" is left to the homepage
+- phrase: places for a team meeting
+  occasion: team-meeting
+  note: Added 2026-11-19 for Chicago's first team meeting post, in River North, since every other team meeting phrase has a post in another city
 - phrase: group dinner
   occasion: group-dinner
 - phrase: restaurant for a big group
