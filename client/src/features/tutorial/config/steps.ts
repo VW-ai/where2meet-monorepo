@@ -11,6 +11,8 @@ export interface TutorialStep {
   targetSelector: string; // CSS selector to find the target element
   placement: 'top' | 'bottom' | 'left' | 'right';
   highlightPadding: number; // Padding around the spotlight in pixels
+  /** A step can do its thing right from the card instead of only pointing at it. */
+  action?: 'copy-link';
 }
 
 export const TUTORIAL_STEPS: TutorialStep[] = [
@@ -18,18 +20,19 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 'share-link',
     text: {
       en: {
-        title: 'Share Your Event',
+        title: 'Send the link to your group',
         description:
-          'Click here to get a shareable link. Send it to participants so they can join and add their locations.',
+          'Everyone adds their own starting point, so you don’t have to type in their addresses. Copy the link and paste it in your group chat.',
       },
       zh: {
-        title: '分享你的见面',
-        description: '点击这里获取分享链接，发给参与者，他们就能加入并填写自己的位置。',
+        title: '把链接发到群里',
+        description: '每个人自己填出发地，你不用替大家输地址。复制链接，发到群聊里就行。',
       },
     },
     targetSelector: '[data-tutorial="share-button"]',
     placement: 'bottom',
     highlightPadding: 12,
+    action: 'copy-link',
   },
   {
     id: 'drag-search',

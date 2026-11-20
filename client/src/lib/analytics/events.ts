@@ -28,6 +28,11 @@ export function trackEvent(eventName: string, parameters?: Record<string, unknow
   captureEvent(eventName, parameters);
 }
 
+/** Where a share started, when it was one of the invite nudges. */
+export type ShareSource = 'prompt' | 'tutorial';
+
+const sharePromptsSeen = new Set<string>();
+
 /**
  * Predefined analytics events for Where2Meet
  */
@@ -90,11 +95,26 @@ export const analyticsEvents = {
   /**
    * Track when a user shares an event
    */
-  shareEvent: (eventId: string, method: 'link' | 'social') => {
+  shareEvent: (eventId: string, method: 'link' | 'social', source?: ShareSource) => {
     trackEvent('share', {
       event_id: eventId,
       method,
+      source,
       content_type: 'event',
+      event_category: 'engagement',
+    });
+  },
+
+  /**
+   * Track when the organizer is shown "send the link" as the main next step, once per meeting
+   * per page load: the people panel mounts again every time it opens.
+   */
+  sharePromptShown: (eventId: string, surface: 'desktop' | 'phone') => {
+    if (sharePromptsSeen.has(eventId)) return;
+    sharePromptsSeen.add(eventId);
+    trackEvent('share_prompt_shown', {
+      event_id: eventId,
+      surface,
       event_category: 'engagement',
     });
   },

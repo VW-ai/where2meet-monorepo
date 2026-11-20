@@ -6,6 +6,8 @@ import { TUTORIAL_STEPS } from '../config/steps';
 import { PopoverPosition, getArrowStyles } from '../lib/positioning';
 import { cn } from '@/shared/lib/cn';
 import { analyticsEvents } from '@/lib/analytics/events';
+import { useToastStore } from '@/features/meeting/model/toast-store';
+import { meetingShareUrl } from '@/shared/lib/meeting-link';
 import { defineMessages, useLocale } from '@/shared/lib/i18n';
 
 const messages = defineMessages({
@@ -17,6 +19,9 @@ const messages = defineMessages({
     upcomingStep: (step: number) => `Upcoming step ${step}`,
     done: 'Got it!',
     next: 'Next',
+    copyLink: 'Copy invite link',
+    copied: 'Link copied. Paste it in your group chat.',
+    later: 'Later',
   },
   zh: {
     stepOf: (step: number, total: number) => `第 ${step} 步，共 ${total} 步`,
@@ -26,6 +31,9 @@ const messages = defineMessages({
     upcomingStep: (step: number) => `第 ${step} 步`,
     done: '完成',
     next: '下一步',
+    copyLink: '复制邀请链接',
+    copied: '链接已复制，粘贴到群聊里吧。',
+    later: '稍后再说',
   },
 });
 
@@ -56,6 +64,18 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
       nextStep();
       analyticsEvents.tutorialStepCompleted(eventId, step + 1);
     }
+  };
+
+  const handleCopyLink = async () => {
+    const url = meetingShareUrl(window.location.origin, eventId);
+    try {
+      await navigator.clipboard.writeText(url);
+      analyticsEvents.shareEvent(eventId, 'link', 'tutorial');
+      useToastStore.getState().showToast({ message: t.copied });
+    } catch {
+      useToastStore.getState().showToast({ message: url });
+    }
+    handleNext();
   };
 
   const handleSkip = () => {
@@ -158,14 +178,21 @@ export function TutorialStepCard({ step, position, eventId }: TutorialStepCardPr
           ))}
         </div>
 
-        {/* Action button */}
         <button
           ref={buttonRef}
-          onClick={handleNext}
+          onClick={stepConfig.action === 'copy-link' ? () => void handleCopyLink() : handleNext}
           className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-coral-500 text-white rounded-full text-sm font-medium hover:bg-coral-600 active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2"
         >
-          {isLastStep ? t.done : t.next}
+          {stepConfig.action === 'copy-link' ? t.copyLink : isLastStep ? t.done : t.next}
         </button>
+        {stepConfig.action === 'copy-link' && (
+          <button
+            onClick={handleNext}
+            className="w-full -mt-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {t.later}
+          </button>
+        )}
       </div>
     </div>
   );

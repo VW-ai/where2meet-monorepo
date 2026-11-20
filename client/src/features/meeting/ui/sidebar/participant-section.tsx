@@ -6,14 +6,19 @@ import { useParticipantStore } from '@/features/meeting/model/participant-store'
 import { useMapStore, type UITravelMode } from '@/features/meeting/model/map-store';
 import { useToastStore } from '@/features/meeting/model/toast-store';
 import { useUiVersion } from '@/features/meeting/model/ui-version-store';
-import { listEntry, viewerFromAuth } from '@/features/meeting/lib/participant-rights';
+import {
+  listEntry,
+  shouldPromptInvite,
+  viewerFromAuth,
+} from '@/features/meeting/lib/participant-rights';
+import { hasStartingPoint } from '@/features/meeting/lib/person-routes';
 import {
   signInAsParticipant,
   useRemoveAddedPerson,
 } from '@/features/meeting/hooks/useParticipantActions';
 import { useUIStore } from '@/features/meeting/model/ui-store';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { Users, Plus, BarChart3, UserPlus } from 'lucide-react';
+import { Users, Plus, BarChart3, UserPlus, Link2 } from 'lucide-react';
 import { AddParticipant, type ParticipantFormData } from './add-participant';
 import { MyLocationPrompt, MY_LOCATION_INPUT_ID } from './my-location-prompt';
 import { ParticipantPill } from './participant-pill';
@@ -48,7 +53,7 @@ const messages = defineMessages({
     error: 'Error',
     dismissError: 'Dismiss error',
     emptyTitle: 'No participants yet',
-    emptyHint: 'Add participants to find the perfect meeting spot',
+    emptyHint: 'Send the link so everyone adds where they start from',
     leaveTitle: 'Leave Event',
     deleteTitle: 'Delete Participant',
     leaveConfirm:
@@ -61,6 +66,9 @@ const messages = defineMessages({
     undo: 'Undo',
     addSomeone: 'Add someone',
     addAnother: 'Add another',
+    sendLink: 'Send the link to your group',
+    inviteHint: 'Each friend adds their own start. Places show once two people are in.',
+    addYourself: 'Or add someone yourself',
     joinPlan: 'Join this plan',
     going: {
       car: 'going by car',
@@ -89,7 +97,7 @@ const messages = defineMessages({
     error: '出错了',
     dismissError: '关闭错误提示',
     emptyTitle: '还没有参与者',
-    emptyHint: '添加参与者，一起找到最合适的见面地点',
+    emptyHint: '把链接发出去，每个人自己填出发地',
     leaveTitle: '退出见面',
     deleteTitle: '删除参与者',
     leaveConfirm: '确定要退出这次见面吗？之后可以重新加入。',
@@ -98,6 +106,9 @@ const messages = defineMessages({
     delete: '删除',
     undo: '撤销',
     addSomeone: '添加一个人',
+    sendLink: '把链接发到群里',
+    inviteHint: '每个朋友自己填出发地。有两个人填好就能看地点。',
+    addYourself: '或者你来替朋友填',
     addAnother: '再加一个',
     joinPlan: '加入这个计划',
     going: {
@@ -154,6 +165,14 @@ export function ParticipantSection() {
   const entry = listEntry(viewerFromAuth({ organizerParticipantId, currentParticipantId }), {
     isPublished,
   });
+  const startingPoints = currentEvent?.participants?.filter(hasStartingPoint).length ?? 0;
+  const promptInvite = version === 'v2' && shouldPromptInvite(entry, startingPoints);
+  const eventId = currentEvent?.id;
+  const openShareModal = useUIStore((state) => state.openShareModal);
+
+  useEffect(() => {
+    if (promptInvite && eventId) analyticsEvents.sharePromptShown(eventId, 'desktop');
+  }, [promptInvite, eventId]);
 
   // The viewer's own participant record, if they have one in this event
   const myParticipantId = organizerParticipantId || currentParticipantId;
@@ -448,7 +467,27 @@ export function ParticipantSection() {
         />
       )}
 
-      {version === 'v2' && !showAddForm && entry && (
+      {promptInvite && !showAddForm && (
+        <div className="grid gap-2 pb-2 pt-1.5">
+          <button type="button" className={cn(BUTTON.ink, 'w-full')} onClick={openShareModal}>
+            <Link2 aria-hidden="true" />
+            {t.sendLink}
+          </button>
+          <p className="text-center text-xs text-muted-foreground">{t.inviteHint}</p>
+          <button
+            type="button"
+            className="mx-auto text-xs font-semibold text-v2-ink underline-offset-2 hover:underline"
+            onClick={() => {
+              setSelectedParticipantId(null);
+              setShowAddForm(true);
+            }}
+          >
+            {t.addYourself}
+          </button>
+        </div>
+      )}
+
+      {version === 'v2' && !showAddForm && entry && !promptInvite && (
         <div className="top-0 z-[3] bg-[linear-gradient(#fff_82%,transparent)] pb-2 pt-1.5 md:sticky">
           <button
             type="button"
