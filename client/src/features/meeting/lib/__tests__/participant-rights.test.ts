@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { listEntry, participantRights, viewerFromAuth, type Viewer } from '../participant-rights';
+import {
+  listEntry,
+  participantRights,
+  shouldPromptInvite,
+  viewerFromAuth,
+  type Viewer,
+} from '../participant-rights';
 
 const SAM = { id: 'sam', isOrganizer: true, claimable: false };
 const MAYA = { id: 'maya', isOrganizer: false, claimable: false };
@@ -112,5 +118,18 @@ describe('listEntry', () => {
   it('closes for everyone once the plan is published', () => {
     expect(listEntry(HOST, { isPublished: true })).toBeNull();
     expect(listEntry(VISITOR, { isPublished: true })).toBeNull();
+  });
+});
+
+describe('shouldPromptInvite', () => {
+  it('asks the organizer to send the link until two people have a start', () => {
+    expect(shouldPromptInvite('add', 0)).toBe(true);
+    expect(shouldPromptInvite('add', 1)).toBe(true);
+    expect(shouldPromptInvite('add', 2)).toBe(false);
+  });
+
+  it('never prompts guests or a published meeting', () => {
+    expect(shouldPromptInvite('join', 0)).toBe(false);
+    expect(shouldPromptInvite(null, 0)).toBe(false);
   });
 });

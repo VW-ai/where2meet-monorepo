@@ -5,6 +5,8 @@ import { Link2, LocateFixed, MapPin, Navigation, Plus, UserRound, X } from 'luci
 import type { Participant } from '@/entities';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { hasStartingPoint } from '@/features/meeting/lib/person-routes';
+import { shouldPromptInvite } from '@/features/meeting/lib/participant-rights';
+import { analyticsEvents, type ShareSource } from '@/lib/analytics/events';
 import { nextParticipantColor } from '@/features/meeting/lib/participant-colors';
 import { avatarTint, initials, offsetPoint } from '@/features/meeting/lib/phone-plan';
 import { useMeetingStore } from '@/features/meeting/model/meeting-store';
@@ -32,7 +34,8 @@ const messages = defineMessages({
   en: {
     who: "Who's coming?",
     invite: 'Invite',
-    addSelfHint: 'Add starts yourself, or let friends add their own.',
+    addSelfHint:
+      'Send the link so each friend adds their own start. You can add someone yourself too.',
     everyoneHint: 'Everyone adds their own start.',
     linkReady: 'Link ready. Their pin lands here when they join.',
     add: 'Add someone',
@@ -43,6 +46,7 @@ const messages = defineMessages({
     seePlaces: 'See places near everyone',
     backToPlaces: 'Back to places',
     oneMore: 'Add one more to see places',
+    sendLink: 'Send the link to your group',
     remove: 'Remove',
     removed: (name: string) => `${name} removed`,
     yourRemoved: 'Your start removed',
@@ -73,7 +77,7 @@ const messages = defineMessages({
   zh: {
     who: '谁会来？',
     invite: '邀请',
-    addSelfHint: '你可以替朋友填出发地，也可以让他们自己填。',
+    addSelfHint: '把链接发给朋友，每个人自己填出发地。你也可以替朋友填。',
     everyoneHint: '每个人都填自己的出发地。',
     linkReady: '链接已准备好。他们加入后，位置会出现在这里。',
     add: '添加一个人',
@@ -84,6 +88,7 @@ const messages = defineMessages({
     seePlaces: '看看大家附近的地点',
     backToPlaces: '回到地点',
     oneMore: '再加一个人就能看地点',
+    sendLink: '把链接发到群里',
     remove: '移除',
     removed: (name: string) => `已移除${name}`,
     yourRemoved: '已移除你的出发地',
@@ -143,6 +148,13 @@ export function RosterPanel() {
         ? t.addSelfHint
         : t.everyoneHint;
   const ready = located.length >= 2;
+  const entry = isOrganizer ? 'add' : null;
+  const promptInvite = !event?.publishedAt && shouldPromptInvite(entry, located.length);
+  const eventId = event?.id;
+
+  useEffect(() => {
+    if (promptInvite && eventId) analyticsEvents.sharePromptShown(eventId, 'phone');
+  }, [promptInvite, eventId]);
 
   return (
     <>
@@ -166,7 +178,12 @@ export function RosterPanel() {
         )}
         {canAdd && (
           <div className="pp-add-row">
-            <button type="button" className="pp-ink-pill" onClick={phonePlan.addSomeone}>
+            <button
+              type="button"
+              className="pp-ink-pill"
+              data-quiet={promptInvite || undefined}
+              onClick={phonePlan.addSomeone}
+            >
               <Plus size={18} aria-hidden="true" />
               {myId ? t.add : t.join}
             </button>
@@ -193,9 +210,16 @@ export function RosterPanel() {
         </div>
       </div>
       <div className="pp-footer">
-        <Cta disabled={!ready} onClick={ready ? phonePlan.seePlaces : undefined}>
-          {!ready ? t.oneMore : searchedArea !== null ? t.backToPlaces : t.seePlaces}
-        </Cta>
+        {promptInvite ? (
+          <Cta onClick={() => void shareMeeting(event?.id, event?.title, 'prompt')}>
+            <Link2 size={17} aria-hidden="true" />
+            {t.sendLink}
+          </Cta>
+        ) : (
+          <Cta disabled={!ready} onClick={ready ? phonePlan.seePlaces : undefined}>
+            {!ready ? t.oneMore : searchedArea !== null ? t.backToPlaces : t.seePlaces}
+          </Cta>
+        )}
       </div>
     </>
   );
@@ -307,13 +331,18 @@ function PersonRow({
   );
 }
 
-export async function shareMeeting(eventId: string | undefined, title: string | undefined) {
+export async function shareMeeting(
+  eventId: string | undefined,
+  title: string | undefined,
+  source?: ShareSource
+) {
   if (!eventId) return;
   const url = meetingShareUrl(window.location.origin, eventId);
   phonePlan.invite();
   if (typeof navigator.share === 'function') {
     try {
       await navigator.share({ title, url });
+      analyticsEvents.shareEvent(eventId, 'social', source);
       return;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
@@ -321,6 +350,7 @@ export async function shareMeeting(eventId: string | undefined, title: string | 
   }
   try {
     await navigator.clipboard.writeText(url);
+    analyticsEvents.shareEvent(eventId, 'link', source);
     useToastStore.getState().showToast({
       message: document.documentElement.lang === 'zh' ? '链接已复制' : 'Link copied',
     });

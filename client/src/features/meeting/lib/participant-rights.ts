@@ -67,3 +67,11 @@ export function listEntry(
   if (viewer.kind === 'organizer') return 'add';
   return viewer.kind === 'visitor' ? 'join' : null;
 }
+
+/**
+ * Places need two starting points. Until then the organizer's next step is sending the link,
+ * so each person adds their own start, rather than typing in friends' addresses for them.
+ */
+export function shouldPromptInvite(entry: 'add' | 'join' | null, startingPoints: number): boolean {
+  return entry === 'add' && startingPoints < 2;
+}

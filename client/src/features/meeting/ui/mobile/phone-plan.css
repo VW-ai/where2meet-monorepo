@@ -242,6 +242,10 @@
 }
 .pp-cta {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   height: 54px;
   border-radius: 18px;
@@ -340,6 +344,11 @@
   color: #fff;
   font-size: 15px;
   font-weight: 600;
+}
+.pp-ink-pill[data-quiet] {
+  background: #fff;
+  color: var(--pp-ink);
+  box-shadow: inset 0 0 0 1px var(--pp-line);
 }
 .pp-quick {
   flex: none;
