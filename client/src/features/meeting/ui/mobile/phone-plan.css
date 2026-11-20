@@ -1471,21 +1471,6 @@
   inset: 0;
   opacity: 0;
 }
-.pp-china {
-  position: absolute;
-  right: 16px;
-  bottom: calc(var(--pp-safe-bottom-v) + 2px);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 14px;
-  background: var(--pp-wash);
-  color: var(--pp-ink2);
-  font-size: 12px;
-  font-weight: 600;
-}
 .pp-create-home {
   display: none;
 }

@@ -52,7 +52,7 @@ export function LandingView({ children }: { children: ReactNode }) {
   const [createError, setCreateError] = useState<string | null>(null);
   const [triedToCreate, setTriedToCreate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  // The China toggle also switches the form, and the meeting it creates, to Chinese
+  // Browsers in mainland China get Amap, and the form and meeting are in Chinese
   const locale = localeFor(mapProvider);
   const t = messages[locale];
   const missingDetails = missingDetailsMessage({ title, meetingTime, organizerName }, locale);
@@ -75,15 +75,6 @@ export function LandingView({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isMainlandChinaTimeZone(browserTimeZone())) setMapProvider('amap');
   }, []);
-
-  // A picked address came from the other provider's suggestions, so pick again
-  const handleMapProviderChange = (nextProvider: MapProvider) => {
-    setMapProvider(nextProvider);
-    setAddress('');
-    setPlaceId('');
-    setLocationError(null);
-    setCreateError(null);
-  };
 
   const handleLocationChange = (nextAddress: string, nextPlaceId: string) => {
     setAddress(nextAddress);
@@ -326,7 +317,6 @@ export function LandingView({ children }: { children: ReactNode }) {
                   onOrganizerNameChange={setOrganizerName}
                   onLocationChange={handleLocationChange}
                   onLocationError={setLocationError}
-                  onMapProviderChange={handleMapProviderChange}
                 />
 
                 <ActionButtons onCreateEvent={handleCreateEvent} isLoading={isLoading} />
