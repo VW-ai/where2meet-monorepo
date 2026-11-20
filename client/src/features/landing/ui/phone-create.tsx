@@ -72,7 +72,6 @@ const messages = defineMessages({
     open: 'Open an invitation',
     failed: "We couldn't create your meeting. Check your connection and try again.",
     account: 'Your account',
-    switchMap: '中国',
   },
   zh: {
     tagline: '一起决定在哪见面。',
@@ -99,7 +98,6 @@ const messages = defineMessages({
     open: '打开一份邀请',
     failed: '没能创建见面。请检查网络后重试。',
     account: '你的账户',
-    switchMap: 'Global',
   },
 });
 
@@ -439,15 +437,6 @@ export function PhoneCreate() {
               )}
             </div>
           </div>
-          {!focused && !picking && (
-            <button
-              type="button"
-              className="pp-china"
-              onClick={() => setMapProvider(mapProvider === 'amap' ? 'google' : 'amap')}
-            >
-              {t.switchMap}
-            </button>
-          )}
           {!focused && (
             <Tray
               when={when}
