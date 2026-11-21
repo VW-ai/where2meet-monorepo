@@ -1,6 +1,6 @@
 ---
-title: Where to meet for a team meeting in Boston
-description: Seven rooms and venues by State, South Station, North Station, Back Bay and the Seaport, with T walk times, to settle where to meet as a team.
+title: Where to meet for a team meeting across Boston
+description: Six rooms from Kendall Square to Jamaica Plain, sorted by home T line, for a team with no office working out where to meet for a team meeting.
 main_keyword: where to meet for a team meeting
 occasion: team-meeting
 time: null
@@ -10,49 +10,46 @@ budget: null
 city: boston
 town: null
 published_at: 2026-10-29
-updated_at: 2026-10-29
+updated_at: 2026-11-21
 places:
-  - place_id: ChIJVVWVXoRw44kR9LLzsLz0uWw
-    label: Convene One Boston Place
-    note: Hold a full-day workshop or an all-hands at this event venue in One Boston Place, 201 Washington Street. It's open weekdays from 9 a.m. to 5 p.m. and closed on weekends. State, on the Orange and Blue lines, is about a 1-minute walk.
-  - place_id: ChIJWYJc4Pxx44kRc8Wx-dkxO_4
-    label: Workbar Downtown Boston
-    note: Riders on the Red, Orange and Blue lines can all reach this coworking space on School Street without changing trains. It's on the second floor, open weekdays from 9 a.m. to 5 p.m., and about a 4-minute walk from both Downtown Crossing and State.
-  - place_id: ChIJc3pn3XR644kRe7W9ViVyWbE
-    label: Workbar Back Bay
-    note: Good for a team that works around Copley Square or rides the Green Line. This coworking space is on the sixth floor of 399 Boylston Street, open weekdays from 9 a.m. to 5 p.m., and about a 1-minute walk from Arlington.
-  - place_id: ChIJ5eoNN-tx44kRjGrr7-t7SU4
-    label: Loft on Two
-    note: Teammates on the Red Line, the Silver Line or a commuter train from the south can walk here from South Station in about 2 minutes. This event venue in One Financial Center opens at 8 a.m. on weekdays, the earliest of the three event venues here, and closes at 5 p.m.
-  - place_id: ChIJ8yqOZHdw44kRL055xYP_L-k
-    label: The Exchange Conference Center
-    note: Plan a day away from the office at this conference center on the Fish Pier, 212 Northern Avenue in the Seaport. It's open weekdays from 9 a.m. to 5 p.m. World Trade Center, on the Silver Line, is the nearest stop, about a 10-minute walk.
+  - place_id: ChIJx8GFy6Vw44kRergekFm8chY
+    label: CIC Cambridge @ 1 Broadway
+    note: Book here when most of the team rides the Red Line from Dorchester or Quincy, or changes from the Green Line at Park Street, two stops away. Non-members reserve the conference rooms online and pay by card. It's open weekdays from 9 a.m. to 5 p.m., about a 1-minute walk from Kendall/MIT.
+  - place_id: ChIJD3T6YVF344kRkrY4ucFa7b8
+    label: Workbar Central Square, Cambridge
+    note: Teammates who live around Central Square or Cambridgeport can walk here, and Red Line riders from either direction arrive without a change. The space is on the fifth floor of 130 Bishop Allen Drive, open weekdays from 9 a.m. to 5 p.m., about a 1-minute walk from Central.
+  - place_id: ChIJ6UhsjeB344kROWa7hfw8sDw
+    label: Workbar Harvard Square
+    note: Pick this fifth-floor space at 50 Church Street when the team lives toward Porter, Davis and Alewife, or rides one of the many buses that stop at Harvard. Rooms book by the hour with no membership. It's open weekdays from 9 a.m. to 5 p.m., about a 3-minute walk from Harvard.
+  - place_id: ChIJiXwp02R544kR5zLACNtwin0
+    label: The Village Works
+    note: For a team that lives in Jamaica Plain or along the southern Orange Line, this coworking space on Centre Street saves everyone the ride downtown. Its JP rooms seat 4, 5 or 10 and book by the hour or day. It's open weekdays from 9 a.m. to 5 p.m. Green Street is about a 12-minute walk.
   - place_id: ChIJ20RxQ5lx44kRwZawAewGJnE
     label: societyM Meeting Rooms Boston North Station
-    note: Weekend and evening meetings fit here, because these meeting rooms at 70 Causeway Street are open from 7 a.m. to 11 p.m. every day. North Station, with the Orange Line, the Green Line's D and E branches and four commuter rail lines, is less than a minute's walk.
-  - place_id: ChIJjTd23X9644kRRcFC4A99DOc
-    label: SPIN Boston
-    note: After the meeting, walk the team over to this ping-pong bar in Fort Point. It's moderately priced, good for groups and takes reservations. It opens at 4 p.m. Tuesday to Friday and 2 p.m. on Saturday, and it's closed on Sundays and Mondays. South Station is about an 8-minute walk.
+    note: Evening and weekend meetings fit here, because these rooms at 70 Causeway Street are open from 7 a.m. to 11 p.m. every day. North Station, with the Orange Line, the Green Line's D and E branches and four commuter rail lines, is about a 1-minute walk.
+  - place_id: ChIJ8yqOZHdw44kRL055xYP_L-k
+    label: The Exchange Conference Center
+    note: Plan a full day away from everyone's usual commute at this conference center on the Fish Pier, 212 Northern Avenue, which has conference rooms, a hall and its own caterer. Contact it with your headcount for a quote. World Trade Center, on the Silver Line, is about a 10-minute walk.
 images:
-  - file_name: south-station-headhouse-night-dewey-square.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/South_Station_headhouse_at_night%2C_January_2017_%28Unsplash_xKQIz_5XjY%29.jpg/1280px-South_Station_headhouse_at_night%2C_January_2017_%28Unsplash_xKQIz_5XjY%29.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:South_Station_headhouse_at_night,_January_2017_(Unsplash_xKQIz_5XjY).jpg
+  - file_name: kendall-mit-station-new-entrance-night.jpg
+    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Kendall_MIT_new_headhouse_July_2025.jpg/1280px-Kendall_MIT_new_headhouse_July_2025.jpg
+    page_url: https://commons.wikimedia.org/wiki/File:Kendall_MIT_new_headhouse_July_2025.jpg
     width: 1280
     height: 853
-    alt: South Station's stone headhouse lit blue at night, with its clock and eagle above the arched entrance
-    caption: South Station at Dewey Square, about a 2-minute walk from Loft on Two
-    author: Osman Rana
-    license: CC0
-    cropped: false
-  - file_name: one-boston-place-old-state-house.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/One_Boston_Place_%2854960945640%29.jpg/1280px-One_Boston_Place_%2854960945640%29.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:One_Boston_Place_(54960945640).jpg
-    width: 1280
-    height: 1920
-    alt: The dark glass tower of One Boston Place rising behind the red brick Old State House on Washington Street in downtown Boston
-    caption: One Boston Place, where Convene is, behind the Old State House and State station
-    author: ajay_suresh
+    alt: The glass entrance to Kendall/MIT station at night under a lit canopy, with a T sign and a Marriott tower behind
+    caption: The new inbound entrance to Kendall/MIT station in July 2025, about a 1-minute walk from CIC Cambridge
+    author: 4300streetcar
     license: CC BY 4.0
+    cropped: false
+  - file_name: central-square-massachusetts-avenue-dusk.jpg
+    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2e/Central_Square%2C_Cambridge_-_Flickr_-_zudark.jpg/1280px-Central_Square%2C_Cambridge_-_Flickr_-_zudark.jpg
+    page_url: https://commons.wikimedia.org/wiki/File:Central_Square,_Cambridge_-_Flickr_-_zudark.jpg
+    width: 1280
+    height: 851
+    alt: Massachusetts Avenue through Central Square in Cambridge at dusk, with a church spire at the end of the street
+    caption: Massachusetts Avenue in Central Square in November 2005, looking west from Prospect Street
+    author: Ethan O'Connor
+    license: CC BY 2.0
     cropped: false
   - file_name: north-station-causeway-street-entrance.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Causeway_Street_entrance_to_North_Station_complex%2C_April_2022.jpg/1280px-Causeway_Street_entrance_to_North_Station_complex%2C_April_2022.jpg
@@ -76,64 +73,71 @@ images:
     cropped: false
 ---
 
-Where to meet for a team meeting in Boston depends on the T lines your team rides, so choose the station before the room. Downtown, South Station, North Station and Back Bay each have a meeting room within a 5-minute walk of the T. Maybe half the team comes in by commuter rail, a few ride the Red Line from Cambridge, and nobody wants to spend the morning changing trains.
+Where to meet for a team meeting across Boston depends on where your teammates live when there is no office to meet at. Pick the neighborhood on the line most of them already ride from home, then book a room a short walk from that station. Maybe four people live along the Red Line in Cambridge and Somerville, two ride the Orange Line from Jamaica Plain, and one takes a commuter train into North Station.
 
-This post suggests six rooms and one bar for after, then covers which station to pick, how to book, and weekends. It is part of our guide to [Boston](/blog/boston).
+This post suggests six rooms in six neighborhoods, then covers how to choose the area from home stations, which area suits which team, and late meetings. It is part of our guide to [Boston](/blog/boston).
 
-## Where to meet in Boston for a team meeting?
+## Where to meet for a team meeting when nobody shares an office?
 
-Book a room beside a station that most of the team can reach without a transfer. Every room below is near one, and SPIN is the stop for after.
+Meet in the neighborhood that the most teammates reach without changing trains. Each room below is in a different neighborhood, and four of them are within a 3-minute walk of a T station.
 
 :::places
 
-The hours, price levels, reservations and walk times on these cards come from Google Maps as of October 2026. Walk times start at each MBTA station.
+The hours and walk times on these cards come from Google Maps as of November 2026. Walk times start at each MBTA station. Room sizes and booking terms come from each venue's own site.
 
-## Which T station should the team meet near?
+## How do you choose the neighborhood from where people live?
 
-Pick the station on the lines most people already ride. For each candidate, count how many teammates would have to change trains, and choose the one with the fewest.
+Group the team by the line they ride from home, and meet on the biggest group's line. Then check that everyone else needs one change at most.
 
-**State and Downtown Crossing.** State has the Orange and Blue lines, and Downtown Crossing has the Red and Orange. Park Street, for the Green Line, connects to Downtown Crossing underground. A room between them suits a team spread across Cambridge, Jamaica Plain and East Boston. See our [downtown Boston](/blog/boston/downtown) page.
+1. Ask each person for the station or cross street nearest home, not their old office.
+2. Sort them by line: Red, Orange, Green, Blue, Silver Line or commuter rail.
+3. Pick the area on the line with the most people.
+4. Check the rest. Red and Green meet at Park Street, Red and Orange at Downtown Crossing, and Orange and Green at Haymarket and North Station. The MBTA's [subway map](https://www.mbta.com/maps) shows every transfer.
 
-![](one-boston-place-old-state-house.jpg)
+If the team splits evenly across four lines, no neighborhood here saves anyone a transfer. Downtown, where those lines meet, is then the shorter trip for most people.
 
-**South Station and North Station.** South Station has the Red Line, the Silver Line and commuter rail from the south and west. North Station has the Orange Line, the Green Line's D and E branches and the Lowell, Haverhill, Fitchburg and Newburyport/Rockport lines. When most of the team rides commuter rail, meet at the station their trains end at.
+![](kendall-mit-station-new-entrance-night.jpg)
+
+## Which part of Boston suits which team?
+
+Match the area to the line, then to the length of the meeting.
+
+**Red Line teams.** [Kendall/MIT](https://www.mbta.com/stops/place-knncl), Central and Harvard are three stops in a row, so anyone on the Red Line reaches all three with no change. Kendall is the shortest ride for Green Line riders who change at Park Street. Harvard suits teammates from Porter, Davis and Alewife, and the bus riders our [Harvard Square](/blog/boston/harvard-square) page lists.
+
+![](central-square-massachusetts-avenue-dusk.jpg)
+
+**Orange Line teams from the south.** A room on Centre Street in Jamaica Plain lets the JP crowd walk or ride a few minutes, and only the others ride in.
+
+**Commuter rail from the north.** The Lowell, Haverhill, Fitchburg and Newburyport/Rockport lines all end at [North Station](https://www.mbta.com/stops/place-north). Meet there and those riders never touch the subway.
 
 ![](north-station-causeway-street-entrance.jpg)
 
-**Back Bay.** Arlington and Copley are on the Green Line. See our [Back Bay](/blog/boston/back-bay) page.
-
-**The Seaport.** It has no subway. The SL1, SL2 and SL3 buses run from South Station to World Trade Center, so add the bus to everyone's trip. See our [Seaport](/blog/boston/seaport) page.
+**A full day with catering.** The [Seaport](/blog/boston/seaport) has no subway. The SL1, SL2 and SL3 run from South Station to World Trade Center, so add that bus to everyone's trip and make the day worth it.
 
 ![](boston-fish-pier-northern-avenue.jpg)
 
-## Should you book a coworking room or an event venue?
+## What if the meeting runs after 5 p.m. or falls on a weekend?
 
-Book a coworking room for a meeting of a few hours. Book an event venue when the team needs one large room for most of the day.
+Book societyM, the only room here open every day and into the evening. The other five list weekday hours of 9 a.m. to 5 p.m.
 
-Workbar's [meeting room page](https://www.workbar.com/meeting-room-rental) says anyone can book its rooms online, by the hour or by the day, with no membership. It lists rooms for groups of 2 to more than 25. For Convene, Loft on Two and The Exchange, contact each venue with your headcount and date for a quote.
+Check the last trains home before you set the end time. The MBTA's [subway guide](https://www.mbta.com/guides/subway-guide) lists the last connections downtown, and commuter rail runs on its own [schedules](https://www.mbta.com/schedules/commuter-rail).
 
-## What if the meeting is on a weekend or runs late?
-
-Use societyM by North Station, the one room here open every day and into the evening. The coworking spaces and event venues on this list close at 5 p.m. on weekdays and stay closed on weekends.
-
-If the team stays out after an evening session, the MBTA's [subway guide](https://www.mbta.com/guides/subway-guide) says to reach a downtown transfer station by 12:35 a.m. Sunday to Thursday, or 1:30 a.m. on Friday and Saturday, to make the last connections. Commuter rail runs on its own timetable, so check the last train home on the [MBTA's commuter rail schedules](https://www.mbta.com/schedules/commuter-rail).
-
-For team meetings in New York, see [team meeting location ideas across Manhattan](/blog/new-york/team-meeting-location-manhattan) and [where to hold a team meeting in Midtown](/blog/new-york/midtown/how-to-choose-a-team-meeting-location).
+For team meetings in other cities, see [team meeting location ideas across Manhattan](/blog/new-york/team-meeting-location-manhattan) and [places for a team meeting in River North](/blog/chicago/river-north/places-for-team-meeting-river-north).
 
 ## How to do it in Where2Meet
 
-Start a **Team meeting** plan on [Where2Meet](/) and post the link in your team's chat. Each person adds the station they ride from, such as Alewife, Forest Hills or a commuter rail stop, and the plan shows their transit times to Workbar Downtown, Loft on Two and societyM. The team votes, and the organizer books the room with the most votes.
+Start a **Team meeting** plan in [Where2Meet](/) and ask each teammate to add the station nearest home, since this team has no office to start from. Compare transit times to CIC Cambridge, The Village Works and societyM, which sit on the Red Line, the Orange Line and the northern commuter rail side. The team votes, and the organizer books the room that wins.
 
 ## Common questions
 
-### What is the most central place for a team meeting in Boston?
-
-Downtown Crossing and State, a few minutes' walk apart. Together they have the Red, Orange and Blue lines, and Park Street adds the Green.
-
 ### Can we book a meeting room in Boston without a membership?
 
-Yes. Workbar's site says anyone can book its meeting rooms online by the hour or by the day. The event venues on this list take bookings directly, so contact them for a quote.
+Yes. Workbar's [meeting room page](https://www.workbar.com/meeting-room-rental) says anyone can book its rooms by the hour or by the day, starting at $50 an hour. CIC and The Village Works also let non-members book online.
 
-### Where should a team meet if most people come in by commuter rail?
+### Is Cambridge a good place for a Boston team meeting?
 
-Meet at the station the trains end at. Trains from the south and west end at South Station, about a 2-minute walk from Loft on Two. Trains from the north end at North Station, beside societyM.
+Yes, when much of the team lives on the Red Line. Kendall/MIT is two stops from Park Street, so Green Line riders add only a short ride after their change.
+
+### Where can a team meet in Jamaica Plain?
+
+The Village Works on Centre Street rents three rooms in JP, for 4, 5 or 10 people, by the hour or the day. Its [meetings page](https://www.thevillageworks.com/meetings/) lists them.
