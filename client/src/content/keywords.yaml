@@ -71,6 +71,9 @@
 - phrase: group dinner restaurants
   occasion: group-dinner
   note: A list search for restaurants that suit a group dinner, added 2026-11-15
+- phrase: restaurants for large groups
+  occasion: group-dinner
+  note: Added 2026-11-22 for Chicago's first group dinner post, in the Loop, since every other group dinner phrase has a post in another city
 - phrase: coffee meeting spot
   occasion: coffee-catch-up
 - phrase: weekend hangout
