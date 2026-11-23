@@ -1,6 +1,6 @@
 ---
-title: Team meeting spots in Downtown Boston
-description: Four bookable rooms and four tables between State, Downtown Crossing and South Station, with T walk times and the hours that set your team meeting spots.
+title: Team meeting spots to book in Downtown Boston
+description: Seven meeting rooms by State, Downtown Crossing and South Station, sorted by T line and opening time, so you can book team meeting spots near the train.
 main_keyword: team meeting spots
 occasion: team-meeting
 time: null
@@ -10,32 +10,29 @@ budget: null
 city: boston
 town: downtown
 published_at: 2026-11-10
-updated_at: 2026-11-10
+updated_at: 2026-11-23
 places:
-  - place_id: ChIJWYJc4Pxx44kRc8Wx-dkxO_4
-    label: Workbar Downtown Boston
-    note: Book a room by the hour at this second-floor coworking space on School Street, with no membership needed. It's open weekdays from 9 a.m. to 5 p.m. Downtown Crossing and State are each about a 4-minute walk, so Red, Orange and Blue riders all arrive without a transfer.
-  - place_id: ChIJ21gFdoRw44kRQ6nn61NeFLE
-    label: CIC Boston
-    note: Non-members can reserve the conference rooms on the 16th floor of 50 Milk Street, including one that seats up to 16. Rooms are open weekdays from 9 a.m. to 5 p.m., and booking a day ahead is advised. State is about a 4-minute walk, and Downtown Crossing about 5.
   - place_id: ChIJVVWVXoRw44kR9LLzsLz0uWw
     label: Convene One Boston Place
-    note: Pick this event venue for a full-day workshop or an all-hands, since State station is about a 1-minute walk away. It's open weekdays from 9 a.m. to 5 p.m. and closed on weekends, so send your headcount and date for a quote well ahead.
+    note: Send the availability form here for an all-hands or a client workshop, since the six rooms seat up to 220 and come with in-house catering. Groups of 20 or fewer can pre-book a room through the form. It's open weekdays from 9 a.m. to 5 p.m., about a 1-minute walk from State.
+  - place_id: ChIJ8RL1JYRw44kRLYb36YIj7y4
+    label: Davinci Meeting Rooms
+    note: Ten people fit in the Tower Boardroom at 53 State Street, listed from $95 an hour, and a 20-seat conference center rents by the block. Rooms book instantly online for weekdays from 9 a.m. to 5 p.m. State is about a 1-minute walk, and Aquarium on the Blue Line about 4.
+  - place_id: ChIJsZhcPeZx44kRAggqy3aIfJc
+    label: Spaces State Street
+    note: Small teams can take the 4-seat room at 75 State Street, listed from $66 an hour, or the 6-seat room from $130. Bookings run weekdays from 8:30 a.m. to 5 p.m., and an after-hours slot takes a phone call. State is about a 2-minute walk, and Aquarium about 4.
+  - place_id: ChIJ21gFdoRw44kRQ6nn61NeFLE
+    label: CIC Boston
+    note: Up to 16 people fit in the largest room on the 16th floor of 50 Milk Street, and booking needs no account. Reserve at least a day ahead, and cancel 48 hours out for a full refund. It's open weekdays from 9 a.m. to 5 p.m., about a 1-minute walk from State and 4 from Downtown Crossing.
+  - place_id: ChIJWYJc4Pxx44kRc8Wx-dkxO_4
+    label: Workbar Downtown Boston
+    note: Book this second-floor space on School Street when the team is split across the Red, Orange and Green Lines. Rooms book online with no membership, from $50 an hour for 2 to 4 people. It's open weekdays from 9 a.m. to 5 p.m., about 3 minutes from Downtown Crossing and 5 from Park Street.
+  - place_id: ChIJy3NWE4Nx44kRvBfKuAYWjpU
+    label: WeWork Office Space & Coworking
+    note: Commuter rail riders from the south and west reach this One Lincoln Street building in about 4 minutes on foot from South Station. Hourly rooms start at $39 and book in the WeWork app with no membership. It opens at 8 a.m. on weekdays and closes at 5 p.m.
   - place_id: ChIJ5eoNN-tx44kRjGrr7-t7SU4
     label: Loft on Two
-    note: Teams with several commuter rail riders from the south should look here first. This event venue in One Financial Center is about a 2-minute walk from South Station, and it opens at 8 a.m. on weekdays, an hour before the other rooms in this list.
-  - place_id: ChIJzc_WY_Zx44kRNGqcgV-6flQ
-    label: Tradesman Coffee Shop and Lounge
-    note: Walk in for a short stand-up over coffee, since it's good for groups but takes no reservations. It's inexpensive and opens at 7 a.m. every day. It closes at 8 p.m. Monday to Thursday and 5 p.m. Friday to Sunday, and State is about a 6-minute walk.
-  - place_id: ChIJ3xIrvV1x44kRU2_5tfvffcA
-    label: CARA
-    note: Reserve a table here for a breakfast meeting, because this American restaurant on Devonshire Street opens at 7 a.m. every day and stays open until 11 p.m. It's moderately priced. State is about a 2-minute walk, so Blue and Orange riders have the shortest trip.
-  - place_id: ChIJHT_dpINw44kRJHjZbHPZFVE
-    label: The Merchant Kitchen & Drinks
-    note: Take the team to lunch here after a morning session at Workbar or CIC. It's good for groups, takes reservations and is moderately priced. It opens at 11:30 a.m. on weekdays and noon on Saturday, it's closed on Sunday, and Downtown Crossing is about a 3-minute walk.
-  - place_id: ChIJ9_XEdA5x44kRzNhHmxwoDR4
-    label: Estella Restaurant
-    note: Save this Temple Place restaurant for drinks or dinner once a meeting wraps up at 5 p.m. It opens at 4 p.m. every day, takes reservations and is good for groups. Downtown Crossing is about a 2-minute walk, and Park Street about 3.
+    note: Pick this event floor in One Financial Center when most of the team arrives by train, since South Station is about a 1-minute walk. Its smallest room seats 14, another seats 30, and the largest seats 170, so ask for a quote with your date. It opens at 8 a.m. on weekdays.
 images:
   - file_name: old-state-house-washington-street-downtown-boston.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/Old_State_House%2C_Boston.jpg/1280px-Old_State_House%2C_Boston.jpg
@@ -57,6 +54,16 @@ images:
     author: 4300streetcar
     license: CC BY 4.0
     cropped: false
+  - file_name: south-station-subway-headhouse-night-boston.jpg
+    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/South_Station_and_subway_headhouse_at_night%2C_November_2014.jpg/1280px-South_Station_and_subway_headhouse_at_night%2C_November_2014.jpg
+    page_url: https://commons.wikimedia.org/wiki/File:South_Station_and_subway_headhouse_at_night,_November_2014.jpg
+    width: 1280
+    height: 853
+    alt: South Station's granite front and clock at night, with the glass subway headhouse lit up in front of it
+    caption: South Station and its subway headhouse at night in November 2014. Loft on Two is across Atlantic Avenue
+    author: Bill Damon
+    license: CC BY 2.0
+    cropped: false
   - file_name: school-street-sign-old-city-hall-boston.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/BostonSchoolSt3.JPG/1280px-BostonSchoolSt3.JPG
     page_url: https://commons.wikimedia.org/wiki/File:BostonSchoolSt3.JPG
@@ -69,63 +76,71 @@ images:
     cropped: false
 ---
 
-The best team meeting spots in Downtown Boston are bookable rooms and long tables within a 5-minute walk of State or Downtown Crossing. Those two stations put the Red, Orange and Blue lines a few blocks apart, so most of a team can ride in without changing trains. Your team is spread across the T, the meeting needs either a door that closes or just a big table, and you're the one booking it.
+The team meeting spots to book in Downtown Boston are meeting rooms a few minutes' walk from State, Downtown Crossing or South Station. Pick the station most of your team rides into, then the room that opens in time for their train. Your team comes downtown by subway and commuter rail, the meeting needs a door, a table and a screen for a few hours, and you're the one booking it.
 
-This post suggests eight places, then covers which station to aim for, what to do before 9 a.m. or after 5 p.m., and when a table beats a room. It's part of our guide to [Downtown Boston](/blog/boston/downtown).
+This post lists seven rooms by T station, then covers which station suits which riders, which rooms open before 9 a.m., and how to book without a membership. It's part of our guide to [Downtown Boston](/blog/boston/downtown).
 
-## Which team meeting spots in Downtown Boston fit your team?
+## Which team meeting spots in Downtown Boston can you book by the hour?
 
-Take a room for a working session with a screen, and a table for a check-in or a meal. The four rooms close at 5 p.m. on weekdays, and the cafe and restaurants cover the hours around them.
+All seven rooms below rent by the hour, the block or the event, and none needs a membership.
 
 :::places
 
-The hours, reservations, price levels and walk times on these cards come from Google Maps as of November 2026. Walk times start at each MBTA station. The CIC room size and booking advice come from [CIC's meeting rooms page](https://cic.com/boston/meeting-rooms).
+The hours and walk times on these cards come from Google Maps as of November 2026, and walk times start at each MBTA station. Room sizes, rates and booking terms come from each venue's own page or its Davinci Meeting Rooms listing, linked below.
 
-## Which T station should the team aim for?
+## Which T station should the room be near?
 
-Count who rides which line, then pick the station most of them reach without a transfer. Each downtown station has a different mix of lines.
+Pick the station where most of the team's lines stop, so the fewest people change trains.
 
-- **Red, Orange and Blue.** Workbar and CIC sit between Downtown Crossing and State, about 4 to 5 minutes on foot from each. Nobody on those three lines has to change.
-- **Orange and Blue.** [State](https://www.mbta.com/stops/place-state) is the stop for Convene and CARA.
-- **Green.** [Park Street](https://www.mbta.com/stops/place-pktrm) has all four Green Line branches. Estella is the shortest walk from it, and Workbar is about 5 minutes away.
-- **Red, Silver Line and commuter rail.** [South Station](https://www.mbta.com/stops/place-sstat) is where trains from the south and west end. Only Loft on Two is a short walk from it.
+- **Orange and Blue.** Convene, 53 State and Spaces are a minute or two from [State](https://www.mbta.com/stops/place-state). Blue Line riders can also get off at Aquarium for the two State Street addresses.
+- **Red, Orange and Blue.** CIC and Workbar sit between State and [Downtown Crossing](https://www.mbta.com/stops/place-dwnxg), so riders on all three lines arrive without a transfer.
+- **Green.** Convene is about a 4-minute walk from Government Center, and Workbar about 5 from [Park Street](https://www.mbta.com/stops/place-pktrm).
+- **Red, Silver Line and commuter rail.** [South Station](https://www.mbta.com/stops/place-sstat) is where trains from Worcester, Providence and the South Shore end. Loft on Two and WeWork are the two rooms a short walk from it.
 
 ![](state-station-old-state-house-entrance-boston.jpg)
 
-## What if the meeting starts early or runs late?
+## Which rooms open before 9 a.m.?
 
-Use a table. Workbar, CIC and Convene open at 9 a.m., Loft on Two at 8 a.m., and all four close at 5 p.m. on weekdays and stay shut on weekends.
+Loft on Two and WeWork open at 8 a.m., and Spaces takes bookings from 8:30. The other four open at 9, and every room here books until 5 p.m. on weekdays.
 
-- **Before 9 a.m.** CARA and Tradesman both open at 7 a.m., so a breakfast stand-up can finish before the rooms unlock.
-- **After 5 p.m.** Move the conversation to Estella or The Merchant. The Merchant serves until 11 p.m. Monday to Saturday.
-- **Weekends.** None of the rooms open. CARA and Tradesman do, and The Merchant opens at noon on Saturday.
+- **Early trains.** A rider on an early train into South Station can walk straight to Loft on Two or WeWork. Check the [commuter rail schedules](https://www.mbta.com/schedules/commuter-rail) for the train that lands before your start time.
+- **After 5 p.m.** Call Davinci about after-hours bookings at Spaces. The others list no evening hours.
+- **Weekends.** Six of the seven list weekday hours only. The Spaces building is open every day, but its rooms book online on weekdays, so call before you plan a Saturday.
 
-## Should you book a room or a table?
+Check the MBTA's [service alerts](https://www.mbta.com/alerts) for each line the team rides the day before.
 
-Book a room when the meeting needs a screen, a whiteboard or a closed door. Book a table when the point is talking, eating or a quick status check.
+![](south-station-subway-headhouse-night-boston.jpg)
 
-Workbar's [meeting room page](https://www.workbar.com/meeting-room-rental) lists rooms with no membership, from $50 an hour for 2 to 4 people to $100 an hour for 8 to 10. As an example, a three-hour planning session for nine comes to $300 at the listed rate. CIC's page lists no prices, so check its booking site before you budget. Convene and Loft on Two quote per event.
+## How do you book a downtown meeting room without a membership?
 
-For a table, reserve ahead and give the restaurant your exact headcount. Keep the walk-in cafe for five or six people at most, so you aren't hunting for seats.
+Book the five coworking rooms online, and ask the two event venues for a quote.
+
+- **Workbar.** Use its [meeting room page](https://www.workbar.com/meeting-room-rental). A full day gets 10 percent off.
+- **CIC.** Its [meeting rooms page](https://cic.com/boston/meeting-rooms) takes bookings with no account.
+- **WeWork.** Book One Lincoln Street in the app, as its [meeting rooms page](https://www.wework.com/solutions/meeting-rooms) describes.
+- **53 State and Spaces.** Book instantly through Davinci's listings for [53 State Street](https://www.davincimeetingrooms.com/loc/us/massachusetts/boston-meeting-rooms/1627) and [75 State Street](https://www.davincimeetingrooms.com/loc/us/massachusetts/boston-meeting-rooms/5747).
+- **Convene and Loft on Two.** Send your date and headcount through [Convene's form](https://convene.com/locations/boston/one-boston-place/) or [Loft on Two's site](https://www.loftontwo.com/).
+
+As an example, a three-hour session for 10 comes to $285 at the 53 State boardroom's listed rate and $300 at Workbar.
 
 ![](school-street-sign-old-city-hall-boston.jpg)
 
-For other parts of town, see [team meeting venue ideas in Back Bay](/blog/boston/back-bay/team-meeting-venue-back-bay) and [where to meet for a team meeting in Boston](/blog/boston/where-to-meet-team-meeting-boston).
+After the meeting, see [group dinner restaurants in Downtown Boston](/blog/boston/downtown/group-dinner-restaurants-downtown-boston). Elsewhere, see [team meeting venue rooms in Back Bay](/blog/boston/back-bay/team-meeting-venue-back-bay) and [team meeting space in SF's Financial District](/blog/san-francisco/financial-district/team-meeting-space-financial-district-sf).
 
 ## How to do it in Where2Meet
 
-Start a **Team meeting** plan in [Where2Meet](/) and have each teammate add the station they ride from, such as Park Street, State or South Station. Put Workbar next to Loft on Two, since one favors subway riders and the other favors commuter rail riders. The team votes, and the organizer books the winner.
+Start a **Team meeting** plan in [Where2Meet](/) and have each teammate add where they start the day, such as a commuter rail station like Framingham or a subway stop like Davis. Compare transit times to Spaces at the State Street end and Loft on Two by South Station, the two ends of this list. The team votes, and the organizer books the winner well before the 5 p.m. close.
 
 ## Common questions
 
 ### Can we book a meeting room downtown without a membership?
 
-Yes. Workbar's page says anyone can book its rooms with no membership. CIC's page says non-members can reserve its rooms without an account. Both rent rooms on weekdays only.
+Yes. Workbar, CIC and WeWork take bookings from anyone, and Davinci books the rooms at 53 and 75 State Street online.
 
-### Where can a team meet in Downtown Boston on a Saturday?
+### Which downtown meeting room is closest to South Station?
 
-At a table. CARA and Tradesman open at 7 a.m. on Saturday, and The Merchant opens at noon. The four bookable rooms in this post are closed on weekends.
+Loft on Two, about a 1-minute walk away in One Financial Center. WeWork at One Lincoln Street is about 4 minutes away, and both open at 8 a.m.
 
-### Which meeting room is closest to the T?
+### Where can a team of 20 or more meet downtown?
 
-Convene, about a 1-minute walk from State on the Orange and Blue lines. Loft on Two is about 2 minutes from South Station on the Red Line.
+Convene seats up to 220 in its largest room, and Loft on Two's biggest space seats 170. The conference center at 53 State seats 20 and rents by the block.
