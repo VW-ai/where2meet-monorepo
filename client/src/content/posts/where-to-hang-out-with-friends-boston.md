@@ -1,6 +1,6 @@
 ---
-title: Where to hang out with friends in Boston
-description: Seven weekend picks, from darts in the Seaport to a 52nd-floor deck in Back Bay, with T walk times and Sunday hours for where to hang out with friends.
+title: Where to hang out with friends across Boston
+description: Eight picks in eight neighborhoods, from candlepin in Southie to cider in East Boston, sorted by T line, for where to hang out with friends.
 main_keyword: where to hang out with friends
 occasion: weekend-hangout
 time: null
@@ -10,120 +10,126 @@ budget: null
 city: boston
 town: null
 published_at: 2026-10-30
-updated_at: 2026-10-30
+updated_at: 2026-11-25
 places:
-  - place_id: ChIJS3HCSgNx44kRR5e2TK-zI2E
-    label: Flight Club Boston
-    note: Darts give a group something to do between drinks, and this Seaport bar is about a 1-minute walk from Courthouse on the Silver Line. It takes reservations, is good for groups and is moderately priced. It opens at 11 a.m. on weekends but closes at 9 p.m. on Sunday.
-  - place_id: ChIJjTd23X9644kRRcFC4A99DOc
-    label: SPIN Boston
-    note: Save this ping pong bar in Fort Point for a Saturday, because it's closed on Sunday and Monday. On Saturday it runs from 2 p.m. to 1 a.m. It's moderately priced, good for groups and takes reservations. South Station is about an 8-minute walk.
-  - place_id: ChIJ195d42px44kRa4jQoglFumY
-    label: VERSUS
-    note: Friends who ride the Red or Orange Line can reach this arcade on Province Street in about 3 minutes on foot from Downtown Crossing. It opens at 3 p.m. on Saturday and Sunday, so plan it for the afternoon or evening. It stays open until 1 a.m. on Saturday.
-  - place_id: ChIJ8duYVwB744kR2CGahmWzCLY
-    label: Swingers Back Bay
-    note: Indoor golf on Boylston Street keeps a hangout going when the weather turns. It's about a 5-minute walk from Copley on the Green Line. Weekend hours run from noon to midnight on Saturday and noon to 10:30 p.m. on Sunday, and it's closed on Mondays.
-  - place_id: ChIJKUeTG1R744kRovJ5-2K27v4
-    label: View Boston
-    note: Start a Back Bay afternoon on this observation deck on the 52nd floor at 800 Boylston Street, then walk to the other picks nearby. It's open from 10 a.m. to 10 p.m. every day. Copley is about a 7-minute walk.
-  - place_id: ChIJxa82RIZw44kRbG8SPzhYtZY
-    label: The Black Rose
-    note: Groups who want food and a pint after a game can head to this Irish pub on State Street. It's moderately priced, good for groups and open from 10 a.m. to 2 a.m. on weekends. Aquarium on the Blue Line is about a 3-minute walk, and State is about 5 minutes.
-  - place_id: ChIJKz7ENohw44kR-Aq6LJoK9Sg
-    label: Boston Sail Loft
-    note: Seafood by the harbor suits a slow weekend lunch, and this restaurant on Atlantic Avenue opens at 11:30 a.m. every day and stays open until 2 a.m. It's moderately priced and good for groups. Aquarium is about a 6-minute walk.
+  - place_id: ChIJgTg86kN744kRcSUXmnlUjdo
+    label: Puttshack - Boston
+    note: Book a round ahead for a Saturday, because this indoor mini golf course in the Seaport asks groups to pre-book on nights and weekends and doesn't guarantee walk-ins. It's 21+ after 9 p.m. on Friday and Saturday, with the last tee time at 8 p.m. Courthouse on the Silver Line is about a 5-minute walk.
+  - place_id: ChIJX9gQ4hx644kRT6GRnKaqK6Y
+    label: Lucky Strike Fenway
+    note: Fenway is the Green Line choice, and this bowling alley has 16 lanes and takes reservations. It turns 21+ at night, so a group with younger friends should bowl in the afternoon. It opens at 11 a.m. on Saturday and Sunday. Kenmore is about an 8-minute walk.
+  - place_id: ChIJRf1zPn9544kR_3xDhk0Ty-U
+    label: "Tavern of Tales: Café & Bar"
+    note: Orange Line riders can settle in at this Mission Hill cafe and bar for one long board game with food and drinks. It takes reservations, suits groups and is moderately priced. It opens at 10 a.m. on weekends and closes at 10 p.m. Saturday and 9 p.m. Sunday. Roxbury Crossing is about a 3-minute walk.
+  - place_id: ChIJeRyjfXt544kRdjPWKIshi2A
+    label: Samuel Adams Boston Brewery - Jamaica Plain
+    note: Book a brewery tour on its site, then stay in the taproom afterward. This Jamaica Plain brewery runs from 11 a.m. to 9 p.m. on Saturday and to 7 p.m. on Sunday, so plan it for the afternoon. Stony Brook on the Orange Line is about a 5-minute walk.
+  - place_id: ChIJz2210k9644kRB7kfHVqJVkU
+    label: Dorchester Brewing Company
+    note: Red Line riders from Dorchester, Quincy or Braintree get a short trip to this brewery with 20 draft lines. It's open from 11:30 a.m. to midnight on Saturday and to 9 p.m. on Sunday, so it suits a late start. JFK/UMass is about a 13-minute walk.
+  - place_id: ChIJZVYyoI5644kRnr6Tlu1Ob6M
+    label: South Boston Candlepin
+    note: Candlepin is the New England form of bowling, with small balls and thin pins, and this family-run alley lets you reserve a lane on its site. It's open until midnight on Saturday and 8 p.m. on Sunday. From Broadway on the Red Line, take the 9 bus to H Street or walk about 21 minutes.
+  - place_id: ChIJgVOgb-lx44kRmcClp8gxvnQ
+    label: Urban Wild Boston
+    note: Charlestown friends can walk to this bar with bowling and live music at Hood Park. It takes reservations, suits groups and is moderately priced. Hours run from 11 a.m. to 1 a.m. on Saturday and to 10 p.m. on Sunday, and it's closed on Monday. Sullivan Square on the Orange Line is about a 9-minute walk.
+  - place_id: ChIJg7qhofhw44kRDTmjYufuamE
+    label: Downeast Cider House
+    note: Save this East Boston cider house for a Friday evening or the weekend, because it's closed Monday to Thursday. Tasting flights let a group try several ciders. Saturday runs from 11 a.m. to 9 p.m. and Sunday from noon to 7 p.m. Maverick on the Blue Line is about an 11-minute walk.
 images:
-  - file_name: downtown-boston-skyline-from-fan-pier-seaport.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Downtown_Boston_from_Fan_Pier_%289845721283%29.jpg/1280px-Downtown_Boston_from_Fan_Pier_%289845721283%29.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:Downtown_Boston_from_Fan_Pier_(9845721283).jpg
+  - file_name: orange-line-train-stony-brook-station-jamaica-plain.jpg
+    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Inbound_MBTA_Orange_Line_train_departing_Stony_Brook_July_2025.jpg/1280px-Inbound_MBTA_Orange_Line_train_departing_Stony_Brook_July_2025.jpg
+    page_url: https://commons.wikimedia.org/wiki/File:Inbound_MBTA_Orange_Line_train_departing_Stony_Brook_July_2025.jpg
     width: 1280
-    height: 916
-    alt: Downtown Boston's towers and the Rowes Wharf arch lit at dusk, seen across the harbor from Fan Pier in the Seaport
-    caption: Downtown Boston and Rowes Wharf from Fan Pier in the Seaport, near Flight Club and SPIN
-    author: Robbie Shade
-    license: CC BY 2.0
-    cropped: false
-  - file_name: long-wharf-harborwalk-custom-house-tower-dusk.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Boston_downtown_view_from_the_Long_Wharf_%284766291104%29.jpg/1280px-Boston_downtown_view_from_the_Long_Wharf_%284766291104%29.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:Boston_downtown_view_from_the_Long_Wharf_(4766291104).jpg
-    width: 1280
-    height: 850
-    alt: The paved walkway on Long Wharf in Boston at dusk, with docked boats on the left and the Custom House Tower lit up ahead
-    caption: Long Wharf at dusk, a short walk from The Black Rose and Boston Sail Loft
-    author: Emmanuel Huybrechts
-    license: CC BY 2.0
-    cropped: false
-  - file_name: prudential-tower-back-bay-brownstones.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Prudential_Center_%26_Brownstones.jpg/1280px-Prudential_Center_%26_Brownstones.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:Prudential_Center_%26_Brownstones.jpg
-    width: 1280
-    height: 855
-    alt: The Prudential Tower rising behind spring trees and a curved brownstone building in Back Bay, Boston
-    caption: The Prudential Tower in Back Bay, home of View Boston and a short walk from Swingers
-    author: Fletcher
+    height: 960
+    alt: An Orange Line train leaving Stony Brook station in Jamaica Plain, between tree-lined walls at sunset
+    caption: An inbound Orange Line train leaving Stony Brook station in Jamaica Plain, in July 2025
+    author: 4300streetcar
     license: CC BY 4.0
+    cropped: false
+  - file_name: fenway-park-scoreboard-lansdowne-street-autumn.jpg
+    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/1/14/Fenway_Park%2C_Lansdowne_St%2C_Boston_%28493469%29_%2810790934225%29.jpg/1280px-Fenway_Park%2C_Lansdowne_St%2C_Boston_%28493469%29_%2810790934225%29.jpg
+    page_url: https://commons.wikimedia.org/wiki/File:Fenway_Park,_Lansdowne_St,_Boston_(493469)_(10790934225).jpg
+    width: 1280
+    height: 1926
+    alt: The back of Fenway Park's green scoreboard and light towers above Lansdowne Street in Boston
+    caption: Fenway Park from Lansdowne Street, a few blocks from Lucky Strike Fenway
+    author: Robert Linsdell
+    license: CC BY 2.0
+    cropped: false
+  - file_name: boston-harbor-shipyard-marina-east-boston-skyline.jpg
+    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Boston_Harborwalk_at_Boston_Harbor_Shipyard_%26_Marina%2C_August_2015.JPG/1280px-Boston_Harborwalk_at_Boston_Harbor_Shipyard_%26_Marina%2C_August_2015.JPG
+    page_url: https://commons.wikimedia.org/wiki/File:Boston_Harborwalk_at_Boston_Harbor_Shipyard_%26_Marina,_August_2015.JPG
+    width: 1280
+    height: 960
+    alt: The Boston Harbor Shipyard in East Boston, with a fish sculpture on a roof and the downtown skyline across the water
+    caption: The Boston Harbor Shipyard and Marina on Marginal Street in East Boston, home of Downeast Cider House, in August 2015
+    author: Pi.1415926535
+    license: CC BY 3.0
     cropped: false
 ---
 
-If you're working out where to hang out with friends in Boston on a weekend, pick one area near the T and plan two stops there, such as a game bar and a meal. The Seaport, the downtown waterfront and Back Bay each have places that open by early afternoon and stay open late. Your friends live in Somerville, Dorchester and Brookline, and nobody wants to spend Saturday on the train.
+Where to hang out with friends in Boston depends on which T lines your friends ride, so choose the neighborhood first and the place second. A spot one ride from most people's homes beats a famous spot that needs two transfers. Your group is spread out, from Charlestown to Dorchester, and every suggestion so far has been near one person's apartment.
 
-This post lists seven places, then covers which area to choose, how weekend hours and T service change the plan, and how to pair two stops. It's part of our guide to [Boston](/blog/boston).
+This guide gives one pick with something to do in each of eight neighborhoods outside the downtown core, grouped by line. It then covers how to choose between them, what to book and how the weekend changes the hours. For more on the city, see our [Boston guide](/blog/boston).
 
-## Where to hang out with friends in Boston this weekend?
+## Where to hang out with friends in Boston beyond downtown?
 
-Choose a place with something to do, such as darts, ping pong, golf or a view, and a place to eat within a short walk. The seven below are in three areas, each a few minutes on foot from a station.
+Pick the neighborhood on the line most of the group already rides, then book the activity there. Each of these eight has a game, a tour or a tasting, so the plan isn't only a table.
 
 :::places
 
-The hours, price levels, reservations and walk times on these cards come from Google Maps as of October 2026. Walk times start at the MBTA station named in each note.
+The hours, reservations, price levels and walk times on these cards come from Google Maps and each venue's own site as of November 2026. Walk times start at the MBTA station named in each note.
 
-## Which part of Boston should the group pick?
+## Which neighborhood is easiest for the whole group?
 
-Pick the area that most of the group can reach without changing trains. Count each person's home line first.
+The one most people reach without changing trains. Write down each friend's home line, then match the picks to it.
 
-- **The Seaport** works for Red Line riders. They change at South Station to a Silver Line bus, and Courthouse is the first stop. Our [Seaport page](/blog/boston/seaport) has more.
-- **The downtown waterfront** works for a mixed group. Downtown Crossing has the Red and Orange lines, State has the Orange and Blue, and Aquarium has the Blue. See [downtown Boston](/blog/boston/downtown).
-- **Back Bay** works for Green Line riders from Brookline and Newton. Copley has every Green Line branch. See [Back Bay](/blog/boston/back-bay).
+- **Orange Line.** Jamaica Plain, Mission Hill and Charlestown all have a pick near Stony Brook, Roxbury Crossing or Sullivan Square. A group with friends on both ends of the line can still ride one train.
+- **Red Line.** Dorchester and South Boston suit friends from Quincy, Braintree, Ashmont or Cambridge.
+- **Green Line.** Fenway suits friends on the B, C and D branches, which all stop at Kenmore.
+- **Blue and Silver lines.** East Boston and the Seaport work for friends near the airport or downtown. Everyone else changes once, at State or Government Center for the Blue Line and at South Station for the Silver Line.
 
-![](long-wharf-harborwalk-custom-house-tower-dusk.jpg)
+![](orange-line-train-stony-brook-station-jamaica-plain.jpg)
 
-## How do weekend hours and the T change the plan?
+If the count is a tie, pick the line with the most friends who would otherwise face two transfers. One change each is easier for the group than three changes for one person.
 
-Check two things before Saturday: each place's weekend hours and the MBTA's service alerts. Some game bars open in the afternoon, and some close early on Sunday.
+## What should the group book before Saturday?
 
-SPIN is closed on Sunday, and Flight Club closes at 9 p.m. that day. VERSUS doesn't open until 3 p.m. on either weekend day. For a Sunday that starts at noon, the Back Bay and waterfront picks are the safer choice.
+Book the activity and walk in for food. Games and tours have fixed start times, and a late friend can join at the bar.
 
-The MBTA sometimes replaces trains with shuttle buses on weekends for track work. Look at its [subway alerts](https://www.mbta.com/alerts/subway) on Friday. If a line is down, move the plan to an area the others can reach. The [subway guide](https://www.mbta.com/guides/subway-guide) says to reach a downtown transfer station by 1:30 a.m. on Saturday night, or 12:35 a.m. on Sunday night, to make the last connections.
+1. Puttshack, Lucky Strike, South Boston Candlepin, Urban Wild and Tavern of Tales all take bookings.
+2. The Samuel Adams brewery sells tours on its [own site](https://www.samueladams.com/taprooms/sam-adams-boston-brewery).
+3. Dorchester Brewing and Downeast Cider House suit a walk-in plan.
 
-## How do you pair two places in one afternoon?
+Ask about age rules first if anyone is under 21. Puttshack and Lucky Strike both turn 21+ at night.
 
-Pair places a short walk apart so nobody gets back on the T midway. From Google Maps walking directions:
+![](fenway-park-scoreboard-lansdowne-street-autumn.jpg)
 
-1. View Boston to Swingers Back Bay is about a 3-minute walk.
-2. The Black Rose to Boston Sail Loft is about a 7-minute walk.
-3. Flight Club to SPIN is about a 10-minute walk, across Fort Point Channel.
+## How do Sunday and the T change the plan?
 
-![](prudential-tower-back-bay-brownstones.jpg)
+Start earlier on Sunday. Five of the eight close by 9 p.m. that day, and South Boston Candlepin closes at 8.
 
-Put the place with a booking first, since a reserved game slot has a fixed start. Leave the meal open, so a late friend can join you there.
+Downeast Cider House opens only Friday evening to Sunday, so keep East Boston for the weekend itself. Check the MBTA's [subway alerts](https://www.mbta.com/alerts/subway) on Friday for weekend changes. The MBTA's [subway guide](https://www.mbta.com/guides/subway-guide) lists the last trips, which leave downtown earlier on Sunday night than on Saturday night.
 
-For other Boston plans, see [date spot ideas near the T](/blog/boston/date-spot-ideas-boston) and [a restaurant for a big group](/blog/boston/restaurant-big-group-boston). For the same occasion in New York, see [weekend hangout spots on the Upper West Side](/blog/new-york/upper-west-side/how-to-plan-a-weekend-hangout-with-friends).
+![](boston-harbor-shipyard-marina-east-boston-skyline.jpg)
+
+For a sit-down game night, see our [board game bar ideas in Boston](/blog/boston/board-game-bar-boston). For a bigger dinner, see [a restaurant for a big group](/blog/boston/restaurant-big-group-boston). For planning advice that works in any city, read [weekend hangout spots on the Upper West Side](/blog/new-york/upper-west-side/how-to-plan-a-weekend-hangout-with-friends).
 
 ## How to do it in Where2Meet
 
-Make a **Weekend hangout** plan on [Where2Meet](/) on Thursday and post the link where your friends talk. Each friend adds a home station, so the plan shows whether the Red Line riders have it easier in the Seaport or the Green Line riders in Back Bay. Put one pick from each area to a vote, and the organizer picks the one with the shortest trips.
+Open a [Where2Meet](/) plan and ask every friend to add their home T stop, such as Malden Center, Ashmont or Cleveland Circle. Search the eight picks by name and compare transit times, since the neighborhoods sit on five different lines. Put the two with the shortest trips to a vote, and the organizer picks the winner and books it.
 
 ## Common questions
 
-### Where can friends hang out in Boston on a Sunday?
+### Where can friends hang out in Boston on the Orange Line?
 
-View Boston, Swingers Back Bay, The Black Rose and Boston Sail Loft all open by noon on Sunday. SPIN is closed that day, and VERSUS opens at 3 p.m.
+Samuel Adams Boston Brewery is about 5 minutes from Stony Brook, and Tavern of Tales is about 3 minutes from Roxbury Crossing. Urban Wild is about 9 minutes from Sullivan Square.
 
-### Which of these places take reservations?
+### What is there to do with friends in Boston besides a bar?
 
-Flight Club and SPIN both take reservations. Book a slot there for a Saturday, then walk in for food afterward.
+Bowl at Lucky Strike, Urban Wild or South Boston Candlepin, or play mini golf at Puttshack. The Samuel Adams brewery runs tours, and Tavern of Tales has board games.
 
-### Is there somewhere to hang out near the Red Line?
+### Which of these places stay open late on Saturday?
 
-VERSUS is about a 3-minute walk from Downtown Crossing, on the Red and Orange lines. SPIN is about an 8-minute walk from South Station, also on the Red Line.
+Urban Wild and Puttshack stay open until 1 a.m. on Saturday, and Lucky Strike until 2 a.m. Dorchester Brewing and South Boston Candlepin close at midnight.
