@@ -36,10 +36,10 @@ export function assertIsoDate<T extends string>(value: T, label: string): T {
   return value;
 }
 
-// Update `lastModified` when a page's content changes. The home page's is its own copy and links;
-// the sitemap dates it later when a post it links is newer (`homeUpdatedAt` in app/sitemap.ts).
+// Update `lastModified` when a page's content changes. The home page's is its own copy;
+// the sitemap dates it later when it starts linking a city (`homeUpdatedAt` in app/sitemap.ts).
 const pages: StaticPageEntry[] = [
-  { path: '/', lastModified: '2026-11-08', changeFrequency: 'weekly', priority: 1.0 },
+  { path: '/', lastModified: '2026-11-25', changeFrequency: 'weekly', priority: 1.0 },
   { path: '/faq', lastModified: '2026-10-19', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/about', lastModified: '2026-11-16', changeFrequency: 'yearly', priority: 0.5 },
   { path: '/contact', lastModified: '2026-10-21', changeFrequency: 'yearly', priority: 0.5 },

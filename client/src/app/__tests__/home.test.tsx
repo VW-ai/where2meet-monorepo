@@ -15,16 +15,52 @@ vi.mock('node:fs/promises', async (importOriginal) => {
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: () => {} }) }));
 
 const newYork = FIXTURE_FILES.find(({ path }) => path === 'src/content/places/new-york.md')!;
-const boston: FixtureFile = {
-  path: 'src/content/places/boston.md',
-  text: newYork.text
-    .replace('name: New York', 'name: Boston')
-    .replace('title: Where to meet in New York', 'title: Where to meet up in Boston')
-    .replace('file_name: midtown-manhattan-skyline-new-york.jpg', 'file_name: boston-sample.jpg'),
-};
+
+function cityFile(slug: string, name: string, license = 'CC0'): FixtureFile {
+  return {
+    path: `src/content/places/${slug}.md`,
+    text: newYork.text
+      .replace('name: New York', `name: ${name}`)
+      .replace('title: Where to meet in New York', `title: Where to meet in ${name}`)
+      .replace('file_name: midtown-manhattan-skyline-new-york.jpg', `file_name: ${slug}-sample.jpg`)
+      .replace('license: CC0', `license: ${license}`),
+  };
+}
+
+function cityPost(city: string, slug: string, occasion: string): FixtureFile {
+  const fileName = `${slug}.jpg`;
+  return {
+    path: `src/content/posts/${slug}.md`,
+    text: markdownFile(
+      `${slug}.md`,
+      {
+        title: `Guide ${slug}`,
+        description: `Guide ${slug}, near a station.`,
+        occasion,
+        city,
+        town: null,
+        published_at: '2026-11-01',
+        updated_at: '2026-11-01',
+        images: [
+          {
+            file_name: fileName,
+            source_url: `https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/${fileName}/1280px-${fileName}`,
+            page_url: `https://commons.wikimedia.org/wiki/File:${fileName}`,
+            width: 1280,
+            height: 960,
+            alt: `Guide ${slug}`,
+            author: 'Phi',
+            license: 'CC0',
+          },
+        ],
+      },
+      '## Where to go\n\nNear a station.\n'
+    ).text,
+  };
+}
 
 beforeEach(() => {
-  disk.files = [...FIXTURE_FILES, boston];
+  disk.files = [...FIXTURE_FILES, cityFile('boston', 'Boston')];
 });
 
 afterEach(() => {
@@ -41,78 +77,32 @@ async function renderMain() {
 
 const text = (html: string) => html.replace(/<[^>]+>/g, '');
 
-async function guideLinks(heading: string) {
+async function cityTiles() {
   const main = await renderMain();
-  return [
-    ...(main.match(new RegExp(`<h3>${heading}</h3><ul>(.*?)</ul>`))?.[1] ?? '').matchAll(
-      /<a href="([^"]+)">(.*?)<\/a>/g
-    ),
-  ].map(([, href, title]) => `${href} | ${title}`);
-}
-
-function bostonPost(slug: string, title: string, occasion: string): FixtureFile {
-  const fileName = `${slug}.jpg`;
-  return {
-    path: `src/content/posts/${slug}.md`,
-    text: markdownFile(
-      `${slug}.md`,
-      {
-        title,
-        description: `${title}, near the T.`,
-        occasion,
-        city: 'boston',
-        town: null,
-        published_at: '2026-11-01',
-        updated_at: '2026-11-01',
-        images: [
-          {
-            file_name: fileName,
-            source_url: `https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/${fileName}/1280px-${fileName}`,
-            page_url: `https://commons.wikimedia.org/wiki/File:${fileName}`,
-            width: 1280,
-            height: 960,
-            alt: title,
-            author: 'Phi',
-            license: 'CC0',
-          },
-        ],
-      },
-      '## Where to go\n\nNear the T.\n'
-    ).text,
-  };
+  const row = main.match(/<h2>Guides by city<\/h2><ul>(.*?)<\/ul>/s)?.[1] ?? '';
+  return [...row.matchAll(/<li>(.*?)<\/li>/gs)].map(([, tile]) => {
+    const [, href, name] = tile.match(/<h3><a href="([^"]+)">(.*?)<\/a><\/h3>/) ?? [];
+    const [occasions, credit] = [...tile.matchAll(/<p>(.*?)<\/p>/g)].map(([, line]) => text(line));
+    return { href, name, photo: tile.match(/<img[^>]* alt="([^"]*)"/)?.[1], occasions, credit };
+  });
 }
 
 describe('the homepage', () => {
-  it('keeps the create form first, then says what Where2Meet is and how it works', async () => {
+  it('keeps the create form first, then shows only the city guides', async () => {
     const main = await renderMain();
     const outline = [
       ...main.matchAll(/<(h[123])>(.*?)<\/\1>|<button[^>]*>(Create Meeting)<\/button>/g),
     ];
 
-    expect(outline.map(([, tag, heading, button]) => button ?? `${tag} ${heading}`)).toEqual([
+    expect(outline.map(([, tag, heading, button]) => button ?? `${tag} ${text(heading)}`)).toEqual([
       'h1 Plan where to meet, together',
       'Create Meeting',
-      'h2 A group meetup planner with real travel times',
-      'h2 Plan together in three steps',
-      'h3 Add where everyone starts',
-      'h3 Compare travel times on the map',
-      'h3 Vote and share the spot',
-      'h2 Guides to where to meet',
-      'h3 By city',
-      'h3 By occasion',
+      'h2 Guides by city',
+      'h3 New York',
     ]);
-    expect(text(main.match(/<h2>A group meetup planner.*?<\/h2><p>(.*?)<\/p>/)?.[1] ?? '')).toBe(
-      "Where2Meet is a free group planning app for deciding where to meet. Everyone adds where they're coming from, and one map shows each person's real travel time by car, transit, walking or bike. Then the group votes on a convenient spot, and nobody has to sign up."
+    expect(text(main.match(/<section>(?:(?!<section>).)*$/s)?.[0] ?? '')).toBe(
+      'Guides by cityNew YorkTeam welcome · Group dinner'
     );
-    expect(
-      [...(main.match(/<ol>(.*?)<\/ol>/s)?.[1] ?? '').matchAll(/<li>(.*?)<\/li>/g)].map(
-        ([, step]) => text(step.replace(/<\/h3>/, '. '))
-      )
-    ).toEqual([
-      '1Add where everyone starts. Share the link, and each person adds a cross street, station or neighborhood. The organizer can add people too.',
-      "2Compare travel times on the map. Search places around the group or by name. Open one to see each person's travel time and route on the map.",
-      '3Vote and share the spot. Everyone votes on where to meet. The organizer picks the final spot, and everyone who joined sees it without a refresh.',
-    ]);
   });
 
   it('server-renders the phone home with its heading, date card and start button', async () => {
@@ -124,26 +114,74 @@ describe('the homepage', () => {
     expect(text(phone)).toContain('Name your event to start');
   });
 
-  it('links only the city pages that have guides, most guides first, and one guide per occasion chip', async () => {
-    expect(await guideLinks('By city')).toEqual(['/blog/new-york | Where to meet in New York']);
-    expect(await guideLinks('By occasion')).toEqual([
-      '/blog/new-york/midtown/quiet-places-for-a-small-team-meeting | Quiet places for a small team meeting in Midtown',
-      '/blog/new-york/group-dinner-spots-near-herald-square | Group dinner spots near Herald Square',
+  it("links each city that has guides, with its photo and its guides' occasions", async () => {
+    expect(await cityTiles()).toEqual([
+      {
+        href: '/blog/new-york',
+        name: 'New York',
+        photo: 'The Midtown Manhattan skyline with the Empire State Building',
+        occasions: 'Team welcome · Group dinner',
+        credit: undefined,
+      },
     ]);
   });
 
-  it('spreads the occasion guides across cities before taking the newest', async () => {
-    disk.files.push(
-      bostonPost('team-meeting-rooms-boston', 'Team meeting rooms in Boston', 'team-meeting'),
-      bostonPost('group-dinner-boston', 'Group dinner in Boston', 'group-dinner')
-    );
-    expect(await guideLinks('By city')).toEqual([
-      '/blog/new-york | Where to meet in New York',
-      '/blog/boston | Where to meet up in Boston',
+  it('credits a photo whose license asks for a credit', async () => {
+    disk.files = [
+      ...FIXTURE_FILES,
+      cityFile('boston', 'Boston', 'CC BY 4.0'),
+      cityPost('boston', 'team-meeting-boston', 'team-meeting'),
+    ];
+
+    expect((await cityTiles()).map(({ name, credit }) => [name, credit])).toEqual([
+      ['New York', undefined],
+      ['Boston', 'Photo by CommunistSquared (CC BY 4.0, cropped) via Wikimedia Commons'],
     ]);
-    expect(await guideLinks('By occasion')).toEqual([
-      '/blog/boston/team-meeting-rooms-boston | Team meeting rooms in Boston',
-      '/blog/new-york/group-dinner-spots-near-herald-square | Group dinner spots near Herald Square',
+  });
+
+  it('puts the city with the most guides first and names its two most common occasions', async () => {
+    const guides = { 'team-meeting': 3, 'group-dinner': 2, 'date-night': 1 };
+    disk.files.push(
+      ...Object.entries(guides).flatMap(([occasion, count]) =>
+        Array.from({ length: count }, (_, index) =>
+          cityPost('boston', `${occasion}-${index}-boston`, occasion)
+        )
+      )
+    );
+
+    expect((await cityTiles()).map(({ name, occasions }) => `${name} | ${occasions}`)).toEqual([
+      'Boston | Team meeting · Group dinner',
+      'New York | Team welcome · Group dinner',
+    ]);
+  });
+
+  it('leaves out a city that has no photo', async () => {
+    const boston = cityFile('boston', 'Boston');
+    disk.files = [
+      ...FIXTURE_FILES,
+      { ...boston, text: boston.text.replace(/image:\n(?: {2}.*\n)+/, '') },
+      cityPost('boston', 'team-meeting-boston', 'team-meeting'),
+    ];
+
+    expect((await cityTiles()).map(({ name }) => name)).toEqual(['New York']);
+  });
+
+  it('shows five cities at most', async () => {
+    const more = { austin: 'Austin', chicago: 'Chicago', denver: 'Denver', seattle: 'Seattle' };
+    disk.files.push(
+      cityPost('boston', 'team-meeting-boston', 'team-meeting'),
+      ...Object.entries(more).flatMap(([slug, name]) => [
+        cityFile(slug, name),
+        cityPost(slug, `team-meeting-${slug}`, 'team-meeting'),
+      ])
+    );
+
+    expect((await cityTiles()).map(({ name }) => name)).toEqual([
+      'New York',
+      'Austin',
+      'Boston',
+      'Chicago',
+      'Denver',
     ]);
   });
 });

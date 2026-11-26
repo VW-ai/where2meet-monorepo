@@ -1,16 +1,16 @@
 import { loadCatalog } from '@/features/blog/lib/source';
-import { homeGuides } from '@/features/landing/lib/home-guides';
-import { HomeSections } from '@/features/landing/ui/home-sections';
+import { homeCities } from '@/features/landing/lib/home-cities';
+import { CityTiles } from '@/features/landing/ui/city-tiles';
 import { LandingView } from '@/features/landing/ui/landing-view';
 import { OpeningIntro } from '@/features/portal/ui/opening-intro';
 
 export default async function LandingPage() {
-  const guides = homeGuides(await loadCatalog());
+  const cities = homeCities(await loadCatalog());
   return (
     <>
       <OpeningIntro />
       <LandingView>
-        <HomeSections guides={guides} />
+        <CityTiles cities={cities} />
       </LandingView>
     </>
   );
