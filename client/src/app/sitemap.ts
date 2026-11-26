@@ -6,11 +6,10 @@ import {
   pagePath,
   pagePhotos,
   pageUpdatedAt,
-  postPath,
   type Catalog,
 } from '@/features/blog/lib/catalog';
 import { loadCatalog } from '@/features/blog/lib/source';
-import { homeGuides } from '@/features/landing/lib/home-guides';
+import { homeCities } from '@/features/landing/lib/home-cities';
 import { toAbsoluteUrl } from '@/lib/seo/metadata';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
 import { STATIC_PAGES } from '@/lib/seo/site-pages';
@@ -54,13 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 }
 
-/** Like a city page, the home page changes when it starts linking a newer post. */
+/** The home page changes when it starts linking a city, which is when the city gets its first guide. */
 function homeUpdatedAt(catalog: Catalog, ownDate: string): string {
-  const linked = new Set(homeGuides(catalog).posts.map(({ href }) => href));
-  return [
-    ownDate,
-    ...catalog.posts.filter((post) => linked.has(postPath(post))).map((post) => post.publishedAt),
-  ]
-    .sort()
-    .at(-1)!;
+  return [ownDate, ...homeCities(catalog).map(({ linkedSince }) => linkedSince)].sort().at(-1)!;
 }
