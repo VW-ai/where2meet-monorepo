@@ -92,6 +92,9 @@
 - phrase: weekend plans with friends
   occasion: weekend-hangout
   note: A planning search for a whole weekend day with friends, for Chicago's first weekend-hangout post, added 2026-11-26
+- phrase: karaoke with friends
+  occasion: weekend-hangout
+  note: An activity search for a night of singing with friends, for Los Angeles's first weekend-hangout post, added 2026-11-26
 - phrase: family outing
   occasion: family-outing
 - phrase: team offsite location
