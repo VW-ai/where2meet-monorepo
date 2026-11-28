@@ -1028,3 +1028,14 @@ Copied meeting links were `where2meet.org/meet/evt_<13-digit timestamp>_<16 rand
 
 #### Test Summary
 - New: `tests/auth-google.test.ts` (7 cases) with a local RS256 key.
+
+## 2026-11-28
+
+### Free NYC events ingest
+
+A one-shot job, `src/jobs/ingest-free-events.ts`, copies free NYC events into the new `free_event` table, upserting on (source, source_id) so a rerun stores each event once. A row set to `hidden` stays hidden on later runs; a listing marked cancelled hides its row. `GET /api/free-events?kind=&from=&to=` lists live events that have not ended, rate limited to 60 a minute. `railway.cron.toml` runs the job daily at 11:00 UTC as its own Railway service.
+
+The one source is NYC Parks Public Events, Upcoming 14 Days (NYC Open Data `w3wp-dpdi`). It has no price or food field, so the adapter keeps a row only when its description has no `$` price, and calls it `free-food` when a sentence says food is served or provided, or `free-talk` when its category is Talks. MLH's season list was left out: its terms allow only personal, non-commercial use of the site and its content.
+
+#### Test Summary
+- New: `tests/services/free-events.test.ts` (10), `tests/free-events.test.ts` (7), `tests/migrations/add-free-events.test.ts` (4), one case in `tests/rate-limits.test.ts`.

@@ -193,3 +193,13 @@ This tracker serves as a log of what we need to do in the next iteration of deve
 - [x] Server: `POST /api/events/:id/participant-preview`
 - [x] Client: draft pin and route on the Google map while adding someone
 - [ ] Decide whether AMap should draw the draft too; today the form shows minutes only
+
+---
+
+## 2026-11-28
+
+### Free NYC Events
+- [x] Server: `free_event` table, NYC Parks adapter, daily job, `GET /api/free-events`
+- [ ] Create the Railway cron service from `railway.cron.toml` (Victor)
+- [ ] Find a hackathon source whose terms allow showing its events; MLH's do not
+- [ ] Alert when a source ingests zero rows two days in a row

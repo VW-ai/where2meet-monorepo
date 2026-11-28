@@ -504,6 +504,36 @@ interface MECResponse {
 
 ---
 
+## Free NYC Events
+
+`GET /api/free-events?kind=&from=&to=` lists free public NYC events that a daily job copies from outside listings, soonest first. It needs no token.
+
+- `kind` (optional): `free-food`, `hackathon` or `free-talk`.
+- `from`, `to` (optional): ISO dates. The list holds events that have not ended by `from` (default now) and start by `to`.
+- Rate limit: 60 requests a minute per visitor, then 429 `RATE_LIMIT_EXCEEDED`.
+
+```json
+{
+  "events": [
+    {
+      "id": "6f1c...",
+      "kind": "free-food",
+      "title": "Paint and Sip",
+      "startsAt": "2026-12-02T22:30:00.000Z",
+      "endsAt": "2026-12-03T00:30:00.000Z",
+      "venueName": "Williamsbridge Oval",
+      "placeId": null,
+      "lat": 40.8766817,
+      "lng": -73.8785455,
+      "url": "https://www.nycgovparks.org/events/2026/12/02/paint-and-sip",
+      "source": "nyc-parks"
+    }
+  ]
+}
+```
+
+`placeId` is null for NYC Parks events, which carry coordinates instead.
+
 ## Health Check
 
 ```typescript

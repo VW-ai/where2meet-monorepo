@@ -31,6 +31,7 @@ import { authRoutes } from "./routes/auth.js";
 import { userRoutes } from "./routes/users.js";
 import { amapRoutes } from "./routes/amap.js";
 import { placesRoutes } from "./routes/places.js";
+import { freeEventRoutes } from "./routes/free-events.js";
 import { rateLimitKey } from "./lib/rateLimitKey.js";
 import { createGoogleIdTokenVerifier, type GoogleIdTokenVerifier } from "./lib/googleIdToken.js";
 
@@ -187,6 +188,7 @@ export async function buildServer({
   await server.register(userRoutes);
   await server.register(amapRoutes);
   await server.register(placesRoutes);
+  await server.register(freeEventRoutes);
 
   return server;
 }
