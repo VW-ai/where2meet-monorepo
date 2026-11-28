@@ -10,7 +10,7 @@ budget: null
 city: new-york
 town: null
 published_at: 2026-10-21
-updated_at: 2026-10-25
+updated_at: 2026-11-27
 places:
   - place_id: ChIJuw6oHVZZwokRzYyh9VP9irE
     label: Stavros Niarchos Foundation Library (SNFL)
@@ -78,11 +78,18 @@ Pick a library if the group can keep its voices down, and a cafe if it can't.
 
 The library details on these cards come from each branch's NYPL page, and the cafe details and every walk time from Google Maps, as of October 2026.
 
-The Greenwich Village and Union Square picks reach the most people. W 4 St-Wash Sq has seven lines, and 14 St-Union Sq has eight.
+For libraries, Jefferson Market reaches the most people, because W 4 St-Wash Sq has seven lines. The Stavros Niarchos Foundation Library (SNFL) suits the 7 at 5 Av and the B, D, F and M at 42 St-Bryant Pk, one connected station. Seward Park suits the F.
+
+## Which study cafes are in each neighborhood?
+
+Pick the study cafe in the neighborhood most of the group rides to.
+
+- **Union Square.** Ariston Coffee Bar is near 14 St-Union Sq, where eight lines stop.
+- **Lower East Side.** Black Cat LES suits the F, J, M and Z at Delancey St-Essex St.
+- **Chelsea.** Café-Flor / Bar 21 suits the C and E at 23 St.
+- **East Side.** Charlotte Cafe, on Second Avenue, suits the 6 at 33 St.
 
 ![](union-square-plaza-night-manhattan.jpg)
-
-The Lower East Side picks suit students on the F, J, M and Z. The Stavros Niarchos Foundation Library (SNFL) suits the 7 at 5 Av and the B, D, F and M at 42 St-Bryant Pk, one connected station. Café-Flor suits the C and E, and Charlotte Cafe suits the 6.
 
 ## Can a study group book a room or talk at the library?
 

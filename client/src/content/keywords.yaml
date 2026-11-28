@@ -152,6 +152,9 @@
 - phrase: group study spots
   occasion: study-session
   note: A search for places a study group can use, added 2026-11-07
+- phrase: study cafes
+  occasion: study-session
+  note: A search for cafes a study group can work in, added 2026-11-27. New York's study post, where-to-study-with-friends-new-york, covers this phrase in its cafes-by-neighborhood section, so use the phrase only for another city.
 - phrase: board game bar
   occasion: game-night
 - phrase: board game bar near me
@@ -190,3 +193,12 @@
   occasion: badminton
 - phrase: badminton courts near me
   occasion: badminton
+- phrase: rainy day things to do
+  occasion: rainy-day-hangout
+  note: A list search for indoor plans when it rains, added 2026-11-27 for New York, where museums, libraries and indoor public spaces near the subway keep a group dry. New York posts for this phrase also feed the /nyc map, so every place needs a real place_id.
+- phrase: warm places to go free
+  occasion: cheap-indoor-hangout
+  note: A search for free or cheap indoor places where a few friends can spend a winter afternoon, added 2026-11-27 for New York, such as libraries, rec centers and indoor public spaces. Write to friends who want to stay warm without spending, and never address readers as people without a home. End the post with one line that links NYC 311 and Code Blue warming centers for anyone who needs shelter from the cold. New York posts for this phrase also feed the /nyc map, so every place needs a real place_id.
+- phrase: where to see ducks
+  occasion: duck-watching
+  note: A low-cost test search for park ponds with ducks, added 2026-11-27 for New York, where several park ponds are a subway ride away. New York posts for this phrase also feed the /nyc map, so every place needs a real place_id.
