@@ -124,6 +124,21 @@ occasions:
     times: [after-work, weekend-afternoon]
     venue_types: [badminton-court]
     group_sizes: [two, small]
+  - key: rainy-day-hangout
+    label: Rainy day hangout
+    times: [weekend-brunch, weekend-afternoon]
+    venue_types: [museum, library, indoor-public-space, cafe, coffee-shop, bowling-alley, board-game-bar]
+    group_sizes: [two, small]
+  - key: cheap-indoor-hangout
+    label: Cheap indoor hangout
+    times: [after-work, weekend-afternoon]
+    venue_types: [library, rec-center, indoor-public-space, museum, cafe]
+    group_sizes: [two, small]
+  - key: duck-watching
+    label: Duck watching
+    times: [weekend-brunch, weekend-afternoon]
+    venue_types: [pond, park]
+    group_sizes: [two, small]
 times:
   - key: weekday-lunch
     label: Weekday lunch
@@ -190,6 +205,18 @@ venue_types:
   - key: badminton-court
     label: Badminton court
     google_type: sports_activity_location
+  - key: library
+    label: Library
+    google_type: library
+  - key: rec-center
+    label: Rec center
+    google_type: community_center
+  - key: indoor-public-space
+    label: Indoor public space
+    google_type: plaza
+  - key: pond
+    label: Pond
+    google_type: park
 group_sizes:
   - key: two
     label: Two people
