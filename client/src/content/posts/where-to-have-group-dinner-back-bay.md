@@ -1,45 +1,48 @@
 ---
-title: Where to have a group dinner in Back Bay
-description: Six bookable restaurants near Copley, Arlington and Hynes, with room sizes and late closing times, to settle where to have a group dinner.
+title: Where to have a group dinner of 20+ in Back Bay
+description: Private rooms for 20 to 50 at seven restaurants, with seat counts and the deposit questions to ask, for where to have a group dinner in Back Bay.
 main_keyword: where to have a group dinner
 occasion: group-dinner
 time: null
 venue_type: null
-group_size: null
+group_size: large
 budget: null
 city: boston
 town: back-bay
 published_at: 2026-11-04
-updated_at: 2026-11-04
+updated_at: 2026-11-28
 places:
+  - place_id: ChIJLeKcZ3N644kRfM2CTS_nHEU
+    label: Grill 23 & Bar
+    note: Eight private suites, seating 10 to 140, let this steakhouse at Berkeley and Stuart streets fit almost any headcount. It's very expensive and takes reservations. Dinner runs from 5 p.m. to 10 p.m. Monday to Thursday, later on Friday and Saturday. Back Bay station is about a 4-minute walk, and Arlington about 5.
+  - place_id: ChIJTRzF9w5644kRRYPN6R49ZDs
+    label: Abe & Louie's
+    note: Book the Board Room at this Boylston Street steakhouse for a private dinner of up to 30, or the Louie, Louie Room for up to 100. It's very expensive, takes reservations and closes at 10 p.m., or 11 p.m. on Friday and Saturday. Copley is about a 4-minute walk.
+  - place_id: ChIJEVvPZnR644kR1UrjRf9rpEM
+    label: Davio's Northern Italian Steakhouse
+    note: Two rooms of the same size at this Arlington Street steakhouse, the Arlington and the Berkeley, each seat 20 to 40 and combine for 60 to 100. It's expensive and takes reservations. It opens at 3 p.m. on Saturday and Sunday. Arlington station is about a 3-minute walk.
+  - place_id: ChIJ8XZQ9A5644kR-8i3134hx2I
+    label: Atlantic Fish Company
+    note: Keep this Boylston Street seafood restaurant for a party at the small end, since its private dining room holds 30 and its Board Room 22. It's expensive, takes reservations and closes at 10 p.m., or 11 p.m. on Friday and Saturday. Copley is about a 4-minute walk.
+  - place_id: ChIJbxuswgR644kRlRCoQxZTZws
+    label: Deuxave
+    note: Parties of 13 or more at this French restaurant on Commonwealth Avenue book through its team by email, and it charges no room fee. Its main dining room seats up to 20, so a bigger group needs a partial or full buyout. It's very expensive and opens at 5 p.m. Hynes is about a 3-minute walk.
   - place_id: ChIJN_AW9wt644kRqBK2oztOokI
     label: Buttermilk & Bourbon - Back Bay
-    note: Book this restaurant on Commonwealth Avenue when the table is big enough to need its own room, since it lists rooms for 20 to 40. It's moderately priced and takes reservations. It opens at 5 p.m. on Monday and closes at 10 p.m. most nights, or 11 p.m. on Friday and Saturday. Copley is about a 4-minute walk.
-  - place_id: ChIJRzSKpg5644kR4yi01eBUXIM
-    label: Joe's on Newbury
-    note: Mixed groups can reach this Newbury Street restaurant from Copley in about 4 minutes or from Back Bay station in about 9, so it suits a table split between the Green and Orange lines. It's moderately priced, takes reservations, is good for groups and closes at 11 p.m. every night.
+    note: One of two moderately priced picks, this New Orleans-style restaurant on Commonwealth Avenue has three semi-private rooms seating 20, 30 and 40. It takes reservations and opens at 5 p.m. on Monday and at noon or earlier the rest of the week. Copley is about a 3-minute walk.
   - place_id: ChIJx3HrOXR644kRX-ITHrA0ulQ
     label: M.J. O'Connor's
-    note: Groups coming from downtown have the shortest ride to this Irish restaurant on Columbus Avenue, because Arlington, two stops from Park Street, is about a 3-minute walk. It's moderately priced and takes reservations. It stays open until 1 a.m., or 2 a.m. on Friday and Saturday.
-  - place_id: ChIJwRxfIBt644kRuDR56soOZ1o
-    label: Boston Burger Company - Boylston St.
-    note: Take the B, C or D to Hynes for this burger restaurant on Boylston Street, about a 2-minute walk from the station. It's moderately priced, is good for groups and stays open until 12:30 a.m. every night, so a late table still works. Call ahead to confirm a long table.
-  - place_id: ChIJiTRx8g5644kR0_u_Ftom45o
-    label: Piattini
-    note: Keep this Italian restaurant on Newbury Street for an early dinner with a smaller group. It closes at 9 p.m. on Sunday, 9:30 p.m. Monday to Thursday and 10:30 p.m. on Friday and Saturday. It's moderately priced and takes reservations. Copley is about a 6-minute walk, and Hynes about 8.
-  - place_id: ChIJVVXF1A9644kRUe_HjlLWs2o
-    label: Terra
-    note: Inside Eataly at the Prudential Center, this restaurant gives everyone a meeting point they can find without directions. It takes reservations and is good for groups. It closes at 10 p.m. Sunday to Thursday and 11 p.m. on Friday and Saturday. Hynes is about a 6-minute walk, and Copley about 7.
+    note: Groups of 40 to 50 fit the Park Dining room at this Irish restaurant in the Boston Park Plaza hotel, and the Fireplace room seats 30. It's moderately priced, takes reservations and stays open until 1 a.m., or 2 a.m. on Friday and Saturday. Arlington is about a 3-minute walk.
 images:
-  - file_name: joes-american-bar-grill-newbury-street-back-bay.jpg
-    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Joes_American_Bar_and_Grill%2C_Boston_MA.jpg/1280px-Joes_American_Bar_and_Grill%2C_Boston_MA.jpg
-    page_url: https://commons.wikimedia.org/wiki/File:Joes_American_Bar_and_Grill,_Boston_MA.jpg
+  - file_name: salada-tea-building-elephant-capital-berkeley-street.jpg
+    source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Salada_Tea_Building_-_Boston%2C_MA_-_DSC08126.JPG/1280px-Salada_Tea_Building_-_Boston%2C_MA_-_DSC08126.JPG
+    page_url: https://commons.wikimedia.org/wiki/File:Salada_Tea_Building_-_Boston,_MA_-_DSC08126.JPG
     width: 1280
-    height: 960
-    alt: Joe's American Bar & Grill on Newbury Street in Back Bay, with shoppers walking past on the sidewalk
-    caption: Joe's on Newbury in 2011, when its sign read Joe's American Bar & Grill
-    author: John Phelan
-    license: CC BY 3.0
+    height: 967
+    alt: Three carved stone elephant heads and two small robed figures on a column of the Salada Tea Building in Boston
+    caption: Elephant carvings on the Salada Tea Building at Berkeley and Stuart streets in 2013. Grill 23 & Bar is inside
+    author: Daderot
+    license: CC0
     cropped: false
   - file_name: hynes-convention-center-station-d-train-platform.jpg
     source_url: https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8c/Outbound_D_train_at_Hynes_Convention_Center_station_April_2025.jpg/1280px-Outbound_D_train_at_Hynes_Convention_Center_station_April_2025.jpg
@@ -47,7 +50,7 @@ images:
     width: 1280
     height: 853
     alt: A green outbound D branch train stopped at Hynes Convention Center station, with stairs to the street on the left
-    caption: An outbound D train at Hynes Convention Center station in April 2025, the stop for Boston Burger Company and Terra
+    caption: An outbound D train at Hynes Convention Center station in April 2025, the stop for Deuxave
     author: 4300streetcar
     license: CC BY 4.0
     cropped: false
@@ -57,73 +60,72 @@ images:
     width: 1280
     height: 960
     alt: Red brick row houses at Commonwealth Avenue and Gloucester Street in Back Bay at dusk, with a lit street lamp and parked cars
-    caption: Row houses at Commonwealth Avenue and Gloucester Street, a few blocks west of Buttermilk & Bourbon
+    caption: Row houses at Commonwealth Avenue and Gloucester Street, between Buttermilk & Bourbon and Deuxave
     author: Ajay Suresh
     license: CC BY 2.0
     cropped: false
 ---
 
-The answer to where to have a group dinner in Back Bay is a restaurant that takes reservations and sits within a 6-minute walk of the T stop most of your group uses. Copley serves every Green Line branch, so start with the two picks about 4 minutes from it. You have eight or ten people to seat, some ride the Green Line, someone takes the Orange Line, and the group chat still hasn't named a place.
+Where to have a group dinner of 20 or more in Back Bay comes down to which restaurants have a room that seats your whole party. Seven restaurants from Park Square to Massachusetts Avenue publish rooms for 20 to 50 guests. You're booking a rehearsal dinner, a retirement party or a company dinner, and one long table won't hold everyone.
 
-This post suggests six restaurants, then covers which T stop to plan around, how big a table each one can seat, and how late the night can run. It's part of our guide to [Back Bay](/blog/boston/back-bay). For downtown options and the booking call itself, see [restaurant for a big group in Boston](/blog/boston/restaurant-big-group-boston).
+This post lists those seven, then covers which room fits your headcount, private versus semi-private, and what to ask about minimums and deposits. It's part of our guide to [Back Bay](/blog/boston/back-bay).
 
-## Where to have a group dinner in Back Bay?
+## Which Back Bay restaurants have a private room for 20 to 50?
 
-Choose by T stop first, then by your night. All six take reservations, and each note says which group it suits.
+All seven take reservations and publish room sizes for groups of 20 or more. Each card names the room most groups need and the T stop to use.
 
 :::places
 
-The hours, price levels, reservations, group details and walk times on these cards come from Google Maps as of November 2026. Walk times start at each MBTA station. Room sizes come from each restaurant's own event page, linked below.
+The hours, price levels, reservations and walk times on these cards come from Google Maps as of November 2026. Walk times start at the MBTA station in each note. Room sizes come from each restaurant's event page, linked below.
 
-## Which T stop should the group plan around?
+## Which room fits your headcount?
 
-Count how many people ride each line, then pick the stop that suits most of them. Back Bay is long enough for this to matter. Boston Burger Company is about a 2-minute walk from Hynes but about 14 from Copley.
+Match your headcount to a room's seated number, not its reception number, which is often higher.
 
-- **Every Green Line branch.** All four stop at [Copley](https://www.mbta.com/stops/place-coecl) and Arlington, so a table spread across branches should pick one of those two.
-- **B, C or D.** These branches continue to [Hynes](https://www.mbta.com/stops/place-hymnl), which puts the west end of Boylston Street in reach.
-- **E.** This branch skips Hynes. An E rider going to Terra should get off at Copley.
-- **Orange Line and commuter rail.** From [Back Bay station](https://www.mbta.com/stops/place-bbsta), Buttermilk & Bourbon is about an 8-minute walk, the shortest of the six.
-- **Red Line.** Change at Park Street. Arlington is two stops from there, and Copley is three.
+- **20 to 30.** Abe & Louie's Board Room, Atlantic Fish Company's private dining room and M.J. O'Connor's Fireplace room each seat 30. Grill 23's Exeter Suite seats 26.
+- **30 to 40.** Grill 23's Dartmouth and Clarendon suites seat 38 and 40. Davio's Arlington and Berkeley rooms and Buttermilk & Bourbon's Garden Room seat up to 40.
+- **40 to 50.** M.J. O'Connor's Park Dining room seats 50. Abe & Louie's Louie, Louie Room seats up to 100, and Davio's two rooms combine for 60 to 100.
+- **Over 20 at Deuxave.** Ask for a partial or full buyout.
+
+Seat counts come from the event pages of [Grill 23](https://www.grill23.com/private-dining), [Abe & Louie's](https://abeandlouies.com/wp-content/uploads/2025/04/Abe-and-Louies-Boston-Group-Dining-One-Sheet-1.pdf), [Davio's](https://davios.com/bos/private-dining), [Atlantic Fish Company](https://www.atlanticfish.com/group-dining/), [Deuxave](https://www.deuxave.com/group-dining), [Buttermilk & Bourbon](https://party-request.tripleseat.com/venues/6nU2i3ka/) and [M.J. O'Connor's](https://party-request.tripleseat.com/venues/SW65CEM9).
 
 ![](hynes-convention-center-station-d-train-platform.jpg)
 
-## How big a table can each restaurant seat?
+## Do you need a private or a semi-private room?
 
-Two of the six publish room sizes, so start there if you have 20 or more. For the others, ask when you call.
+Book a private room when the night has toasts, a speech or a slideshow. A semi-private room is set apart for you but stays open to the dining room, which suits a birthday with no speeches.
 
-- [Buttermilk & Bourbon's event form](https://party-request.tripleseat.com/venues/6nU2i3ka/) lists rooms seating 20, 30 and 40.
-- [M.J. O'Connor's event form](https://party-request.tripleseat.com/venues/SW65CEM9) lists a Fireplace room seating 30 and a Park Dining room seating 50.
-- [Terra's page](https://www.eataly.com/us_en/stores/boston/restaurants/terra) sends private dining requests to Eataly's Boston events team.
-- [Piattini's site](https://piattini.getbento.com/about) describes three intimate dining rooms and two sunken patios, so check before you promise a long table.
-
-We didn't find a published room size for Joe's on Newbury or Boston Burger Company. Give them your headcount and date, and ask whether the group sits together.
+- **Private.** Grill 23's suites, Abe & Louie's Board Room and Louie, Louie Room, Davio's two rooms and Atlantic Fish Company's private dining room. Davio's says its rooms suit meetings that need audio-visual equipment or internet access.
+- **Semi-private.** Buttermilk & Bourbon's three rooms, and Abe & Louie's Window Alcove and Mirror Alley, which seat 30 and 40.
+- **Ask first.** M.J. O'Connor's doesn't say whether its Fireplace and Park Dining rooms close off from the pub.
 
 ![](commonwealth-avenue-gloucester-street-row-houses-back-bay.jpg)
 
-## How late can the dinner run?
+## What should you ask about minimums and deposits?
 
-Closing times change by night at four of the six, so check yours before you book. The T matters only at the two places that stay open past 11 p.m.
+Get the minimum spend and the deposit in writing before you hold a date. None of the seven posts those numbers online as of November 2026. Deuxave is the only one that says it charges no administrative or room fee.
 
-The MBTA's [subway guide](https://www.mbta.com/guides/subway-guide) says to reach a downtown station such as Park Street by 12:35 a.m. Sunday to Thursday, or 1:30 a.m. on Friday and Saturday, to make the last connections. Park Street is three stops from Copley. Anyone changing lines there should leave Boston Burger Company or M.J. O'Connor's by about midnight on a weeknight.
+1. What is the minimum spend for our date, and is it higher on a Friday or Saturday?
+2. Do tax and gratuity count toward it? Davio's private dining packet prices set menus per person, with tax and gratuity on top.
+3. How much is the deposit, and until when is it refundable?
+4. When is the final headcount due, and do we pay for no-shows?
 
-A commuter rail rider has a different deadline. Look up the last departure on the [MBTA's commuter rail schedules](https://www.mbta.com/schedules/commuter-rail) before you choose a start time.
-
-For other plans in this neighborhood, see [first date spot picks in Back Bay](/blog/boston/back-bay/first-date-spot-back-bay) and [team meeting venue ideas in Back Bay](/blog/boston/back-bay/team-meeting-venue-back-bay). For the same occasion in New York, see [group dinner spots in Lower Manhattan](/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner).
+For other big-party plans here, see [class reunion venue picks in Back Bay](/blog/boston/back-bay/class-reunion-venue-back-bay) and [where to have a graduation dinner in Back Bay](/blog/boston/back-bay/graduation-dinner-back-bay). For another city, see [group dinner spots in Lower Manhattan](/blog/new-york/lower-manhattan/how-to-pick-a-restaurant-for-a-group-dinner).
 
 ## How to do it in Where2Meet
 
-Start a **Group dinner** plan in [Where2Meet](/) and have each guest add the station they'd ride from, such as Hynes or Back Bay. Search by name for Joe's on Newbury and Boston Burger Company, because one sits near Copley and the other near Hynes, then compare everyone's transit times. The group votes, and the organizer picks the table and books it.
+Once you've shortlisted two rooms at opposite ends of Back Bay, such as Davio's near Arlington and Deuxave near Hynes, start a **Group dinner** plan in [Where2Meet](/) and search for both by name. Ask the guests coming farthest to add the station they'll leave from, and see whose transit time grows at each. Put the two rooms to a vote, then the organizer books the winner and pays the deposit.
 
 ## Common questions
 
-### Which Back Bay restaurants can seat 20 or more?
+### Which Back Bay restaurants have a private room for 50?
 
-Buttermilk & Bourbon and M.J. O'Connor's both list rooms that size on their event forms. Send your date and headcount, and ask about any minimum spend.
+M.J. O'Connor's Park Dining room seats 50. Abe & Louie's Louie, Louie Room seats up to 100, Davio's two rooms combine for 60 to 100, and Grill 23's Full Suite holds 140.
 
-### Where can a group eat in Back Bay after 11 p.m.?
+### What is a semi-private dining room?
 
-M.J. O'Connor's and Boston Burger Company are open past 11 p.m. every night. The other four close by 11 p.m. at the latest.
+It's a part of the restaurant set aside for your group that stays open to the dining room. Buttermilk & Bourbon lists all three of its event rooms that way.
 
-### Are these restaurants open on Sunday and Monday?
+### Do Back Bay restaurants charge a room fee for private dining?
 
-Yes, all six are. Buttermilk & Bourbon doesn't open until 5 p.m. on Monday, and Piattini closes at 9 p.m. on Sunday.
+Deuxave says it charges no administrative or room fee for parties of 13 or more. The other six don't publish fees or minimums, so ask when you request a date.
