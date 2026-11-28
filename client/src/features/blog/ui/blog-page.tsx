@@ -66,6 +66,7 @@ export function BlogPageView({ page, catalog }: { page: BlogPage; catalog: Catal
 function PostView({ post, catalog }: { post: Post; catalog: Catalog }) {
   const related = relatedPosts(catalog, post);
   const byArea = byAreaPosts(catalog, post);
+  const seed = { title: post.occasion.label, src: post.slug };
   return (
     <>
       <StructuredData
@@ -95,6 +96,7 @@ function PostView({ post, catalog }: { post: Post; catalog: Catalog }) {
             images={post.images}
             places={post.places}
             placesTitle={post.placesTitle}
+            seed={seed}
           />
           {byArea.length > 0 && (
             <section className="mt-10">
@@ -111,7 +113,10 @@ function PostView({ post, catalog }: { post: Post; catalog: Catalog }) {
         </div>
       </article>
 
-      <PlanCta heading={`Plan your ${post.occasion.label.toLowerCase()} on Where2Meet`} />
+      <PlanCta
+        heading={`Plan your ${post.occasion.label.toLowerCase()} on Where2Meet`}
+        seed={seed}
+      />
 
       {related.length > 0 && (
         <section className="mt-10">

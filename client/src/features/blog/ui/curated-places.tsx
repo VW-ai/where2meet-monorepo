@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
+import Link from 'next/link';
 import { fetchPlaces } from '@/features/blog/lib/google-places';
 import { dataProviders, type PlaceSummary } from '@/features/blog/lib/places';
 import {
@@ -9,8 +10,10 @@ import {
   PlaceFactsSkeleton,
   PlacesCredits,
   cardList,
+  focusRing,
 } from '@/features/blog/ui/place-card';
 import type { CuratedPlace } from '@/features/blog/lib/catalog';
+import { planHref, type PlanSeed } from '@/features/landing/model/plan-seed';
 
 /** Google's details by place ID once it answers. A missing ID means Google had nothing. */
 type Lookup = { status: 'waiting' } | { status: 'done'; found: ReadonlyMap<string, PlaceSummary> };
@@ -18,14 +21,16 @@ type Lookup = { status: 'waiting' } | { status: 'done'; found: ReadonlyMap<strin
 /**
  * The editor's picks for a post. Labels and notes render on the server; each card's
  * photo, type, rating, address and Maps link load live from Google near the viewport
- * and are never stored, per Google's terms.
+ * and are never stored, per Google's terms. Each card links to a plan that starts at its place.
  */
 export function CuratedPlaces({
   title,
   places,
+  seed,
 }: {
   title: string;
   places: readonly CuratedPlace[];
+  seed: PlanSeed;
 }) {
   const headingId = useId();
   const sectionRef = useRef<HTMLElement>(null);
@@ -88,6 +93,13 @@ export function CuratedPlaces({
               {place.note && (
                 <p className="mt-2 text-sm leading-relaxed text-[#3a3f46]">{place.note}</p>
               )}
+              <Link
+                href={planHref({ ...seed, placeId: place.placeId })}
+                className={`relative z-10 mt-auto self-start pt-3 text-sm font-semibold text-[#bc3942] hover:underline ${focusRing}`}
+              >
+                Plan with friends here
+                <span className="sr-only">: {place.label}</span>
+              </Link>
             </PlaceCard>
           );
         })}

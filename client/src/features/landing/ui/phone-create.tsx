@@ -33,6 +33,8 @@ import {
   Marquee,
   useFittedWord,
 } from '@/features/meeting/ui/mobile/phone-parts';
+import { readPlanSeed, type PlanSeed } from '@/features/landing/model/plan-seed';
+import { voteForSeedPlace } from '@/features/landing/model/seed-vote';
 import { analyticsEvents } from '@/lib/analytics/events';
 import { usePortalStore } from '@/features/portal/model/portal-store';
 import {
@@ -258,6 +260,7 @@ export function PhoneCreate() {
   const [shake, setShake] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [seed, setSeed] = useState<PlanSeed>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLImageElement>(null);
   const trimmed = title.trim();
@@ -269,8 +272,11 @@ export function PhoneCreate() {
 
   useEffect(() => {
     const now = new Date();
+    const next = readPlanSeed(new URLSearchParams(window.location.search), now);
+    setSeed(next);
     setToday(now);
-    setWhen(defaultMeetingDate(now));
+    setWhen(next.time ? new Date(next.time) : defaultMeetingDate(now));
+    if (next.title) setTitle(next.title.slice(0, TITLE_MAX));
     if (isMainlandChinaTimeZone(browserTimeZone())) setMapProvider('amap');
   }, []);
 
@@ -290,6 +296,7 @@ export function PhoneCreate() {
       .start(
         logo ? { left: logo.left, top: logo.top, width: logo.width, height: logo.height } : null
       );
+    let seededPlace: boolean | undefined;
     try {
       const event = await eventClient.create({
         title: trimmed,
@@ -317,8 +324,16 @@ export function PhoneCreate() {
             .claimEvent({ eventId: event.id, participantToken: event.participantToken })
             .catch((failure) => console.error('Could not claim the event:', failure));
         }
+        if (seed.placeId) {
+          seededPlace = await voteForSeedPlace(
+            event.id,
+            event.organizerParticipantId,
+            event.participantToken,
+            seed.placeId
+          );
+        }
       }
-      analyticsEvents.createEvent(event.id);
+      analyticsEvents.createEvent(event.id, { src: seed.src, seededPlace });
       usePortalStore.getState().created(event.id, false);
       router.push(`/meet/${event.id}`);
     } catch (failure) {

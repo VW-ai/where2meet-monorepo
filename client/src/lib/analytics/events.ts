@@ -38,12 +38,18 @@ const sharePromptsSeen = new Set<string>();
  */
 export const analyticsEvents = {
   /**
-   * Track when a user creates a new event
+   * Track when a user creates a new event. `src` names the page that started it, and
+   * `seededPlace` says whether the place that page handed over made it into the event.
    */
-  createEvent: (eventId: string) => {
+  createEvent: (
+    eventId: string,
+    { src, seededPlace }: { src?: string; seededPlace?: boolean } = {}
+  ) => {
     trackEvent('create_event', {
       event_id: eventId,
       event_category: 'engagement',
+      ...(src && { src }),
+      ...(seededPlace !== undefined && { seededPlace }),
     });
   },
 

@@ -24,3 +24,19 @@ describe('sharePromptShown', () => {
     ]);
   });
 });
+
+describe('createEvent', () => {
+  it('names the page and the seeded place only for a create that came from a link', () => {
+    captured.length = 0;
+    analyticsEvents.createEvent('evt_a');
+    analyticsEvents.createEvent('evt_b', { src: 'study-spots', seededPlace: false });
+
+    expect(captured).toEqual([
+      ['create_event', { event_id: 'evt_a', event_category: 'engagement' }],
+      [
+        'create_event',
+        { event_id: 'evt_b', event_category: 'engagement', src: 'study-spots', seededPlace: false },
+      ],
+    ]);
+  });
+});
