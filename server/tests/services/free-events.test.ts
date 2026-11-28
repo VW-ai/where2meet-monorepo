@@ -15,6 +15,9 @@ const parksFixture: Record<string, unknown>[] = JSON.parse(
   readFileSync(new URL("../fixtures/free-events/nyc-parks.json", import.meta.url), "utf8")
 );
 const silent = pino({ level: "silent" });
+// Other test files share the free_event table, so this file touches only its own source.
+const SOURCE = "test-ingest";
+const mine = { source: { in: [SOURCE, "down"] } };
 
 function fixtureSource(name: string, raw: unknown[] = parksFixture): FreeEventSource {
   return { name, fetchRows: () => Promise.resolve(mapParksEvents(raw)) };
@@ -80,56 +83,56 @@ describe("NYC Parks mapping", () => {
 
 describe("ingestFreeEvents", () => {
   beforeEach(async () => {
-    await prisma.freeEvent.deleteMany();
+    await prisma.freeEvent.deleteMany({ where: mine });
   });
 
   afterAll(async () => {
-    await prisma.freeEvent.deleteMany();
+    await prisma.freeEvent.deleteMany({ where: mine });
   });
 
   it("stores each event once when run twice", async () => {
-    const first = await ingestFreeEvents(prisma, [fixtureSource("nyc-parks")], silent);
-    const second = await ingestFreeEvents(prisma, [fixtureSource("nyc-parks")], silent);
+    const first = await ingestFreeEvents(prisma, [fixtureSource(SOURCE)], silent);
+    const second = await ingestFreeEvents(prisma, [fixtureSource(SOURCE)], silent);
 
-    expect(first).toEqual([{ source: "nyc-parks", ok: true, upserted: 4, skipped: 6 }]);
+    expect(first).toEqual([{ source: SOURCE, ok: true, upserted: 4, skipped: 6 }]);
     expect(second).toEqual(first);
-    expect(await prisma.freeEvent.count()).toBe(4);
+    expect(await prisma.freeEvent.count({ where: mine })).toBe(4);
   });
 
   it("keeps a hidden row hidden on the next run", async () => {
-    await ingestFreeEvents(prisma, [fixtureSource("nyc-parks")], silent);
+    await ingestFreeEvents(prisma, [fixtureSource(SOURCE)], silent);
     await prisma.freeEvent.updateMany({
       where: { sourceId: "2319215" },
       data: { status: "hidden" },
     });
 
-    await ingestFreeEvents(prisma, [fixtureSource("nyc-parks")], silent);
+    await ingestFreeEvents(prisma, [fixtureSource(SOURCE)], silent);
 
-    const row = await prisma.freeEvent.findFirstOrThrow({ where: { sourceId: "2319215" } });
+    const row = await prisma.freeEvent.findFirstOrThrow({
+      where: { source: SOURCE, sourceId: "2319215" },
+    });
     expect(row.status).toBe("hidden");
   });
 
   it("hides a stored event once its listing says cancelled", async () => {
-    await ingestFreeEvents(prisma, [fixtureSource("nyc-parks")], silent);
+    await ingestFreeEvents(prisma, [fixtureSource(SOURCE)], silent);
     const cancelled = { ...parksFixture[0], title: "CANCELLED: Paint and Sip" };
 
-    await ingestFreeEvents(prisma, [fixtureSource("nyc-parks", [cancelled])], silent);
+    await ingestFreeEvents(prisma, [fixtureSource(SOURCE, [cancelled])], silent);
 
-    const row = await prisma.freeEvent.findFirstOrThrow({ where: { sourceId: "2319215" } });
+    const row = await prisma.freeEvent.findFirstOrThrow({
+      where: { source: SOURCE, sourceId: "2319215" },
+    });
     expect(row.status).toBe("hidden");
   });
 
   it("still ingests the other sources when one is down", async () => {
-    const outcomes = await ingestFreeEvents(
-      prisma,
-      [downSource, fixtureSource("nyc-parks")],
-      silent
-    );
+    const outcomes = await ingestFreeEvents(prisma, [downSource, fixtureSource(SOURCE)], silent);
 
     expect(outcomes).toEqual([
       { source: "down", ok: false, error: "answered 500" },
-      { source: "nyc-parks", ok: true, upserted: 4, skipped: 6 },
+      { source: SOURCE, ok: true, upserted: 4, skipped: 6 },
     ]);
-    expect(await prisma.freeEvent.count()).toBe(4);
+    expect(await prisma.freeEvent.count({ where: mine })).toBe(4);
   });
 });

@@ -7,6 +7,8 @@ import type { FastifyInstance } from "fastify";
 import { buildServer } from "../src/server.js";
 
 const HOUR = 3_600_000;
+// Other test files share the free_event table, so this file reads and clears only its own source.
+const SOURCE = "test-route";
 const at = (hoursFromNow: number) => new Date(Date.now() + hoursFromNow * HOUR);
 
 describe("GET /api/free-events", () => {
@@ -17,7 +19,7 @@ describe("GET /api/free-events", () => {
   });
 
   afterAll(async () => {
-    await server.db.freeEvent.deleteMany();
+    await server.db.freeEvent.deleteMany({ where: { source: SOURCE } });
     await server.close();
   });
 
@@ -30,7 +32,7 @@ describe("GET /api/free-events", () => {
   ) {
     await server.db.freeEvent.create({
       data: {
-        source: "test",
+        source: SOURCE,
         sourceId,
         title: sourceId,
         startsAt,
@@ -47,11 +49,13 @@ describe("GET /api/free-events", () => {
   async function titles(query = "") {
     const response = await server.inject({ method: "GET", url: `/api/free-events${query}` });
     expect(response.statusCode).toBe(200);
-    return (response.json() as { events: { title: string }[] }).events.map((e) => e.title);
+    return (response.json() as { events: { title: string; source: string }[] }).events
+      .filter((e) => e.source === SOURCE)
+      .map((e) => e.title);
   }
 
   beforeEach(async () => {
-    await server.db.freeEvent.deleteMany();
+    await server.db.freeEvent.deleteMany({ where: { source: SOURCE } });
     await seed("talk-tomorrow", "free-talk", at(24), at(26));
     await seed("hack-today", "hackathon", at(2), at(30));
     await seed("food-now", "free-food", at(-1), at(1));
@@ -76,7 +80,8 @@ describe("GET /api/free-events", () => {
 
   it("serves the fields a map pin needs", async () => {
     const response = await server.inject({ method: "GET", url: "/api/free-events?kind=hackathon" });
-    expect(response.json().events[0]).toMatchObject({
+    const events = (response.json() as { events: { source: string }[] }).events;
+    expect(events.find((e) => e.source === SOURCE)).toMatchObject({
       kind: "hackathon",
       lat: 40.7,
       lng: -73.9,
