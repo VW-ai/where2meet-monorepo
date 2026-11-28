@@ -1,0 +1,8 @@
+# Shows a Coming soon tile on /nyc until the event feed gives this theme a map.
+slug: free-food
+status: soon
+order: 5
+name: Free food
+line: Events with free food this week
+marker: pizza
+art: pizza

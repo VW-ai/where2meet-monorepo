@@ -24,6 +24,7 @@ import { isMainlandChinaTimeZone } from '@/shared/lib/map-provider';
 import type { MapProvider } from '@/shared/types/map';
 import { useUiVersionSwitch } from '@/features/meeting/hooks/useUiVersionSwitch';
 import { useUiVersion } from '@/features/meeting/model/ui-version-store';
+import { NycEntry } from './nyc-entry';
 import { PhoneCreate } from './phone-create';
 import { SiteFooter } from './site-footer';
 import { LANGUAGE_TAGS, LocaleProvider, defineMessages, localeFor } from '@/shared/lib/i18n';
@@ -357,6 +358,8 @@ export function LandingView({ children }: { children: ReactNode }) {
             <StoryPreview />
           </div>
         </div>
+
+        <NycEntry />
 
         {children}
       </main>

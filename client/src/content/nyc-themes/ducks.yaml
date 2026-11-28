@@ -1,0 +1,78 @@
+# A theme on /nyc. Places are Google place IDs; photos, ratings and addresses load live
+# from Google. Notes are ours and say only what a visitor can check on the map.
+slug: ducks
+status: live
+order: 1
+name: Duck spots
+line: Ponds and lakes to see ducks
+title: Duck spots in NYC
+description: Ponds and lakes across New York City where you can watch ducks with friends, on one map. Pick a spot and plan the meetup in Where2Meet.
+updated_at: 2026-11-28
+font: rounded
+marker: duck
+art: duck
+palette:
+  land: '#eef3e2'
+  built: '#e4ebd5'
+  water: '#9fd3cf'
+  park: '#bfdca8'
+  road: '#fbfdf5'
+  label: '#58716b'
+  ink: '#1f3b36'
+  muted: '#58716b'
+  soft: '#fff4d6'
+  accent: '#f5b82e'
+  accentInk: '#2b2104'
+  pin: '#f5b82e'
+  pinDetail: '#e8741f'
+  tile: '#9fd3cf'
+  tileInk: '#1f3b36'
+places:
+  - place_id: ChIJAxWOxp9ZwokRRBVw2iHi1iA
+    label: The Pond at Central Park
+    note: The small pond in Central Park's southeast corner, by Gapstow Bridge. The closest duck water to Midtown.
+    tags: [manhattan, central-park]
+  - place_id: ChIJzVmDbJNYwokR1_bKExR7BoY
+    label: Conservatory Water
+    note: The pond off Fifth Avenue at 72nd Street where people sail model boats.
+    tags: [manhattan, central-park]
+  - place_id: ChIJjQ6lHfpZwokRCGosmdj_ks4
+    label: The Lake
+    note: Central Park's big lake, crossed by Bow Bridge. Walk the shore from Bethesda Terrace.
+    tags: [manhattan, central-park]
+  - place_id: ChIJ2TsyCRlZwokR6jKHtCSbUc8
+    label: Turtle Pond
+    note: A pond below Belvedere Castle, so you can look down on the water from the castle or sit on the shore.
+    tags: [manhattan, central-park]
+  - place_id: ChIJyx4H3phYwokRRBz8hFnii1I
+    label: Jacqueline Kennedy Onassis Reservoir
+    note: The reservoir in the middle of Central Park, ringed by a running track with wide views of the water.
+    tags: [manhattan, central-park]
+  - place_id: ChIJ-TJG6xv2wokRLljxQvjItmQ
+    label: Harlem Meer
+    note: A quieter lake at Central Park's north end, at 110th Street, with a path around the whole shore.
+    tags: [manhattan, central-park]
+  - place_id: ChIJW_Z1_BZbwokRBNm66ZU3ew8
+    label: Prospect Park Lake
+    note: The large lake in Prospect Park's south half, with a path along its edge.
+    tags: [brooklyn]
+  - place_id: ChIJIU6hTeJnwokR_lRsunCzDAA
+    label: Jamaica Bay Wildlife Refuge
+    note: A wildlife refuge on Jamaica Bay, part of Gateway National Recreation Area, with ponds and trails. Bring binoculars and a free afternoon.
+    tags: [queens]
+  - place_id: ChIJR3k6akhgwokRrBg-7B-RWiM
+    label: Kissena Lake
+    note: A lake in Kissena Park in Flushing, with a loop path around it.
+    tags: [queens]
+  - place_id: ChIJT9zzaKjzwokRKMD6_OwongY
+    label: Van Cortlandt Lake
+    note: The lake in Van Cortlandt Park in the Bronx, near the park's golf course and trails.
+    tags: [bronx]
+  - place_id: ChIJVyxpXXtOwokRTOzLFbXy-II
+    label: Clove Lakes Park
+    note: A Staten Island park built around a chain of lakes, good for a long walk with stops by the water.
+    tags: [staten-island]
+  - place_id: ChIJjd5CmEJMwokR3q_qsj1h3Dk
+    label: Willowbrook Park
+    note: A Staten Island park with a lake and room for a picnic.
+    tags: [staten-island]

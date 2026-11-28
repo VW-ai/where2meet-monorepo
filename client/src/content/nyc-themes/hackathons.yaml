@@ -1,0 +1,8 @@
+# Shows a Coming soon tile on /nyc until the event feed gives this theme a map.
+slug: hackathons
+status: soon
+order: 4
+name: Hackathons
+line: This week's hackathons
+marker: laptop
+art: laptop
