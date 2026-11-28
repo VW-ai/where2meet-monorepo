@@ -9,6 +9,8 @@ import {
   type Catalog,
 } from '@/features/blog/lib/catalog';
 import { loadCatalog } from '@/features/blog/lib/source';
+import { loadLiveThemes } from '@/features/nyc-map/lib/source';
+import { NYC_PATH, themePath } from '@/features/nyc-map/model/themes';
 import { homeCities } from '@/features/landing/lib/home-cities';
 import { toAbsoluteUrl } from '@/lib/seo/metadata';
 import { SITE_CONFIG } from '@/lib/seo/metadata';
@@ -28,7 +30,7 @@ import { STATIC_PAGES } from '@/lib/seo/site-pages';
  * - They are discovered through shared links instead
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const catalog = await loadCatalog();
+  const [catalog, themes] = await Promise.all([loadCatalog(), loadLiveThemes()]);
   return [
     ...STATIC_PAGES.map((page) => ({
       url: page.path === '/' ? SITE_CONFIG.url : `${SITE_CONFIG.url}${page.path}`,
@@ -49,6 +51,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.7,
       images: pagePhotos(page).map((photo) => toAbsoluteUrl(photo.src)),
+    })),
+    ...(themes.length > 0
+      ? [
+          {
+            url: `${SITE_CONFIG.url}${NYC_PATH}`,
+            lastModified: themes
+              .map((theme) => theme.updatedAt)
+              .sort()
+              .at(-1)!,
+            changeFrequency: 'weekly' as const,
+            priority: 0.7,
+          },
+        ]
+      : []),
+    ...themes.map((theme) => ({
+      url: `${SITE_CONFIG.url}${themePath(theme)}`,
+      lastModified: theme.updatedAt,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
     })),
   ];
 }

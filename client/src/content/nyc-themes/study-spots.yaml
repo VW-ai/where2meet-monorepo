@@ -1,0 +1,79 @@
+# A theme on /nyc. Places are Google place IDs; photos, ratings and addresses load live
+# from Google. Notes are ours and say only what a visitor can check on the map.
+slug: study-spots
+status: live
+order: 3
+name: Study spots
+line: Libraries and cafes for working together
+title: Study spots in NYC for groups
+description: Libraries and cafes in New York City where friends can study or work together, on one map. Pick a spot and plan the session in Where2Meet.
+updated_at: 2026-11-28
+font: hand
+pattern: grid
+marker: cup
+art: notebook
+palette:
+  land: '#fbfbf8'
+  built: '#f1f2ee'
+  water: '#d9e4f2'
+  park: '#e3eddc'
+  road: '#dfe6f1'
+  label: '#5d6782'
+  ink: '#1d2a4a'
+  muted: '#5d6782'
+  soft: '#e9eefb'
+  accent: '#2a4fb8'
+  accentInk: '#ffffff'
+  pin: '#2a4fb8'
+  pinDetail: '#ffffff'
+  tile: '#fbfbf8'
+  tileInk: '#1d2a4a'
+places:
+  - place_id: ChIJuw6oHVZZwokRzYyh9VP9irE
+    label: Stavros Niarchos Foundation Library
+    note: The New York Public Library's big circulating branch on Fifth Avenue, with several floors of seats.
+    tags: [manhattan, library]
+  - place_id: ChIJicyj7JZZwokRagn5wfATxZ8
+    label: Jefferson Market Library
+    note: A library in a former Greenwich Village courthouse, with reading rooms under its tall windows.
+    tags: [manhattan, library]
+  - place_id: ChIJZ-sbLypawokRCB0zWUxZeXc
+    label: Seward Park Library
+    note: A Carnegie library on East Broadway in the Lower East Side, across from Seward Park.
+    tags: [manhattan, library]
+  - place_id: ChIJJ08I7Tz2wokRe5Z0jqyF3F0
+    label: The Hungarian Pastry Shop
+    note: A cafe on Amsterdam Avenue near Columbia, across from the Cathedral of St. John the Divine.
+    tags: [manhattan, cafe]
+  - place_id: ChIJjW5AuIFZwokRdNPH7jFGigM
+    label: Black Cat LES
+    note: A cafe on Rivington Street in the Lower East Side with tables for a few people.
+    tags: [manhattan, cafe]
+  - place_id: ChIJK0FlVPNZwokR2waVBj-VHko
+    label: Ariston Coffee Bar
+    note: A coffee bar on Fifth Avenue near 13th Street, a short walk from Union Square.
+    tags: [manhattan, cafe]
+  - place_id: ChIJ_abIqHtZwokRLWbw0G-lzu8
+    label: Café-Flor / Bar 21
+    note: A cafe on Eighth Avenue in Chelsea near 21st Street.
+    tags: [manhattan, cafe]
+  - place_id: ChIJzYGq1AlbwokR5rnEbWm1UxA
+    label: Brooklyn Public Library, Central
+    note: The main Brooklyn library on Grand Army Plaza, with large reading rooms next to Prospect Park.
+    tags: [brooklyn, library]
+  - place_id: ChIJ1c5cgEZZwokRqsuowj0OEAw
+    label: Brooklyn Public Library, Greenpoint
+    note: The Greenpoint branch on Norman Avenue, a neighborhood library a few blocks from McCarren Park.
+    tags: [brooklyn, library]
+  - place_id: ChIJi7flemFZwokRDpIJuxfOGek
+    label: Devoción
+    note: A large Williamsburg coffee shop on Grand Street.
+    tags: [brooklyn, cafe]
+  - place_id: ChIJzwb29t9gwokRQ6LyTD_bxIA
+    label: Queens Public Library at Central
+    note: Queens' main library on Merrick Boulevard in Jamaica.
+    tags: [queens, library]
+  - place_id: ChIJmbhj1oDzwokR5J-dJ0_RZLU
+    label: Bronx Library Center
+    note: The Bronx's largest public library, on Kingsbridge Road near Fordham.
+    tags: [bronx, library]

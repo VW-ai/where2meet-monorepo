@@ -1,0 +1,87 @@
+# A theme on /nyc. Places are Google place IDs; photos, ratings and addresses load live
+# from Google. Notes are ours and say only what a visitor can check on the map.
+slug: indoors
+status: live
+order: 2
+name: Indoors
+line: Museums, libraries and halls for bad weather
+title: Indoor places in NYC for rainy or cold days
+description: Museums, libraries, halls and markets in New York City where a group can spend a rainy or cold day inside, on one map. Plan the meetup in Where2Meet.
+updated_at: 2026-11-28
+font: serif
+marker: umbrella
+art: rain
+palette:
+  land: '#e9ecef'
+  built: '#dfe3e8'
+  water: '#9fb0c2'
+  park: '#cfd9d1'
+  road: '#f6f7f9'
+  label: '#5b6676'
+  ink: '#243042'
+  muted: '#5b6676'
+  soft: '#fbe9e3'
+  accent: '#d4563d'
+  accentInk: '#ffffff'
+  pin: '#d4563d'
+  pinDetail: '#ffffff'
+  tile: '#2b3647'
+  tileInk: '#f3f5f8'
+aside:
+  text: In freezing weather the city opens warming centers, and more of them during Code Blue alerts. Find the nearest one through
+  links:
+    - label: NYC 311
+      url: https://portal.311.nyc.gov/article/?kanumber=KA-03702
+places:
+  - place_id: ChIJCXoPsPRYwokRsV1MYnKBfaI
+    label: American Museum of Natural History
+    note: Halls of dinosaurs, gems and dioramas on Central Park West. Big enough for a whole rainy afternoon.
+    tags: [manhattan, museum]
+  - place_id: ChIJqaiomQBZwokRTHOaUG7fUTs
+    label: Stephen A. Schwarzman Building
+    note: The New York Public Library's main building on Fifth Avenue, with its reading rooms and free exhibitions.
+    tags: [manhattan, library]
+  - place_id: ChIJhRwB-yFawokRi0AhGH87UTc
+    label: Grand Central Terminal
+    note: Walk the main concourse, then find the food hall on the lower level. Easy to reach from most of the city.
+    tags: [manhattan, hall]
+  - place_id: ChIJw2lMFL9ZwokRosAtly52YX4
+    label: Chelsea Market
+    note: A long indoor food hall in an old factory. Everyone picks their own lunch and you meet back in the middle.
+    tags: [manhattan, food-hall]
+  - place_id: ChIJy8jTDBtawokRB9wNyxemSw8
+    label: Brookfield Place
+    note: A glass atrium on the Hudson with shops and a food hall, and river views without stepping outside.
+    tags: [manhattan, hall]
+  - place_id: ChIJ4f4VwT5bwokRwQ6hjfC-eTM
+    label: Oculus
+    note: The white hall at the World Trade Center, joined underground to the PATH and many subway lines.
+    tags: [manhattan, hall]
+  - place_id: ChIJK6bycAH0wokRrSnflfrnkZE
+    label: The Met Cloisters
+    note: The Met's medieval art in Fort Tryon Park, in rooms built from old European cloisters.
+    tags: [manhattan, museum]
+  - place_id: ChIJyTmcRApbwokR-oXJRqpVI8Y
+    label: Brooklyn Museum
+    note: One of the city's largest art museums, on Eastern Parkway next to the Botanic Garden.
+    tags: [brooklyn, museum]
+  - place_id: ChIJzYGq1AlbwokR5rnEbWm1UxA
+    label: Brooklyn Public Library, Central
+    note: The main Brooklyn library on Grand Army Plaza, with room to sit, read and stay warm.
+    tags: [brooklyn, library]
+  - place_id: ChIJBzJseMBawokRVfGOLobHpJc
+    label: Industry City
+    note: Old Sunset Park warehouses turned into shops and a food hall.
+    tags: [brooklyn, food-hall]
+  - place_id: ChIJAx_yUCVfwokRQ2xEBIWV21g
+    label: Museum of the Moving Image
+    note: A museum about film, TV and video games in Astoria, with screenings in its theaters.
+    tags: [queens, museum]
+  - place_id: ChIJmWMJBtBfwokR5qK7waLcgAM
+    label: Queens Museum
+    note: In Flushing Meadows Corona Park, home of the Panorama, a scale model of all five boroughs.
+    tags: [queens, museum]
+  - place_id: ChIJDbNgaTH0wokRRQPTw1E93GY
+    label: The Bronx Museum of the Arts
+    note: Contemporary art on the Grand Concourse, a short walk from Yankee Stadium.
+    tags: [bronx, museum]
