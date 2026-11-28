@@ -1,0 +1,13 @@
+# Railway config for the "free-events-cron" service: same image as the API, but it runs the
+# free events ingest once and exits. Point the service's config-as-code path at this file.
+# Railway cron runs in UTC: 11:00 UTC is 06:00 in New York in winter and 07:00 in summer.
+# The API service applies migrations on deploy, so this service does not.
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "node dist/jobs/ingest-free-events.js"
+cronSchedule = "0 11 * * *"
+restartPolicyType = "NEVER"

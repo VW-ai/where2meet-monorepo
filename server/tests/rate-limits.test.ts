@@ -34,6 +34,7 @@ const reverseGeocode: InjectOptions = { method: "GET", url: "/api/amap/reverse-g
 const photo: InjectOptions = { method: "GET", url: "/api/places/photo" };
 const login: InjectOptions = { method: "POST", url: "/api/auth/login", payload: {} };
 const register: InjectOptions = { method: "POST", url: "/api/auth/register", payload: {} };
+const freeEvents: InjectOptions = { method: "GET", url: "/api/free-events?kind=party" };
 const createEvent: InjectOptions = { method: "POST", url: "/api/events", payload: {} };
 
 describe("per-route rate limits", () => {
@@ -51,6 +52,11 @@ describe("per-route rate limits", () => {
   it("limits venue photos after 300 requests", async () => {
     const server = await limitedServer();
     expect(firstLimited(await statuses(server, photo, 301))).toBe(301);
+  });
+
+  it("limits the free events list after 60 requests", async () => {
+    const server = await limitedServer();
+    expect(firstLimited(await statuses(server, freeEvents, 61))).toBe(61);
   });
 
   it("limits login and register after 10 requests each", async () => {

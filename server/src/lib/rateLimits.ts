@@ -20,4 +20,9 @@ export const RATE_LIMITS = {
   auth: { rateLimit: { max: 10, timeWindow: "15 minutes" } },
   /** Meeting spam. A real organizer creates a handful a day. */
   eventCreate: { rateLimit: { max: 30, timeWindow: "1 hour" } },
+  /**
+   * The free events list reads only our database, but it is public and unauthenticated.
+   * A map page asks once per view or switch, so 60 a minute leaves room for a shared Wi-Fi.
+   */
+  freeEvents: { rateLimit: { max: 60, timeWindow: "1 minute" } },
 } as const;

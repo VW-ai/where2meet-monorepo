@@ -233,3 +233,28 @@ model UserEvent {
   @@index([eventId])
   @@map("user_event")
 }
+
+// FreeEvent - A free public NYC event copied daily from an outside listing for the /nyc maps.
+// The ingest job upserts on (source, source_id), so a rerun updates rows instead of adding them.
+// kind and status are checked by constraints in the migration, since one spelling is shared with the API.
+model FreeEvent {
+  id        String    @id @default(uuid()) @db.Uuid
+  source    String    @db.VarChar(32)
+  sourceId  String    @map("source_id") @db.VarChar(128)
+  title     String    @db.VarChar(255)
+  startsAt  DateTime  @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  venueName String?   @map("venue_name") @db.VarChar(255)
+  placeId   String?   @map("place_id") @db.VarChar(255)
+  lat       Decimal?  @db.Decimal(10, 7)
+  lng       Decimal?  @db.Decimal(10, 7)
+  kind      String    @db.VarChar(20) // 'free-food' | 'hackathon' | 'free-talk'
+  url       String    @db.VarChar(1024)
+  status    String    @default("live") @db.VarChar(10) // 'live' | 'hidden'
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@unique([source, sourceId])
+  @@index([kind, startsAt])
+  @@map("free_event")
+}
