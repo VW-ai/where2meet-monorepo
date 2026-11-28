@@ -41,6 +41,14 @@ async function upsertRow(db: PrismaClient, source: string, row: FreeEventRow): P
   });
 }
 
+/** Node's fetch reports only "fetch failed"; the cause says whether DNS, the connection or a timeout broke. */
+function describeError(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return String(err);
+  }
+  return err.cause instanceof Error ? `${err.message}: ${err.cause.message}` : err.message;
+}
+
 /**
  * Runs every source once.
  * @param db - Prisma client
@@ -59,7 +67,7 @@ export async function ingestFreeEvents(
     try {
       fetched = await source.fetchRows();
     } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
+      const error = describeError(err);
       log.error(
         { source: source.name, error },
         `ingest failed source=${source.name} error=${error}`
