@@ -2,6 +2,7 @@ import Markdown, { type Components } from 'react-markdown';
 import { layoutBody } from '@/features/blog/lib/body';
 import type { CuratedPlace } from '@/features/blog/lib/catalog';
 import type { CommonsImage } from '@/features/blog/lib/photos';
+import type { PlanSeed } from '@/features/landing/model/plan-seed';
 import { CuratedPlaces } from './curated-places';
 import { PhotoFigure } from './photo-figure';
 import { PlanLink } from './plan-cta';
@@ -60,11 +61,13 @@ export function MarkdownBody({
   images,
   places,
   placesTitle,
+  seed,
 }: {
   markdown: string;
   images: readonly CommonsImage[];
   places: readonly CuratedPlace[];
   placesTitle: string;
+  seed: PlanSeed;
 }) {
   return layoutBody(markdown, images, places.length > 0).map((block, index) => {
     if (block.kind === 'photo') {
@@ -79,13 +82,14 @@ export function MarkdownBody({
       );
     }
     if (block.kind === 'places') {
-      return <CuratedPlaces key={index} title={placesTitle} places={places} />;
+      return <CuratedPlaces key={index} title={placesTitle} places={places} seed={seed} />;
     }
     if (block.kind === 'plan') {
       return (
         <PlanLink
           key={index}
           label="Plan this with your group"
+          seed={seed}
           className="mx-auto my-8 max-w-[38rem]"
         />
       );

@@ -22,7 +22,7 @@ function outline(html: string) {
   const article = html.match(/<article>(.*)<\/article>/s)?.[1] ?? '';
   return [
     ...article.matchAll(
-      /<h([12])>(.*?)<\/h\1>|<figure><img alt="([^"]*)"[^>]*?src="([^"]+)"[^>]*\/><figcaption>(.*?)<\/figcaption><\/figure>|<section aria-labelledby="[^"]+"><h2 id="[^"]+">(.*?)<\/h2>|<a href="\/"><span><span>(.*?)<\/span>/gs
+      /<h([12])>(.*?)<\/h\1>|<figure><img alt="([^"]*)"[^>]*?src="([^"]+)"[^>]*\/><figcaption>(.*?)<\/figcaption><\/figure>|<section aria-labelledby="[^"]+"><h2 id="[^"]+">(.*?)<\/h2>|<a href="\/(?:\?[^"]*)?"><span><span>(.*?)<\/span>/gs
     ),
   ].map(([, level, heading, alt, src, caption, places, plan]) => {
     if (heading !== undefined) return `h${level} ${heading}`;
@@ -115,6 +115,20 @@ describe('BlogPageView', () => {
       'h2 How to do it in Where2Meet',
       'h2 Common questions',
       'h2 A quick checklist',
+    ]);
+  });
+
+  it('starts each plan link on a post from its occasion and slug, and a place card’s from its place', () => {
+    const plans = [
+      ...render('how-to-plan-a-team-welcome-lunch').matchAll(/<a href="(\/\?[^"]*)"/g),
+    ].map(([, href]) => href);
+    const post = '&src=how-to-plan-a-team-welcome-lunch';
+    expect(plans).toEqual([
+      `/?title=Team+welcome&place=ChIJvbGg56pZwokRp_E3JbivnLQ${post}`,
+      `/?title=Team+welcome&place=ChIJC4bmgFVYwokRu5RK8aA7ikY${post}`,
+      `/?title=Team+welcome&place=ChIJw2lMFL9ZwokRosAtly52YX4${post}`,
+      `/?title=Team+welcome${post}`,
+      `/?title=Team+welcome${post}`,
     ]);
   });
 

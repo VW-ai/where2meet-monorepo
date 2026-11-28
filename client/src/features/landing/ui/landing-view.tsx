@@ -18,6 +18,8 @@ import { usePortalStore } from '@/features/portal/model/portal-store';
 import { browserTimeZone } from '@/shared/lib/meeting-times';
 import { missingDetailsMessage } from '@/features/landing/lib/meeting-draft';
 import { HOME_OCCASIONS } from '@/features/landing/lib/occasions';
+import { readPlanSeed, type PlanSeed } from '@/features/landing/model/plan-seed';
+import { voteForSeedPlace } from '@/features/landing/model/seed-vote';
 import { isMainlandChinaTimeZone } from '@/shared/lib/map-provider';
 import type { MapProvider } from '@/shared/types/map';
 import { useUiVersionSwitch } from '@/features/meeting/hooks/useUiVersionSwitch';
@@ -52,6 +54,7 @@ export function LandingView({ children }: { children: ReactNode }) {
   const [createError, setCreateError] = useState<string | null>(null);
   const [triedToCreate, setTriedToCreate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [seed, setSeed] = useState<PlanSeed>({});
   // Browsers in mainland China get Amap, and the form and meeting are in Chinese
   const locale = localeFor(mapProvider);
   const t = messages[locale];
@@ -70,10 +73,15 @@ export function LandingView({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Browsers in mainland China start on Amap, where Google Maps doesn't load.
-  // Read after mount: the server render can't know the visitor's time zone.
+  // Browsers in mainland China start on Amap, where Google Maps doesn't load. A link
+  // from the blog brings a draft to start from. Read after mount: the server render
+  // can't know the visitor's time zone, and the home page renders without its query.
   useEffect(() => {
     if (isMainlandChinaTimeZone(browserTimeZone())) setMapProvider('amap');
+    const next = readPlanSeed(new URLSearchParams(window.location.search));
+    setSeed(next);
+    if (next.title) setTitle(next.title);
+    if (next.time) setMeetingTime(next.time);
   }, []);
 
   const handleLocationChange = (nextAddress: string, nextPlaceId: string) => {
@@ -131,6 +139,7 @@ export function LandingView({ children }: { children: ReactNode }) {
         logo ? { left: logo.left, top: logo.top, width: logo.width, height: logo.height } : null
       );
     let hasPin = false;
+    let seededPlace: boolean | undefined;
 
     try {
       // Calls backend directly, returns event with UUID from backend
@@ -167,6 +176,14 @@ export function LandingView({ children }: { children: ReactNode }) {
           event.organizerParticipantId,
           event.participantToken
         );
+        if (seed.placeId) {
+          seededPlace = await voteForSeedPlace(
+            event.id,
+            event.organizerParticipantId,
+            event.participantToken,
+            seed.placeId
+          );
+        }
 
         // Auto-claim event if user is authenticated
         if (isAuthenticated) {
@@ -206,7 +223,7 @@ export function LandingView({ children }: { children: ReactNode }) {
       }
 
       // Track event creation in analytics
-      analyticsEvents.createEvent(event.id);
+      analyticsEvents.createEvent(event.id, { src: seed.src, seededPlace });
 
       usePortalStore.getState().created(event.id, hasPin);
       router.push(`/meet/${event.id}`);
